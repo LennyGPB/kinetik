@@ -1,26 +1,396 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Le thème est piloté par l'attribut data-theme sur <html> (voir components/theme). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ───────────── Tokens ───────────── */
+
+/*
+ * Identité : noir profond + un seul violet, en aplat (pas de dégradé).
+ * Gris neutres (sans teinte bleue) ; le violet est réservé aux actions et à l'état actif.
+ * Les anciennes couleurs secondaires (--accent-2/3) pointent sur le violet : les dégradés hérités deviennent unis.
+ */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-subtle: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-3: #e4e4e7;
+  --line: rgb(9 9 11 / 0.08);
+  --line-strong: rgb(9 9 11 / 0.15);
+  --fg: #09090b;
+  --muted: #52525b;
+  --subtle: #71717a;
+
+  --accent: #7c3aed;
+  --accent-strong: #6d28d9;
+  --accent-text: #6d28d9;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(124 58 237 / 0.08);
+  --accent-glow: rgb(124 58 237 / 0.22);
+  --accent-2: var(--accent);
+  --accent-3: var(--accent);
+
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+
+  --glass: rgb(255 255 255 / 0.8);
+  --shadow-color: 240 6% 10%;
+  --grid-line: rgb(9 9 11 / 0.045);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --bg-subtle: #0a0a0a;
+  --surface: #111111;
+  --surface-2: #191919;
+  --surface-3: #242424;
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.14);
+  --fg: #fafafa;
+  --muted: #a1a1aa;
+  --subtle: #71717a;
+
+  --accent: #8b5cf6;
+  --accent-strong: #7c3aed;
+  --accent-text: #a78bfa;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(139 92 246 / 0.14);
+  --accent-glow: rgb(139 92 246 / 0.3);
+  --accent-2: var(--accent);
+  --accent-3: var(--accent);
+
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+
+  --glass: rgb(10 10 10 / 0.72);
+  --shadow-color: 0 0% 0%;
+  --grid-line: rgb(255 255 255 / 0.04);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-text: var(--accent-text);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-glass: var(--glass);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Interface : Poppins partout (textes et titres) */
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  /* Grands titres uniquement (h1 de page, accroches) — jamais pour les boutons, menus ou textes */
+  --font-heading: var(--font-unbounded), var(--font-poppins), ui-sans-serif, sans-serif;
+  /* Mots mis en valeur dans les grands titres : Poppins Thin italique */
+  --font-thin-italic: var(--font-poppins-thin), var(--font-poppins), ui-sans-serif, sans-serif;
+  /* Aperçus des templates : typo « display » des vidéos (Bricolage), indépendante de l'interface */
+  --font-video: var(--font-bricolage), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-condensed: var(--font-anton), Impact, sans-serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --shadow-soft: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 8px 24px -8px hsl(var(--shadow-color) / 0.12);
+  --shadow-lift: 0 2px 4px hsl(var(--shadow-color) / 0.06), 0 24px 48px -16px hsl(var(--shadow-color) / 0.22);
+  --shadow-glow: 0 0 0 1px rgb(139 92 246 / 0.35), 0 8px 32px -6px var(--accent-glow);
+
+  --animate-drift: drift 14s ease-in-out infinite alternate;
+  --animate-drift-slow: drift 22s ease-in-out infinite alternate-reverse;
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-spin-slow: spin 18s linear infinite;
+  --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-beat: beat 1.1s ease-in-out infinite;
+  --animate-sweep: sweep 3.2s var(--ease-out-expo) infinite;
+  /* Aperçus des templates (components/media/video-placeholder.tsx) */
+  --animate-twinkle: twinkle 3s ease-in-out infinite;
+  --animate-scroll-up: scroll-up 30s linear infinite;
+  --animate-sway: sway 9s ease-in-out infinite;
+  --animate-caret: caret 1s steps(1) infinite;
+  --animate-draw: draw 3s var(--ease-out-expo) forwards;
+
+  @keyframes drift {
+    0% { transform: translate3d(-12%, -8%, 0) scale(1); }
+    50% { transform: translate3d(10%, 6%, 0) scale(1.15); }
+    100% { transform: translate3d(-4%, 12%, 0) scale(0.95); }
+  }
+  @keyframes marquee {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-50%, 0, 0); }
+  }
+  @keyframes shimmer {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, -10px, 0); }
+  }
+  @keyframes beat {
+    0%, 100% { transform: scaleY(0.3); }
+    50% { transform: scaleY(1); }
+  }
+  @keyframes glitch {
+    0%, 86%, 100% { transform: translate3d(0, 0, 0); }
+    88% { transform: translate3d(-4%, 1%, 0); }
+    90% { transform: translate3d(3%, -2%, 0); }
+    92% { transform: translate3d(-2%, 0, 0); }
+    94% { transform: translate3d(5%, 1%, 0); }
+  }
+  @keyframes ring {
+    0% { transform: scale(0.2); opacity: 0; }
+    30% { opacity: 1; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  @keyframes rise {
+    0%, 100% { transform: translate3d(0, 12%, 0); }
+    50% { transform: translate3d(0, -12%, 0); }
+  }
+  @keyframes playhead {
+    from { transform: translateX(0); }
+    to { transform: translateX(100%); }
+  }
+  @keyframes progress {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  @keyframes scan {
+    from { transform: translate3d(0, -100%, 0); }
+    to { transform: translate3d(0, 100%, 0); }
+  }
+  @keyframes sweep {
+    0% { transform: translateX(-110%); }
+    60%, 100% { transform: translateX(110%); }
+  }
+  @keyframes twinkle {
+    0%, 100% { transform: scale(0) rotate(0deg); }
+    50% { transform: scale(1) rotate(45deg); }
+  }
+  @keyframes scroll-up {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(0, -50%, 0); }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+  }
+  @keyframes caret {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  @keyframes draw {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ───────────── Base ───────────── */
+
+.capture-loading-scan {
+  animation: capture-loading-scan 2.4s ease-in-out infinite both;
+}
+
+.capture-loading-spinner {
+  animation: capture-loading-spin 0.85s linear infinite;
+}
+
+.capture-loading-icon {
+  animation: capture-loading-breathe 1.6s ease-in-out infinite;
+}
+
+.capture-loading-panel {
+  animation: capture-loading-panel 2.4s ease-in-out infinite;
+}
+
+.capture-loading-card {
+  animation: capture-loading-card 2.4s ease-in-out infinite;
+}
+
+@keyframes capture-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes capture-loading-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+@keyframes capture-loading-panel {
+  0%, 100% { border-color: var(--accent); background-color: var(--accent-soft); }
+  50% { border-color: var(--accent-text); background-color: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+}
+
+@keyframes capture-loading-card {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes capture-loading-scan {
+  0% { transform: translateY(-110%); opacity: 0; }
+  15% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(310%); opacity: 0; }
+}
+
+@layer base {
+  button:not(:disabled):not([aria-disabled="true"]),
+  [role="button"]:not([aria-disabled="true"]),
+  input:is([type="button"], [type="submit"], [type="reset"]):not(:disabled),
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-fg);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  h1 {
+    font-family: var(--font-heading);
+  }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  [data-theme] body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+/* ───────────── Utilitaires ───────────── */
+
+@utility glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+}
+
+/* Anciennement des dégradés : l'identité est désormais un violet uni */
+@utility text-gradient {
+  color: var(--accent-text);
+}
+
+@utility bg-accent-gradient {
+  background-color: var(--accent);
+}
+
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+@utility mask-fade-b {
+  mask-image: linear-gradient(to bottom, black 55%, transparent);
+}
+
+@utility mask-fade-x {
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Bordure dégradée fine (cartes mises en avant) */
+@utility border-gradient {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(var(--accent), var(--accent)) border-box;
+}
+
+.platform-marquee-track {
+  animation: platform-scroll 20s linear infinite;
+}
+
+@keyframes platform-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Keep the explicitly requested platform ticker active. */
+  .platform-marquee-track {
+    animation-duration: 20s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  /* Keep the explicitly requested loading feedback visible. */
+  .capture-loading-spinner {
+    animation-duration: 0.85s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  .capture-loading-icon {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  .capture-loading-panel,
+  .capture-loading-card,
+  .capture-loading-scan {
+    animation-duration: 2.4s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
 }

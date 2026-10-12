@@ -1,0 +1,44 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { Editor } from "@/components/editor/editor";
+import { getPlan } from "@/config/pricing";
+import { requireUser } from "@/lib/auth/dal";
+import { getCreditBalance } from "@/lib/credits/ledger";
+import { t } from "@/lib/i18n";
+import { getEditorProject } from "@/lib/projects/queries";
+
+export const metadata: Metadata = { title: t.app.editor.title };
+
+async function EditorLoader({ params }: { params: PageProps<"/project/[id]">["params"] }) {
+  const { id } = await params;
+  const user = await requireUser();
+  const [project, balance] = await Promise.all([getEditorProject(user.id, id), getCreditBalance(user.id)]);
+  if (!project) notFound();
+
+  const { watermark, maxQuality } = getPlan(user.plan);
+  // `key` : remonte l'éditeur quand la génération se termine (nouvelles versions côté serveur)
+  return <Editor key={`${project.status}-${project.versions.length}`} project={project} initialBalance={balance.total} plan={{ watermark, maxQuality }} />;
+}
+
+function EditorSkeleton() {
+  return (
+    <div className="flex h-dvh animate-pulse flex-col" aria-busy="true">
+      <div className="h-14 border-b border-line" />
+      <div className="flex flex-1 flex-col lg:flex-row">
+        <div className="flex flex-1 items-center justify-center bg-bg-subtle p-8">
+          <div className="aspect-video w-full max-w-3xl rounded-3xl bg-surface-2" />
+        </div>
+        <div className="h-72 border-t border-line lg:h-auto lg:w-[400px] lg:border-t-0 lg:border-l" />
+      </div>
+    </div>
+  );
+}
+
+export default function ProjectPage({ params }: PageProps<"/project/[id]">) {
+  return (
+    <Suspense fallback={<EditorSkeleton />}>
+      <EditorLoader params={params} />
+    </Suspense>
+  );
+}

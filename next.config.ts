@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
     agentFeedback: true,
   },
   cacheComponents: true,
+  serverExternalPackages: ["puppeteer-core", "@sparticuz/chromium"],
+  outputFileTracingIncludes: {
+    "/api/capture": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {

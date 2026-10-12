@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# prisma
+/lib/generated/prisma
+*.db
+*.db-journal
+!.env.example
+
+# fichiers uploadés en local (driver de stockage dev)
+/storage
+
+# rendus Remotion locaux
+/out

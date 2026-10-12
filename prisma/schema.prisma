@@ -1,0 +1,286 @@
+// Schéma Kinetik.
+// Base Postgres (Neon).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── Auth ─────────────────────────
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  /// null pour les comptes créés uniquement via OAuth (Google / Discord)
+  passwordHash String?
+  emailVerified DateTime?
+  image        String?
+  plan         Plan      @default(FREE)
+  /// Date de renouvellement de l'abonnement (expiration des crédits d'abonnement)
+  planRenewsAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  accounts           Account[]
+  sessions           Session[]
+  brandKits          BrandKit[]
+  projects           Project[]
+  creditTransactions CreditTransaction[]
+}
+
+/// Comptes OAuth liés (Google, Discord…). Prévu pour plus tard.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String // "google" | "discord"
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         Int?
+  tokenType         String?
+  scope             String?
+  idToken           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+/// Sessions serveur. Le cookie contient un token aléatoire, la base n'en stocke que le hash SHA-256.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ───────────────────────── Marque ─────────────────────────
+
+model BrandKit {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String   @default("Ma marque")
+  /// Liste de couleurs hex, ex. ["#7C3AED", "#0EA5E9"]
+  colors     Json     @default("[]")
+  headingFont String?
+  bodyFont   String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assets Asset[]
+
+  @@index([userId])
+}
+
+// ───────────────────────── Projets ─────────────────────────
+
+enum ProjectStatus {
+  DRAFT
+  GENERATING
+  READY
+  FAILED
+}
+
+enum VideoFormat {
+  LANDSCAPE // 16:9
+  PORTRAIT // 9:16
+  SQUARE // 1:1
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  userId      String
+  name        String
+  appName     String
+  status      ProjectStatus @default(DRAFT)
+  format      VideoFormat   @default(LANDSCAPE)
+  /// Durée en secondes (15 / 30 / 45 / 60)
+  duration    Int           @default(30)
+  /// Identifiant du style (voir config/styles.ts) — null si images de référence
+  styleId     String?
+  /// Couleurs choisies pour ce projet
+  colors      Json          @default("[]")
+  /// Piste de la bibliothèque, ou null si musique uploadée (voir Asset MUSIC)
+  musicTrackId String?
+  brief       String?
+  websiteUrl  String?
+  /// Jeton du lien de partage public (/share/<token>) ; null = partage désactivé
+  shareToken  String?       @unique
+  /// Projet d'origine quand ce projet est une déclinaison (autre format, version courte)
+  sourceProjectId String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions ProjectVersion[]
+  messages ChatMessage[]
+  assets   Asset[]
+  renders  Render[]
+
+  @@index([userId, updatedAt])
+}
+
+model ProjectVersion {
+  id        String   @id @default(cuid())
+  projectId String
+  number    Int
+  /// Description des scènes produite par l'IA (timeline, animations, textes…)
+  scenes    Json
+  /// Résumé lisible de la modification
+  label     String
+  /// Message du chat à l'origine de cette version (null pour le premier jet)
+  messageId String?  @unique
+  createdAt DateTime @default(now())
+
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  message ChatMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, number])
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  projectId String
+  role      ChatRole
+  content   String
+  createdAt DateTime @default(now())
+
+  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version ProjectVersion?
+
+  @@index([projectId, createdAt])
+}
+
+enum AssetType {
+  LOGO
+  SCREEN
+  REFERENCE
+  MUSIC
+}
+
+model Asset {
+  id         String    @id @default(cuid())
+  type       AssetType
+  /// URL de stockage (Cloudflare R2 plus tard)
+  url        String
+  fileName   String
+  mimeType   String?
+  sizeBytes  Int?
+  /// Images : dimensions en px (zoom / découpe précis sur un screen)
+  width      Int?
+  height     Int?
+  /// Musique : tempo détecté à l'upload et position du premier temps (secondes)
+  bpm        Float?
+  beatOffset Float?
+  position   Int       @default(0)
+  projectId  String?
+  brandKitId String?
+  createdAt  DateTime  @default(now())
+
+  project  Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brandKit BrandKit? @relation(fields: [brandKitId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([brandKitId])
+}
+
+enum RenderStatus {
+  PENDING
+  RENDERING
+  DONE
+  FAILED
+}
+
+enum RenderQuality {
+  HD // 1080p
+  UHD // 4K
+}
+
+model Render {
+  id          String        @id @default(cuid())
+  projectId   String
+  versionId   String?
+  status      RenderStatus  @default(PENDING)
+  /// 0 → 100
+  progress    Int           @default(0)
+  format      VideoFormat
+  quality     RenderQuality @default(HD)
+  watermark   Boolean       @default(false)
+  url         String?
+  /// Remotion Lambda : identifiant du rendu et bucket S3 (null en mode simulé)
+  lambdaRenderId String?
+  bucketName  String?
+  /// Clé S3 du MP4 final (l'URL de téléchargement est signée à la demande)
+  outputKey   String?
+  creditCost  Int
+  error       String?
+  createdAt   DateTime      @default(now())
+  completedAt DateTime?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// ───────────────────────── Crédits (ledger) ─────────────────────────
+
+enum CreditTransactionType {
+  SIGNUP_BONUS
+  GENERATION
+  EDIT
+  EXPORT
+  PURCHASE
+  SUBSCRIPTION
+  REFUND
+  EXPIRATION
+}
+
+enum CreditSource {
+  /// Crédits d'abonnement : expirent au renouvellement
+  SUBSCRIPTION
+  /// Crédits de packs (et bonus) : n'expirent pas
+  PACK
+}
+
+/// Ledger : chaque mouvement est une ligne (+ crédit, − débit). Le solde est la somme.
+model CreditTransaction {
+  id          String                @id @default(cuid())
+  userId      String
+  amount      Int
+  type        CreditTransactionType
+  source      CreditSource          @default(PACK)
+  description String
+  /// Référence métier : id de projet, de render, de paiement Stripe…
+  reference   String?
+  expiresAt   DateTime?
+  createdAt   DateTime              @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

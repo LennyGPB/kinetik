@@ -6,21 +6,57 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "typecheck": "tsc --noEmit",
+    "video:studio": "remotion studio remotion/index.ts",
+    "video:render": "remotion render remotion/index.ts Kinetik out/kinetik.mp4",
+    "video:deploy": "remotion lambda sites create remotion/index.ts --site-name=kinetik",
+    "video:deploy-function": "remotion lambda functions deploy --memory=3008 --disk=10240 --timeout=240"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "@remotion/google-fonts": "4.0.534",
+    "@remotion/lambda": "4.0.534",
+    "@remotion/media": "4.0.534",
+    "@remotion/player": "4.0.534",
+    "@sparticuz/chromium": "^153.0.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.52.0",
+    "motion": "^14.0.0",
     "next": "16.4.0",
+    "puppeteer-core": "^25.13.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "remotion": "4.0.534",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@remotion/cli": "4.0.534",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^18.0.6",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "prisma": "^7.10.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.10.0": true,
+    "better-sqlite3@12.11.1": true,
+    "esbuild@0.28.2": true,
+    "prisma@7.10.0": true
   }
 }

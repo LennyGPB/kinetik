@@ -1,0 +1,58 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { useComingSoon } from "@/components/ui/toaster";
+import { OAUTH_PROVIDERS, oauthStartUrl, type OAuthProviderId } from "@/lib/auth/providers";
+import { t } from "@/lib/i18n";
+
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z" />
+      <path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.94l3.66-2.84Z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A10.96 10.96 0 0 0 12 1 11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z" />
+    </svg>
+  );
+}
+
+function DiscordIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="#5865F2"
+        d="M20.32 4.37A19.8 19.8 0 0 0 15.4 2.85a13.7 13.7 0 0 0-.63 1.29 18.4 18.4 0 0 0-5.53 0 12.6 12.6 0 0 0-.64-1.29 19.7 19.7 0 0 0-4.93 1.52C.53 9.05-.32 13.6.1 18.1a19.9 19.9 0 0 0 6.04 3.05c.49-.66.92-1.36 1.3-2.1a12.9 12.9 0 0 1-2.05-.98c.17-.13.34-.26.5-.4a14.2 14.2 0 0 0 12.22 0c.16.14.33.27.5.4-.65.39-1.34.72-2.05.98.37.74.81 1.44 1.3 2.1a19.8 19.8 0 0 0 6.04-3.05c.5-5.2-.84-9.7-3.58-13.73ZM8.02 15.33c-1.18 0-2.16-1.08-2.16-2.42 0-1.33.96-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.34-.96 2.42-2.16 2.42Zm7.97 0c-1.18 0-2.16-1.08-2.16-2.42 0-1.33.96-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.34-.95 2.42-2.16 2.42Z"
+      />
+    </svg>
+  );
+}
+
+const ICONS: Record<OAuthProviderId, () => React.ReactElement> = { google: GoogleIcon, discord: DiscordIcon };
+const LABELS: Record<OAuthProviderId, string> = { google: t.auth.google, discord: t.auth.discord };
+
+export function OAuthButtons({ redirectTo }: { redirectTo?: string }) {
+  const comingSoon = useComingSoon();
+
+  return (
+    <div className="grid gap-2.5 sm:grid-cols-2">
+      {OAUTH_PROVIDERS.map((provider) => {
+        const Icon = ICONS[provider.id];
+        return (
+          <Button
+            key={provider.id}
+            variant="outline"
+            size="lg"
+            className="w-full [&_svg]:size-[18px]"
+            onClick={() => {
+              if (provider.enabled) window.location.href = oauthStartUrl(provider.id, redirectTo);
+              else comingSoon(`${provider.name}, ${t.common.comingSoon.toLowerCase()}`);
+            }}
+          >
+            <Icon />
+            {LABELS[provider.id]}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}

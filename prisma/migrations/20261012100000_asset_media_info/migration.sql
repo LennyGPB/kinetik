@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "Asset" ADD COLUMN     "beatOffset" DOUBLE PRECISION,
+ADD COLUMN     "bpm" DOUBLE PRECISION,
+ADD COLUMN     "height" INTEGER,
+ADD COLUMN     "width" INTEGER;
+
