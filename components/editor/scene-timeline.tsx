@@ -172,7 +172,7 @@ export function SceneTimeline({
             if (ev.key === "ArrowLeft") onSeek(Math.max(0, frame - FPS));
           },
         })}
-        className={cn("relative flex h-9 touch-none items-center gap-0.5", !editable && "cursor-pointer")}
+        className={cn("relative flex h-9 touch-none items-center gap-0.5 max-lg:h-14", !editable && "cursor-pointer")}
       >
         {timeline.map(({ scene, duration }) => {
           const selected = editable && scene.id === selectedId;
@@ -216,7 +216,7 @@ export function SceneTimeline({
                   : undefined
               }
               className={cn(
-                "group/tl relative h-7 min-w-3 overflow-visible rounded-md bg-gradient-to-r transition-[opacity,box-shadow]",
+                "group/tl relative h-7 min-w-3 overflow-visible rounded-md max-lg:h-12 max-lg:rounded-lg bg-gradient-to-r transition-[opacity,box-shadow]",
                 SEGMENT_COLORS[scene.kind],
                 editable && "cursor-grab outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing",
                 selected && "ring-2 ring-fg ring-offset-1 ring-offset-bg-subtle",
@@ -261,7 +261,7 @@ export function SceneTimeline({
                     (selected || resizing) && "opacity-100",
                   )}
                 >
-                  <span className="h-5 w-1 rounded-full bg-white shadow-[0_0_0_1px_rgb(0_0_0/0.35)]" />
+                  <span className="h-5 w-1 rounded-full bg-white max-lg:h-8 shadow-[0_0_0_1px_rgb(0_0_0/0.35)]" />
                 </span>
               )}
               {resizing && (

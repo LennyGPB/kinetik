@@ -982,6 +982,9 @@
         "screensNone": "Add screenshots in Media to select them",
         "transition": "Entrance transition",
         "transitionShort": "Transition",
+        "sceneSheet": "Edit scene",
+        "durationLabel": "Duration",
+        "advancedSection": "Advanced settings",
         "transitions": {
           "fade": "Fade",
           "slide": "Slide",

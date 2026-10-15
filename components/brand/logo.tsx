@@ -20,7 +20,8 @@ export function Logo({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <LogoMark />
-      <span className="font-display text-[19px] font-bold tracking-[-0.04em]">{"Kinetik"}</span>
+      {/* Poppins dessine ses capitales haut dans la boîte (et « Kinetik » n'a pas de jambage) : on recentre optiquement sur le symbole */}
+      <span className="translate-y-[0.15em] font-display text-[19px] font-bold tracking-[-0.04em]">{"Kinetik"}</span>
     </span>
   );
 }

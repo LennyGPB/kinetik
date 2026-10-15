@@ -50,13 +50,17 @@ export function SiteHeader() {
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4">
       <div
         className={cn(
-          "mx-auto flex h-14 max-w-7xl items-center justify-between rounded-full border px-3 pl-4 transition-[background-color,border-color,box-shadow] duration-300 sm:px-4 sm:pl-5",
+          // Desktop : grille 1fr / auto / 1fr pour centrer la navigation sur la page, quelle que soit la largeur des côtés
+          "mx-auto flex h-14 max-w-7xl items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr] rounded-full border px-3 pl-4 transition-[background-color,border-color,box-shadow] duration-300 sm:px-4 sm:pl-5",
           scrolled || open ? "glass border-line shadow-[var(--shadow-soft)]" : "border-transparent",
         )}
       >
-        <Link href="/" aria-label={t.a11y.home} className="rounded-full" onClick={() => setOpen(false)}>
-          <Logo />
-        </Link>
+        <div className="flex items-center gap-3 justify-self-start sm:gap-4">
+          <Link href="/" aria-label={t.a11y.home} className="rounded-full" onClick={() => setOpen(false)}>
+            <Logo />
+          </Link>
+          <div className="flex items-center gap-2"><LanguageToggle /><ThemeToggle /></div>
+        </div>
 
         <nav aria-label={t.a11y.mainNav} className="hidden lg:block">
           <ul className="flex items-center gap-1">
@@ -70,8 +74,7 @@ export function SiteHeader() {
           </ul>
         </nav>
 
-        <div className="flex items-center gap-2">
-          <LanguageToggle /><ThemeToggle />
+        <div className="flex items-center gap-2 justify-self-end">
           <Link href="/login" className={buttonVariants({ variant: "ghost", size: "sm", className: "hidden sm:inline-flex" })}>
             {t.common.login}
           </Link>

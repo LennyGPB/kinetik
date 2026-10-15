@@ -59,7 +59,6 @@ export function Hero() {
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
         <div className="absolute inset-0 bg-grid mask-fade-b opacity-70" />
         <div className="absolute top-[-20%] left-1/2 h-[720px] w-[1100px] max-w-[160vw] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,var(--accent-glow),transparent)] opacity-80" />
-        <div className="absolute top-[10%] left-[8%] h-72 w-72 rounded-full bg-[radial-gradient(closest-side,rgb(217_70_239/0.22),transparent)]" />
       </div>
 
       <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
@@ -118,7 +117,7 @@ export function Hero() {
         >
           <div className="relative overflow-hidden rounded-[1rem] sm:rounded-[1.35rem]">
             <video
-              src={t.locale === "en" ? "/medias/kinetik_landscape2.mp4" : "/medias/kinetik-16x9.mp4"}
+              src={t.locale === "en" ? "/medias/kinetik_landscape2.mp4" : "/medias/kinetik-16x9_fr.mp4"}
               autoPlay
               muted
               loop
@@ -148,7 +147,7 @@ export function Hero() {
           className="absolute -bottom-16 -left-1 w-[22%] max-w-[220px] sm:-bottom-8 sm:w-[26%] rounded-2xl border border-line-strong bg-surface p-1 shadow-[var(--shadow-lift)] sm:-left-10 sm:rounded-3xl sm:p-1.5 lg:-left-16"
         >
           <video
-            src={t.locale === "en" ? "/medias/kinetik_vertical2.mp4" : "/medias/kinetik-9x16.mp4"}
+            src={t.locale === "en" ? "/medias/kinetik_vertical2.mp4" : "/medias/kinetik-9x16_fr.mp4"}
             autoPlay
             muted
             loop
@@ -168,7 +167,7 @@ export function Hero() {
           className="absolute -right-1 -bottom-20 w-[26%] max-w-[260px] sm:-bottom-12 sm:w-[30%] rounded-2xl border border-line-strong bg-surface p-1 shadow-[var(--shadow-lift)] sm:-right-10 sm:rounded-3xl sm:p-1.5 lg:-right-16"
         >
           <video
-            src={t.locale === "en" ? "/medias/kinetik_square2.mp4" : "/medias/kinetik-1x1.mp4"}
+            src={t.locale === "en" ? "/medias/kinetik_square2.mp4" : "/medias/kinetik-1x1_fr.mp4"}
             autoPlay
             muted
             loop

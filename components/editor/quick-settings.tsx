@@ -13,6 +13,7 @@ import { currentSettings, type QuickSetting } from "@/lib/projects/settings";
 import { cn } from "@/lib/utils";
 import { defaultLogoLayout } from "@/config/recipes";
 import type { VideoProps } from "@/remotion/props";
+import { Dialog } from "@/components/ui/dialog";
 import { LogoLayoutPicker } from "./logo-layout-picker";
 
 type RowId = "animation" | "fonts" | "layout" | "count" | "logo" | "logoBackground";
@@ -53,6 +54,9 @@ export function QuickSettings({
   // null = pas encore touché : ouvert sur desktop, replié sur mobile (place limitée sous l'aperçu)
   const [open, setOpen] = useState<boolean | null>(initiallyOpen ? true : null);
   const [row, setRow] = useState<RowId | null>(null);
+  // Mobile : les réglages s'ouvrent dans une feuille (sauf déjà affichés dans une modale, ex. réglages du logo)
+  const sheetMode = !initiallyOpen;
+  const [sheet, setSheet] = useState(false);
   const id = useId();
   const scene = graph.scenes.find((item) => item.id === sceneId);
   const current = currentSettings(scene ? { ...graph, ...scene, scenes: [scene] } : graph);
@@ -60,39 +64,18 @@ export function QuickSettings({
     && !["hero", "split", "bento"].includes(current.screensLayout ?? recipe.screens)
     && !(scene && sceneFocuses(scene).length)
     && !scene?.screens?.length;
+  const title = scene ? t.copy["419a7e80c9a5"] : s.title;
   const modified = [current.titleAnimation, current.fonts, current.screensLayout, current.screenCount, current.logoLayout, current.logoBackground !== null].filter(Boolean).length;
 
   const apply = (setting: QuickSetting) => {
     onApply(setting);
     setRow(null);
+    setSheet(false); // mobile : on referme la feuille pour voir le résultat dans l'aperçu
   };
   const toggle = (next: RowId) => setRow((value) => (value === next ? null : next));
 
-  return (
-    <div className="border-b border-line p-2">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !(v ?? window.matchMedia("(min-width: 64rem)").matches))}
-        aria-expanded={open ?? undefined}
-        aria-controls={id}
-        title={s.hint}
-        className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-accent px-3 py-3 text-left text-sm font-semibold text-accent-fg transition-[filter,box-shadow] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-      >
-        <SlidersHorizontal className="size-4 shrink-0" />
-        <span className="min-w-0 flex-1">
-          <span className="block">{scene ? t.copy["419a7e80c9a5"] : s.title}</span>
-          <span className="mt-0.5 block text-[11px] font-normal text-accent-fg/80">
-            {open === null ? (
-              <><span className="lg:hidden">{t.copy["57091951bccb"]}</span><span className="hidden lg:inline">{t.copy["5888cb0b1e81"]}</span></>
-            ) : open ? t.copy["5888cb0b1e81"] : t.copy["57091951bccb"]}
-          </span>
-        </span>
-        {modified > 0 && <span className="shrink-0 rounded-full bg-accent-fg/15 px-2 py-0.5 text-[11px] font-medium">{format(modified > 1 ? s.modifiedMany : s.modifiedOne, { count: modified })}</span>}
-        <ChevronDown className={cn("size-4 shrink-0 transition-transform", open === null ? "lg:rotate-180" : open && "rotate-180")} />
-      </button>
-
-      {open !== false && (
-        <div id={id} className={cn("mt-5 flex flex-col gap-3 px-2 pb-3", open === null && "max-lg:hidden")}>
+  const groups = (
+    <>
           {!logoOnly && <Group initiallyOpen={Boolean(scene)} key={sceneId ?? "global"} label={s.groupText}>
             <Row
               icon={<Type />}
@@ -205,7 +188,46 @@ export function QuickSettings({
               </Row>}
             </Group>
           )}
+    </>
+  );
+
+  return (
+    <div className="border-b border-line p-2 max-lg:border-b-0 max-lg:p-0">
+      <button
+        type="button"
+        onClick={() => {
+          const desktop = window.matchMedia("(min-width: 64rem)").matches;
+          if (sheetMode && !desktop) setSheet(true);
+          else setOpen((v) => !(v ?? desktop));
+        }}
+        aria-expanded={open ?? undefined}
+        aria-controls={id}
+        title={s.hint}
+        className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-accent px-3 py-3 text-left text-sm font-semibold text-accent-fg transition-[filter,box-shadow] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg max-lg:min-h-12 max-lg:gap-2 max-lg:rounded-2xl max-lg:border max-lg:border-line max-lg:bg-surface max-lg:py-0 max-lg:text-fg max-lg:hover:brightness-100"
+      >
+        <SlidersHorizontal className="size-4 shrink-0 max-lg:text-accent-text" />
+        <span className="min-w-0 flex-1">
+          <span className="block">{title}</span>
+          <span className="mt-0.5 block text-[11px] font-normal text-accent-fg/80 max-lg:hidden">
+            {open === null ? (
+              <><span className="lg:hidden">{t.copy["57091951bccb"]}</span><span className="hidden lg:inline">{t.copy["5888cb0b1e81"]}</span></>
+            ) : open ? t.copy["5888cb0b1e81"] : t.copy["57091951bccb"]}
+          </span>
+        </span>
+        {modified > 0 && <span className="shrink-0 rounded-full bg-accent-fg/15 px-2 py-0.5 text-[11px] font-medium max-lg:bg-accent-soft max-lg:text-accent-text">{format(modified > 1 ? s.modifiedMany : s.modifiedOne, { count: modified })}</span>}
+        <ChevronDown className={cn("size-4 shrink-0 transition-transform", sheetMode && "max-lg:hidden", open === null ? "lg:rotate-180" : open && "rotate-180")} />
+        {sheetMode && <ChevronRight className="size-4 shrink-0 lg:hidden" />}
+      </button>
+
+      {open !== false && (
+        <div id={id} className={cn("mt-5 flex flex-col gap-3 px-2 pb-3", (open === null || sheetMode) && "max-lg:hidden")}>
+          {groups}
         </div>
+      )}
+      {sheetMode && (
+        <Dialog open={sheet} onClose={() => setSheet(false)} title={title}>
+          <div className="flex flex-col gap-3">{groups}</div>
+        </Dialog>
       )}
     </div>
   );

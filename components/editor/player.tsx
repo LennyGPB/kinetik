@@ -8,7 +8,7 @@ import type { QuickSetting } from "@/lib/projects/settings";
 import { TextEditingContext } from "@/remotion/video/movable-text";
 
 import { Player as RemotionPlayer, type PlayerRef } from "@remotion/player";
-import { ChevronRight, Copy, Images, Maximize2, Minus, Pause, Pencil, Play, Plus, ScanSearch, Trash2, Type, Volume2, VolumeX, X } from "lucide-react";
+import { ChevronRight, Copy, Images, Maximize2, Minimize2, Minus, Pause, Pencil, Play, Plus, ScanSearch, Trash2, Type, Volume2, VolumeX, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VIDEO_FORMATS } from "@/config/formats";
 import { beatGrid, sceneFocuses, sceneScreens, TRANSITIONS, type Scene, type Transition } from "@/lib/projects/scenes";
@@ -83,6 +83,10 @@ export function Player({ videoProps, editing, variants, className, compact = fal
   const closeFocus = useCallback(() => setPanel(null), []);
   const [addOpen, setAddOpen] = useState(false);
   const [positioning, setPositioning] = useState(false);
+  // Mobile : outils + réglages avancés de la scène dans une seule feuille (desktop : barre et bloc sous la timeline)
+  const [sceneSheet, setSceneSheet] = useState(false);
+  // iPhone : pas d'API plein écran pour un élément de page → l'aperçu remplit l'écran en CSS
+  const [screenFull, setScreenFull] = useState(false);
   // Couleur affichée par le template pour chaque texte (« sceneId:title »), relevée dans l'aperçu : valeur de départ du choix de couleur
   const [defaultColors, setDefaultColors] = useState<Record<string, string>>({});
   const reportDefaultColor = useCallback((sceneId: string, target: "title" | "subtitle", css: string) => {
@@ -143,6 +147,19 @@ export function Player({ videoProps, editing, variants, className, compact = fal
   }, [onMutedChange, onPlayingChange]);
 
   useEffect(() => () => clearTimeout(commitTimer.current), []);
+  useEffect(() => {
+    if (!screenFull) return;
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setScreenFull(false);
+    document.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = overflow; document.removeEventListener("keydown", onKey); };
+  }, [screenFull]);
+  useEffect(() => {
+    const onChange = () => { if (!document.fullscreenElement) screen.orientation?.unlock?.(); };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
 
   /** Le clic sur « activer le son » est le geste utilisateur qui autorise le navigateur à jouer l'audio. */
   function toggleSound(ev: React.MouseEvent) {
@@ -181,18 +198,100 @@ export function Player({ videoProps, editing, variants, className, compact = fal
   }
 
 
+  // Réglages avancés de la scène : même contenu dans le bloc desktop et dans la feuille mobile
+  const advanced = editing && selected ? (
+        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+          <ScenePresentationSelect scene={selected} videoProps={videoProps} disabled={!editable} onChange={edit} />
+          <button type="button" disabled={!editable} aria-pressed={positioning} onClick={() => {
+            const next = !positioning;
+            setPositioning(next);
+            playerRef.current?.pause();
+            if (next) {
+              const timing = timeline.find((item) => item.scene.id === selected.id);
+              if (timing) seek(timing.from + Math.min(Math.round(FPS * 0.8), Math.floor(selected.duration * FPS * 0.6)));
+            }
+          }} className={cn("min-h-9 cursor-pointer rounded-lg border px-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40", positioning ? "border-accent bg-accent text-accent-fg" : "border-line-strong bg-black text-white hover:border-accent hover:bg-accent")}>
+            {positioning ? t.copy["5613f09a3b54"] : t.copy["f8a325b0b137"]}
+          </button>
+          {positioning && <span className="text-xs text-muted">{t.copy["8ab456b730b6"]}</span>}
+          {(["title", "subtitle"] as const).map((target) => selected.textOffsets?.[target] && (
+            <button key={target} type="button" disabled={!editable} onClick={() => edit({ kind: "textPosition", sceneId: selected.id, target, offset: null })} className="min-h-9 cursor-pointer rounded-lg border border-line-strong bg-black px-3 text-xs text-white hover:bg-accent">
+              {target === "title" ? t.copy["b711766805b2"] : t.copy["a9cee89d1dca"]}
+            </button>
+          ))}
+          {editing.onAskScene && (
+            <button type="button" disabled={!editable || drafts.length > 0} onClick={() => { playerRef.current?.pause(); editing.onAskScene?.(selected.id); }} className="min-h-9 cursor-pointer rounded-lg border border-line-strong bg-black px-3 py-2 text-xs font-medium text-white transition-colors hover:border-accent hover:bg-accent hover:text-accent-fg focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40">
+
+              {t.copy["c7b2ac7f9b71"]}
+            </button>
+          )}
+          {selected.kind === "screens" && (
+            <div className="grid grid-cols-2 gap-2 max-sm:mt-1 sm:ml-auto sm:flex sm:flex-wrap sm:items-center sm:justify-end">
+              <span className="col-span-2 text-xs text-muted">{t.copy["27a2555e059e"]}</span>
+              {/* Mockup classique : le choisir, puis (une fois choisi) le même bouton ouvre la modale de ses captures */}
+              {!sceneFocuses(selected).length && panel !== "focus" ? (
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  disabled={!editable || !videoProps.screenUrls.length}
+                  title={videoProps.screenUrls.length ? undefined : tl.screensNone}
+                  onClick={() => { playerRef.current?.pause(); setPanel("screens"); }}
+                  className="flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-accent bg-accent px-3 text-xs font-semibold text-accent-fg transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Pencil className="size-3.5" aria-hidden />
+                  {tl.editMockup}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={!editable}
+                  onClick={() => {
+                    if (sceneFocuses(selected).length) edit({ kind: "focus", sceneId: selected.id, focus: null });
+                    setPanel(null);
+                  }}
+                  className="min-h-9 cursor-pointer rounded-lg border border-line-strong bg-black px-3 text-xs font-medium text-white transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {t.copy["23ab12dc12fd"]}
+                </button>
+              )}
+              <button
+                type="button"
+                aria-expanded={panel === "focus"}
+                aria-pressed={sceneFocuses(selected).length > 0 || panel === "focus"}
+                disabled={!editable || !videoProps.screenUrls.length}
+                onClick={() => { playerRef.current?.pause(); setPanel("focus"); }}
+                className={cn("flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40", sceneFocuses(selected).length || panel === "focus" ? "border-accent bg-accent text-accent-fg" : "border-line-strong bg-black text-white hover:border-accent")}
+              >
+                <ScanSearch className="size-3.5" aria-hidden />
+                {sceneFocuses(selected).length ? t.copy["c6e8135881b1"] : t.copy["96f130bf318b"]}
+              </button>
+            </div>
+          )}
+
+        </div>
+  ) : null;
+
+  const enterFullscreen = () => {
+    if (!document.fullscreenEnabled) return setScreenFull(true);
+    playerRef.current?.requestFullscreen();
+    // Vidéo horizontale : bascule en paysage là où c'est permis (Android, en plein écran uniquement)
+    if (ratio === "16:9") (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.("landscape").catch(() => {});
+  };
+
   return (
     <div className={cn("flex w-full flex-col gap-3", className)}>
       <div
         data-text-preview
-        className={cn(
+        className={screenFull ? "fixed inset-0 z-[100] flex items-center justify-center bg-black" : cn(
           "relative mx-auto w-full overflow-hidden rounded-2xl border border-line-strong bg-black shadow-[0_30px_80px_-30px_var(--accent-glow)] sm:rounded-3xl",
-          // Mobile : grand dans l'onglet Montage, compact au-dessus du chat ; desktop : il remplit la zone centrale
-          ratio === "9:16" && (compact ? "max-w-[calc(26dvh*9/16)]" : "max-w-[calc(52dvh*9/16)]"),
+          // Mobile : aussi grand que la hauteur libre le permet (barres, timeline et réglages + bouton flottant ≈ 27rem) ; desktop : il remplit la zone centrale
+          ratio === "9:16" && (compact ? "max-w-[calc(26dvh*9/16)]" : "max-w-[calc((100dvh-27rem)*9/16)]"),
           ratio === "9:16" && "lg:max-w-[min(100%,calc((100dvh-21rem)*9/16))]",
-          ratio === "1:1" && (compact ? "max-w-[26dvh]" : "max-w-[52dvh]"),
+          ratio === "1:1" && (compact ? "max-w-[26dvh]" : "max-w-[calc(100dvh-27rem)]"),
           ratio === "1:1" && "lg:max-w-[min(100%,calc(100dvh-21rem))]",
           ratio === "16:9" && compact && "max-w-[calc(26dvh*16/9)]",
+          // Mobile 16:9 : limité par la largeur, l'aperçu passe bord à bord (annule la marge de l'éditeur : 0,75rem, 1,5rem dès sm)
+          ratio === "16:9" && !compact && "max-lg:-mx-3 max-lg:w-[calc(100%+1.5rem)] max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 sm:max-lg:-mx-6 sm:max-lg:w-[calc(100%+3rem)]",
           ratio === "16:9" && "lg:max-w-[min(100%,calc((100dvh-21rem)*16/9))]",
         )}
       >
@@ -213,7 +312,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           numberOfSharedAudioTags={0}
           clickToPlay={!positioning}
           doubleClickToFullscreen={!positioning}
-          style={{ width: "100%", aspectRatio: `${width} / ${height}` }}
+          style={{ width: screenFull ? `min(100vw, calc(100dvh * ${width} / ${height}))` : "100%", aspectRatio: `${width} / ${height}` }}
         />
         </TextEditingContext>
         {positioning && <div aria-hidden className="pointer-events-none absolute inset-0"><div className="absolute inset-y-0 left-1/2 border-l border-dashed border-white/35" /><div className="absolute inset-x-0 top-1/2 border-t border-dashed border-white/35" /></div>}
@@ -250,11 +349,11 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           </button>
           <button
             type="button"
-            onClick={() => playerRef.current?.requestFullscreen()}
-            aria-label={e.fullscreen}
-            className="hidden size-8 place-items-center rounded-full bg-black/45 text-white/85 backdrop-blur transition-colors hover:bg-black/65 hover:text-white focus-visible:outline-2 focus-visible:outline-accent sm:grid"
+            onClick={() => (screenFull ? setScreenFull(false) : enterFullscreen())}
+            aria-label={screenFull ? t.common.close : e.fullscreen}
+            className="grid size-8 place-items-center rounded-full bg-black/45 text-white/85 backdrop-blur transition-colors hover:bg-black/65 hover:text-white focus-visible:outline-2 focus-visible:outline-accent"
           >
-            <Maximize2 className="size-4" />
+            {screenFull ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
           </button>
         </div>
         </div>
@@ -267,7 +366,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           onClick={(ev) => playerRef.current?.toggle(ev)}
           aria-label={playing ? e.pause : e.play}
           // En édition, la barre de lecture (h-3 + gap-1) surmonte les scènes : on recentre le bouton sur les scènes
-          className={cn("grid size-10 shrink-0 place-items-center rounded-full bg-fg text-bg transition-transform active:scale-90", editable && "mt-4")}
+          className={cn("grid size-10 shrink-0 place-items-center rounded-full bg-fg text-bg transition-transform active:scale-90 max-lg:size-12", editable && "mt-4")}
         >
           {playing ? <Pause className="size-4" /> : <Play className="size-4 translate-x-px" />}
         </button>
@@ -287,10 +386,27 @@ export function Player({ videoProps, editing, variants, className, compact = fal
       {editing && (
         <div className={cn("flex min-h-10 flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted", compact && "max-lg:hidden")}>
           {selected ? (
-            // Mobile : la barre passe à la ligne (aucun outil caché hors écran) ; dès sm, une seule pilule
-            <div role="toolbar" aria-label={tl.selected} className="flex w-full flex-wrap items-center gap-1 rounded-2xl border border-line bg-surface p-1.5 pl-3 text-fg sm:w-auto sm:max-w-full sm:flex-nowrap sm:gap-1 sm:overflow-x-auto sm:rounded-full sm:p-1 sm:pl-3 sm:scrollbar-none">
+            <>
+            <div className="flex min-h-12 w-full items-center rounded-2xl border border-line bg-surface pr-1 lg:hidden">
+              <button type="button" onClick={() => setSceneSheet(true)} aria-haspopup="dialog" className="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-l-2xl px-3 text-left text-fg">
+                <span className="truncate text-sm font-semibold">{sceneLabel(selected.kind, t.locale)}</span>
+                <span className="font-mono text-xs text-muted tabular-nums">{formatSeconds(selected.duration, t.locale)}</span>
+                <span className="ml-auto flex shrink-0 items-center gap-1 text-xs font-medium text-accent-text">{tl.sceneSheet} <ChevronRight className="size-4" aria-hidden /></span>
+              </button>
+              <ToolButton label={tl.deselect} onClick={() => setSelectedId(null)}>
+                <X />
+              </ToolButton>
+            </div>
+            <div role="toolbar" aria-label={tl.selected} className="max-lg:hidden flex w-full flex-wrap items-center gap-1 rounded-2xl border border-line bg-surface p-1.5 pl-3 text-fg sm:w-auto sm:max-w-full sm:flex-nowrap sm:gap-1 sm:overflow-x-auto sm:rounded-full sm:p-1 sm:pl-3 sm:scrollbar-none">
               <span className="mr-1 shrink-0 text-sm font-semibold whitespace-nowrap">{sceneLabel(selected.kind, t.locale)}</span>
               <span className="mr-1 shrink-0 font-mono text-xs whitespace-nowrap text-muted tabular-nums sm:w-12">{formatSeconds(selected.duration, t.locale)}</span>
+              {/* Mobile : fermer reste en haut à droite, les outils passent sur la ligne suivante */}
+              <div className="ml-auto sm:hidden">
+                <ToolButton label={tl.deselect} onClick={() => setSelectedId(null)}>
+                  <X />
+                </ToolButton>
+              </div>
+              <div className="flex w-full flex-wrap items-center gap-1 sm:contents">
               <ToolButton label={tl.shorter} disabled={!editable || selected.duration <= SCENE_MIN_SECONDS} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration - DURATION_STEP })}>
                 <Minus />
               </ToolButton>
@@ -327,9 +443,9 @@ export function Player({ videoProps, editing, variants, className, compact = fal
                   <Images />
                 </ToolButton>
               )}
-              <span className="mx-0.5 h-5 w-px bg-line" />
+              <span className="mx-0.5 h-5 w-px bg-line max-sm:hidden" />
               <TransitionSelect value={selected.transition} recommended={videoProps.recipe.transitions} disabled={!editable} onChange={(transition) => edit({ kind: "transition", sceneId: selected.id, transition })} />
-              <span className="mx-0.5 h-5 w-px bg-line" />
+              <span className="mx-0.5 h-5 w-px bg-line max-sm:hidden" />
               <ToolButton
                 label={graph.scenes.length >= MAX_SCENES ? tl.maxScenes : tl.duplicate}
                 disabled={!editable || graph.scenes.length >= MAX_SCENES}
@@ -345,26 +461,31 @@ export function Player({ videoProps, editing, variants, className, compact = fal
               >
                 <Trash2 />
               </ToolButton>
-              <ToolButton label={tl.deselect} onClick={() => setSelectedId(null)}>
-                <X />
-              </ToolButton>
+              </div>
+              <div className="max-sm:hidden">
+                <ToolButton label={tl.deselect} onClick={() => setSelectedId(null)}>
+                  <X />
+                </ToolButton>
+              </div>
             </div>
+            </>
           ) : (
             <span className="max-sm:hidden">{tl.hint}</span>
           )}
-          <div className="relative">
+          {/* Mobile : bouton flottant en bas à droite, menu ouvert vers le haut */}
+          <div className="relative max-lg:fixed max-lg:right-4 max-lg:bottom-[max(1rem,env(safe-area-inset-bottom))] max-lg:z-40">
             <button
               type="button"
               disabled={!editable || graph.scenes.length >= MAX_SCENES}
               onClick={() => setAddOpen((v) => !v)}
               aria-expanded={addOpen}
               title={graph.scenes.length >= MAX_SCENES ? tl.maxScenes : selected ? tl.addAfter : tl.addAtEnd}
-              className="flex h-9 items-center gap-1.5 rounded-full border border-dashed border-line-strong px-3 text-sm font-medium text-fg transition-colors hover:border-accent hover:text-accent-text disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 items-center gap-1.5 rounded-full border border-dashed border-line-strong px-3 text-sm font-medium text-fg transition-colors hover:border-accent hover:text-accent-text disabled:cursor-not-allowed disabled:opacity-40 max-lg:h-10 max-lg:border-solid max-lg:border-accent max-lg:bg-accent max-lg:px-3.5 max-lg:font-semibold max-lg:text-accent-fg max-lg:shadow-[0_12px_32px_-8px_var(--accent-glow)] max-lg:hover:text-accent-fg"
             >
               <Plus className="size-4" /> {tl.add}
             </button>
             {addOpen && (
-              <ul role="menu" className="absolute bottom-full left-0 z-30 mb-2 w-60 overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-lift)]">
+              <ul role="menu" className="absolute bottom-full left-0 z-30 mb-2 w-60 max-lg:right-0 max-lg:left-auto overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-lift)]">
                 {SCENE_KINDS.map((kind) => (
                   <li key={kind}>
                     <button
@@ -390,77 +511,47 @@ export function Player({ videoProps, editing, variants, className, compact = fal
         </div>
       )}
       {editing && selected && (
-        <details key={selected.id} open className="rounded-xl border border-line bg-surface/60 p-3">
-        <summary className="cursor-pointer text-xs font-medium text-muted">{t.copy["636c04a3a715"]}</summary>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <ScenePresentationSelect scene={selected} videoProps={videoProps} disabled={!editable} onChange={edit} />
-          <button type="button" disabled={!editable} aria-pressed={positioning} onClick={() => {
-            const next = !positioning;
-            setPositioning(next);
-            playerRef.current?.pause();
-            if (next) {
-              const timing = timeline.find((item) => item.scene.id === selected.id);
-              if (timing) seek(timing.from + Math.min(Math.round(FPS * 0.8), Math.floor(selected.duration * FPS * 0.6)));
-            }
-          }} className={cn("min-h-9 cursor-pointer rounded-lg border px-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40", positioning ? "border-accent bg-accent text-accent-fg" : "border-line-strong bg-black text-white hover:border-accent hover:bg-accent")}>
-            {positioning ? t.copy["5613f09a3b54"] : t.copy["f8a325b0b137"]}
-          </button>
-          {positioning && <span className="text-xs text-muted">{t.copy["8ab456b730b6"]}</span>}
-          {(["title", "subtitle"] as const).map((target) => selected.textOffsets?.[target] && (
-            <button key={target} type="button" disabled={!editable} onClick={() => edit({ kind: "textPosition", sceneId: selected.id, target, offset: null })} className="min-h-9 cursor-pointer rounded-lg border border-line-strong bg-black px-3 text-xs text-white hover:bg-accent">
-              {target === "title" ? t.copy["b711766805b2"] : t.copy["a9cee89d1dca"]}
-            </button>
-          ))}
-          {editing.onAskScene && (
-            <button type="button" disabled={!editable || drafts.length > 0} onClick={() => { playerRef.current?.pause(); editing.onAskScene?.(selected.id); }} className="min-h-9 cursor-pointer rounded-lg border border-line-strong bg-black px-3 py-2 text-xs font-medium text-white transition-colors hover:border-accent hover:bg-accent hover:text-accent-fg focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40">
-
-              {t.copy["c7b2ac7f9b71"]}
-            </button>
-          )}
-          {selected.kind === "screens" && (
-            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-              <span className="text-xs text-muted">{t.copy["27a2555e059e"]}</span>
-              {/* Mockup classique : le choisir, puis (une fois choisi) le même bouton ouvre la modale de ses captures */}
-              {!sceneFocuses(selected).length && panel !== "focus" ? (
-                <button
-                  type="button"
-                  aria-haspopup="dialog"
-                  disabled={!editable || !videoProps.screenUrls.length}
-                  title={videoProps.screenUrls.length ? undefined : tl.screensNone}
-                  onClick={() => { playerRef.current?.pause(); setPanel("screens"); }}
-                  className="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-accent bg-accent px-3 text-xs font-semibold text-accent-fg transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Pencil className="size-3.5" aria-hidden />
-                  {tl.editMockup}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={!editable}
-                  onClick={() => {
-                    if (sceneFocuses(selected).length) edit({ kind: "focus", sceneId: selected.id, focus: null });
-                    setPanel(null);
-                  }}
-                  className="min-h-9 cursor-pointer rounded-lg border border-line-strong bg-black px-3 text-xs font-medium text-white transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {t.copy["23ab12dc12fd"]}
-                </button>
-              )}
-              <button
-                type="button"
-                aria-expanded={panel === "focus"}
-                aria-pressed={sceneFocuses(selected).length > 0 || panel === "focus"}
-                disabled={!editable || !videoProps.screenUrls.length}
-                onClick={() => { playerRef.current?.pause(); setPanel("focus"); }}
-                className={cn("flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40", sceneFocuses(selected).length || panel === "focus" ? "border-accent bg-accent text-accent-fg" : "border-line-strong bg-black text-white hover:border-accent")}
-              >
-                <ScanSearch className="size-3.5" aria-hidden />
-                {sceneFocuses(selected).length ? t.copy["c6e8135881b1"] : t.copy["96f130bf318b"]}
-              </button>
-            </div>
-          )}
-
-        </div></details>
+          <>
+            <details key={selected.id} open className="rounded-xl border border-line bg-surface/60 p-3 max-lg:hidden">
+              <summary className="cursor-pointer text-xs font-medium text-muted">{t.copy["636c04a3a715"]}</summary>
+              <div className="mt-3">{advanced}</div>
+            </details>
+            <Dialog open={sceneSheet} onClose={() => setSceneSheet(false)} title={tl.sceneSheet} description={`${sceneLabel(selected.kind, t.locale)} · ${formatSeconds(selected.duration, t.locale)}`}>
+              {/* Un bouton agit sur l'aperçu (texte, mockup, déplacer…) : la feuille se referme pour le laisser voir.
+                  Exceptions marquées data-keep-open (durée) ; les listes déroulantes ne la ferment pas. */}
+              <div className="flex flex-col gap-5" onClickCapture={(event) => {
+                const button = (event.target as HTMLElement).closest("button");
+                if (button && !button.closest("[data-keep-open]")) setSceneSheet(false);
+              }}>
+                <div className="flex items-center justify-between gap-3" data-keep-open>
+                  <span className="text-sm text-muted">{tl.durationLabel}</span>
+                  <div className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
+                    <ToolButton label={tl.shorter} disabled={!editable || selected.duration <= SCENE_MIN_SECONDS} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration - DURATION_STEP })}><Minus /></ToolButton>
+                    <span className="w-14 text-center font-mono text-sm tabular-nums">{formatSeconds(selected.duration, t.locale)}</span>
+                    <ToolButton label={tl.longer} disabled={!editable || selected.duration >= SCENE_MAX_SECONDS} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration + DURATION_STEP })}><Plus /></ToolButton>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <SheetAction icon={<Type />} label={selected.kind === "logo" ? t.copy["61918df1ac56"] : tl.editText} disabled={!editable} onClick={() => {
+                    playerRef.current?.pause();
+                    const next = selected.kind === "logo" ? "logo" : "text";
+                    const timing = timeline.find((item) => item.scene.id === selected.id);
+                    if (next === "text" && timing) seek(timing.from + Math.min(Math.round(FPS * 0.8), Math.floor(selected.duration * FPS * 0.6)));
+                    setPanel(next);
+                  }} />
+                  {selected.kind === "screens" && <SheetAction icon={<Images />} label={tl.screensPick} disabled={!editable || !videoProps.screenUrls.length} onClick={() => setPanel("screens")} />}
+                  {selected.kind === "screens" && <SheetAction icon={<ScanSearch />} label={tl.focus} disabled={!editable || !videoProps.screenUrls.length} onClick={() => { playerRef.current?.pause(); setPanel("focus"); }} />}
+                  <SheetAction icon={<Copy />} label={tl.duplicate} disabled={!editable || graph.scenes.length >= MAX_SCENES} onClick={() => edit({ kind: "duplicate", sceneId: selected.id, id: newSceneId(selected.kind) })} />
+                  <SheetAction icon={<Trash2 />} label={tl.remove} danger disabled={!editable || graph.scenes.length <= MIN_SCENES} onClick={() => edit({ kind: "delete", sceneId: selected.id })} />
+                </div>
+                <TransitionSelect wide value={selected.transition} recommended={videoProps.recipe.transitions} disabled={!editable} onChange={(transition) => edit({ kind: "transition", sceneId: selected.id, transition })} />
+                <div className="border-t border-line pt-4">
+                  <p className="mb-3 text-xs font-semibold tracking-wide text-subtle uppercase">{tl.advancedSection}</p>
+                  {advanced}
+                </div>
+              </div>
+            </Dialog>
+          </>
       )}
       {editing && selected && panel === "logo" && (
         <Dialog open onClose={closeFocus} title={t.copy["61918df1ac56"]}>
@@ -521,7 +612,8 @@ export function Player({ videoProps, editing, variants, className, compact = fal
 }
 
 /** Transition d'entrée de la scène : celles du template en premier. */
-function TransitionSelect({ value, recommended, disabled, onChange }: { value: Transition; recommended: Transition[]; disabled: boolean; onChange: (t: Transition) => void }) {
+/** `wide` : version pleine largeur de la feuille mobile (étiquette à gauche, sélecteur à droite). */
+function TransitionSelect({ value, recommended, disabled, onChange, wide = false }: { value: Transition; recommended: Transition[]; disabled: boolean; onChange: (t: Transition) => void; wide?: boolean }) {
   const t = useDictionary();
 
   const e = t.app.editor;
@@ -529,15 +621,15 @@ function TransitionSelect({ value, recommended, disabled, onChange }: { value: T
 
   const others = TRANSITIONS.filter((t) => !recommended.includes(t));
   return (
-    <span className="relative ml-0.5 flex shrink-0 items-center gap-1.5">
-    <span aria-hidden className="text-[11px] font-medium text-muted">{tl.transitionShort}</span>
+    <span className={cn("relative flex shrink-0 items-center gap-1.5", wide ? "w-full justify-between gap-3" : "ml-0.5")}>
+    <span aria-hidden className={cn("font-medium text-muted", wide ? "text-sm font-normal" : "text-[11px]")}>{wide ? tl.transition : tl.transitionShort}</span>
     <select
       aria-label={tl.transition}
       title={tl.transition}
       value={value}
       disabled={disabled}
       onChange={(ev) => onChange(ev.target.value as Transition)}
-      className="h-8 appearance-none rounded-full border border-line bg-bg pr-9 pl-3 text-xs font-medium text-fg outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40"
+      className={cn("appearance-none truncate rounded-full border border-line bg-bg pr-7 pl-2.5 font-medium text-fg outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40", wide ? "h-11 w-44 text-sm" : "h-9 max-w-36 text-xs sm:h-8")}
     >
       <optgroup label={tl.recommended}>
         {recommended.map((t) => (
@@ -556,7 +648,7 @@ function TransitionSelect({ value, recommended, disabled, onChange }: { value: T
         </optgroup>
       )}
     </select>
-    <ChevronRight aria-hidden className="pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 rotate-90 text-muted" />
+    <ChevronRight aria-hidden className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 rotate-90 text-muted" />
     </span>
   );
 }
@@ -686,6 +778,18 @@ function cssColorToHex(css: string): string | null {
   const hex = a < 128 ? null : `#${[r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
   hexCache.set(css, hex);
   return hex;
+}
+
+/** Action de la feuille mobile « Modifier la scène » : icône + libellé, grande cible tactile. */
+function SheetAction({ icon, label, onClick, disabled, danger }: { icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
+  return (
+    <button type="button" disabled={disabled} onClick={onClick} className={cn(
+      "flex min-h-12 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-left text-sm font-medium text-fg transition-colors hover:border-line-strong disabled:opacity-40 [&_svg]:size-4 [&_svg]:shrink-0",
+      danger && "text-danger hover:border-danger/40",
+    )}>
+      {icon}<span className="min-w-0 leading-tight">{label}</span>
+    </button>
+  );
 }
 
 function ToolButton({ label, onClick, disabled, danger, active, children }: { label: string; onClick: () => void; disabled?: boolean; danger?: boolean; active?: boolean; children: React.ReactNode }) {

@@ -26,7 +26,7 @@ export function ScenePresentationSelect({ scene, videoProps, disabled, onChange 
   return (
     <label className="flex items-center gap-2 text-xs text-muted">
       <span className="shrink-0">{t.copy["2945e0bae765"]}</span>
-      <span className="relative min-w-0">
+      <span className="relative min-w-0 max-sm:flex-1">
       <select
         value={value ?? "auto"}
         disabled={disabled}

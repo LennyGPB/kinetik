@@ -3,7 +3,7 @@
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { ArrowLeft, ChevronDown, Coins, Copy, Download, History, Images, Languages, Layers, MessageSquare, MoreHorizontal, Music2, Palette, Share2, SlidersHorizontal, Undo2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, Coins, Copy, Download, History, Images, Languages, Layers, MessageSquare, MoreHorizontal, Music2, Palette, Share2, Undo2 } from "lucide-react";
 import Link from "@/lib/i18n/navigation";
 import { useState, useTransition, type ReactNode } from "react";
 import { StatusBadge } from "@/components/app/project-grid";
@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { AnimatedApply } from "@/components/ui/animated-apply";
 import { Dialog } from "@/components/ui/dialog";
 import type { EditProposal } from "@/lib/projects/edit-proposal";
-import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import type { PricingPlan } from "@/config/pricing";
 import { format, localizeVersionLabel } from "@/lib/i18n";
@@ -80,7 +79,8 @@ export function Editor({
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [shareToken, setShareToken] = useState(project.shareToken);
   // Mobile : un seul panneau à la fois sous la barre du haut (montage en grand, ou chat / versions avec un aperçu compact)
-  const [mobileTab, setMobileTab] = useState<"edit" | "chat" | "versions">("edit");
+  // Mobile : le montage occupe l'écran ; chat et versions s'ouvrent en feuilles (bottom sheets)
+  const [mobileSheet, setMobileSheet] = useState<"chat" | "versions" | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [restoring, startRestore] = useTransition();
   const [applying, startApply] = useTransition();
@@ -127,6 +127,7 @@ export function Editor({
     setBalance(result.balance);
     if (result.proposal) {
       setProposal(result.proposal);
+      setMobileSheet(null); // la proposition (appliquer / annuler) s'affiche sous l'aperçu : on referme le chat mobile
       setCompareOriginal(false);
       setSelected(latest?.number ?? selected);
       setFocusScene(targetId);
@@ -286,8 +287,8 @@ export function Editor({
     );
   }
 
-  const versionsPanel = (layout: "row" | "list") => (
-    <VersionsPanel versions={versions} selected={selected} onSelect={setSelected} onRestore={handleRestore} restoring={restoring || Boolean(proposal)} layout={layout} showHeader={layout === "list"} />
+  const versionsPanel = (layout: "row" | "list", afterSelect?: () => void) => (
+    <VersionsPanel versions={versions} selected={selected} onSelect={(number) => { setSelected(number); afterSelect?.(); }} onRestore={handleRestore} restoring={restoring || Boolean(proposal)} layout={layout} showHeader={layout === "list"} />
   );
 
   const quickSettings = latest && (
@@ -297,19 +298,16 @@ export function Editor({
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       {topBar}
-      {/* Mobile : onglets Montage / Chat / Versions */}
+      {/* Mobile : chat et versions en feuilles, le montage reste à l'écran */}
       <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2 lg:hidden">
-        <Segmented
-          label={e.chat}
-          size="sm"
-          value={mobileTab}
-          onChange={setMobileTab}
-          options={[
-            { value: "edit", label: <span className="inline-flex items-center gap-1.5"><SlidersHorizontal className="size-3.5" />{t.copy["121e2522a136"]}</span> },
-            { value: "chat", label: <span className="inline-flex items-center gap-1.5"><MessageSquare className="size-3.5" />{e.chat}{thinking && <span className="size-1.5 animate-pulse rounded-full bg-accent" />}</span> },
-            { value: "versions", label: `${e.versions} (${versions.length})` },
-          ]}
-        />
+        <Button variant="outline" size="sm" onClick={() => setMobileSheet("chat")} aria-haspopup="dialog">
+          <MessageSquare /> {e.chat}
+          {thinking && <span className="size-1.5 animate-pulse rounded-full bg-accent" />}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setMobileSheet("versions")} aria-haspopup="dialog">
+          <History /> {e.versions}
+          <span className="rounded-full bg-surface-2 px-1.5 text-[11px]">{versions.length}</span>
+        </Button>
         <span className="ml-auto font-mono text-[11px] text-subtle max-[379px]:hidden">{formatSeconds(totalDuration(current.graph), t.locale)}</span>
       </div>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -318,11 +316,12 @@ export function Editor({
           aria-label={e.preview}
           className={cn(
             "relative flex flex-col gap-4 bg-bg-subtle p-3 sm:p-6 lg:min-w-0 lg:flex-1 lg:gap-5 lg:overflow-y-auto lg:p-8",
-            mobileTab === "edit" ? "max-lg:min-h-0 max-lg:flex-1 max-lg:overflow-y-auto max-lg:overscroll-contain" : "max-lg:shrink-0 max-lg:py-2",
+            // pb-24 : place pour le bouton flottant « Ajouter une scène »
+            "max-lg:min-h-0 max-lg:flex-1 max-lg:justify-center-safe max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:pb-20",
           )}
         >
           <div className="pointer-events-none absolute inset-0 bg-grid opacity-60" aria-hidden />
-          <div className="relative flex flex-1 items-center">
+          <div className="relative flex flex-1 items-center max-lg:flex-none">
             <Player
               initiallyMuted={previewMuted}
               onMutedChange={setPreviewMuted}
@@ -330,10 +329,9 @@ export function Editor({
               onPlayingChange={setPreviewPlaying}
               key={proposal ? `${proposal.token.slice(-12)}-${compareOriginal}` : current.id}
               videoProps={buildVideoProps(project, proposal && !compareOriginal ? proposal.graph : current.graph, plan.watermark)}
-              compact={mobileTab !== "edit"}
               variants={{ list: project.variants, currentId: project.id, canCreate: project.status === "READY" && !restoring && !proposal }}
               // Montage seulement sur la dernière version (une ancienne version se restaure d'abord)
-              editing={!proposal && current.number === latest?.number ? { onCommit: handleTimelineCommit, onSelectScene: setEditingSceneId, onSetting: handleSetting, onMedia: () => setMediaOpen(true), disabled: restoring || thinking || applying, initialSceneId: focusScene, onAskScene: (sceneId) => { setChatSceneId(sceneId); setMobileTab("chat"); } } : undefined}
+              editing={!proposal && current.number === latest?.number ? { onCommit: handleTimelineCommit, onSelectScene: setEditingSceneId, onSetting: handleSetting, onMedia: () => setMediaOpen(true), disabled: restoring || thinking || applying, initialSceneId: focusScene, onAskScene: (sceneId) => { setChatSceneId(sceneId); setMobileSheet("chat"); } } : undefined}
             />
           </div>
           {proposal && (
@@ -351,7 +349,7 @@ export function Editor({
             </p>
           )}
           {/* Mobile : les réglages d'apparence vivent dans l'onglet Montage (le chat garde toute sa hauteur) */}
-          {mobileTab === "edit" && quickSettings && <div className="relative overflow-hidden rounded-2xl border border-line bg-bg lg:hidden">{quickSettings}</div>}
+          {quickSettings && <div className="relative -mt-2 lg:hidden">{quickSettings}</div>}
           <div className="relative hidden flex-col gap-3 lg:flex">
             <button
               type="button"
@@ -373,8 +371,8 @@ export function Editor({
           </div>
         </section>
 
-        {/* Chat (desktop : colonne ; mobile : onglets Chat et Versions) */}
-        <aside className={cn("flex min-h-0 flex-1 flex-col border-t border-line bg-bg lg:w-[400px] lg:flex-none lg:border-t-0 lg:border-l", mobileTab === "edit" && "max-lg:hidden")}>
+        {/* Chat (desktop : colonne ; mobile : feuille, voir plus bas) */}
+        <aside className="flex min-h-0 flex-1 flex-col border-t border-line bg-bg max-lg:hidden lg:w-[400px] lg:flex-none lg:border-t-0 lg:border-l">
           <div className="hidden items-center justify-between border-b border-line px-4 py-3 lg:flex">
             <p className="text-sm font-semibold">{e.chat}</p>
             <span className="font-mono text-xs text-subtle">
@@ -390,9 +388,8 @@ export function Editor({
             onTargetChange={setChatSceneId}
             disabled={restoring || applying || Boolean(proposal)}
             toolbar={quickSettings && <div className="max-lg:hidden">{quickSettings}</div>}
-            className={cn("flex-1", mobileTab !== "chat" && "max-lg:hidden")}
+            className="flex-1"
           />
-          {mobileTab === "versions" && <div className="flex-1 overflow-y-auto p-4 lg:hidden">{versionsPanel("list")}</div>}
         </aside>
       </div>
 
@@ -401,6 +398,21 @@ export function Editor({
         setVersions((list) => list.some((item) => item.id === version.id) ? list : [...list, version]);
         setSelected(version.number);
       }} />
+      <Dialog open={mobileSheet === "chat"} onClose={() => setMobileSheet(null)} title={e.chat}>
+        <ChatPanel
+          messages={messages}
+          thinking={thinking}
+          onSend={handleSend}
+          scenes={latest?.graph.scenes}
+          targetSceneId={chatTarget?.id ?? null}
+          onTargetChange={setChatSceneId}
+          disabled={restoring || applying || Boolean(proposal)}
+          className="-mx-2 h-[68dvh]"
+        />
+      </Dialog>
+      <Dialog open={mobileSheet === "versions"} onClose={() => setMobileSheet(null)} title={`${e.versions} (${versions.length})`}>
+        {versionsPanel("list", () => setMobileSheet(null))}
+      </Dialog>
       {/* Mobile : outils du projet en feuille, grandes cibles tactiles */}
       <Dialog open={toolsOpen} onClose={() => setToolsOpen(false)} title={t.copy["384445ff9409"]}>
         <div className="mb-3 flex justify-end sm:hidden"><LanguageToggle /></div>
