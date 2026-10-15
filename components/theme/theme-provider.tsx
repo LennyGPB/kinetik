@@ -1,5 +1,6 @@
 "use client";
 
+
 import { createContext, useCallback, useContext, useLayoutEffect, useSyncExternalStore, type ReactNode } from "react";
 
 export type ThemePreference = "light" | "dark" | "system";
@@ -22,7 +23,6 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 // ── Store externe (localStorage + préférence système) ──
 
 const listeners = new Set<() => void>();
-const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 function readPreference(): ThemePreference {
   try {
@@ -34,6 +34,8 @@ function readPreference(): ThemePreference {
 }
 
 function resolve(preference: ThemePreference): ResolvedTheme {
+  const DARK_QUERY = "(prefers-color-scheme: dark)";
+
   if (preference !== "system") return preference;
   return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
 }
@@ -47,6 +49,8 @@ function emit() {
 }
 
 function subscribe(listener: () => void) {
+  const DARK_QUERY = "(prefers-color-scheme: dark)";
+
   listeners.add(listener);
   const media = window.matchMedia(DARK_QUERY);
   const onSystemChange = () => {
@@ -86,7 +90,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 export function useTheme() {
+
   const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error("useTheme doit être utilisé dans <ThemeProvider>");
+  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
   return ctx;
 }

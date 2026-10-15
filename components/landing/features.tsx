@@ -1,17 +1,23 @@
+import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 import { LogoMark } from "@/components/brand/logo";
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 import { Section, SectionHeading } from "./section-heading";
 
-const f = t.landing.features.items;
+function FeatureGraphic({ kind }: { kind: "editor" | "beat" | "chat" | "brand" | "formats" | "fidelity" }) {
 
-function FeatureGraphic({ kind }: { kind: "beat" | "chat" | "brand" | "formats" | "fidelity" }) {
   const motion = "motion-safe:transition-transform motion-safe:duration-300";
   return (
     <span aria-hidden="true" className="relative flex h-9 w-12 shrink-0 items-center text-fg">
+      {kind === "editor" && (
+        <span className={cn("relative flex h-7 w-10 -rotate-6 flex-col justify-end border border-fg/50 p-1", motion, "motion-safe:group-hover:rotate-0")}>
+          <span className="flex gap-0.5"><span className="h-1 w-3 bg-fg/40" /><span className="h-1 w-2 bg-accent-text" /><span className="h-1 flex-1 bg-fg/40" /></span>
+          <span className={cn("absolute top-1 left-1.5 size-3 border border-accent-text", motion, "motion-safe:duration-500 motion-safe:group-hover:translate-x-4")} />
+        </span>
+      )}
       {kind === "beat" && (
         <span className="relative flex h-7 items-center gap-1">
           {[10, 20, 28, 14, 22].map((height, index) => (
@@ -30,7 +36,7 @@ function FeatureGraphic({ kind }: { kind: "beat" | "chat" | "brand" | "formats" 
         <span className="relative flex items-center">
           <span className={cn("absolute top-0 left-0 h-6 w-4 -rotate-12 border border-fg/30 bg-surface", motion, "motion-safe:group-hover:-translate-x-1 motion-safe:group-hover:-rotate-20")} />
           <span className={cn("absolute top-0 left-2 h-6 w-4 rotate-12 border border-accent-text/60 bg-surface", motion, "motion-safe:group-hover:rotate-20")} />
-          <span className="relative ml-3 mt-1 font-heading text-xl font-extralight">Aa</span>
+          <span className="relative ml-3 mt-1 font-heading text-xl font-extralight">{"Aa"}</span>
         </span>
       )}
       {kind === "formats" && (
@@ -43,7 +49,7 @@ function FeatureGraphic({ kind }: { kind: "beat" | "chat" | "brand" | "formats" 
         <span className={cn("relative grid size-8 -rotate-6 place-items-center border border-fg/40", motion, "motion-safe:group-hover:rotate-0")}>
           <span className="absolute -top-px -left-px size-2 border-t border-l border-accent-text" />
           <span className="absolute -right-px -bottom-px size-2 border-r border-b border-accent-text" />
-          <span className="font-mono text-[9px]">1:1</span>
+          <span className="font-mono text-[9px]">{"1:1"}</span>
         </span>
       )}
     </span>
@@ -88,6 +94,7 @@ const WAVE = Array.from({ length: 64 }, (_, i) => 0.25 + Math.abs(Math.sin(i * 0
 const BEATS = [8, 20, 32, 44, 56];
 
 function BeatSync() {
+
   return (
     <div className="w-full max-w-xl">
       <div className="relative flex h-24 items-center gap-[3px]">
@@ -116,15 +123,17 @@ function BeatSync() {
         ))}
       </div>
       <div className="mt-3 flex justify-between font-mono text-[10px] text-subtle">
-        <span>0:00</span>
-        <span className="text-accent-text">128 BPM</span>
-        <span>0:30</span>
+        <span>{"0:00"}</span>
+        <span className="text-accent-text">{"128 BPM"}</span>
+        <span>{"0:30"}</span>
       </div>
     </div>
   );
 }
 
 function ChatDemo() {
+  const t = useDictionary();
+
   return (
     <div className="flex w-full max-w-xs flex-col gap-2.5 text-sm">
       <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-accent-gradient px-3.5 py-2.5 text-white shadow-[0_8px_24px_-10px_var(--accent-glow)]">
@@ -148,6 +157,7 @@ function ChatDemo() {
 }
 
 function BrandKit() {
+
   return (
     <div className="flex w-full max-w-xs items-center gap-4">
       <div className="grid size-20 shrink-0 place-items-center rounded-2xl border border-line bg-surface shadow-[var(--shadow-soft)]">
@@ -160,8 +170,8 @@ function BrandKit() {
           ))}
         </div>
         <div className="flex items-baseline gap-2 rounded-xl border border-line bg-surface px-3 py-2">
-          <span className="font-display text-2xl font-bold">Aa</span>
-          <span className="truncate text-xs text-muted">Bricolage · Geist</span>
+          <span className="font-display text-2xl font-bold">{"Aa"}</span>
+          <span className="truncate text-xs text-muted">{"Bricolage · Geist"}</span>
         </div>
       </div>
     </div>
@@ -179,6 +189,7 @@ function Formats() {
 }
 
 function Fidelity() {
+
   return (
     <div className="relative grid size-36 place-items-center">
       <div className="absolute inset-0 rounded-2xl border border-dashed border-accent/50" />
@@ -189,17 +200,36 @@ function Fidelity() {
       <span className="absolute inset-y-0 left-1/2 w-px bg-accent/20" />
       <LogoMark className="size-16 rounded-2xl transition-transform duration-700 group-hover:scale-110" />
       <span className="absolute -bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-fg px-2 py-0.5 font-mono text-[10px] text-bg">
-        <Lock className="size-2.5" /> 100%
+        <Lock className="size-2.5" />  {"100%"}
       </span>
     </div>
   );
 }
 
 export function Features() {
+  const t = useDictionary();
+
+  const f = t.landing.features.items;
+
   return (
     <Section id="features">
       <SectionHeading title={t.landing.features.titleLine1} accent={t.landing.features.titleLine2} />
       <RevealGroup className="mt-14 grid gap-4 md:grid-cols-6" stagger={0.08}>
+        <Card className="md:col-span-6" icon={<FeatureGraphic kind="editor" />} title={f.editor.title} description={f.editor.description}>
+          {/* Démo de l'éditeur : vidéo réalisée avec Kinetik */}
+          <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-line-strong bg-black shadow-[0_30px_80px_-30px_var(--accent-glow)]">
+            <video
+              src="/medias/kinetik-edit.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label={f.editor.title}
+              className="aspect-video w-full object-contain"
+            />
+          </div>
+        </Card>
         <Card className="md:col-span-4" icon={<FeatureGraphic kind="beat" />} title={f.beat.title} description={f.beat.description}>
           <BeatSync />
         </Card>

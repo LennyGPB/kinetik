@@ -1,10 +1,13 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 
 /**
@@ -26,6 +29,8 @@ export function Dialog({
   children: ReactNode;
   className?: string;
 }) {
+  const t = useDictionary();
+
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -37,7 +42,7 @@ export function Dialog({
 
     const focusables = () =>
       panelRef.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+        "button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex=\"-1\"])",
       ) ?? [];
     requestAnimationFrame(() => (focusables()[1] ?? focusables()[0])?.focus());
 

@@ -1,7 +1,10 @@
 "use client";
 
-import { Check } from "lucide-react";
-import { useRouter } from "next/navigation";
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
+import { Check, Plus } from "lucide-react";
+import { useRouter } from "@/lib/i18n/navigation";
 import { useState } from "react";
 import { ColorInput } from "@/components/create/color-input";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
@@ -9,15 +12,14 @@ import { AnimatedApply } from "@/components/ui/animated-apply";
 import { Dialog } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toaster";
 import { VIDEO_STYLES } from "@/config/styles";
-import { t } from "@/lib/i18n";
+import { MAX_PROJECT_COLORS } from "@/config/colors";
+import { format } from "@/lib/i18n";
 import { changeStyle } from "@/lib/projects/actions";
 import type { SceneGraph } from "@/lib/projects/scenes";
 import type { EditorProject, EditorVersion } from "@/lib/projects/types";
 import { buildVideoProps } from "@/lib/projects/video-props";
 import { cn } from "@/lib/utils";
 import { Player } from "./player";
-
-const s = t.app.style;
 
 /**
  * Fenêtre « Style » : changer de template et/ou de couleurs, avec aperçu de la vidéo en direct.
@@ -39,22 +41,25 @@ export function StyleDialog({
   watermark: boolean;
   onVersion: (version: EditorVersion) => void;
 }) {
+  const t = useDictionary();
+
+  const s = t.app.style;
+
   const currentStyle = graph.styleId ?? project.styleId ?? VIDEO_STYLES[0].id;
   const currentColors = graph.colors ?? project.colors;
   const [styleId, setStyleId] = useState(currentStyle);
-  const [main, setMain] = useState(currentColors[0] ?? "#7c3aed");
-  const [accent, setAccent] = useState(currentColors[1] ?? currentColors[0] ?? "#f472b6");
+  const [colors, setColors] = useState<string[]>(() => currentColors.length ? currentColors.slice(0, MAX_PROJECT_COLORS) : ["#7c3aed", "#f472b6"]);
   const [pending, setPending] = useState(false);
   const [applying, setApplying] = useState(false);
   const toast = useToast();
   const router = useRouter();
-  const changed = styleId !== currentStyle || main !== currentColors[0] || accent !== (currentColors[1] ?? currentColors[0]);
-  const preview = buildVideoProps(project, { ...graph, styleId, colors: [main, accent] }, watermark);
+  const changed = styleId !== currentStyle || colors.length !== currentColors.length || colors.some((color, i) => color !== currentColors[i]);
+  const preview = buildVideoProps(project, { ...graph, styleId, colors }, watermark);
 
   async function apply() {
     setPending(true);
     try {
-      const result = await changeStyle(project.id, { styleId, colors: [main, accent] });
+      const result = await changeStyle(project.id, { styleId, colors });
       if (!result.ok) return toast({ title: result.error === "rate_limited" ? t.app.editor.rateLimited : t.common.error, tone: "error" });
       onVersion(result.version);
       router.refresh();
@@ -71,7 +76,7 @@ export function StyleDialog({
         {/* Aperçu en direct de la vidéo avec le style choisi */}
         <div className="flex flex-col gap-2 lg:sticky lg:top-0 lg:self-start">
           <p className="text-sm font-semibold">{s.preview}</p>
-          <Player key={`${styleId}-${main}-${accent}`} videoProps={preview} />
+          <Player key={`${styleId}-${colors.join("-")}`} videoProps={preview} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-5">
@@ -89,7 +94,7 @@ export function StyleDialog({
                       aria-pressed={selected}
                       className={cn("relative block w-full overflow-hidden rounded-xl border-2 text-left transition-colors", selected ? "border-accent" : "border-transparent hover:border-line-strong")}
                     >
-                      <VideoPlaceholder ratio="4:5" palette={style.palette} scene={style.recipe.background} label={style.name.split(" ")[0]} paused={!selected} />
+                      <VideoPlaceholder ratio="4:5" palette={style.palette} templateId={style.id} scene={style.recipe.background} label={style.name.split(" ")[0]} paused={!selected} />
                       <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/75 to-transparent px-2 pt-4 pb-1.5 text-[11px] font-semibold text-white">{style.name}</span>
                       {selected && (
                         <span className="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-accent text-white">
@@ -105,11 +110,25 @@ export function StyleDialog({
           </section>
 
           <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold">{s.colors}</h3>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <ColorInput label={s.main} value={main} onChange={setMain} />
-              <ColorInput label={s.accent} value={accent} onChange={setAccent} />
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold">{s.colors}</h3>
+              <span className="text-xs text-muted" aria-live="polite">{colors.length}/{MAX_PROJECT_COLORS}</span>
             </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {colors.map((color, i) => (
+                <ColorInput
+                  key={i}
+                  label={i === 0 ? s.main : i === 1 ? s.accent : format(s.additionalColor, { n: i + 1 })}
+                  value={color}
+                  onChange={(value) => setColors((list) => list.map((item, index) => index === i ? value : item))}
+                  onRemove={i > 0 ? () => setColors((list) => list.filter((_, index) => index !== i)) : undefined}
+                />
+              ))}
+            </div>
+            <p className="text-xs leading-relaxed text-muted">{s.colorsHelp}</p>
+            <button type="button" disabled={colors.length >= MAX_PROJECT_COLORS} onClick={() => setColors((list) => list.length < MAX_PROJECT_COLORS ? [...list, "#7c3aed"] : list)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong px-3 text-sm text-muted transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50">
+              <Plus className="size-4" />{s.addColor}
+            </button>
           </section>
 
           </fieldset>

@@ -1,14 +1,15 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { ChevronLeft, ChevronRight, History, RotateCcw } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { format, t } from "@/lib/i18n";
+import { format, localizeVersionLabel } from "@/lib/i18n";
 import type { EditorVersion } from "@/lib/projects/types";
 import { cn, formatDate } from "@/lib/utils";
-
-const e = t.app.editor;
 
 export function VersionsPanel({
   versions,
@@ -28,6 +29,10 @@ export function VersionsPanel({
   /** Titre « Versions (n) » au-dessus de la liste (masqué quand un bouton le porte déjà) */
   showHeader?: boolean;
 }) {
+  const t = useDictionary();
+
+  const e = t.app.editor;
+
   const latest = versions.at(-1)?.number;
   const ordered = [...versions].reverse();
   const listRef = useRef<HTMLUListElement>(null);
@@ -99,10 +104,10 @@ export function VersionsPanel({
                   {isLatest ? (
                     <span className="rounded-full bg-success/15 px-1.5 py-px text-[10px] font-semibold text-success">{e.current}</span>
                   ) : (
-                    <span className="text-[10px] text-subtle">{formatDate(version.createdAt, { hour: "2-digit", minute: "2-digit" })}</span>
+                    <span className="text-[10px] text-subtle">{formatDate(version.createdAt, { hour: "2-digit", minute: "2-digit" }, t.locale)}</span>
                   )}
                 </div>
-                <p className="truncate text-sm font-medium">{version.label}</p>
+                <p className="truncate text-sm font-medium">{localizeVersionLabel(version.label, t.locale)}</p>
                 {isSelected && !isLatest && (
                   <Button size="sm" variant="secondary" className="relative mt-1.5 self-start" loading={restoring} onClick={() => onRestore(version.number)}>
                     {!restoring && <RotateCcw />} {e.restore}
@@ -119,6 +124,10 @@ export function VersionsPanel({
 }
 
 function ScrollButton({ side, onClick }: { side: "left" | "right"; onClick: () => void }) {
+  const t = useDictionary();
+
+  const e = t.app.editor;
+
   const Icon = side === "left" ? ChevronLeft : ChevronRight;
   return (
     <>

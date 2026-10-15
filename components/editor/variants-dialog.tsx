@@ -1,24 +1,34 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { ArrowRight, Check, Clock, RectangleHorizontal, RectangleVertical, Square } from "lucide-react";
-import Link from "next/link";
+import Link from "@/lib/i18n/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toaster";
 import type { VideoFormatId } from "@/config/formats";
-import { format, t } from "@/lib/i18n";
+import { format } from "@/lib/i18n";
 import { createVariants } from "@/lib/projects/actions";
-import type { SceneGraph } from "@/lib/projects/scenes";
-import { availableVariants, SHORT_DURATION, VARIANT_KINDS, type VariantKind } from "@/lib/projects/variants";
+import { totalDuration, type SceneGraph } from "@/lib/projects/scenes";
+import type { ProjectVariant } from "@/lib/projects/types";
+import { SHORT_DURATION, VARIANT_KINDS, variantKind, type VariantKind } from "@/lib/projects/variants";
 import { cn } from "@/lib/utils";
 
-const v = t.app.variants;
 const ICONS = { PORTRAIT: RectangleVertical, SQUARE: Square, LANDSCAPE: RectangleHorizontal, short: Clock } satisfies Record<VariantKind, unknown>;
 
 /** Déclinaisons en un clic : autres formats et version courte, chacune devient un nouveau projet. */
-export function VariantsDialog({ open, onClose, projectId, format: current, graph }: { open: boolean; onClose: () => void; projectId: string; format: VideoFormatId; graph: SceneGraph }) {
-  const available = availableVariants(current, graph);
+export function VariantsDialog({ open, onClose, projectId, format: current, graph, variants }: { open: boolean; onClose: () => void; projectId: string; format: VideoFormatId; graph: SceneGraph; variants: ProjectVariant[] }) {
+  const t = useDictionary();
+
+  const v = t.app.variants;
+
+  // Une seule déclinaison de chaque sorte par projet : celles qui existent déjà (et le format actuel) sont grisées
+  const currentKind = variantKind(variants.find((item) => item.id === projectId) ?? { format: current, short: false });
+  const taken = new Set([currentKind, ...variants.map(variantKind)]);
+  const available = VARIANT_KINDS.filter((kind) => !taken.has(kind) && (kind !== "short" || totalDuration(graph) > SHORT_DURATION));
   const [picked, setPicked] = useState<VariantKind[]>([]);
   const [created, setCreated] = useState<{ id: string; name: string; kind: VariantKind }[] | null>(null);
   const [pending, startTransition] = useTransition();
@@ -63,6 +73,7 @@ export function VariantsDialog({ open, onClose, projectId, format: current, grap
               );
             })}
           </ul>
+          <p className="text-xs text-muted">{v.switchHint}</p>
           <Button variant="ghost" onClick={() => setCreated(null)} className="self-start">
             {v.another}
           </Button>
@@ -74,7 +85,7 @@ export function VariantsDialog({ open, onClose, projectId, format: current, grap
               const Icon = ICONS[kind];
               const enabled = available.includes(kind);
               const checked = picked.includes(kind);
-              const reason = kind === "short" ? format(v.alreadyShort, { seconds: SHORT_DURATION }) : v.current;
+              const reason = kind === currentKind ? v.current : taken.has(kind) ? v.exists : format(v.alreadyShort, { seconds: SHORT_DURATION });
               return (
                 <li key={kind}>
                   <button

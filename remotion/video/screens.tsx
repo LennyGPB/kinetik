@@ -1,10 +1,12 @@
+import { PreviewTarget } from "./movable-text";
 import type { CSSProperties, ReactNode } from "react";
-import { AbsoluteFill, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { ScreensLayout } from "../../config/recipes";
-import { MAX_SCREEN_COUNT, type Scene, type ScreenFrame } from "../../lib/projects/scenes";
+import { MAX_SCREEN_COUNT, sceneFocuses, sceneScreens, type Scene, type ScreenFocus, type ScreenFrame } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
 import { BrowserFrame, MockScreen, PhoneFrame } from "./devices";
 import { FocusLayout } from "./focus";
+import { framingTransition } from "./focus-transition";
 import { AnimatedTitle } from "./titles";
 import { luminance, textColorOn, useIsPortrait, useBeat, useTitleFont, useUnit } from "./theme";
 
@@ -31,14 +33,8 @@ function fit(boxW: number, boxH: number, ratio: number): Box {
  * `count` = nombre par défaut de la mise en page ; scene.screenCount (choix de l'utilisateur) le remplace.
  */
 function pickScreens(props: Props["props"], scene: Scene, defaultCount: number): (string | null)[] {
-  // Screens choisis pour cette scène (ceux qui existent encore), dans l'ordre choisi
-  const chosen = scene.screens?.filter((url) => props.screenUrls.includes(url)) ?? [];
-  if (chosen.length) return chosen.slice(0, MAX_SCREEN_COUNT);
-  const count = screenCount(scene, defaultCount);
-  const all = props.screenUrls;
-  if (!all.length) return Array.from({ length: count }, () => null);
-  const order = Math.max(0, props.graph.scenes.filter((s) => s.kind === "screens").findIndex((s) => s.id === scene.id));
-  return Array.from({ length: Math.min(count, all.length) }, (_, i) => all[(order * count + i) % all.length]);
+  if (!props.screenUrls.length) return Array.from({ length: screenCount(scene, defaultCount) }, () => null);
+  return sceneScreens(props.graph.scenes, scene, props.screenUrls, defaultCount);
 }
 
 function screenCount(scene: Scene, defaultCount: number) {
@@ -46,16 +42,60 @@ function screenCount(scene: Scene, defaultCount: number) {
 }
 
 export function ScreensScene({ scene, props }: Props) {
+  const { fps } = useVideoConfig();
   // Mise en avant d'une zone d'un screen : remplace la mise en page pour cette scène
-  const focusIndex = scene.focus ? props.screenUrls.indexOf(scene.focus.src) : -1;
-  if (scene.focus && focusIndex >= 0) {
-    const ratio = props.screenRatios?.[focusIndex] ?? RATIO[props.graph.screenFrame ?? "none"];
-    return <FocusLayout scene={scene} props={props} focus={scene.focus} src={props.screenUrls[focusIndex]} ratio={ratio} />;
+  const focuses = sceneFocuses(scene).filter((focus) => props.screenUrls.includes(focus.src));
+  if (focuses.length) {
+    const total = Math.max(1, Math.round(scene.duration * fps));
+    const start = (index: number) => Math.round(index * total / focuses.length);
+    // Titre propre à chaque cadrage (sinon celui de la scène) ; les cadrages consécutifs au même texte partagent un seul titre
+    const titles: { text: string; from: number; to: number }[] = [];
+    focuses.forEach((focus, index) => {
+      const text = focus.title?.trim() || scene.title;
+      const last = titles.at(-1);
+      if (last?.text === text) last.to = start(index + 1);
+      else titles.push({ text, from: start(index), to: start(index + 1) });
+    });
+    return <>{focuses.map((focus, index) => {
+      const from = start(index);
+      const length = Math.max(1, start(index + 1) - from);
+      const focusIndex = props.screenUrls.indexOf(focus.src);
+      const ratio = props.screenRatios?.[focusIndex] ?? RATIO[props.graph.screenFrame ?? "none"];
+      return <Sequence key={index} from={from} durationInFrames={length}>
+        <FramingStep scene={scene} props={props} focus={focus} previous={focuses[index - 1]} ratio={ratio} frames={length} multiple={focuses.length > 1} />
+      </Sequence>;
+    })}{focuses.length > 1 && titles.map((title, index) => <Sequence key={`title-${index}`} from={title.from} durationInFrames={Math.max(1, title.to - title.from)}>
+      <FramingTitle text={title.text} props={props} />
+    </Sequence>)}</>;
   }
   // Mise en page choisie par l'utilisateur pour cette scène, sinon celle du template
   const layout: ScreensLayout = scene.layout && scene.layout in LAYOUTS ? scene.layout : props.recipe.screens;
   const Layout = LAYOUTS[layout];
   return <Layout scene={scene} props={props} />;
+}
+
+function FramingStep({ scene, props, focus, previous, ratio, frames, multiple }: Props & { focus: ScreenFocus; previous?: ScreenFocus; ratio: number; frames: number; multiple: boolean }) {
+  const frame = useCurrentFrame();
+  const transition = framingTransition(previous, focus, frame, frames);
+  const previousIndex = previous ? props.screenUrls.indexOf(previous.src) : -1;
+  const previousRatio = props.screenRatios?.[previousIndex] ?? RATIO[props.graph.screenFrame ?? "none"];
+  const crossfade = previous && !transition.morph && transition.progress < 1;
+  return <>
+    <AbsoluteFill style={{ opacity: previous && !transition.morph ? transition.progress : 1 }}>
+      <FocusLayout scene={scene} props={props} focus={transition.focus} src={focus.src} ratio={ratio} stepFrames={multiple ? frames : undefined} hold={Boolean(previous)} />
+    </AbsoluteFill>
+    {crossfade && <AbsoluteFill style={{ opacity: 1 - transition.progress }}>
+      <FocusLayout scene={scene} props={props} focus={previous} src={previous.src} ratio={previousRatio} stepFrames={frames} hold />
+    </AbsoluteFill>}
+  </>;
+}
+
+/** The title spans every consecutive framing step sharing its text, while each step keeps its own local clock. */
+function FramingTitle({ text, props }: { text: string; props: VideoProps }) {
+  const u = useUnit();
+  return <div style={{ position: "absolute", top: u * 6, left: u * 8, right: u * 8 }}>
+    <AnimatedTitle text={text} size={u * 6.5} color={textColorOn(props.palette[0])} palette={props.palette} energy={props.graph.energy} />
+  </div>;
 }
 
 // ───────────── Briques communes ─────────────
@@ -82,7 +122,7 @@ function Device({ props, src, box, index, style }: { props: VideoProps; src: str
 }
 
 function ScreenImage({ src }: { src: string }) {
-  return <Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />;
+  return <PreviewTarget target="screens"><Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} /></PreviewTarget>;
 }
 
 /** Plusieurs screens dans un même appareil, en fondu enchaîné sur la durée de la scène. */
@@ -165,6 +205,7 @@ function HeroLayout({ scene, props }: Props) {
   const frame = useCurrentFrame();
   const { width, height, durationInFrames } = useVideoConfig();
   const portrait = useIsPortrait();
+  const terrain = props.recipe.background === "topo";
   const device = props.graph.screenFrame ?? "none";
   const p = useEnter(4);
   const push = interpolate(frame, [0, durationInFrames], [1, 1.06]);
@@ -189,8 +230,8 @@ function HeroLayout({ scene, props }: Props) {
     );
   }
   return (
-    <AbsoluteFill style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: u * 8, padding: `0 ${u * 10}px` }}>
-      <div style={{ flex: 1, maxWidth: width * 0.38 }}>
+    <AbsoluteFill style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: u * (terrain ? 4 : 8), padding: `0 ${u * (terrain ? 8 : 10)}px` }}>
+      <div style={terrain ? { width: width * 0.44, flexShrink: 0 } : { flex: 1, maxWidth: width * 0.38 }}>
         <Title scene={scene} props={props} size={u * 9} align="left" />
         <div style={{ marginTop: u * 3, height: u * 0.8, width: `${interpolate(p, [0, 1], [0, 30])}%`, borderRadius: 999, background: props.palette[2] }} />
       </div>

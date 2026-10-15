@@ -130,6 +130,8 @@
   --animate-sway: sway 9s ease-in-out infinite;
   --animate-caret: caret 1s steps(1) infinite;
   --animate-draw: draw 3s var(--ease-out-expo) forwards;
+  --animate-confetti: confetti 5s linear infinite;
+  --animate-warp: warp 1.8s ease-in infinite;
 
   @keyframes drift {
     0% { transform: translate3d(-12%, -8%, 0) scale(1); }
@@ -199,6 +201,15 @@
   @keyframes caret {
     0% { opacity: 1; }
     50% { opacity: 0; }
+  }
+  @keyframes confetti {
+    from { transform: translate3d(0, 0, 0) rotate(0deg); }
+    to { transform: translate3d(0, 115cqh, 0) rotate(540deg); }
+  }
+  @keyframes warp {
+    from { transform: translate3d(0, 0, 0); opacity: 0; }
+    30% { opacity: 1; }
+    to { transform: translate3d(450%, 0, 0); opacity: 0.9; }
   }
   @keyframes draw {
     from { stroke-dashoffset: 1; }
@@ -270,6 +281,11 @@
   html {
     -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
+    /* Barres de défilement fines et discrètes, aux couleurs du thème (héritées par toute la page) */
+    scrollbar-color: color-mix(in oklab, var(--fg) 22%, transparent) transparent;
+  }
+  * {
+    scrollbar-width: thin;
   }
   body {
     background: var(--bg);

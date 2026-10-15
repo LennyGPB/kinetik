@@ -17,6 +17,18 @@ npm run dev
 
 Scripts utiles : `npm run typecheck`, `npm run lint`, `npm run db:studio`.
 
+## Français et anglais
+
+- Routes localisées avec `next-intl` : `/en` et `/fr`. L’anglais est la langue par défaut et la cible `x-default` du référencement.
+- Sans choix explicite, `Accept-Language` détermine la langue ; le sélecteur FR/EN conserve le choix dans `KINETIK_LOCALE` pendant un an.
+- Les liens internes gardent la langue et le sélecteur conserve la page, la recherche et l’ancre.
+- Traductions : `lib/i18n/dictionaries/fr.ts`, `copy-fr.json` et `en.json`. Les clés et les paramètres `{name}`, `{count}`, etc. doivent rester identiques dans les deux langues.
+- Composants : `useDictionary()` ; fonctions serveur : `await getServerDictionary()`. Ne pas capturer une traduction au niveau global d’un module de composant.
+- Les nouvelles vidéos enregistrent leur langue dans `Project.locale` et `SceneGraph.language`. La génération, les démonstrations et les exports utilisent cette langue.
+- Changer la langue de l’interface ne réécrit pas les contenus des projets existants. Le bouton Traduction de l’éditeur crée une version traduite lorsque souhaité.
+- Les vidéos MP4 françaises de la landing sont conservées ; la version anglaise utilise une démonstration Kinetik animée en anglais.
+- Vérification : `node --import tsx --conditions=react-server --test lib/i18n/i18n.test.ts`.
+
 ## Vidéo (Remotion)
 
 La composition vit dans `remotion/` (imports **relatifs** uniquement : ce dossier est aussi bundlé par Remotion).
@@ -33,7 +45,8 @@ npm run video:deploy            # (re)déploie le site Remotion : À FAIRE aprè
 sans elles, l'export est simulé. Les fichiers uploadés sont intégrés aux props (data URI) car AWS ne peut pas lire
 le stockage local ; le MP4 reste privé sur S3 et se télécharge via un lien signé valable 24 h. Échec = remboursement automatique.
 Un compte AWS neuf est limité à 10 Lambdas simultanées (`REMOTION_MAX_LAMBDAS`, 8 par défaut) : demander une hausse du quota
-« Concurrent executions » dans AWS Service Quotas pour des rendus plus rapides.
+« Concurrent executions » dans AWS Service Quotas pour des rendus plus rapides, puis reporter ce quota dans `REMOTION_CONCURRENCY`
+(10 par défaut). Un export dans les trois formats lance trois rendus en même temps, qui se partagent ce quota.
 
 Logo et screens sont toujours affichés en `object-fit: contain` (jamais recadrés ni déformés).
 Pour un rendu hors navigateur, rendre les URLs absolues avec `absolutize()` (`remotion/props.ts`).

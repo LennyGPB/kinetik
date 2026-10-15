@@ -1,5 +1,8 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Coins, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { useTransition } from "react";
@@ -9,11 +12,9 @@ import { useToast } from "@/components/ui/toaster";
 import { CREDIT_COSTS } from "@/config/credits";
 import { VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import type { SceneKind } from "@/config/styles";
-import { t } from "@/lib/i18n";
+
 import { startGeneration } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
-
-const e = t.app.editor;
 
 export function DraftScreen({
   projectId,
@@ -30,6 +31,10 @@ export function DraftScreen({
   scene: SceneKind;
   failed?: boolean;
 }) {
+  const t = useDictionary();
+
+  const e = t.app.editor;
+
   const [pending, startTransition] = useTransition();
   const toast = useToast();
 

@@ -1,9 +1,12 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 
 type ToastTone = "success" | "error" | "info";
@@ -19,6 +22,8 @@ const icons = {
 };
 
 export function Toaster({ children }: { children: ReactNode }) {
+  const t = useDictionary();
+
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
 
@@ -76,16 +81,20 @@ export function Toaster({ children }: { children: ReactNode }) {
 }
 
 export function useToast() {
+  const t = useDictionary();
+
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error("useToast doit être utilisé dans <Toaster>");
+  if (!ctx) throw new Error(t.copy["3fd16bca6580"]);
   return ctx;
 }
 
 /** Toast standard pour les fonctionnalités pas encore branchées. */
 export function useComingSoon() {
+  const t = useDictionary();
+
   const toast = useToast();
   return useCallback(
     (title: string = t.common.comingSoon) => toast({ title, description: t.common.comingSoonDesc, tone: "info" }),
-    [toast],
+    [toast, t.common.comingSoon, t.common.comingSoonDesc],
   );
 }

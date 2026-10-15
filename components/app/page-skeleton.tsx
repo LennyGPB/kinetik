@@ -1,6 +1,8 @@
-import { t } from "@/lib/i18n";
+import { useDictionary } from "@/lib/i18n/use-dictionary";
 
 export function PageSkeleton({ withHeader = true }: { withHeader?: boolean }) {
+  const t = useDictionary();
+
   return (
     <div className="mx-auto max-w-6xl animate-pulse" aria-busy="true" aria-label={t.a11y.loading}>
       {withHeader && (

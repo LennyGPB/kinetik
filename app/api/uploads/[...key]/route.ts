@@ -1,14 +1,27 @@
+import { ipFromHeaders } from "@/lib/security/ip";
+import { LIMITS, limitKey } from "@/lib/security/limits";
 import { mimeFromKey, storage } from "@/lib/storage";
+import { getCurrentUser } from "@/lib/auth/dal";
+import { canReadMedia } from "@/lib/storage/access";
 
 export async function GET(request: Request, { params }: RouteContext<"/api/uploads/[...key]">) {
+  const privateHeaders = { "Cache-Control": "private, no-store", "Vary": "Cookie", "Referrer-Policy": "no-referrer" };
+  const limited = await limitKey("file-read", ipFromHeaders(request.headers), LIMITS.fileRead);
+  if (!limited.ok) return new Response("Too many requests", { status: 429, headers: { "Retry-After": String(Math.ceil(limited.retryAfterMs / 1000)) } });
   const { key } = await params;
   const path = key.join("/");
-  const data = await storage.get(path);
-  if (!data) return new Response("Not found", { status: 404 });
+  const user = await getCurrentUser();
+  if (!(await canReadMedia(path, user?.id ?? null, new URL(request.url).searchParams.get("share")))) {
+    return new Response("Not found", { status: 404, headers: privateHeaders });
+  }
+  let data: Buffer | null;
+  try { data = await storage.get(path); }
+  catch { return new Response("Storage unavailable", { status: 503, headers: privateHeaders }); }
+  if (!data) return new Response("Not found", { status: 404, headers: privateHeaders });
 
   const headers: Record<string, string> = {
     "Content-Type": mimeFromKey(path),
-    "Cache-Control": "private, max-age=31536000, immutable",
+    ...privateHeaders,
     "X-Content-Type-Options": "nosniff",
     // Les SVG uploadés ne peuvent pas exécuter de script
     "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",

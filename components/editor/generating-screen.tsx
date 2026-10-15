@@ -1,16 +1,18 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Check, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "@/lib/i18n/navigation";
+import { useEffect, useState } from "react";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { useToast } from "@/components/ui/toaster";
-import { t } from "@/lib/i18n";
+
 import { completeGeneration } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
 
-const e = t.app.editor;
 const STEP_MS = 900;
 
 /**
@@ -18,25 +20,33 @@ const STEP_MS = 900;
  * MOCK : déclenche la génération côté serveur. En prod, on écouterait l'avancement du job (polling / SSE).
  */
 export function GeneratingScreen({ projectId, appName, palette }: { projectId: string; appName: string; palette: [string, string, string] }) {
+  const t = useDictionary();
+
+  const e = t.app.editor;
+
   const [step, setStep] = useState(0);
   const router = useRouter();
   const toast = useToast();
-  const started = useRef(false);
 
   useEffect(() => {
     const timer = setInterval(() => setStep((s) => Math.min(s + 1, e.generatingSteps.length - 1)), STEP_MS);
     return () => clearInterval(timer);
-  }, []);
+  }, [e.generatingSteps.length]);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    let poll: ReturnType<typeof setInterval> | undefined;
+    let poll: ReturnType<typeof setTimeout> | undefined;
+    let active = true;
     const minDelay = new Promise((r) => setTimeout(r, STEP_MS * e.generatingSteps.length));
-    Promise.all([completeGeneration(projectId), minDelay]).then(([result]) => {
+    const finish = (result: Awaited<ReturnType<typeof completeGeneration>>) => {
+      if (!active) return;
       // Génération déjà en cours (ex. page rechargée) : on attend qu'elle se termine.
       if (!result.ok && result.error === "busy") {
-        poll = setInterval(() => router.refresh(), 3000);
+        poll = setTimeout(() => {
+          // Recheck the durable receipt as well as the page, so a crashed worker can recover.
+          void completeGeneration(projectId).then(finish).catch(() => {
+            if (active) router.refresh();
+          });
+        }, 3000);
         return;
       }
       if (!result.ok) {
@@ -44,9 +54,15 @@ export function GeneratingScreen({ projectId, appName, palette }: { projectId: s
         toast({ title: description ? e.generationFailed : t.common.error, description, tone: "error" });
       }
       router.refresh();
+    };
+    Promise.all([completeGeneration(projectId), minDelay]).then(([result]) => finish(result)).catch(() => {
+      if (active) {
+        toast({ title: t.common.error, tone: "error" });
+        router.refresh();
+      }
     });
-    return () => clearInterval(poll);
-  }, [projectId, router, toast]);
+    return () => { active = false; clearTimeout(poll); };
+  }, [projectId, router, toast, e.aiRefunded, e.generatingSteps.length, e.generationFailed, e.generationRefused, t.common.error]);
 
   return (
     <div className="flex flex-1 items-center justify-center p-6">

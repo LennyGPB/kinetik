@@ -1,0 +1,1 @@
+ALTER TABLE "Project" ADD COLUMN "locale" TEXT NOT NULL DEFAULT 'fr';

@@ -1,5 +1,6 @@
 "use client";
 
+
 import { motion, type HTMLMotionProps } from "motion/react";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -11,6 +12,7 @@ export function Reveal({
   once = true,
   ...props
 }: HTMLMotionProps<"div"> & { delay?: number; y?: number; once?: boolean }) {
+
   return (
     <motion.div
       initial={{ opacity: 0, y }}
@@ -24,6 +26,7 @@ export function Reveal({
 
 /** Conteneur qui décale l'apparition de ses <RevealItem>. */
 export function RevealGroup({ stagger = 0.08, ...props }: HTMLMotionProps<"div"> & { stagger?: number }) {
+
   return (
     <motion.div
       initial="hidden"

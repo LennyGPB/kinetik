@@ -1,5 +1,8 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { AnimatedApply } from "@/components/ui/animated-apply";
@@ -13,12 +16,15 @@ import type { EditorProject, EditorVersion } from "@/lib/projects/types";
 import { buildVideoProps } from "@/lib/projects/video-props";
 import { Player } from "./player";
 
-const names = { logo: "Logo", image: "Capture", text: "Texte", badge: "Badge" };
 const inputClass = "h-10 w-full rounded-xl border border-line-strong bg-black px-3 text-sm text-white outline-none focus:border-accent";
 
 export function OverlaysDialog({ project, graph, watermark, onClose, onVersion }: {
   project: EditorProject; graph: SceneGraph; watermark: boolean; onClose: () => void; onVersion: (version: EditorVersion) => void;
 }) {
+  const t = useDictionary();
+
+  const names = { logo: "Logo", image: t.copy["1900b478a586"], text: t.copy["bbb0bd5ff551"], badge: "Badge" };
+
   const [layers, setLayers] = useState<VideoOverlay[]>(graph.overlays ?? []);
   const [selected, setSelected] = useState(layers[0]?.id ?? "");
   const [pending, setPending] = useState(false);
@@ -33,7 +39,7 @@ export function OverlaysDialog({ project, graph, watermark, onClose, onVersion }
   }
   function add(type: VideoOverlay["type"]) {
     const id = `layer-${crypto.randomUUID()}`;
-    setLayers((items) => [...items, { id, type, text: type === "badge" ? "Nouveau" : type === "text" ? "Ton texte" : null,
+    setLayers((items) => [...items, { id, type, text: type === "badge" ? "Nouveau" : type === "text" ? t.copy["8a6ba7af2f14"] : null,
       screen: type === "image" ? 0 : null, x: type === "logo" ? 0.9 : 0.5, y: type === "logo" ? 0.08 : 0.5,
       width: type === "logo" ? 0.1 : 0.4, opacity: 1, rotation: 0, fontSize: 0.035,
       color: "#ffffff", background: null, animation: "none", sceneIds: null, start: null, end: null,
@@ -44,13 +50,13 @@ export function OverlaysDialog({ project, graph, watermark, onClose, onVersion }
     setPending(true);
     try {
       const result = await updateOverlays(project.id, layers);
-      if (!result.ok) { toast({ title: "Impossible d’enregistrer les calques. Réessaie.", tone: "error" }); return; }
+      if (!result.ok) { toast({ title: t.copy["fdc70ef328af"], tone: "error" }); return; }
       onVersion(result.version);
       onClose();
     } finally { setPending(false); }
   }
 
-  return <Dialog open onClose={onClose} title="Éléments superposés" description="Ajoute un logo, une capture ou du texte par-dessus tes scènes." className="sm:max-w-5xl">
+  return <Dialog open onClose={onClose} title={t.copy["1bff46be8db7"]} description={t.copy["578006a33e8e"]} className="sm:max-w-5xl">
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="min-w-0 lg:sticky lg:top-0 lg:self-start">
         <Player videoProps={buildVideoProps(project, { ...graph, overlays: layers }, watermark)} />
@@ -60,26 +66,26 @@ export function OverlaysDialog({ project, graph, watermark, onClose, onVersion }
           <div className="flex flex-wrap gap-2">
             {(Object.keys(names) as VideoOverlay["type"][]).map((type) => <Button key={type} variant="outline" size="sm" className="bg-black hover:border-accent hover:bg-accent" disabled={layers.length >= 16 || (type === "logo" && !project.logoUrl) || (type === "image" && !project.screenUrls.length)} onClick={() => add(type)}><Plus className="size-3.5" />{names[type]}</Button>)}
           </div>
-          {!project.logoUrl && <p className="text-xs text-muted">Ajoute ton logo dans Médias pour le superposer.</p>}
-          {!layers.length ? <p className="py-6 text-sm text-muted">Aucun élément superposé. Tu peux aussi demander au chat : « Mets mon logo en petit en haut à droite partout ».</p> : <label className="flex flex-col gap-2 text-sm">Élément<select className={inputClass} value={selected} onChange={(event) => setSelected(event.target.value)}>{layers.map((item, i) => <option key={item.id} value={item.id}>{names[item.type]} {i + 1}{item.text ? ` · ${item.text.slice(0, 24)}` : ""}</option>)}</select></label>}
+          {!project.logoUrl && <p className="text-xs text-muted">{t.copy["34c5e1c2fe16"]}</p>}
+          {!layers.length ? <p className="py-6 text-sm text-muted">{t.copy["8427dae1b262"]}</p> : <label className="flex flex-col gap-2 text-sm">{t.copy["494ab22e997c"]}<select className={inputClass} value={selected} onChange={(event) => setSelected(event.target.value)}>{layers.map((item, i) => <option key={item.id} value={item.id}>{names[item.type]} {i + 1}{item.text ? ` · ${item.text.slice(0, 24)}` : ""}</option>)}</select></label>}
           {layer && <>
-            {(layer.type === "text" || layer.type === "badge") && <label className="flex flex-col gap-2 text-sm">Texte<input className={inputClass} value={layer.text ?? ""} maxLength={160} onChange={(event) => patch({ text: event.target.value })} /></label>}
-            {layer.type === "image" && <label className="flex flex-col gap-2 text-sm">Capture<select className={inputClass} value={layer.screen ?? 0} onChange={(event) => patch({ screen: Number(event.target.value) })}>{project.screenUrls.map((url, index) => <option key={url} value={index}>Capture {index + 1}</option>)}</select></label>}
+            {(layer.type === "text" || layer.type === "badge") && <label className="flex flex-col gap-2 text-sm">{t.copy["bbb0bd5ff551"]}<input className={inputClass} value={layer.text ?? ""} maxLength={160} onChange={(event) => patch({ text: event.target.value })} /></label>}
+            {layer.type === "image" && <label className="flex flex-col gap-2 text-sm">{t.copy["1900b478a586"]}<select className={inputClass} value={layer.screen ?? 0} onChange={(event) => patch({ screen: Number(event.target.value) })}>{project.screenUrls.map((url, index) => <option key={url} value={index}>{t.copy["1900b478a586"]} {index + 1}</option>)}</select></label>}
             <div className="grid grid-cols-2 gap-4">
-              <Range label="Position horizontale" value={layer.x} min={0.02} max={0.98} onChange={(x) => patch({ x })} />
-              <Range label="Position verticale" value={layer.y} min={0.02} max={0.98} onChange={(y) => patch({ y })} />
-              <Range label="Taille" value={layer.width} min={0.03} max={0.8} onChange={(width) => patch({ width })} />
-              <Range label="Opacité" value={layer.opacity} min={0} max={1} onChange={(opacity) => patch({ opacity })} />
+              <Range label={t.copy["7365476ca132"]} value={layer.x} min={0.02} max={0.98} onChange={(x) => patch({ x })} />
+              <Range label={t.copy["a1dd33fb56e5"]} value={layer.y} min={0.02} max={0.98} onChange={(y) => patch({ y })} />
+              <Range label={t.copy["77093e0c33ff"]} value={layer.width} min={0.03} max={0.8} onChange={(width) => patch({ width })} />
+              <Range label={t.copy["c6ba4661f0ee"]} value={layer.opacity} min={0} max={1} onChange={(opacity) => patch({ opacity })} />
               {(layer.type === "text" || layer.type === "badge") && <>
-                <Range label="Taille du texte" value={layer.fontSize} min={0.012} max={0.15} step={0.001} onChange={(fontSize) => patch({ fontSize })} />
-                <label className="flex flex-col gap-2 text-sm">Couleur<input type="color" value={layer.color ?? "#ffffff"} onChange={(event) => patch({ color: event.target.value })} className="h-10 w-full cursor-pointer rounded-lg border border-line-strong bg-black" /></label>
+                <Range label={t.copy["dadc8c7aa148"]} value={layer.fontSize} min={0.012} max={0.15} step={0.001} onChange={(fontSize) => patch({ fontSize })} />
+                <label className="flex flex-col gap-2 text-sm">{t.copy["4550720a1879"]}<input type="color" value={layer.color ?? "#ffffff"} onChange={(event) => patch({ color: event.target.value })} className="h-10 w-full cursor-pointer rounded-lg border border-line-strong bg-black" /></label>
               </>}
             </div>
-            {layer.type === "badge" && <label className="flex flex-col gap-2 text-sm">Fond du badge<input type="color" value={layer.background ?? project.colors[0] ?? "#8b5cf6"} onChange={(event) => patch({ background: event.target.value })} className="h-10 w-full cursor-pointer rounded-lg border border-line-strong bg-black" /></label>}
-            <label className="flex flex-col gap-2 text-sm">Animation<select className={inputClass} value={layer.animation} onChange={(event) => patch({ animation: event.target.value as VideoOverlay["animation"] })}><option value="none">Fixe</option><option value="fade">Fondu</option><option value="slide">Glissé</option><option value="zoom">Zoom</option></select></label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" checked={layer.sceneIds === null} onChange={(event) => patch({ sceneIds: event.target.checked ? null : [graph.scenes[0].id] })} className="accent-[var(--accent)]" />Sur toutes les scènes</label>
+            {layer.type === "badge" && <label className="flex flex-col gap-2 text-sm">{t.copy["54f0e966f926"]}<input type="color" value={layer.background ?? project.colors[0] ?? "#8b5cf6"} onChange={(event) => patch({ background: event.target.value })} className="h-10 w-full cursor-pointer rounded-lg border border-line-strong bg-black" /></label>}
+            <label className="flex flex-col gap-2 text-sm">{"Animation"}<select className={inputClass} value={layer.animation} onChange={(event) => patch({ animation: event.target.value as VideoOverlay["animation"] })}><option value="none">{t.copy["cde0d52e04f8"]}</option><option value="fade">{t.copy["c324717c0963"]}</option><option value="slide">{t.copy["d8bf8ef3a8f1"]}</option><option value="zoom">{"Zoom"}</option></select></label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" checked={layer.sceneIds === null} onChange={(event) => patch({ sceneIds: event.target.checked ? null : [graph.scenes[0].id] })} className="accent-[var(--accent)]" />{t.copy["c31c3ed6c50d"]}</label>
             {layer.sceneIds !== null && <div className="flex flex-wrap gap-2">{graph.scenes.map((scene, index) => <label key={scene.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-2.5 py-2 text-xs"><input type="checkbox" checked={layer.sceneIds?.includes(scene.id)} onChange={(event) => patch({ sceneIds: event.target.checked ? [...(layer.sceneIds ?? []), scene.id] : (layer.sceneIds ?? []).filter((id) => id !== scene.id) })} className="accent-[var(--accent)]" />{index + 1} · {scene.title.slice(0, 20)}</label>)}</div>}
-            <Button variant="outline" size="sm" className="self-start bg-black hover:border-accent hover:bg-accent" onClick={() => { const remaining = layers.filter((item) => item.id !== selected); setLayers(remaining); setSelected(remaining[0]?.id ?? ""); }}><Trash2 className="size-3.5" />Retirer cet élément</Button>
+            <Button variant="outline" size="sm" className="self-start bg-black hover:border-accent hover:bg-accent" onClick={() => { const remaining = layers.filter((item) => item.id !== selected); setLayers(remaining); setSelected(remaining[0]?.id ?? ""); }}><Trash2 className="size-3.5" />{t.copy["8b5417f3123b"]}</Button>
           </>}
         </fieldset>
         <AnimatedApply disabled={pending || !changed || layers.some((item) => ((item.type === "text" || item.type === "badge") && !item.text?.trim()) || item.sceneIds?.length === 0)} onApply={save} onCancel={onClose} onApplyingChange={setApplying} />

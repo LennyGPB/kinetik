@@ -1,15 +1,17 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { SquareDashedMousePointer } from "lucide-react";
 import { useRef, useState } from "react";
 import { AnimatedApply } from "@/components/ui/animated-apply";
 import { Dialog } from "@/components/ui/dialog";
 import { Segmented } from "@/components/ui/segmented";
-import { t } from "@/lib/i18n";
-import { FOCUS_MODES, type ScreenFocus } from "@/lib/projects/scenes";
-import { cn } from "@/lib/utils";
 
-const tl = t.app.editor.timeline;
+import { FOCUS_ANIMATIONS, FOCUS_MODES, type ScreenFocus } from "@/lib/projects/scenes";
+import { TITLE_MAX } from "@/lib/projects/timeline";
+import { cn } from "@/lib/utils";
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -23,20 +25,31 @@ const MIN_SIZE = 0.03;
 export function FocusEditor({
   screens,
   value,
+  defaultSrc,
+  sceneTitle,
   disabled,
   onApply,
   onCancel,
 }: {
   screens: { url: string; ratio: number | null }[];
   value: ScreenFocus | null;
+  defaultSrc?: string;
+  sceneTitle: string;
   disabled: boolean;
   onApply: (focus: ScreenFocus | null) => void;
   onCancel: () => void;
 }) {
-  const [src, setSrc] = useState(value?.src && screens.some((s) => s.url === value.src) ? value.src : screens[0]?.url);
+  const t = useDictionary();
+
+  const tl = t.app.editor.timeline;
+
+  const known = (url?: string) => (url && screens.some((s) => s.url === url) ? url : undefined);
+  const [src, setSrc] = useState(known(value?.src) ?? known(defaultSrc) ?? screens[0]?.url);
   const [rect, setRect] = useState<Rect | null>(value ? { x: value.x, y: value.y, w: value.w, h: value.h } : null);
   const [mode, setMode] = useState<ScreenFocus["mode"]>(value?.mode ?? "popout");
   const [label, setLabel] = useState(value?.label ?? "");
+  const [title, setTitle] = useState(value?.title ?? "");
+  const [animation, setAnimation] = useState<NonNullable<ScreenFocus["animation"]>>(value?.animation ?? "lift");
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [removing, setRemoving] = useState(false);
@@ -60,10 +73,11 @@ export function FocusEditor({
   const valid = Boolean(src && rect && rect.w >= MIN_SIZE && rect.h >= MIN_SIZE);
 
   return (
-    <Dialog open onClose={onCancel} title={tl.focusTitle} description="Choisis un screen et trace la zone à mettre en avant. Clique sur Appliquer pour valider." className="sm:max-w-[min(94vw,80rem)]">
+    <Dialog open onClose={onCancel} title={tl.focusTitle} description={t.copy["113775d369d8"]} className="sm:max-w-[min(94vw,80rem)]">
     <div className="flex flex-col gap-4">
       <label className="flex items-center gap-3 self-stretch text-xs text-muted sm:self-end">
-        Zoom du cadrage
+
+        {t.copy["ddabe438c85f"]}
         <input type="range" min={1} max={3} step={0.25} value={zoom} disabled={locked} onChange={(event) => setZoom(Number(event.target.value))} className="min-w-20 flex-1 cursor-pointer accent-accent sm:w-36" />
         <span className="w-10 text-right font-mono">{Math.round(zoom * 100)} %</span>
       </label>
@@ -131,11 +145,31 @@ export function FocusEditor({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end">
+      <label className="flex flex-col gap-1 text-[11px] font-medium text-muted">
+        {tl.focusStepTitle}
+        <input
+          value={title}
+          disabled={locked}
+          maxLength={TITLE_MAX}
+          placeholder={sceneTitle}
+          onChange={(ev) => setTitle(ev.target.value)}
+          className="h-10 w-full rounded-xl border border-line-strong bg-bg px-3 text-base outline-none focus:border-accent sm:text-sm"
+        />
+        <span className="font-normal">{tl.focusStepTitleHint}</span>
+      </label>
+
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-end">
         <div className="flex flex-col gap-1">
           <Segmented label={tl.focusTitle} size="sm" value={mode} onChange={setMode} options={FOCUS_MODES.map((m) => ({ value: m, label: tl.focusModes[m], disabled: locked }))} />
           <span className="text-[11px] text-muted">{tl.focusModeHints[mode]}</span>
         </div>
+        {mode === "popout" && (
+          <div className="flex flex-col gap-1">
+            <span className="text-[11px] font-medium text-muted">{tl.focusAnimation}</span>
+            <Segmented label={tl.focusAnimation} size="sm" value={animation} onChange={setAnimation} options={FOCUS_ANIMATIONS.map((a) => ({ value: a, label: tl.focusAnimations[a], disabled: locked }))} />
+            <span className="text-[11px] text-muted">{tl.focusAnimationHints[animation]}</span>
+          </div>
+        )}
         {mode === "popout" && (
           <label className="flex flex-1 flex-col gap-1 text-[11px] font-medium text-muted">
             {tl.focusLabel}
@@ -155,11 +189,11 @@ export function FocusEditor({
             </button>
           )}
       </div>
-      {removing && <p role="status" className="text-xs text-muted">La mise en avant sera retirée après validation.</p>}
+      {removing && <p role="status" className="text-xs text-muted">{t.copy["d60eb9ae73b5"]}</p>}
       <AnimatedApply
         disabled={locked || (!valid && !removing)}
         onApplyingChange={setApplying}
-        onBegin={() => { pendingFocus.current = removing ? null : { src: src!, ...rect!, mode, ...(mode === "popout" && label.trim() ? { label: label.trim() } : {}) }; }}
+        onBegin={() => { pendingFocus.current = removing ? null : { src: src!, ...rect!, mode, ...(mode === "popout" ? { animation } : {}), ...(mode === "popout" && label.trim() ? { label: label.trim() } : {}), ...(title.trim() ? { title: title.trim() } : {}) }; }}
         onApply={() => onApply(pendingFocus.current)}
         onCancel={onCancel}
       />

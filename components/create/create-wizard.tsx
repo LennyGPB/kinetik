@@ -1,8 +1,11 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Coins, Pause, Play, Plus, Sparkles } from "lucide-react";
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
+import { ArrowLeft, ArrowRight, Coins, Pause, Play, Plus, Sparkles, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
+import Link from "@/lib/i18n/navigation";
 import { useRef, useState, useTransition, type ReactNode } from "react";
 import { TemplatesGallery } from "@/components/templates/templates-gallery";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
@@ -12,10 +15,11 @@ import { Field, Input, Textarea } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { CREDIT_COSTS } from "@/config/credits";
+import { VIDEO_TYPE_IDS, VIDEO_TYPES, type VideoTypeId } from "@/config/video-types";
 import { DURATIONS, FORMAT_IDS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import { MUSIC_LIBRARY, getTrack } from "@/config/music";
 import { getStyle } from "@/config/styles";
-import { format, t } from "@/lib/i18n";
+import { format, localizeText } from "@/lib/i18n";
 import { createProject } from "@/lib/projects/actions";
 import type { BrandKitData } from "@/lib/projects/queries";
 import { projectVisual } from "@/lib/projects/visuals";
@@ -26,13 +30,12 @@ import { UploadZone } from "./upload-zone";
 import { useWebsiteAnalysis, type WebsiteAnalysis } from "./use-website-analysis";
 import { WebsiteAnalysisStatus, WebsiteSuggestions } from "./website-suggestions";
 
-const c = t.app.create;
-
-const STEPS = ["app", "assets", "colors", "style", "format", "music", "brief", "review"] as const;
+const STEPS = ["app", "assets", "colors", "videoType", "style", "format", "music", "brief", "review"] as const;
 type StepId = (typeof STEPS)[number];
 
 type WizardState = {
   appName: string;
+  videoType: VideoTypeId;
   websiteUrl: string;
   logo: UploadedFile[];
   screens: UploadedFile[];
@@ -40,19 +43,21 @@ type WizardState = {
   styleId: string | null;
   format: VideoFormatId;
   duration: number;
-  musicMode: "library" | "upload";
+  musicMode: "library" | "upload" | "none";
   musicTrackId: string | null;
   music: UploadedFile[];
   brief: string;
 };
 
-function validate(step: StepId, s: WizardState): string | null {
+function validate(step: StepId, s: WizardState, t: ReturnType<typeof useDictionary>): string | null {
+  const c = t.app.create;
+
   if (step === "app") {
     if (!s.appName.trim()) return c.errors.nameRequired;
     if (s.websiteUrl && !/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(s.websiteUrl)) return c.errors.invalidUrl;
   }
   if (step === "style" && !s.styleId) return c.errors.styleRequired;
-  if (step === "music" && (s.musicMode === "library" ? !s.musicTrackId : s.music.length === 0)) return c.errors.musicRequired;
+  if (step === "music" && (s.musicMode === "library" ? !s.musicTrackId : s.musicMode === "upload" && s.music.length === 0)) return c.errors.musicRequired;
   return null;
 }
 
@@ -67,20 +72,28 @@ export function CreateWizard({
   initialAppName?: string;
   initialStyleId?: string;
 }) {
+  const t = useDictionary();
+
+  const c = t.app.create;
+
   const [stepIndex, setStepIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
+  const [uploads, setUploads] = useState<Record<string, boolean>>({});
+  const uploading = Object.values(uploads).some(Boolean);
+  const onUploading = (key: string, busy: boolean) => setUploads((current) => ({ ...current, [key]: busy }));
   const [state, setState] = useState<WizardState>({
     appName: initialAppName ?? "",
+    videoType: "presentation",
     websiteUrl: "",
     logo: [],
     screens: [],
     colors: brandKit?.colors.length ? brandKit.colors.slice(0, 4) : ["#7c3aed", "#f472b6"],
     styleId: getStyle(initialStyleId)?.id ?? null,
     format: "LANDSCAPE",
-    duration: 30,
+    duration: 15,
     musicMode: "library",
     musicTrackId: MUSIC_LIBRARY[0].id,
     music: [],
@@ -95,8 +108,9 @@ export function CreateWizard({
   };
 
   function go(delta: number) {
+    if (uploading) return;
     if (delta > 0) {
-      const problem = validate(step, state);
+      const problem = validate(step, state, t);
       if (problem) return setError(problem);
     }
     setError(null);
@@ -106,11 +120,13 @@ export function CreateWizard({
   }
 
   function jumpTo(target: StepId) {
+    if (uploading) return;
     setDirection(-1);
     setStepIndex(STEPS.indexOf(target));
   }
 
   function submit() {
+    if (uploading) return;
     startTransition(async () => {
       const result = await createProject({
         appName: state.appName,
@@ -119,6 +135,8 @@ export function CreateWizard({
         screens: state.screens,
         colors: state.colors,
         styleId: state.styleId ?? "",
+        videoType: state.videoType,
+        locale: t.locale,
         format: state.format,
         duration: state.duration,
         musicMode: state.musicMode,
@@ -186,7 +204,7 @@ export function CreateWizard({
               exit="exit"
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             >
-              <StepContent step={step} state={state} set={set} brandKit={brandKit} onJump={jumpTo} balance={balance} analysis={analysis} retryAnalysis={retry} />
+              <StepContent step={step} state={state} set={set} brandKit={brandKit} onJump={jumpTo} balance={balance} analysis={analysis} retryAnalysis={retry} onUploading={onUploading} />
             </motion.div>
           </AnimatePresence>
 
@@ -211,13 +229,13 @@ export function CreateWizard({
               key={step}
               first={stepIndex === 0}
               onValidate={() => {
-                const problem = validate(step, state);
+                const problem = validate(step, state, t);
                 setError(problem);
                 return !problem;
               }}
               onContinue={step === "review" ? submit : () => go(1)}
               onBack={() => go(-1)}
-              disabledNext={step === "review" && !canAfford}
+              disabledNext={uploading || (step === "review" && !canAfford)}
               pending={pending}
             >
               {step === "review" ? <><Sparkles />{pending ? c.review.generating : c.review.generate}</> : <>{t.common.continue} <ArrowRight /></>}
@@ -270,6 +288,8 @@ function AnimatedNavigation({ first, onValidate, onContinue, onBack, children, d
   disabledNext: boolean;
   pending: boolean;
 }) {
+  const t = useDictionary();
+
   const track = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLDivElement>(null);
   const [travel, setTravel] = useState<number | null>(null);
@@ -341,6 +361,7 @@ function StepContent({
   balance,
   analysis,
   retryAnalysis,
+  onUploading,
 }: {
   step: StepId;
   state: WizardState;
@@ -350,7 +371,11 @@ function StepContent({
   balance: number;
   analysis: WebsiteAnalysis;
   retryAnalysis: () => void;
+  onUploading: (key: string, busy: boolean) => void;
 }) {
+  const t = useDictionary();
+
+  const c = t.app.create;
 
   switch (step) {
     case "app":
@@ -403,7 +428,7 @@ function StepContent({
                 {c.assets.screens}
               </p>
               <WebsiteSuggestions analysis={analysis} retry={retryAnalysis} screens={state.screens} onScreens={(v) => set("screens", v)} />
-              <UploadZone label={c.assets.screens} value={state.screens} onChange={(v) => set("screens", v)} multiple max={8} hint={c.assets.screensHint} />
+              <UploadZone onBusyChange={(busy) => onUploading("screens", busy)} label={c.assets.screens} value={state.screens} onChange={(v) => set("screens", v)} multiple max={8} reorderable hint={c.assets.screensHint} />
             </div>
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium">{c.assets.logo}</p>
@@ -412,7 +437,7 @@ function StepContent({
                   <Sparkles /> {c.assets.useBrandKit}
                 </Button>
               )}
-              <UploadZone label={c.assets.logo} value={state.logo} onChange={(v) => set("logo", v)} hint={c.assets.logoHint} />
+              <UploadZone onBusyChange={(busy) => onUploading("logo", busy)} label={c.assets.logo} value={state.logo} onChange={(v) => set("logo", v)} hint={c.assets.logoHint} />
             </div>
           </div>
         </Panel>
@@ -423,13 +448,13 @@ function StepContent({
         <Panel>
           <StepHeading title={c.colors.heading} help={c.colors.help} />
           {analysis.status !== "idle" && (
-            <section className="mb-6 flex flex-col gap-3 rounded-xl border border-line-strong bg-surface p-3" aria-label="Couleurs proposées du site">
-              <h3 className="text-sm font-semibold">Les couleurs de ton site</h3>
+            <section className="mb-6 flex flex-col gap-3 rounded-xl border border-line-strong bg-surface p-3" aria-label={t.copy["4e627a34c64d"]}>
+              <h3 className="text-sm font-semibold">{t.copy["cedfd79ca2ed"]}</h3>
               <WebsiteAnalysisStatus analysis={analysis} retry={retryAnalysis} />
               {analysis.status === "ready" && (analysis.colors.length > 0 ? <>
                 <div className="flex flex-wrap gap-2">{analysis.colors.map((color) => <span key={color} className="flex items-center gap-2 rounded-lg border border-line px-2 py-1.5 font-mono text-xs text-muted"><span className="size-6 rounded border border-line-strong" style={{ backgroundColor: color }} />{color.toUpperCase()}</span>)}</div>
-                <Button variant="outline" size="sm" className="cursor-pointer self-start" onClick={() => set("colors", [...analysis.colors])}>Utiliser ces couleurs</Button>
-              </> : <p className="text-xs text-muted">Aucune palette fiable détectée. Choisis tes couleurs ci-dessous.</p>)}
+                <Button variant="outline" size="sm" className="cursor-pointer self-start" onClick={() => set("colors", [...analysis.colors])}>{t.copy["e7ed9a185c78"]}</Button>
+              </> : <p className="text-xs text-muted">{t.copy["359b67495ddd"]}</p>)}
             </section>
           )}
           <div className="flex flex-col gap-6">
@@ -464,6 +489,30 @@ function StepContent({
             )}
           </div>
         </Panel>
+      );
+
+    case "videoType":
+      return (
+        <div>
+          <StepHeading title={c.videoType.heading} help={c.videoType.help} />
+          <fieldset className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
+            <legend className="sr-only">{c.videoType.heading}</legend>
+            {VIDEO_TYPE_IDS.map((id) => {
+              const type = VIDEO_TYPES[id];
+              return (
+                <label key={id} className={cn("flex cursor-pointer items-start gap-4 p-4 transition-colors sm:p-5", state.videoType === id ? "bg-accent-soft" : "bg-surface hover:bg-surface-2")}>
+                  <input type="radio" name="videoType" value={id} checked={state.videoType === id} onChange={() => set("videoType", id)} className="mt-1 size-4 shrink-0 accent-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent" />
+                  <span className="min-w-0">
+                    <span className="block font-medium">{localizeText(type.label, t)}</span>
+                    <span className="mt-1 block text-sm text-muted">{localizeText(type.description, t)}</span>
+                    <span className="mt-2 block text-xs leading-relaxed text-muted">{localizeText(type.outline, t)}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </fieldset>
+          {state.videoType === "demo" && state.screens.length === 0 && <p className="mt-3 text-sm text-muted">{c.videoType.demoHint}</p>}
+        </div>
       );
 
     case "style":
@@ -545,7 +594,7 @@ function StepContent({
       return (
         <Panel>
           <StepHeading title={c.brief.heading} help={c.brief.help} />
-          <Field label={c.brief.label} htmlFor="brief" aside={<span className="text-xs text-subtle">{state.brief.length}/1000</span>}>
+          <Field label={c.brief.label} htmlFor="brief" aside={<span className="text-xs text-subtle">{state.brief.length}{"/1000"}</span>}>
             <Textarea
               id="brief"
               value={state.brief}
@@ -588,9 +637,10 @@ function StepContent({
             </span>
           ),
         },
+        { step: "videoType", label: c.steps.videoType, value: localizeText(VIDEO_TYPES[state.videoType].label, t) },
         { step: "style", label: c.steps.style, value: style?.name },
         { step: "format", label: c.steps.format, value: `${VIDEO_FORMATS[state.format].ratio} · ${state.duration} s` },
-        { step: "music", label: c.steps.music, value: state.musicMode === "library" ? track?.title : state.music[0]?.fileName ?? c.review.noMusic },
+        { step: "music", label: c.steps.music, value: state.musicMode === "library" ? track?.title : state.musicMode === "upload" ? state.music[0]?.fileName ?? c.review.noMusic : c.music.none },
       ];
       const after = balance - CREDIT_COSTS.generation;
       return (
@@ -642,6 +692,10 @@ function StepContent({
 }
 
 function MusicStep({ state, set }: { state: WizardState; set: <K extends keyof WizardState>(key: K, value: WizardState[K]) => void }) {
+  const t = useDictionary();
+
+  const c = t.app.create;
+
   const [playing, setPlaying] = useState<string | null>(null);
 
   return (
@@ -654,6 +708,7 @@ function MusicStep({ state, set }: { state: WizardState; set: <K extends keyof W
         options={[
           { value: "library", label: c.music.library },
           { value: "upload", label: c.music.upload },
+          { value: "none", label: c.music.none },
         ]}
       />
       <div className="mt-5">
@@ -686,7 +741,7 @@ function MusicStep({ state, set }: { state: WizardState; set: <K extends keyof W
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold">{track.title}</span>
                         <span className="block truncate text-xs text-muted">
-                          {track.mood} · {format(c.music.bpm, { bpm: track.bpm })}
+                          {localizeText(track.mood, t)} · {format(c.music.bpm, { bpm: track.bpm })}
                         </span>
                       </span>
                       <span className="hidden h-6 items-center gap-[3px] sm:flex" aria-hidden>
@@ -705,8 +760,13 @@ function MusicStep({ state, set }: { state: WizardState; set: <K extends keyof W
               );
             })}
           </ul>
-        ) : (
+        ) : state.musicMode === "upload" ? (
           <UploadZone label={c.music.upload} kind="audio" value={state.music} onChange={(v) => set("music", v)} hint={c.music.uploadHint} />
+        ) : (
+          <p className="flex items-start gap-3 rounded-2xl border border-line bg-surface p-4 text-sm text-muted">
+            <VolumeX className="mt-0.5 size-4 shrink-0 text-fg" aria-hidden />
+            {c.music.noneHint}
+          </p>
         )}
       </div>
     </Panel>

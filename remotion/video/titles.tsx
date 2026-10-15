@@ -48,11 +48,12 @@ export function AnimatedTitle({ text, size: baseSize, color, palette, energy, al
   const font = useTitleFont();
   const size = baseSize * useTitleScale();
   const [bg, main, accent] = palette;
+  const ink = recipe.background === "gold-atelier" && !isLight(bg) ? `color-mix(in srgb, ${main} 70%, white)` : color;
   const ctx: AnimationContext = {
     text,
     size,
     color,
-    paint: paintFor(recipe.titleEffect, color, main, accent),
+    paint: paintFor(recipe.titleEffect, ink, main, accent),
     accent,
     main,
     light: isLight(bg),
@@ -104,8 +105,9 @@ const ANIMATIONS: Record<TitleAnimation, (ctx: AnimationContext) => ReactNode> =
       {words(ctx.text).map((word, i) => {
         const p = spring({ frame: ctx.frame - i * 3, fps: ctx.fps, config: ctx.energy === "high" ? { damping: 13, stiffness: 200 } : { damping: 20, stiffness: 120 } });
         return (
-          // Le masque déborde vers le haut pour ne pas couper les accents des capitales (É, Ê…)
-          <span key={i} style={{ display: "inline-block", overflow: "hidden", paddingTop: ctx.size * 0.18, marginTop: -ctx.size * 0.18, paddingBottom: ctx.size * 0.08 }}>
+          // Le masque déborde vers le haut (accents des capitales : É, Ê…), à droite et en bas (halos, relief extrudé),
+          // avec des marges négatives : la mise en page ne bouge pas
+          <span key={i} style={{ display: "inline-block", overflow: "hidden", paddingTop: ctx.size * 0.18, marginTop: -ctx.size * 0.18, paddingBottom: ctx.size * 0.16, marginBottom: -ctx.size * 0.08, paddingRight: ctx.size * 0.14, marginRight: -ctx.size * 0.14 }}>
             <span style={{ display: "inline-block", transform: `translateY(${(1 - p) * 110}%)`, ...ctx.paint }}>{word}</span>
           </span>
         );

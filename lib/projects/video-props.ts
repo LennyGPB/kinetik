@@ -5,7 +5,7 @@ import type { EditorProject } from "./types";
 import { projectVisual } from "./visuals";
 
 /** Ce qu'il faut d'un projet pour le rendre (éditeur, page de partage, export). */
-export type VideoSource = Pick<EditorProject, "appName" | "format" | "styleId" | "colors" | "logoUrl" | "screenUrls" | "screenRatios" | "websiteUrl" | "musicSrc">;
+export type VideoSource = Pick<EditorProject, "appName" | "format" | "styleId" | "colors" | "logoUrl" | "screenUrls" | "screenRatios" | "websiteUrl" | "musicSrc" | "locale">;
 
 /** Construit les props de la composition Remotion à partir d'un projet et d'une version. */
 export function buildVideoProps(project: VideoSource, graph: SceneGraph, watermark: boolean): VideoProps {
@@ -14,8 +14,10 @@ export function buildVideoProps(project: VideoSource, graph: SceneGraph, waterma
   const { palette } = projectVisual({ styleId, colors: graph.colors ?? project.colors });
   return {
     appName: project.appName,
+    locale: graph.language ?? project.locale ?? "fr",
     format: project.format,
     palette,
+    brandColors: graph.colors ?? project.colors,
     recipe: getRecipe(styleId),
     graph,
     logoUrl: project.logoUrl,

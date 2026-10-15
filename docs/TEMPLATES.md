@@ -38,11 +38,32 @@ config/recipes.ts ────────────────────�
 | `remotion/video/effects.tsx` | Briques **effets** globaux (grain, lumière…) |
 | `remotion/video/backgrounds.tsx` | Briques **fonds animés** |
 | `remotion/video/screens.tsx` | Briques **mise en scène des screens** + cadres téléphone / navigateur |
-| `remotion/video/scenes.tsx` | Les 5 types de scènes (intro, logo, feature, screens, cta) |
+| `remotion/video/scenes.tsx` | Les 7 types de scènes (intro, logo, feature, screens, cta, stat, quote) |
+| `remotion/video/composition.tsx` | Briques **composition** : silhouette des scènes de texte (centré, gauche, affiche) |
+| `remotion/video/camera.tsx` | Briques **caméra** : mouvement global du contenu de chaque scène |
+| `remotion/video/stat.ts` | Compteur de la scène `stat` (logique pure, testée) |
 | `components/media/video-placeholder.tsx` | Aperçu CSS d'un fond dans la galerie (version légère, sans Remotion) |
 | `lib/projects/demo-video.ts` | Vidéo de démo d'un template (page Templates) |
 
 ## Anatomie d'une recette
+
+### Collection Monolith, Focus, Prism, Papercut et Metro
+
+Ces cinq templates partagent leurs fonds entre le moteur vidéo et la galerie via
+`remotion/video/collection-backgrounds.tsx` et `components/media/collection-thumbnail.tsx`.
+Les mouvements sont déterministes, calculés à partir de la frame du rendu.
+
+| Template | Identité | Transition principale |
+| --- | --- | --- |
+| Monolith | Minimal clair, typographie nette, accents noirs | `shutter`, deux volets |
+| Focus | Minimal sombre, composition centrée, mouvement optique | `iris`, révélation circulaire |
+| Prism | Facettes violettes et menthe, plans diagonaux | `prism`, lamelles diagonales |
+| Papercut | Papier crème, terracotta et vert, feuilles superposées | `fold`, page pliée |
+| Metro | Réseau de lignes et stations en mouvement | `track`, passage de bandes horizontales |
+
+Les cinq transitions sont définies dans `remotion/video/collection-transitions.tsx`.
+Leur sortie recouvre la fin de la scène précédente, puis leur entrée découvre la suivante.
+Les libellés de l’éditeur et le schéma de génération acceptent ces nouveaux identifiants.
 
 ```ts
 neon: {
@@ -53,6 +74,8 @@ neon: {
   background: "aurora",          // fond animé                    → backgrounds.tsx
   screens: "tilt",               // mise en scène des captures    → screens.tsx
   logo: "pop",                   // apparition du logo            → scenes.tsx
+  composition: "center",         // silhouette des scènes de texte → composition.tsx
+  camera: "handheld",            // mouvement de caméra global     → camera.tsx
   accent: "gradient",            // trait et bouton : dégradé ou uni
   beatPulse: true,               // logo et bouton pulsent sur le tempo
   energy: "high",                // rythme de départ (Claude peut l'adapter)
@@ -71,32 +94,63 @@ Les valeurs possibles de chaque champ sont documentées en tête de `config/reci
 | Typographie | `display` (Bricolage), `sans` (Inter), `serif` (Instrument Serif), `condensed` (Anton, capitales), `mono` (JetBrains Mono) |
 | Animation de titre | `words`, `letters`, `fade`, `mask`, `glitch`, `typewriter`, `flicker` |
 | Habillage de titre | `none`, `glow`, `chrome` |
-| Fond | `blobs`, `type`, `glitch`, `rings`, `aurora`, `grid`, `shapes`, `bars`, `orbit`, `clean`, `paper`, `terminal`, `spotlight`, `chrome`, `data`, `glass`, `iso`, `blocks`, `line` |
+| Fond | `blobs`, `type`, `glitch`, `rings`, `aurora`, `grid`, `shapes`, `bars`, `orbit`, `clean`, `paper`, `terminal`, `spotlight`, `chrome`, `data`, `glass`, `iso`, `blocks`, `line`, `halftone`, `stripes`, `sun`, `confetti`, `waves`, `sunburst`, `topo`, `starfield`, `pixels` |
 | Screens | `row`, `hero`, `split`, `fan`, `tilt`, `stack`, `carousel`, `bento` |
-| Transitions | `fade`, `slide`, `zoom`, `glitch`, `cut` (calée sur le beat), `curtain` (panneau de couleur) |
-| Effets | `vignette` (sous les scènes), `grain`, `light`, `scanlines` (par-dessus) |
+| Transitions | `fade`, `slide`, `zoom`, `glitch`, `cut` (calée sur le beat), `curtain` (panneau de couleur), `glass` (vitre dépolie qui floute puis dévoile), `cube` (les scènes tournent comme les faces d'un cube 3D) |
+| Effets | `vignette` (sous les scènes), `grain`, `light`, `scanlines`, `letterbox` (bandes de cinéma), `viewfinder` (viseur REC + timecode), `film` (poussières, rayures, scintillement), `rays` (faisceaux de lumière), `border` (passe-partout), `liquid` (lentilles de verre liquide qui passent sur les textes), `depth` (gros cubes 3D flous au premier plan) (par-dessus) |
 
-## Les 17 templates
+`letterbox`, `viewfinder` et `border` occupent les bords du cadre : ne pas les associer à la composition `poster` (son en-tête et son pied de page seraient masqués).
+| Composition | `center` (symétrique), `left` (bloc à gauche + filet), `poster` (titre géant, en-tête nom + numéro de scène, pied de page), `glass` (bloc posé sur une carte de verre dépoli), `extrude` (titre en relief 3D, bloc qui se pose en perspective) |
 
-| Template | Catégorie | Typo | Titre | Fond | Screens | Transitions |
-| --- | --- | --- | --- | --- | --- | --- |
-| Apple-like | minimal | sans | fade | clean | hero | fade, slide |
-| Minimal | minimal | sans | mask | line | hero | fade, slide |
-| Luxe | minimal | serif | fade | spotlight | hero | fade |
-| Kinetic Typo | typo | display | letters | type | split | cut, slide, curtain, zoom |
-| Brutalist | typo | condensed | mask | blocks | split | cut, curtain |
-| Editorial | typo | serif | mask | paper | hero | curtain, fade |
-| Neon | bold | display | flicker + glow | aurora | tilt | cut, zoom, fade |
-| Glitch | bold | mono | glitch | glitch | stack | glitch, cut, zoom |
-| Beat Cut | bold | condensed | words | bars | stack | cut, zoom |
-| Gradient Flow | tech | display | fade | blobs | carousel | fade, slide, curtain |
-| Liquid Glass | tech | sans | fade | glass | carousel | fade, slide |
-| Terminal | tech | mono | typewriter + glow | terminal | row | cut, fade |
-| Playful | fun | display | letters | shapes | fan | zoom, slide, curtain |
-| 3D Flat | fun | display | words | iso | tilt | zoom, slide, fade |
-| Y2K | fun | display | letters + chrome | chrome | fan | zoom, glitch, curtain |
-| Corporate | business | sans | words | grid | row | fade, slide |
-| Dashboard | business | sans | words | data | bento | slide, fade, cut |
+**Effets de verre** (`glass`, `liquid`, composition `glass`) : le flou vient de `backdrop-filter`, rendu par Chrome dans Remotion. Un parent avec `opacity < 1`, `filter` ou `mask` isole le verre de ce qu'il y a derrière : garder ces briques hors de tels conteneurs (la vitre de transition est une sœur du contenu de la scène, pas une enfant).
+| Caméra | `still`, `drift` (travelling lent), `push` (avancée continue), `handheld` (épaule, plus ample en énergie haute), `swing` (balancier 3D en perspective), `glitch` (sursauts de glitch sur tout le contenu : tranches décalées + séparation RGB) |
+
+**Glitch** : `remotion/video/glitch-fx.tsx` (`GlitchSlices`, `glitchBurst`) est partagé par la caméra `glitch`, la transition `glitch` et le fond `glitch` (même calendrier de sursauts). **3D** : `remotion/video/cube3d.tsx` (vrai cube CSS, 6 faces éclairées) sert au fond `iso` et à l'effet `depth`.
+
+**Composition et caméra sont les briques qui changent le plus la vidéo.** Deux recettes au même fond mais à la composition différente ne se ressemblent pas : à varier en priorité quand on crée un template.
+La caméra s'applique au contenu des scènes (jamais au fond) et se fige pendant le déplacement des textes dans l'éditeur.
+
+## Les 37 templates
+
+| Template | Catégorie | Typo | Titre | Fond | Screens | Composition | Caméra | Transitions |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Apple-like | minimal | sans | fade | clean | hero | center | push | fade, slide |
+| Minimal | minimal | sans | mask | line | hero | left | still | fade, slide |
+| Luxe | minimal | serif | fade | spotlight | hero | center | drift | fade |
+| Kinetic Typo | typo | display | letters | type | split | poster | push | cut, slide, curtain, zoom |
+| Brutalist | typo | condensed | mask | blocks | split | poster | still | cut, curtain |
+| Editorial | typo | serif | mask | paper | hero | left | drift | curtain, fade |
+| Swiss | typo | sans | mask | line | split | poster | still | cut, slide |
+| Neon | bold | display | flicker + glow | aurora | tilt | center | handheld | cut, zoom, fade |
+| Glitch | bold | mono | glitch | glitch | stack | poster | glitch | glitch, cut, zoom |
+| Beat Cut | bold | condensed | words | bars | stack | poster | handheld | cut, zoom |
+| Pulse | bold | condensed | words | rings (ondes de choc et spectre sur le beat) | stack | poster | handheld | cut, zoom |
+| Synthwave | bold | mono | flicker + glow | grid | tilt | center | drift | zoom, glitch, cut |
+| Gradient Flow | tech | display | fade | blobs | carousel | center | drift | fade, slide, curtain |
+| Liquid Glass | tech | sans | fade | glass (+ liquid) | carousel | glass | drift | glass, fade, slide |
+| Terminal | tech | mono | typewriter + glow | terminal | row | left | still | cut, fade |
+| Orbit | tech | display | fade | orbit | tilt | center | drift | zoom, fade, slide |
+| Playful | fun | display | letters | shapes | fan | center | push | zoom, slide, curtain |
+| 3D Flat | fun | display | words | iso (+ depth) | tilt | extrude | swing | cube, zoom, slide |
+| Y2K | fun | display | letters + chrome | chrome | fan | center | push | zoom, glitch, curtain |
+| Zine | fun | serif | letters | paper | fan | left | handheld | curtain, slide, zoom |
+| Corporate | business | sans | words | grid | row | left | still | fade, slide |
+| Dashboard | business | sans | words | data | bento | left | push | slide, fade, cut |
+| Pitch | business | sans | words | clean | bento | left | push | slide, fade, curtain |
+| Studio | business | sans | mask | glass | hero | left | push | glass, slide, fade |
+| Pop Art | fun | condensed | letters | halftone | fan | poster | handheld | zoom, cut, curtain |
+| Fiesta | fun | display | letters | confetti | carousel | center | push | zoom, curtain, slide |
+| Sprint | bold | condensed | words | stripes | stack | center | push | slide, cut, zoom |
+| Golden Hour | minimal | serif | fade | sun | hero | center | drift | fade, slide |
+| Blueprint | tech | mono | typewriter | data | row | left | still | slide, cut |
+| Cinéma | minimal | condensed | fade | spotlight (+ letterbox, film) | hero | center | push | fade, cut |
+| Ocean | minimal | sans | fade | waves (+ rays) | carousel | center | drift | fade, slide |
+| Arcade | fun | mono | letters | pixels (+ scanlines, border) | row | center | still | cut, zoom, glitch |
+| Seventies | fun | display | letters | sunburst (+ film) | fan | center | drift | curtain, zoom, slide |
+| Terrain | tech | sans | words | topo | hero | left | drift | slide, fade |
+| Hyperspace | tech | display | fade + glow | starfield | tilt | center | push | zoom, fade, cut |
+| Creator | bold | display | words | blobs (+ viewfinder) | stack | left | handheld | cut, slide, zoom |
+| Riso | typo | display | mask | halftone (+ border) | split | left | still | curtain, cut |
 
 (La table fait foi au moment où elle est écrite ; en cas de doute, `config/recipes.ts` a raison.)
 
@@ -123,6 +177,8 @@ Ajouter une valeur au type dans `config/recipes.ts` fait **échouer le typecheck
 | un fond | `BackgroundKind` | `BACKGROUNDS` dans `backgrounds.tsx` | aperçu CSS dans `video-placeholder.tsx` (le `switch` exige un `case`) |
 | une mise en scène des screens | `ScreensLayout` | `LAYOUTS` dans `screens.tsx` | — |
 | un effet | `Effect` | `EFFECTS` dans `effects.tsx` (choisir le calque `under` ou `over`) | — |
+| une composition | `COMPOSITIONS` | `LAYOUTS` dans `composition.tsx` | — |
+| un mouvement de caméra | `CAMERAS` | `CAMERA_MOVES` dans `camera.tsx` | — |
 | une transition | `TRANSITIONS` dans `lib/projects/scenes.ts` | `TRANSITION_BRICKS` dans `transitions.tsx` | décrire la transition dans le `SYSTEM` de `lib/services/ai.ts` |
 
 ### Règles du moteur (à respecter dans toute brique)
@@ -133,6 +189,15 @@ Ajouter une valeur au type dans `config/recipes.ts` fait **échouer le typecheck
 - **Imports relatifs uniquement** dans `remotion/` et `config/` (ces dossiers sont aussi bundlés par Remotion : pas d'alias `@/`).
 - **Logo et screens** : jamais recadrés ni déformés (`objectFit: "contain"`).
 - **Pas de données inventées** : une brique ne doit pas afficher de chiffres ou de faits sur l'app (cf. `bento`, qui montre des graphiques sans valeurs).
+
+## Scènes `stat` et `quote`
+
+Deux types de scènes sans champ de données en plus (le schéma de sortie de Claude a une taille maximale, voir `lib/services/ai.ts`) :
+
+- **stat** : `title` = le chiffre et son unité (« +40 % », « 10 000 équipes », « 4,9/5 »), `subtitle` = ce qu'il mesure. Le premier nombre du titre défile jusqu'à sa valeur en gardant son format (`remotion/video/stat.ts`).
+- **quote** : `title` = la citation, sans guillemets (ils sont dessinés), `subtitle` = l'auteur et son rôle.
+- **Garde-fou** : Claude ne crée ces scènes qu'avec un chiffre ou une citation **réels**, fournis par l'utilisateur ou lisibles sur un screen. Jamais de chiffre ni de témoignage inventés (consignes dans le `SYSTEM`).
+- Les deux passent par `<TextLayout>` : elles suivent la composition de la recette.
 
 ## Rôle de Claude
 

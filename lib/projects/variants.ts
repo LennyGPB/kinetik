@@ -45,3 +45,8 @@ export function shortenGraph(graph: SceneGraph, target = SHORT_DURATION): SceneG
   durations[longest] = Math.max(SCENE_MIN_SECONDS, durations[longest] + target - durations.reduce((a, b) => a + b, 0));
   return { ...graph, scenes: kept.map((s, i) => ({ ...s, duration: durations[i] })) };
 }
+
+/** Sorte d'une déclinaison existante (la version courte garde le format de l'original). */
+export function variantKind(variant: { format: VideoFormatId; short: boolean }): VariantKind {
+  return variant.short ? "short" : variant.format;
+}

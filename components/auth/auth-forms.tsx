@@ -1,20 +1,23 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
+import Link from "@/lib/i18n/navigation";
 import { useSearchParams } from "next/navigation";
-import { useActionState } from "react";
+
+import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import { RichText } from "@/components/legal/rich-text";
 import { useComingSoon } from "@/components/ui/toaster";
-import { login, register } from "@/lib/auth/actions";
+import { getSignupToken, login, register } from "@/lib/auth/actions";
 import type { AuthFormState } from "@/lib/auth/validation";
-import { t } from "@/lib/i18n";
+
 import { OAuthButtons } from "./oauth-buttons";
 import { PasswordInput } from "./password-input";
-
-const a = t.auth;
 
 /** Après inscription depuis la landing (nom d'app / style choisi), on enchaîne sur /create. */
 function useRedirectTarget() {
@@ -50,6 +53,10 @@ function FormError({ message }: { message?: string }) {
 }
 
 function Divider() {
+  const t = useDictionary();
+
+  const a = t.auth;
+
   return (
     <div className="flex items-center gap-3 text-xs text-subtle uppercase">
       <span className="h-px flex-1 bg-line" />
@@ -60,6 +67,10 @@ function Divider() {
 }
 
 export function LoginForm() {
+  const t = useDictionary();
+
+  const a = t.auth;
+
   const [state, action, pending] = useActionState<AuthFormState, FormData>(login, {});
   const redirectTo = useRedirectTarget();
   const comingSoon = useComingSoon();
@@ -111,8 +122,21 @@ export function LoginForm() {
 }
 
 export function RegisterForm() {
+  const t = useDictionary();
+
+  const a = t.auth;
+
   const [state, action, pending] = useActionState<AuthFormState, FormData>(register, {});
   const redirectTo = useRedirectTarget();
+  // Jeton anti-bot : délivré à l'affichage, il prouve au serveur que le formulaire a été chargé et pas envoyé à l'instant
+  const [formToken, setFormToken] = useState("");
+  useEffect(() => {
+    let active = true;
+    void getSignupToken().then((token) => active && setFormToken(token));
+    return () => {
+      active = false;
+    };
+  }, [state]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -120,6 +144,12 @@ export function RegisterForm() {
       <Divider />
       <form action={action} className="flex flex-col gap-4" noValidate>
         <input type="hidden" name="redirectTo" value={redirectTo} />
+        <input type="hidden" name="formToken" value={formToken} />
+        {/* Champ piège : invisible pour un humain (et ignoré par les lecteurs d'écran et le remplissage auto) ; rempli = robot */}
+        <div aria-hidden className="pointer-events-none absolute -left-[9999px] h-px w-px overflow-hidden opacity-0">
+          <label htmlFor="website">{t.copy["eca85827a8d5"]}</label>
+          <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
+        </div>
         <FormError message={state.message} />
         <Field label={a.name} htmlFor="name" error={state.errors?.name}>
           <Input
@@ -165,7 +195,7 @@ export function RegisterForm() {
           {a.registerCta}
           {!pending && <ArrowRight />}
         </Button>
-        <p className="text-center text-xs text-subtle">{a.terms}</p>
+        <p className="text-center text-xs text-subtle"><RichText text={a.terms} /></p>
       </form>
       <p className="text-center text-sm text-muted">
         {a.hasAccount}{" "}

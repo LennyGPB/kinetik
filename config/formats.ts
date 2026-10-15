@@ -9,7 +9,7 @@ export const VIDEO_FORMATS: Record<VideoFormatId, { id: VideoFormatId; ratio: As
 
 export const FORMAT_IDS = Object.keys(VIDEO_FORMATS) as VideoFormatId[];
 
-export const DURATIONS = [15, 30, 45, 60] as const;
+export const DURATIONS = [10, 15, 30] as const;
 export type Duration = (typeof DURATIONS)[number];
 
 export function formatToRatio(format: VideoFormatId): AspectRatio {

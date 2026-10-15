@@ -7,19 +7,25 @@ import type { ScenePresentation } from "../../config/scene-presentations";
  * Format du "JSON des scènes" stocké dans ProjectVersion.scenes.
  * C'est le contrat entre l'IA (génération / modifs) et le moteur de rendu (Remotion).
  */
-export type SceneKind = "intro" | "logo" | "feature" | "screens" | "cta";
+export type SceneKind = "intro" | "logo" | "feature" | "screens" | "cta" | "stat" | "quote";
 /**
  * Transitions d'entrée/sortie d'une scène (rendu : remotion/video/transitions.tsx).
  * - fade : fondu · slide : glissé latéral · zoom : arrivée en zoom arrière · glitch : secousse RGB
  * - cut : coupe sèche, calée sur un temps de la musique · curtain : un panneau de couleur balaie l'écran
+ * - glass : une plaque de verre dépoli passe sur l'écran, floute la fin de la scène et dévoile la suivante
+ * - cube : les deux scènes sont les faces d'un cube qui tourne en 3D
  */
-export const TRANSITIONS = ["fade", "slide", "zoom", "glitch", "cut", "curtain"] as const;
+export const TRANSITIONS = ["fade", "slide", "zoom", "glitch", "cut", "curtain", "glass", "cube", "shutter", "iris", "prism", "fold", "track"] as const;
 export type Transition = (typeof TRANSITIONS)[number];
 /** Présentation des screens : dans un téléphone, une fenêtre de navigateur, ou tels quels. */
 export type ScreenFrame = "phone" | "browser" | "none";
 
 export type Scene = {
   textOffsets?: Partial<Record<"title" | "subtitle", { x: number; y: number }>>;
+  /** Couleur choisie pour le titre / sous-titre / surtitre (#rrggbb) ; absente = couleur du template */
+  textColors?: Partial<Record<"title" | "subtitle" | "kicker", string>>;
+  /** Surtitre des scènes feature (au-dessus du titre) : absent = nom de l'app, "" = masqué */
+  kicker?: string;
   presentation?: ScenePresentation;
   /** Overrides scoped to this scene; absent = video settings. */
   energy?: SceneGraph["energy"];
@@ -44,11 +50,33 @@ export type Scene = {
   screenCount?: number;
   /** Scènes "screens" : mise en avant d'une zone d'un screen (zoom ou découpe qui sort de l'écran). */
   focus?: ScreenFocus;
+  /** Ordered framing steps; legacy focus remains supported. */
+  focuses?: ScreenFocus[];
   /** Scènes "screens" : URLs des screens à montrer, dans l'ordre (absent = les suivants dans l'ordre du projet). */
   screens?: string[];
 };
 
 export const FOCUS_MODES = ["zoom", "popout"] as const;
+export const FOCUS_ANIMATIONS = ["lift", "pivot"] as const;
+export const MAX_FOCUS_STEPS = 6;
+
+export function sceneFocuses(scene: Pick<Scene, "focus" | "focuses">): ScreenFocus[] {
+  return scene.focuses ?? (scene.focus ? [scene.focus] : []);
+}
+
+/**
+ * Screens montrés par une scène "screens" : ceux choisis (qui existent encore), sinon les suivants dans l'ordre
+ * du projet, chaque scène "screens" prenant la suite de la précédente et rebouclant.
+ * `defaultCount` = nombre par défaut de la mise en page ; scene.screenCount le remplace. Partagé par le moteur et l'éditeur.
+ */
+export function sceneScreens(scenes: Scene[], scene: Scene, all: string[], defaultCount: number): string[] {
+  const chosen = scene.screens?.filter((url) => all.includes(url)) ?? [];
+  if (chosen.length) return chosen.slice(0, MAX_SCREEN_COUNT);
+  if (!all.length) return [];
+  const count = scene.screenCount ? Math.max(1, Math.min(MAX_SCREEN_COUNT, Math.round(scene.screenCount))) : defaultCount;
+  const order = Math.max(0, scenes.filter((s) => s.kind === "screens").findIndex((s) => s.id === scene.id));
+  return Array.from({ length: Math.min(count, all.length) }, (_, i) => all[(order * count + i) % all.length]);
+}
 
 /**
  * Mise en avant d'une zone d'un screen (rendu : remotion/video/focus.tsx).
@@ -64,8 +92,12 @@ export type ScreenFocus = {
   w: number;
   h: number;
   mode: (typeof FOCUS_MODES)[number];
+  /** Cutout entrance; absent keeps the original lift animation. */
+  animation?: (typeof FOCUS_ANIMATIONS)[number];
   /** Légende courte affichée à côté de la découpe (facultatif) */
   label?: string;
+  /** Titre affiché pendant ce cadrage, à la place de celui de la scène (facultatif) */
+  title?: string;
 };
 
 /** Réglages de la musique (absents = valeurs par défaut). */
@@ -83,6 +115,7 @@ export type AudioSettings = {
 export const MAX_SCREEN_COUNT = 3;
 
 export type SceneGraph = {
+  language?: "fr" | "en";
   overlays?: VideoOverlay[];
   schema: 1;
   energy: "calm" | "balanced" | "high";
@@ -95,7 +128,7 @@ export type SceneGraph = {
   titleAnimation?: TitleAnimation;
   /** Mise en scène des séquences logo. Absente = choix du template. */
   logoLayout?: LogoLayout;
-  /** Fond de la tuile du logo. Absent = true ; false conserve la transparence du fichier. */
+  /** Fond de la tuile du logo. Absent = false ; false conserve la transparence du fichier. */
   logoBackground?: boolean;
   /** Position du premier temps dans le morceau, en secondes (détectée à l'upload). Absente = 0. */
   beatOffset?: number;

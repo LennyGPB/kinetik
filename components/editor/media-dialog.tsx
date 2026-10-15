@@ -1,18 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
+import { useRouter } from "@/lib/i18n/navigation";
 import { useState } from "react";
 import { UploadZone } from "@/components/create/upload-zone";
 import { WebsiteCapture } from "@/components/create/website-capture";
 import { AnimatedApply } from "@/components/ui/animated-apply";
 import { Dialog } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toaster";
-import { t } from "@/lib/i18n";
+
 import { updateProjectMedia } from "@/lib/projects/actions";
 import type { EditorProject } from "@/lib/projects/types";
 import type { UploadedFile } from "@/lib/storage/client";
-
-const m = t.app.media;
 
 /**
  * Fenêtre « Médias » de l'éditeur : logo et screens (ordre compris).
@@ -20,6 +21,10 @@ const m = t.app.media;
  * La musique a sa propre fenêtre (sound-dialog.tsx).
  */
 export function MediaDialog({ open, onClose, project }: { open: boolean; onClose: () => void; project: Pick<EditorProject, "id" | "media" | "websiteUrl"> }) {
+  const t = useDictionary();
+
+  const m = t.app.media;
+
   const { media } = project;
   const [logo, setLogo] = useState<UploadedFile[]>(media.logo ? [media.logo] : []);
   const [screens, setScreens] = useState<UploadedFile[]>(media.screens);

@@ -12,6 +12,12 @@ datasource db {
 
 // ───────────────────────── Auth ─────────────────────────
 
+enum UserRole {
+  USER
+  /// Accès au tableau de bord /admin (en plus du mot de passe admin, voir lib/admin/auth.ts)
+  ADMIN
+}
+
 enum Plan {
   FREE
   STARTER
@@ -19,18 +25,30 @@ enum Plan {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  name         String
-  email        String    @unique
+  id                      String    @id @default(cuid())
+  name                    String
+  email                   String    @unique
   /// null pour les comptes créés uniquement via OAuth (Google / Discord)
-  passwordHash String?
-  emailVerified DateTime?
-  image        String?
-  plan         Plan      @default(FREE)
+  passwordHash            String?
+  emailVerified           DateTime?
+  image                   String?
+  role                    UserRole  @default(USER)
+  plan                    Plan      @default(FREE)
   /// Date de renouvellement de l'abonnement (expiration des crédits d'abonnement)
-  planRenewsAt DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  planRenewsAt            DateTime?
+  /// Stripe : copie de l'état de l'abonnement, resynchronisée à chaque webhook (Stripe reste la source de vérité)
+  stripeCustomerId        String?   @unique
+  stripeSubscriptionId    String?   @unique
+  /// active, past_due, canceled… (null = jamais abonné)
+  subscriptionStatus      String?
+  /// month | year
+  subscriptionInterval    String?
+  /// Début de la période facturée en cours (les crédits sont attribués par tranches mensuelles depuis cette date)
+  subscriptionPeriodStart DateTime?
+  /// Résiliation demandée : l'abonnement s'arrête à planRenewsAt
+  cancelAtPeriodEnd       Boolean   @default(false)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   accounts           Account[]
   sessions           Session[]
@@ -60,12 +78,14 @@ model Account {
 
 /// Sessions serveur. Le cookie contient un token aléatoire, la base n'en stocke que le hash SHA-256.
 model Session {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
-  userId    String
-  expiresAt DateTime
-  userAgent String?
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  userId     String
+  expiresAt  DateTime
+  userAgent  String?
+  /// Déverrouillage admin (mot de passe admin saisi) : valable jusqu'à cette date, pour cette session seulement
+  adminUntil DateTime?
+  createdAt  DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -75,16 +95,16 @@ model Session {
 // ───────────────────────── Marque ─────────────────────────
 
 model BrandKit {
-  id         String   @id @default(cuid())
-  userId     String
-  name       String   @default("Ma marque")
+  id          String   @id @default(cuid())
+  userId      String
+  name        String   @default("Ma marque")
   /// Liste de couleurs hex, ex. ["#7C3AED", "#0EA5E9"]
-  colors     Json     @default("[]")
+  colors      Json     @default("[]")
   headingFont String?
-  bodyFont   String?
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  bodyFont    String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   assets Asset[]
@@ -108,28 +128,30 @@ enum VideoFormat {
 }
 
 model Project {
-  id          String        @id @default(cuid())
-  userId      String
-  name        String
-  appName     String
-  status      ProjectStatus @default(DRAFT)
-  format      VideoFormat   @default(LANDSCAPE)
+  id              String        @id @default(cuid())
+  userId          String
+  name            String
+  appName         String
+  videoType       String        @default("presentation")
+  locale          String        @default("fr")
+  status          ProjectStatus @default(DRAFT)
+  format          VideoFormat   @default(LANDSCAPE)
   /// Durée en secondes (15 / 30 / 45 / 60)
-  duration    Int           @default(30)
+  duration        Int           @default(30)
   /// Identifiant du style (voir config/styles.ts) — null si images de référence
-  styleId     String?
+  styleId         String?
   /// Couleurs choisies pour ce projet
-  colors      Json          @default("[]")
+  colors          Json          @default("[]")
   /// Piste de la bibliothèque, ou null si musique uploadée (voir Asset MUSIC)
-  musicTrackId String?
-  brief       String?
-  websiteUrl  String?
+  musicTrackId    String?
+  brief           String?
+  websiteUrl      String?
   /// Jeton du lien de partage public (/share/<token>) ; null = partage désactivé
-  shareToken  String?       @unique
+  shareToken      String?       @unique
   /// Projet d'origine quand ce projet est une déclinaison (autre format, version courte)
   sourceProjectId String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   versions ProjectVersion[]
@@ -222,25 +244,25 @@ enum RenderQuality {
 }
 
 model Render {
-  id          String        @id @default(cuid())
-  projectId   String
-  versionId   String?
-  status      RenderStatus  @default(PENDING)
+  id             String        @id @default(cuid())
+  projectId      String
+  versionId      String?
+  status         RenderStatus  @default(PENDING)
   /// 0 → 100
-  progress    Int           @default(0)
-  format      VideoFormat
-  quality     RenderQuality @default(HD)
-  watermark   Boolean       @default(false)
-  url         String?
+  progress       Int           @default(0)
+  format         VideoFormat
+  quality        RenderQuality @default(HD)
+  watermark      Boolean       @default(false)
+  url            String?
   /// Remotion Lambda : identifiant du rendu et bucket S3 (null en mode simulé)
   lambdaRenderId String?
-  bucketName  String?
+  bucketName     String?
   /// Clé S3 du MP4 final (l'URL de téléchargement est signée à la demande)
-  outputKey   String?
-  creditCost  Int
-  error       String?
-  createdAt   DateTime      @default(now())
-  completedAt DateTime?
+  outputKey      String?
+  creditCost     Int
+  error          String?
+  createdAt      DateTime      @default(now())
+  completedAt    DateTime?
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -258,6 +280,8 @@ enum CreditTransactionType {
   SUBSCRIPTION
   REFUND
   EXPIRATION
+  /// Crédits donnés ou retirés par un admin
+  ADJUSTMENT
 }
 
 enum CreditSource {
@@ -283,4 +307,21 @@ model CreditTransaction {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+/// Journal des actions admin. Sans clé étrangère : l'historique survit à la suppression des comptes concernés.
+model AdminLog {
+  id          String   @id @default(cuid())
+  adminId     String
+  adminEmail  String
+  /// unlock, credits.grant, credits.revoke, user.delete, project.delete…
+  action      String
+  targetType  String?
+  targetId    String?
+  /// Libellé lisible de la cible au moment de l'action (email, nom de projet)
+  targetLabel String?
+  details     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
 }

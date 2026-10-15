@@ -10,6 +10,7 @@ export type CurrentUser = {
   name: string;
   email: string;
   plan: "FREE" | "STARTER" | "PRO";
+  role: "USER" | "ADMIN";
   planRenewsAt: Date | null;
   hasPassword: boolean;
 };
@@ -24,7 +25,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const user = await db.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, name: true, email: true, plan: true, planRenewsAt: true, passwordHash: true },
+    select: { id: true, name: true, email: true, plan: true, role: true, planRenewsAt: true, passwordHash: true },
   });
   if (!user) return null;
 

@@ -1,12 +1,13 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Images } from "lucide-react";
 import { useState } from "react";
-import { format, t } from "@/lib/i18n";
+import { format } from "@/lib/i18n";
 import { MAX_SCREEN_COUNT } from "@/lib/projects/scenes";
 import { cn } from "@/lib/utils";
-
-const tl = t.app.editor.timeline;
 
 /**
  * Choix des captures montrées par une scène « Mockups » : clic dans l'ordre d'apparition, 3 au maximum.
@@ -18,13 +19,19 @@ export function ScreensPicker({
   disabled,
   onApply,
   onCancel,
+  onManage,
 }: {
   screens: { url: string; ratio: number | null }[];
   value: string[] | undefined;
   disabled: boolean;
   onApply: (screens: string[] | null) => void;
   onCancel: () => void;
+  onManage?: () => void;
 }) {
+  const t = useDictionary();
+
+  const tl = t.app.editor.timeline;
+
   const [picked, setPicked] = useState<string[]>(value?.filter((url) => screens.some((s) => s.url === url)) ?? []);
 
   function toggle(url: string) {
@@ -37,6 +44,7 @@ export function ScreensPicker({
         <Images className="size-4 text-accent-text" />
         <p className="text-sm font-semibold">{tl.screensPickTitle}</p>
         <p className="text-xs text-muted">{tl.screensPickHint}</p>
+        {onManage && <button type="button" disabled={disabled} onClick={onManage} className="ml-auto min-h-9 rounded-lg border border-line px-3 text-xs font-medium hover:bg-surface-2 disabled:opacity-40">{t.copy["14e155156f7c"]}</button>}
       </div>
       <ul className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
         {screens.map((screen, i) => {

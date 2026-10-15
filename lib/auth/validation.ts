@@ -1,5 +1,16 @@
 import { z } from "zod";
-import { t } from "@/lib/i18n";
+import { t, type Dictionary } from "@/lib/i18n";
+
+export function createAuthSchemas(dictionary: Dictionary) {
+  const errors = dictionary.auth.errors;
+  const email = z.string().trim().toLowerCase().pipe(z.email({ error: errors.invalidEmail }));
+  const password = z.string().min(8, { error: errors.passwordTooShort }).max(128, { error: errors.passwordTooLong });
+  return {
+    registerSchema: z.object({ name: z.string().trim().min(1, { error: errors.nameRequired }).max(80), email, password }),
+    loginSchema: z.object({ email, password: z.string().min(1, { error: errors.invalidCredentials }).max(128) }),
+    passwordSchema: password,
+  };
+}
 
 const e = t.auth.errors;
 

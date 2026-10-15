@@ -1,13 +1,15 @@
 "use client";
 
-import { ArrowRight, Pause, Volume2 } from "lucide-react";
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
+import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/i18n/navigation";
 import { useRef, useState } from "react";
-import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { t } from "@/lib/i18n";
+
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -32,6 +34,8 @@ function AnimatedWords({ text, className, delay = 0 }: { text: string; className
 }
 
 export function Hero() {
+  const t = useDictionary();
+
   const router = useRouter();
   const [appName, setAppName] = useState("");
   const stageRef = useRef<HTMLDivElement>(null);
@@ -42,8 +46,6 @@ export function Hero() {
   const scale = useTransform(scrollYProgress, [0, 0.45], reduce ? [1, 1] : [0.9, 1]);
   const leftY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [60, -80]);
   const rightY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [100, -40]);
-
-  const label = appName.trim() || "Flowly";
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -114,31 +116,28 @@ export function Hero() {
           transition={{ duration: 1.1, ease: EASE, delay: 0.7 }}
           className="relative origin-top rounded-[1.25rem] border border-line-strong bg-surface p-1.5 shadow-[0_40px_120px_-30px_var(--accent-glow)] sm:rounded-[1.75rem] sm:p-2"
         >
-          <VideoPlaceholder
-            ratio="16:9"
-            scene="blobs"
-            palette={["#12062b", "#7c3aed", "#f472b6"]}
-            label={label}
-            className="rounded-[1rem] sm:rounded-[1.35rem]"
-          >
-            <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3 sm:p-5">
+          <div className="relative overflow-hidden rounded-[1rem] sm:rounded-[1.35rem]">
+            <video
+              src={t.locale === "en" ? "/medias/kinetik_landscape2.mp4" : "/medias/kinetik-16x9.mp4"}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label={t.copy["0a30c71f4ab2"]}
+              className="aspect-video w-full object-contain"
+            />
+            <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-3 sm:p-5">
               <Badge tone="glass">
                 <span className="size-1.5 animate-pulse rounded-full bg-red-500" />
                 {t.landing.hero.previewLabel}
               </Badge>
               <Badge tone="glass" className="hidden font-mono sm:inline-flex">
-                16:9 · 1080p
+
+                {"16:9 · 1080p"}
               </Badge>
             </div>
-            <div className="absolute inset-x-0 bottom-0 flex items-center gap-3 bg-gradient-to-t from-black/60 to-transparent p-3 text-white sm:p-5">
-              <Pause className="size-4 shrink-0" />
-              <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-white/20">
-                <div className="absolute inset-y-0 left-0 w-full origin-left animate-[progress_12s_linear_infinite] rounded-full bg-white" />
-              </div>
-              <span className="font-mono text-[11px] text-white/80">0:30</span>
-              <Volume2 className="hidden size-4 shrink-0 sm:block" />
-            </div>
-          </VideoPlaceholder>
+          </div>
         </motion.div>
 
         <motion.div
@@ -148,8 +147,17 @@ export function Hero() {
           transition={{ duration: 1, ease: EASE, delay: 1 }}
           className="absolute -bottom-16 -left-1 w-[22%] max-w-[220px] sm:-bottom-8 sm:w-[26%] rounded-2xl border border-line-strong bg-surface p-1 shadow-[var(--shadow-lift)] sm:-left-10 sm:rounded-3xl sm:p-1.5 lg:-left-16"
         >
-          <VideoPlaceholder ratio="9:16" scene="type" palette={["#f5f0e6", "#111111", "#7c3aed"]} label={label} className="rounded-xl sm:rounded-[1.25rem]" />
-          <span className="absolute -top-3 left-3 rounded-full bg-fg px-2 py-0.5 font-mono text-[10px] font-medium text-bg">9:16</span>
+          <video
+            src={t.locale === "en" ? "/medias/kinetik_vertical2.mp4" : "/medias/kinetik-9x16.mp4"}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-label={t.copy["adec075cd35e"]}
+            className="aspect-[9/16] w-full rounded-xl object-contain sm:rounded-[1.25rem]"
+          />
+          <span className="absolute -top-3 left-3 rounded-full bg-fg px-2 py-0.5 font-mono text-[10px] font-medium text-bg">{"9:16"}</span>
         </motion.div>
 
         <motion.div
@@ -159,8 +167,17 @@ export function Hero() {
           transition={{ duration: 1, ease: EASE, delay: 1.1 }}
           className="absolute -right-1 -bottom-20 w-[26%] max-w-[260px] sm:-bottom-12 sm:w-[30%] rounded-2xl border border-line-strong bg-surface p-1 shadow-[var(--shadow-lift)] sm:-right-10 sm:rounded-3xl sm:p-1.5 lg:-right-16"
         >
-          <VideoPlaceholder ratio="1:1" scene="rings" palette={["#0b0320", "#c026ff", "#22d3ee"]} className="rounded-xl sm:rounded-[1.25rem]" />
-          <span className="absolute -top-3 left-3 rounded-full bg-fg px-2 py-0.5 font-mono text-[10px] font-medium text-bg">1:1</span>
+          <video
+            src={t.locale === "en" ? "/medias/kinetik_square2.mp4" : "/medias/kinetik-1x1.mp4"}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-label={t.copy["788f01f848c0"]}
+            className="aspect-square w-full rounded-xl object-contain sm:rounded-[1.25rem]"
+          />
+          <span className="absolute -top-3 left-3 rounded-full bg-fg px-2 py-0.5 font-mono text-[10px] font-medium text-bg">{"1:1"}</span>
         </motion.div>
       </div>
     </section>

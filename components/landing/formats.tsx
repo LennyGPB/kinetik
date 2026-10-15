@@ -1,19 +1,22 @@
+import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 import { VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import type { SceneKind } from "@/config/styles";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 import { Section, SectionHeading } from "./section-heading";
 
-const ITEMS: { id: VideoFormatId; scene: SceneKind; palette: [string, string, string]; className: string }[] = [
+export function Formats() {
+  const t = useDictionary();
+
+  const ITEMS: { id: VideoFormatId; scene: SceneKind; palette: [string, string, string]; className: string }[] = [
   // Largeurs choisies pour que les trois cadres aient presque la même hauteur sur desktop
   { id: "LANDSCAPE", scene: "grid", palette: ["#0b1b3a", "#3b82f6", "#a78bfa"], className: "col-span-2 md:col-span-7" },
   { id: "PORTRAIT", scene: "type", palette: ["#140a2e", "#e9d5ff", "#f472b6"], className: "col-span-1 md:col-span-2" },
   { id: "SQUARE", scene: "bars", palette: ["#0a0a0a", "#facc15", "#a855f7"], className: "col-span-1 md:col-span-3" },
 ];
 
-export function Formats() {
   return (
     <Section id="formats" className="overflow-hidden">
       <SectionHeading title={t.landing.formats.titleLine1} accent={t.landing.formats.titleLine2} subtitle={t.landing.formats.subtitle} />

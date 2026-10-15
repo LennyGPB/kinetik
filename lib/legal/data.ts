@@ -1,0 +1,29 @@
+import { CREDIT_COSTS, SIGNUP_BONUS_CREDITS } from "@/config/credits";
+import { LEGAL_PLACEHOLDER, legalConfig } from "@/config/legal";
+import { CREDIT_PACKS, PLANS, formatPrice } from "@/config/pricing";
+import { intlLocale, type Locale } from "@/lib/i18n";
+
+/** Valeurs injectées dans les textes légaux : tarifs et coûts lus dans la config, pour rester synchronisés. */
+export function legalData(locale: Locale) {
+  const price = (amount: number) => formatPrice(amount, intlLocale[locale]);
+  const or = (value: string | null) => value ?? LEGAL_PLACEHOLDER[locale];
+  const { export: exp } = CREDIT_COSTS;
+  return {
+    ...legalConfig,
+    name: or(legalConfig.publisherName),
+    address: or(legalConfig.publisherAddress),
+    status: legalConfig.status[locale],
+    mediator: legalConfig.mediator,
+    placeholder: LEGAL_PLACEHOLDER[locale],
+    updated: new Intl.DateTimeFormat(intlLocale[locale], { dateStyle: "long", timeZone: "UTC" }).format(new Date(legalConfig.updatedAt)),
+    signupCredits: SIGNUP_BONUS_CREDITS,
+    paidPlans: PLANS.filter((p) => p.monthlyPrice > 0).map((p) => ({
+      name: p.name, credits: p.credits, quality: p.maxQuality === "UHD" ? "4K" : "1080p",
+      monthly: price(p.monthlyPrice), yearly: price(p.yearlyPrice * 12), yearlyPerMonth: price(p.yearlyPrice),
+    })),
+    packs: CREDIT_PACKS.map((p) => ({ credits: p.credits, price: price(p.price) })),
+    costs: { generation: CREDIT_COSTS.generation, edit: CREDIT_COSTS.edit, translation: CREDIT_COSTS.translation, exportShort: exp.short, exportLong: exp.long, shortMaxSeconds: exp.shortMaxSeconds },
+  };
+}
+
+export type LegalData = ReturnType<typeof legalData>;

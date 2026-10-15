@@ -1,23 +1,15 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { useRef, useState } from "react";
-import { format, t } from "@/lib/i18n";
+import { format } from "@/lib/i18n";
 import { beatGrid, type SceneGraph } from "@/lib/projects/scenes";
 import { applyTimelineEdit, clampDuration, DURATION_STEP, formatSeconds, sceneLabel, type TimelineEdit } from "@/lib/projects/timeline";
 import { cn, formatTime } from "@/lib/utils";
 import { FPS } from "@/remotion/props";
 import { sceneTimeline } from "@/remotion/video/transitions";
-
-const e = t.app.editor;
-const tl = e.timeline;
-
-const SEGMENT_COLORS: Record<SceneGraph["scenes"][number]["kind"], string> = {
-  intro: "from-indigo-500 to-violet-500",
-  logo: "from-violet-500 to-fuchsia-500",
-  feature: "from-fuchsia-500 to-pink-500",
-  screens: "from-sky-500 to-indigo-500",
-  cta: "from-violet-600 to-purple-400",
-};
 
 /** En dessous de ce déplacement (px), un appui est un clic (sélection + lecture), pas un glisser. */
 const DRAG_THRESHOLD = 5;
@@ -51,6 +43,20 @@ export function SceneTimeline({
   onSelect: (sceneId: string | null) => void;
   onEdit: (edit: TimelineEdit) => void;
 }) {
+  const t = useDictionary();
+
+  const e = t.app.editor;
+  const tl = e.timeline;
+  const SEGMENT_COLORS: Record<SceneGraph["scenes"][number]["kind"], string> = {
+  intro: "from-indigo-500 to-violet-500",
+  logo: "from-violet-500 to-fuchsia-500",
+  feature: "from-fuchsia-500 to-pink-500",
+  screens: "from-sky-500 to-indigo-500",
+  cta: "from-violet-600 to-purple-400",
+  stat: "from-amber-500 to-orange-500",
+  quote: "from-emerald-500 to-teal-500",
+};
+
   const ref = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
 
@@ -178,7 +184,7 @@ export function SceneTimeline({
               role={editable ? "button" : undefined}
               tabIndex={editable ? 0 : undefined}
               aria-pressed={editable ? selected : undefined}
-              aria-label={editable ? `${sceneLabel(scene.kind)} · ${formatSeconds(scene.duration)}` : undefined}
+              aria-label={editable ? `${sceneLabel(scene.kind, t.locale)} · ${formatSeconds(scene.duration, t.locale)}` : undefined}
               onPointerDown={
                 editable
                   ? (ev) => {
@@ -219,12 +225,12 @@ export function SceneTimeline({
               style={{ flex: duration }}
             >
               <span className="pointer-events-none absolute inset-0 hidden items-center truncate overflow-hidden rounded-md px-1.5 text-[10px] font-medium text-white sm:flex">
-                {editable ? sceneLabel(scene.kind) : scene.kind}
+                {editable ? sceneLabel(scene.kind, t.locale) : scene.kind}
               </span>
               {editable && (
                 <span
                   role="presentation"
-                  aria-label={format(tl.resize, { name: sceneLabel(scene.kind) })}
+                  aria-label={format(tl.resize, { name: sceneLabel(scene.kind, t.locale) })}
                   onPointerDown={(ev) => {
                     ev.stopPropagation();
                     ev.currentTarget.setPointerCapture(ev.pointerId);
@@ -260,7 +266,7 @@ export function SceneTimeline({
               )}
               {resizing && (
                 <span className="pointer-events-none absolute -top-8 right-0 z-30 translate-x-1/2 rounded-md bg-fg px-1.5 py-0.5 font-mono text-[11px] whitespace-nowrap text-bg">
-                  {formatSeconds(shown.scenes.find((s) => s.id === scene.id)?.duration ?? 0)}
+                  {formatSeconds(shown.scenes.find((s) => s.id === scene.id)?.duration ?? 0, t.locale)}
                 </span>
               )}
             </div>

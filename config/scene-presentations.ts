@@ -7,6 +7,8 @@ export const PRESENTATIONS_BY_KIND = {
   cta: ["classic", "end-card", "browser"],
   logo: [],
   screens: [],
+  stat: [],
+  quote: [],
 } as const;
 export const PRESENTATION_LABELS: Record<ScenePresentation, string> = {
   classic: "Du template",

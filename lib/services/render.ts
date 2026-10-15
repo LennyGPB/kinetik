@@ -1,6 +1,7 @@
 import "server-only";
+import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
 import { getRenderProgress, presignUrl, renderMediaOnLambda, type AwsRegion } from "@remotion/lambda/client";
-import { mimeFromKey, storage } from "@/lib/storage";
+import { isOwnUpload, mimeFromKey, storage } from "@/lib/storage";
 import { durationInFrames, type VideoProps } from "@/remotion/props";
 
 /**
@@ -14,6 +15,9 @@ import { durationInFrames, type VideoProps } from "@/remotion/props";
  *   REMOTION_MAX_LAMBDAS (facultatif, 8 par défaut)              nombre de Lambdas en parallèle par rendu.
  *     Un compte AWS neuf est limité à 10 exécutions simultanées : augmenter le quota (Service Quotas → Lambda
  *     → Concurrent executions) puis cette valeur pour des rendus plus rapides.
+ *   REMOTION_CONCURRENCY (facultatif, 10 par défaut)             quota « Concurrent executions » du compte AWS.
+ *     Un export dans plusieurs formats lance ses rendus en même temps : ils se partagent ce quota
+ *     (1 Lambda principale + ses Lambdas de rendu chacun), sinon les suivants échouent en « Rate Exceeded ».
  * Le site Remotion est une copie de remotion/ : à redéployer après chaque modification du moteur vidéo.
  *
  * Sans cette configuration, le rendu est SIMULÉ (progression calculée, pas de fichier) pour garder le dev utilisable.
@@ -23,6 +27,12 @@ const region = (process.env.REMOTION_AWS_REGION ?? "eu-central-1") as AwsRegion;
 const functionName = process.env.REMOTION_FUNCTION_NAME;
 const serveUrl = process.env.REMOTION_SERVE_URL;
 const maxLambdas = Math.max(1, Number(process.env.REMOTION_MAX_LAMBDAS) || 8);
+const concurrency = Math.max(2, Number(process.env.REMOTION_CONCURRENCY) || 10);
+
+/** Lambdas de rendu par vidéo quand `batch` rendus démarrent ensemble (chacun garde aussi sa Lambda principale). */
+export function lambdasPerRender(batch: number) {
+  return Math.max(1, Math.min(maxLambdas, Math.floor(concurrency / Math.max(1, batch)) - 1));
+}
 
 export function isLambdaConfigured() {
   return Boolean(process.env.REMOTION_AWS_ACCESS_KEY_ID && process.env.REMOTION_AWS_SECRET_ACCESS_KEY && functionName && serveUrl);
@@ -33,9 +43,10 @@ export function isLambdaConfigured() {
  * on les intègre directement aux props en data URI. Remotion envoie lui-même les props volumineuses sur S3.
  * (Avec un stockage public type Cloudflare R2, il suffira de passer des URLs absolues.)
  */
-async function inlineAssets(props: VideoProps): Promise<VideoProps> {
+export async function inlineAssets(props: VideoProps, userId: string): Promise<VideoProps> {
   const inline = async (url: string | null) => {
     if (!url?.startsWith("/api/uploads/")) return url;
+    if (!isOwnUpload(userId, url)) throw new Error("unauthorized_media");
     const key = url.slice("/api/uploads/".length);
     const data = await storage.get(key);
     return data ? `data:${mimeFromKey(key)};base64,${data.toString("base64")}` : null;
@@ -52,23 +63,29 @@ async function inlineAssets(props: VideoProps): Promise<VideoProps> {
     screenRatios: kept.map((s) => s.ratio),
     graph: {
       ...props.graph,
-      scenes: props.graph.scenes.map((scene) => ({
-        ...scene,
-        ...(scene.focus && byUrl.has(scene.focus.src) && { focus: { ...scene.focus, src: byUrl.get(scene.focus.src)! } }),
-        ...(scene.screens && { screens: scene.screens.flatMap((url) => byUrl.get(url) ?? []) }),
+      scenes: await Promise.all(props.graph.scenes.map(async (scene) => {
+        const focus = scene.focus ? byUrl.get(scene.focus.src) ?? await inline(scene.focus.src) : null;
+        const focuses = scene.focuses ? await Promise.all(scene.focuses.map(async (f) => { const src = byUrl.get(f.src) ?? await inline(f.src); return src ? { ...f, src } : null; })) : null;
+        const screens = scene.screens ? await Promise.all(scene.screens.map((url) => byUrl.get(url) ?? inline(url))) : null;
+        return {
+          ...scene,
+          ...(focuses && { focuses: focuses.filter((f): f is NonNullable<typeof f> => Boolean(f)) }),
+          ...(scene.focus && { focus: focus ? { ...scene.focus, src: focus } : undefined }),
+          ...(screens && { screens: screens.filter((url): url is string => Boolean(url)) }),
+        };
       })),
     },
   };
 }
 
-export async function startLambdaRender({ props, uhd, fileName }: { props: VideoProps; uhd: boolean; fileName: string }) {
+export async function startLambdaRender({ props, uhd, fileName, userId, batch = 1 }: { props: VideoProps; uhd: boolean; fileName: string; userId: string; batch?: number }) {
   if (!functionName || !serveUrl) throw new Error("Remotion Lambda n'est pas configuré");
   const { renderId, bucketName } = await renderMediaOnLambda({
     region,
     functionName,
     serveUrl,
     composition: "Kinetik",
-    inputProps: await inlineAssets(props),
+    inputProps: await inlineAssets(props, userId),
     codec: "h264",
     imageFormat: "jpeg",
     jpegQuality: 90,
@@ -76,8 +93,8 @@ export async function startLambdaRender({ props, uhd, fileName }: { props: Video
     scale: uhd ? 2 : 1,
     privacy: "private",
     maxRetries: 1,
-    // Découpe la vidéo en au plus `maxLambdas` morceaux rendus en parallèle (Remotion impose 4 images minimum par morceau)
-    framesPerLambda: Math.max(4, Math.ceil(durationInFrames(props.graph) / maxLambdas)),
+    // Découpe la vidéo en morceaux rendus en parallèle, dans la part du quota AWS de ce rendu (Remotion impose 4 images minimum par morceau)
+    framesPerLambda: Math.max(4, Math.ceil(durationInFrames(props.graph) / lambdasPerRender(batch))),
     downloadBehavior: { type: "download", fileName },
   });
   return { renderId, bucketName };
@@ -98,6 +115,22 @@ export async function getLambdaProgress(renderId: string, bucketName: string) {
 /** Lien de téléchargement signé (le fichier reste privé sur S3). */
 export function getDownloadUrl(bucketName: string, objectKey: string) {
   return presignUrl({ region, bucketName, objectKey, expiresInSeconds: 60 * 60 * 24 });
+}
+
+/** Supprime les MP4 et fichiers de travail de rendus Lambda (dossier `renders/<id>/` du bucket Remotion). */
+export async function deleteLambdaRenders(renders: { renderId: string; bucketName: string }[]) {
+  if (!renders.length || !process.env.REMOTION_AWS_ACCESS_KEY_ID || !process.env.REMOTION_AWS_SECRET_ACCESS_KEY) return;
+  const client = new S3Client({ region, credentials: { accessKeyId: process.env.REMOTION_AWS_ACCESS_KEY_ID, secretAccessKey: process.env.REMOTION_AWS_SECRET_ACCESS_KEY } });
+  for (const { renderId, bucketName } of renders) {
+    if (!/^[A-Za-z0-9_-]+$/.test(renderId)) continue;
+    let token: string | undefined;
+    do {
+      const page = await client.send(new ListObjectsV2Command({ Bucket: bucketName, Prefix: `renders/${renderId}/`, ContinuationToken: token }));
+      const objects = (page.Contents ?? []).flatMap((o) => (o.Key ? [{ Key: o.Key }] : []));
+      if (objects.length) await client.send(new DeleteObjectsCommand({ Bucket: bucketName, Delete: { Objects: objects, Quiet: true } }));
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+  }
 }
 
 export function exportFileName(appName: string, ratio: string) {

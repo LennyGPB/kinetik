@@ -1,8 +1,11 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { X } from "lucide-react";
 import { useState } from "react";
-import { format, t } from "@/lib/i18n";
+import { format } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -21,6 +24,8 @@ export function ColorInput({
   onRemove?: () => void;
   large?: boolean;
 }) {
+  const t = useDictionary();
+
   const [draft, setDraft] = useState(value);
   // Resynchronise le champ texte quand la couleur change via le picker (ajustement pendant le rendu)
   const [synced, setSynced] = useState(value);

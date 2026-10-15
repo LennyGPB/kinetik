@@ -2,6 +2,10 @@ import type { CSSProperties, ReactNode } from "react";
 import type { AspectRatio } from "@/config/formats";
 import type { SceneKind } from "@/config/styles";
 import { cn } from "@/lib/utils";
+import { TemplateThumbnail } from "./template-thumbnail";
+import { CatalogThumbnail, hasCatalogThumbnail } from "./catalog-thumbnail";
+import { SignatureBackground } from "../../remotion/video/signature-backgrounds";
+import { CollectionThumbnail, isCollectionTemplate } from "./collection-thumbnail";
 
 export type VideoPlaceholderProps = {
   /** Ratio du cadre. "fill" = prend la taille du parent. */
@@ -11,6 +15,7 @@ export type VideoPlaceholderProps = {
   scene?: SceneKind;
   /** Texte affiché par les scènes typographiques */
   label?: string;
+  templateId?: string;
   /** Quand une vraie vidéo existe, elle remplace l'animation. */
   src?: string;
   poster?: string;
@@ -20,13 +25,6 @@ export type VideoPlaceholderProps = {
   bare?: boolean;
   className?: string;
   children?: ReactNode;
-};
-
-const ratioClass: Record<AspectRatio, string> = {
-  "16:9": "aspect-video",
-  "9:16": "aspect-[9/16]",
-  "1:1": "aspect-square",
-  "4:5": "aspect-[4/5]",
 };
 
 const DEFAULT_PALETTE: [string, string, string] = ["#140a2e", "#7c3aed", "#f472b6"];
@@ -40,6 +38,7 @@ export function VideoPlaceholder({
   palette = DEFAULT_PALETTE,
   scene = "blobs",
   label = "Kinetik",
+  templateId,
   src,
   poster,
   paused,
@@ -47,6 +46,14 @@ export function VideoPlaceholder({
   className,
   children,
 }: VideoPlaceholderProps) {
+
+  const ratioClass: Record<AspectRatio, string> = {
+  "16:9": "aspect-video",
+  "9:16": "aspect-[9/16]",
+  "1:1": "aspect-square",
+  "4:5": "aspect-[4/5]",
+};
+
   const [bg, main, accent] = palette;
   const style = { "--vp-bg": bg, "--vp-main": main, "--vp-accent": accent } as CSSProperties;
 
@@ -64,13 +71,17 @@ export function VideoPlaceholder({
         <video className="absolute inset-0 size-full object-cover" src={src} poster={poster} autoPlay muted loop playsInline />
       ) : (
         <div className="absolute inset-0" aria-hidden>
-          <Scene kind={scene} label={label} bare={bare} />
+          {isCollectionTemplate(templateId) ? <CollectionThumbnail id={templateId} label={label} bare={bare} /> : !bare && (templateId === "pulse" || templateId === "studio" || templateId === "luxe" || templateId === "corporate" || templateId === "playful" || templateId === "blueprint" || templateId === "ocean")
+            ? <TemplateThumbnail templateId={templateId} label={label} />
+            : !bare && templateId && hasCatalogThumbnail(templateId)
+              ? <CatalogThumbnail templateId={templateId} />
+            : <Scene kind={scene} label={label} bare={bare} />}
           {/* Grain + vignette pour un rendu "vidéo" */}
-          {!LIGHT_SCENES.includes(scene) && <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_10%,transparent_55%,rgb(0_0_0/0.35))]" />}
-          <div
+          {!LIGHT_SCENES.includes(scene) && !SIGNATURE_SCENES.includes(scene) && <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_10%,transparent_55%,rgb(0_0_0/0.35))]" />}
+          {!SIGNATURE_SCENES.includes(scene) && <div
             className="absolute inset-0 opacity-[0.12] mix-blend-overlay"
             style={{ backgroundImage: NOISE, backgroundSize: "160px 160px" }}
-          />
+          />}
         </div>
       )}
       {children}
@@ -80,6 +91,7 @@ export function VideoPlaceholder({
 
 /** Fonds clairs : pas de vignette sombre (elle salirait le blanc ou le papier). */
 const LIGHT_SCENES: SceneKind[] = ["clean", "paper", "chrome"];
+const SIGNATURE_SCENES: SceneKind[] = ["pulse-edge", "studio-stage", "gold-atelier", "corporate-panels", "swiss-rules", "playful-fluid", "blueprint-draft", "ocean-tide", "monolith", "focus", "prism", "papercut", "metro"];
 
 const NOISE =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
@@ -89,6 +101,7 @@ const NOISE =
  * `closest-side` : le dégradé atteint la transparence pile sur les bords, donc aucune arête visible.
  */
 function Blob({ color, className, style }: { color: string; className?: string; style?: CSSProperties }) {
+
   return (
     <div
       className={cn("absolute will-change-transform", className)}
@@ -97,7 +110,6 @@ function Blob({ color, className, style }: { color: string; className?: string; 
   );
 }
 
-const TERMINAL_LINES = ["export async function ship(release) {", "  const build = await compile(release)", "  await deploy(build)", "}", "", "$ npm run deploy", "✓ build completed", "→ live in production", ""];
 /** [x %, y %, taille cqmin] — positions fixes pour un rendu stable */
 const DUST: [number, number, number][] = [[18, 30, 0.6], [72, 22, 0.4], [40, 64, 0.5], [84, 58, 0.7], [28, 82, 0.4], [60, 40, 0.3], [10, 54, 0.5], [90, 84, 0.4]];
 const SPARKLES: [number, number, number][] = [[12, 18, 7], [80, 14, 5], [70, 74, 8], [18, 76, 5], [48, 10, 4]];
@@ -105,11 +117,38 @@ const SPARKLES: [number, number, number][] = [[12, 18, 7], [80, 14, 5], [70, 74,
 const GLASS: [number, number, number, number, number, boolean][] = [[2, 8, 34, 44, -10, false], [72, 6, 22, 22, 0, true], [58, 70, 38, 20, 8, false], [8, 76, 16, 16, 0, true]];
 /** [x %, y %, taille cqmin, accent] */
 const CUBES: [number, number, number, boolean][] = [[6, 12, 10, false], [76, 8, 7, true], [70, 64, 12, false], [12, 70, 6, true]];
-const SPARKLE_PATH ="M50 0 C54 34 66 46 100 50 C66 54 54 66 50 100 C46 66 34 54 0 50 C34 46 46 34 50 0Z";
+/** Confettis : [x %, décalage de départ en s, taille cqmin, rond] */
+const CONFETTI: [number, number, number, boolean][] = [[6, 0.4, 2.2, false], [14, 2.9, 1.6, true], [23, 1.2, 2.6, false], [31, 3.8, 1.4, false], [40, 0.9, 2, true], [48, 2.2, 2.8, false], [57, 4.4, 1.6, false], [64, 1.7, 2.2, true], [72, 3.1, 2.4, false], [80, 0.2, 1.5, false], [88, 2.6, 2.6, true], [95, 4, 1.8, false]];
+/** Traînées du fond « starfield » : [angle en degrés, décalage de départ en s] */
+const STARS: [number, number][] = [[8, 0.2], [40, 1.1], [75, 0.6], [110, 1.5], [150, 0.3], [190, 0.9], [225, 1.4], [260, 0.5], [300, 1.2], [335, 0.8]];
+/** Cases allumées du fond « pixels » : [colonne, ligne, accent] */
+const PIXELS: [number, number, boolean][] = [[2, 1, false], [9, 2, true], [14, 1, false], [4, 6, false], [12, 7, true], [1, 11, true], [8, 12, false], [15, 10, false], [6, 3, false], [11, 13, true]];
 
 /** Une scène d'aperçu par fond animé (même vocabulaire que remotion/video/backgrounds.tsx, en CSS pur). */
 function Scene({ kind, label, bare }: { kind: SceneKind; label: string; bare?: boolean }) {
+
+  const TERMINAL_LINES = ["export async function ship(release) {", "  const build = await compile(release)", "  await deploy(build)", "}", "", "$ npm run deploy", "✓ build completed", "→ live in production", ""];
+  const SPARKLE_PATH ="M50 0 C54 34 66 46 100 50 C66 54 54 66 50 100 C46 66 34 54 0 50 C34 46 46 34 50 0Z";
+
   switch (kind) {
+    case "monolith":
+    case "focus":
+    case "prism":
+    case "papercut":
+    case "metro":
+      return <CollectionThumbnail id={kind} label={label} bare={bare} />;
+    case "pulse-edge":
+    case "blueprint-draft":
+    case "ocean-tide":
+    case "playful-fluid":
+    case "corporate-panels":
+    case "swiss-rules":
+    case "studio-stage":
+    case "gold-atelier":
+      return <>
+        <SignatureBackground kind={kind} palette={["var(--vp-bg)", "var(--vp-main)", "var(--vp-accent)"]} time={2} pulse={0.6} />
+        {!bare && <div className="absolute inset-0 grid place-items-center [container-type:size]"><span className="text-[12cqmin]" style={{ color: kind === "studio-stage" ? "var(--vp-main)" : "var(--vp-accent)" }}>{label}</span></div>}
+      </>;
     // Apple-like : blanc, une lumière douce, un appareil fin et le nom en noir
     case "clean":
       return (
@@ -524,6 +563,125 @@ function Scene({ kind, label, bare }: { kind: SceneKind; label: string; bare?: b
           )}
         </>
       );
+    // Pop art : trame fine partout, grosse trame dans une tache qui dérive
+    case "halftone":
+      return (
+        <div className="absolute inset-0 [container-type:size]">
+          <Blob color="var(--vp-accent)" className="-top-1/4 -right-1/4 size-[90%] animate-drift-slow opacity-50" />
+          <div className="absolute inset-0 [background-image:radial-gradient(circle,color-mix(in_oklab,var(--vp-main),transparent_70%)_0.55cqmin,transparent_0.65cqmin)] [background-size:4.5cqmin_4.5cqmin]" />
+          <div className="absolute top-[10%] left-[15%] size-[70%] animate-drift [background-image:radial-gradient(circle,color-mix(in_oklab,var(--vp-accent),transparent_30%)_1.4cqmin,transparent_1.5cqmin)] [background-size:4.5cqmin_4.5cqmin] [mask-image:radial-gradient(closest-side,black_40%,transparent)] will-change-transform" />
+          {!bare && <span className="absolute inset-0 grid place-items-center font-video text-[clamp(1rem,15cqmin,4.5rem)] font-black tracking-tight text-[var(--vp-main)] uppercase">{label}</span>}
+        </div>
+      );
+
+    // Sport : bandes diagonales qui défilent
+    case "stripes":
+      return (
+        <div className="absolute inset-0 overflow-hidden [container-type:size]">
+          <div className="absolute top-1/2 left-1/2 h-[260%] w-[260%] -translate-x-1/2 -translate-y-1/2 -rotate-[24deg]">
+            <div className="absolute inset-y-0 left-0 w-[200%] animate-marquee [background-image:repeating-linear-gradient(90deg,color-mix(in_oklab,var(--vp-main),transparent_75%)_0_7%,transparent_7%_12%,color-mix(in_oklab,var(--vp-accent),transparent_50%)_12%_14.5%,transparent_14.5%_25%)] will-change-transform" />
+          </div>
+          {!bare && <span className="absolute inset-0 grid place-items-center font-video text-[clamp(1rem,16cqmin,5rem)] font-black tracking-tight text-white uppercase italic">{label}</span>}
+        </div>
+      );
+
+    // Soleil rétro rayé sur un ciel dégradé
+    case "sun":
+      return (
+        <div className="absolute inset-0 [container-type:size]">
+          <div className="absolute inset-0 bg-gradient-to-b from-[var(--vp-bg)] from-20% to-[color-mix(in_oklab,var(--vp-main),transparent_45%)]" />
+          <Blob color="var(--vp-accent)" className="top-[84%] left-1/2 size-[120%] -translate-x-1/2 -translate-y-1/2 opacity-50" />
+          <div className="absolute top-[86%] left-1/2 aspect-square w-[78cqmin] -translate-x-1/2 -translate-y-1/2 animate-float rounded-full bg-gradient-to-b from-[var(--vp-accent)] to-[var(--vp-main)] opacity-75 [mask-image:linear-gradient(180deg,black_56%,transparent_56%_60%,black_60%_67%,transparent_67%_72%,black_72%_78%,transparent_78%_85%,black_85%_90%,transparent_90%)] will-change-transform" />
+          {!bare && <span className="absolute inset-x-0 top-[14%] text-center font-video text-[clamp(0.9rem,11cqmin,3.5rem)] font-bold tracking-tight text-[var(--vp-main)]">{label}</span>}
+        </div>
+      );
+
+    // Fête : confettis qui tombent
+    case "confetti":
+      return (
+        <div className="absolute inset-0 overflow-hidden [container-type:size]">
+          <Blob color="var(--vp-main)" className="top-1/2 left-1/2 size-[110%] -translate-x-1/2 -translate-y-1/2 opacity-40" />
+          {CONFETTI.map(([x, delay, size, round], i) => (
+            <span
+              key={i}
+              className="absolute -top-[6%] animate-confetti will-change-transform"
+              style={{
+                left: `${x}%`,
+                width: `${size}cqmin`,
+                height: round ? `${size}cqmin` : `${size * 0.45}cqmin`,
+                borderRadius: round ? "50%" : "0.2cqmin",
+                background: ["var(--vp-main)", "var(--vp-accent)", "#ffffff"][i % 3],
+                animationDelay: `${-delay}s`,
+              }}
+            />
+          ))}
+          {!bare && <span className="absolute inset-0 grid place-items-center font-video text-[clamp(1rem,14cqmin,4.5rem)] font-black tracking-tight text-white">{label}</span>}
+        </div>
+      );
+
+    // Océan : vagues superposées qui ondulent
+    case "waves":
+      return (
+        <div className="absolute inset-0 overflow-hidden [container-type:size]">
+          <Blob color="var(--vp-accent)" className="-top-1/4 -right-1/4 size-[90%] animate-drift-slow opacity-40" />
+          {[
+            ["58%", "var(--vp-main)", 78, "9s"],
+            ["68%", "var(--vp-accent)", 72, "7s"],
+            ["78%", "var(--vp-main)", 60, "5.5s"],
+          ].map(([top, color, alpha, speed], i) => (
+            <div key={i} className="absolute -left-1/4 h-[60%] w-[150%] animate-[sway_9s_ease-in-out_infinite] rounded-[45%_55%_0_0/18%_22%_0_0] will-change-transform" style={{ top: top as string, background: `color-mix(in oklab, ${color}, transparent ${alpha}%)`, animationDuration: speed as string, animationDelay: `${-i}s` }} />
+          ))}
+          {!bare && <span className="absolute inset-x-0 top-[24%] text-center font-video text-[clamp(1rem,13cqmin,4rem)] font-bold tracking-tight text-white">{label}</span>}
+        </div>
+      );
+
+    // Années 70 : rayons qui tournent
+    case "sunburst":
+      return (
+        <div className="absolute inset-0 overflow-hidden [container-type:size]">
+          <div className="absolute top-[115%] left-1/2 aspect-square w-[300cqmax] -translate-x-1/2 -translate-y-1/2 animate-spin-slow [background:repeating-conic-gradient(color-mix(in_oklab,var(--vp-main),transparent_80%)_0deg_6deg,transparent_6deg_12deg)] will-change-transform" />
+          <Blob color="var(--vp-accent)" className="top-[100%] left-1/2 size-[140%] -translate-x-1/2 -translate-y-1/2 opacity-60" />
+          {!bare && <span className="absolute inset-0 grid place-items-center font-video text-[clamp(1rem,14cqmin,4.5rem)] font-black tracking-tight text-[var(--vp-main)]">{label}</span>}
+        </div>
+      );
+
+    // Courbes de niveau
+    case "topo":
+      return (
+        <div className="absolute inset-0 overflow-hidden [container-type:size]">
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="absolute top-[30%] left-[78%] -translate-x-1/2 -translate-y-1/2 animate-[sway_12s_ease-in-out_infinite] rounded-[46%_54%_52%_48%/55%_45%_55%_45%] border will-change-transform" style={{ width: `${12 + i * 11}cqmin`, height: `${10 + i * 9.5}cqmin`, borderColor: i % 4 === 0 ? "var(--vp-accent)" : "color-mix(in oklab, var(--vp-main), transparent 75%)", animationDelay: `${-i * 0.6}s` }} />
+          ))}
+          {!bare && <span className="absolute bottom-[14%] left-[10%] font-video text-[clamp(1rem,12cqmin,4rem)] font-bold tracking-tight text-[var(--vp-main)]">{label}</span>}
+        </div>
+      );
+
+    // Hyperespace : traînées qui partent du centre
+    case "starfield":
+      return (
+        <div className="absolute inset-0 overflow-hidden [container-type:size]">
+          <Blob color="var(--vp-main)" className="top-1/2 left-1/2 size-[80%] -translate-x-1/2 -translate-y-1/2 opacity-40" />
+          {STARS.map(([angle, delay], i) => (
+            <div key={i} className="absolute top-1/2 left-1/2 h-[0.5cqmin] w-[60cqmax] origin-left" style={{ transform: `rotate(${angle}deg)` }}>
+              <span className="absolute left-0 h-full w-[18%] animate-warp rounded-full bg-gradient-to-r from-transparent to-white will-change-transform" style={{ animationDelay: `${-delay}s` }} />
+            </div>
+          ))}
+          {!bare && <span className="absolute inset-0 grid place-items-center font-video text-[clamp(1rem,13cqmin,4rem)] font-bold tracking-tight text-white">{label}</span>}
+        </div>
+      );
+
+    // Rétro jeu vidéo : grille de pixels qui clignotent
+    case "pixels":
+      return (
+        <div className="absolute inset-0 overflow-hidden [container-type:size]">
+          <div className="absolute inset-0 [background-image:linear-gradient(color-mix(in_oklab,var(--vp-main),transparent_88%)_1px,transparent_1px),linear-gradient(90deg,color-mix(in_oklab,var(--vp-main),transparent_88%)_1px,transparent_1px)] [background-size:6.5cqmin_6.5cqmin]" />
+          {PIXELS.map(([x, y, accent], i) => (
+            <span key={i} className="absolute size-[5.5cqmin] animate-[caret_1s_steps(1)_infinite]" style={{ left: `${x * 6.5 + 0.5}cqmin`, top: `${y * 6.5 + 0.5}cqmin`, background: accent ? "var(--vp-accent)" : "var(--vp-main)", opacity: 0.45, animationDelay: `${-(i % 4) * 0.25}s` }} />
+          ))}
+          {!bare && <span className="absolute inset-0 grid place-items-center font-mono text-[clamp(1rem,12cqmin,4rem)] font-bold tracking-tight text-white">{label}</span>}
+        </div>
+      );
+
     default: {
       // Erreur de typage ici = un fond de config/recipes.ts n'a pas encore d'aperçu
       const missing: never = kind;

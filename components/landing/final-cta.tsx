@@ -1,11 +1,13 @@
+import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
+import Link from "@/lib/i18n/navigation";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { Reveal } from "@/components/motion/reveal";
 import { buttonVariants } from "@/components/ui/button";
-import { t } from "@/lib/i18n";
 
 export function FinalCta() {
+  const t = useDictionary();
+
   return (
     <section className="px-4 pb-20 sm:px-6 sm:pb-28">
       <Reveal className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-white/10 sm:rounded-[2.5rem]">

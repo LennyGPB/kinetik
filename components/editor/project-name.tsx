@@ -1,13 +1,15 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Pencil } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { useToast } from "@/components/ui/toaster";
-import { t } from "@/lib/i18n";
+
 import { renameProject } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
 
-const e = t.app.editor;
 const MAX = 60;
 
 /**
@@ -15,6 +17,10 @@ const MAX = 60;
  * Entrée ou clic ailleurs = enregistrer, Échap = annuler.
  */
 export function ProjectName({ projectId, initialName }: { projectId: string; initialName: string }) {
+  const t = useDictionary();
+
+  const e = t.app.editor;
+
   const [name, setName] = useState(initialName);
   const [draft, setDraft] = useState<string | null>(null);
   const [, startTransition] = useTransition();

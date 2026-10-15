@@ -1,12 +1,19 @@
-import Link from "next/link";
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+import Link from "@/lib/i18n/navigation";
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { siteConfig } from "@/config/site";
-import { t } from "@/lib/i18n";
 
-const f = t.landing.footer;
+const SOCIALS = Object.entries(siteConfig.social);
 
-const COLUMNS = [
+// Année fixée au build (pas de `new Date()` dans le shell statique).
+const YEAR = 2026;
+
+export function SiteFooter() {
+  const t = useDictionary();
+
+  const f = t.landing.footer;
+  const COLUMNS = [
   {
     title: f.product,
     links: [
@@ -27,19 +34,14 @@ const COLUMNS = [
   {
     title: f.legal,
     links: [
-      { label: f.links.terms, href: "#" },
-      { label: f.links.privacy, href: "#" },
-      { label: f.links.cookies, href: "#" },
+      { label: f.links.legalNotice, href: "/legal" },
+      { label: f.links.terms, href: "/terms" },
+      { label: f.links.privacy, href: "/privacy" },
+      { label: f.links.cookies, href: "/cookies" },
     ],
   },
 ];
 
-const SOCIALS = Object.entries(siteConfig.social);
-
-// Année fixée au build (pas de `new Date()` dans le shell statique).
-const YEAR = 2026;
-
-export function SiteFooter() {
   return (
     <footer className="border-t border-line px-4 pt-16 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-6">
       <div className="mx-auto max-w-7xl">
@@ -86,7 +88,8 @@ export function SiteFooter() {
           className="pointer-events-none mt-10 text-center font-display text-[clamp(4rem,20vw,16rem)] leading-[0.8] font-extrabold tracking-[-0.06em] text-fg/[0.04] select-none"
           aria-hidden
         >
-          Kinetik
+
+          {"Kinetik"}
         </p>
       </div>
     </footer>

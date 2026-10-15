@@ -1,8 +1,11 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Clapperboard, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
+import Link from "@/lib/i18n/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -11,18 +14,19 @@ import { Dialog } from "@/components/ui/dialog";
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { VIDEO_FORMATS } from "@/config/formats";
-import { format, t } from "@/lib/i18n";
+import { format } from "@/lib/i18n";
 import { deleteProject } from "@/lib/projects/actions";
 import type { ProjectCard, ProjectStatus } from "@/lib/projects/types";
 import { projectVisual } from "@/lib/projects/visuals";
 import { formatDate } from "@/lib/utils";
 
-const d = t.app.dashboard;
 type Filter = "all" | Exclude<ProjectStatus, "FAILED">;
 
 const STATUS_TONE: Record<ProjectStatus, BadgeTone> = { DRAFT: "neutral", GENERATING: "accent", READY: "success", FAILED: "danger" };
 
 export function StatusBadge({ status }: { status: ProjectStatus }) {
+  const t = useDictionary();
+
   return (
     <Badge tone={STATUS_TONE[status]} className="backdrop-blur-md">
       <span className={status === "GENERATING" ? "size-1.5 animate-pulse rounded-full bg-current" : "size-1.5 rounded-full bg-current"} />
@@ -32,6 +36,10 @@ export function StatusBadge({ status }: { status: ProjectStatus }) {
 }
 
 export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
+  const t = useDictionary();
+
+  const d = t.app.dashboard;
+
   const [filter, setFilter] = useState<Filter>("all");
   const [toDelete, setToDelete] = useState<ProjectCard | null>(null);
   const [pending, startTransition] = useTransition();
@@ -94,7 +102,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
                     <div className="min-w-0">
                       <p className="truncate text-[15px] font-medium">{project.name}</p>
                       <p className="mt-0.5 text-[13px] text-subtle">
-                        {VIDEO_FORMATS[project.format].ratio} · {project.duration} s · {formatDate(project.updatedAt)}
+                        {VIDEO_FORMATS[project.format].ratio} · {project.duration}  {"s ·"} {formatDate(project.updatedAt, undefined, t.locale)}
                       </p>
                     </div>
                   </div>
@@ -139,6 +147,10 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
 }
 
 function EmptyState() {
+  const t = useDictionary();
+
+  const d = t.app.dashboard;
+
   return (
     <div className="rounded-2xl border border-dashed border-line-strong px-6 py-16 text-center sm:py-20">
       <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-accent-soft">

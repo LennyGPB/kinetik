@@ -1,17 +1,21 @@
+import { PreviewTarget } from "./movable-text";
 import { MovableText } from "./movable-text";
 import type { ReactNode } from "react";
-import { AbsoluteFill, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Easing, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Scene } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
 import { defaultLogoLayout } from "../../config/recipes";
 import { LogoLayoutScene } from "./logo-layouts";
 import { PresentationScene } from "./presentation-scenes";
 import { ScreensScene } from "./screens";
+import { Subtitle, TextLayout } from "./composition";
+import { formatStat, parseStat } from "./stat";
 import { AnimatedTitle, useTitlePaint } from "./titles";
 import { isLight, useBeat, textColorOn, useBodyFont, useIsPortrait, useRecipe, useTitleFont, useUnit } from "./theme";
 
 /**
- * Les 5 types de scènes du SceneGraph (intro, logo, feature, screens, cta).
+ * Les 7 types de scènes du SceneGraph (intro, logo, feature, screens, cta, stat, quote).
+ * Les scènes de texte passent par <TextLayout> : leur silhouette vient de la composition de la recette (composition.tsx).
  * Une scène ne connaît que son contenu : son style vient de la recette (useRecipe) et des briques.
  */
 
@@ -34,23 +38,15 @@ function Center({ children, gap }: { children: ReactNode; gap?: number }) {
   );
 }
 
-function Subtitle({ text, color, delay = 10 }: { text: string; color: string; delay?: number }) {
-  const u = useUnit();
-  const frame = useCurrentFrame();
-  const font = useBodyFont();
-  const opacity = interpolate(frame, [delay, delay + 12], [0, 0.8], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  return <MovableText target="subtitle"><p style={{ margin: 0, fontFamily: font, fontSize: u * 3.6, color, opacity, transform: `translateY(${(0.8 - opacity) * 20}px)` }}>{text}</p></MovableText>;
-}
-
 /** Logo affiché tel quel : contain, jamais recadré ni déformé. */
 function LogoTile({ props, size }: { props: VideoProps; size: number }) {
   const font = useTitleFont();
   // Sur fond clair, une tuile blanche disparaît : bordure fine et ombre neutre.
   const light = isLight(props.palette[0]);
   const glow = useRecipe().titleEffect === "glow";
-  const withBackground = props.graph.logoBackground !== false;
+  const withBackground = props.graph.logoBackground === true;
   return (
-    <div
+    <PreviewTarget target="logo"><div
       style={{
         width: size,
         height: size,
@@ -71,7 +67,7 @@ function LogoTile({ props, size }: { props: VideoProps; size: number }) {
       ) : (
         <span style={{ ...font, fontSize: size * 0.5, color: props.palette[1] }}>{props.appName.slice(0, 1).toUpperCase()}</span>
       )}
-    </div>
+    </div></PreviewTarget>
   );
 }
 
@@ -80,14 +76,8 @@ function LogoTile({ props, size }: { props: VideoProps; size: number }) {
 function IntroScene({ scene, props }: SceneProps) {
   const portrait = useIsPortrait();
   const u = useUnit();
-  const color = textColorOn(props.palette[0]);
   if (scene.presentation === "editorial" || scene.presentation === "split") return <PresentationScene scene={scene} props={props} logo={<LogoTile props={props} size={u * 22} />} />;
-  return (
-    <Center>
-      <AnimatedTitle text={scene.title} size={u * (portrait ? 11 : 10)} color={color} palette={props.palette} energy={props.graph.energy} />
-      {scene.subtitle && <Subtitle text={scene.subtitle} color={color} delay={14} />}
-    </Center>
-  );
+  return <TextLayout scene={scene} props={props} titleSize={portrait ? 11 : 10} subtitle={scene.subtitle} subtitleDelay={14} />;
 }
 
 function LogoScene({ scene, props }: SceneProps) {
@@ -105,13 +95,10 @@ function SignatureLogoScene({ scene, props }: SceneProps) {
   const p = useSpring(0, props.graph.energy);
   const pulse = useBeat().pulse(frame);
   const size = u * (props.graph.logoEmphasis ? 34 : 24);
-  const nameP = useSpring(10, props.graph.energy);
   const ring = interpolate(frame, [0, 24], [0.6, 1.8], { extrapolateRight: "clamp" });
   const ringOpacity = interpolate(frame, [0, 6, 24], [0, 0.6, 0], { extrapolateRight: "clamp" });
-  const font = useTitleFont();
   const recipe = useRecipe();
   const color = textColorOn(props.palette[0]);
-  const paint = useTitlePaint(color, props.palette);
   // "soft" (ex. Apple-like) : apparition douce, sans rotation ni onde
   const soft = true;
   const beat = recipe.beatPulse ? pulse : 0;
@@ -123,9 +110,7 @@ function SignatureLogoScene({ scene, props }: SceneProps) {
         {!soft && <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: `${u * 0.5}px solid ${props.palette[2]}`, transform: `scale(${ring})`, opacity: ringOpacity }} />}
         <LogoTile props={props} size={size} />
       </div>
-      <MovableText target="title"><div style={{ ...font, fontSize: Math.min(u * 9, (width - u * 16) / Math.max(1, props.appName.length * 0.72)), maxWidth: "100%", overflowWrap: "anywhere", lineHeight: 1.1, opacity: nameP, transform: `translateY(${(1 - nameP) * 30}px)` }}>
-        <span style={paint}>{props.appName}</span>
-      </div></MovableText>
+      <AnimatedTitle text={props.appName} size={Math.min(u * 9, (width - u * 16) / Math.max(1, props.appName.length * 0.72))} color={color} palette={props.palette} energy={props.graph.energy} delay={10} />
       {scene.subtitle && <Subtitle text={scene.subtitle} color={color} delay={18} />}
     </Center>
   );
@@ -133,25 +118,19 @@ function SignatureLogoScene({ scene, props }: SceneProps) {
 
 function FeatureScene({ scene, props }: SceneProps) {
   const u = useUnit();
-  const color = textColorOn(props.palette[0]);
-  const bar = useSpring(8, props.graph.energy);
-  const solid = useRecipe().accent === "solid";
   const font = useBodyFont();
+  // En affiche, le nom de l'app est déjà dans l'en-tête
+  const poster = useRecipe().composition === "poster";
   if (scene.presentation === "spotlight" || scene.presentation === "card") return <PresentationScene scene={scene} props={props} logo={<LogoTile props={props} size={u * 18} />} />;
-  return (
-    <Center gap={u * 3.5}>
-      <span style={{ fontFamily: font, fontWeight: 600, fontSize: u * 2.6, letterSpacing: "0.2em", textTransform: "uppercase", color: props.palette[2] }}>{props.appName}</span>
-      <AnimatedTitle text={scene.title} size={u * 8.5} color={color} palette={props.palette} energy={props.graph.energy} />
-      <div style={{ height: u * (solid ? 0.4 : 0.9), width: `${bar * (solid ? 10 : 22)}%`, borderRadius: 999, background: solid ? props.palette[2] : `linear-gradient(90deg, ${props.palette[1]}, ${props.palette[2]})` }} />
-      {scene.subtitle && <Subtitle text={scene.subtitle} color={color} delay={16} />}
-    </Center>
-  );
+  // Surtitre : nom de l'app par défaut, texte choisi dans l'éditeur, ou masqué ("")
+  const text = scene.kicker ?? props.appName;
+  const kicker = text ? <span style={{ fontFamily: font, fontWeight: 600, fontSize: u * 2.6, letterSpacing: "0.2em", textTransform: "uppercase", color: scene.textColors?.kicker ?? props.palette[2] }}>{text}</span> : undefined;
+  return <TextLayout scene={scene} props={props} titleSize={8.5} kicker={poster ? undefined : kicker} rule subtitle={scene.subtitle} subtitleDelay={16} />;
 }
 
 function CtaScene({ scene, props }: SceneProps) {
   const u = useUnit();
   const frame = useCurrentFrame();
-  const color = textColorOn(props.palette[0]);
   const button = useSpring(12, props.graph.energy);
   const recipe = useRecipe();
   const font = useBodyFont();
@@ -165,30 +144,102 @@ function CtaScene({ scene, props }: SceneProps) {
 
   if (scene.presentation === "end-card" || scene.presentation === "browser") return <PresentationScene scene={scene} props={props} logo={<LogoTile props={props} size={u * 15} />} />;
 
+  const button_ = (
+    <div
+      style={{
+        marginTop: recipe.composition === "poster" ? 0 : u * 1.5,
+        padding: `${u * 2}px ${u * 5}px`,
+        borderRadius: 999,
+        fontFamily: font,
+        fontWeight: 600,
+        fontSize: u * 3.4,
+        whiteSpace: "nowrap",
+        // Texte lisible quelle que soit la couleur d'accent (ex. doré clair du template Luxe)
+        color: solid ? textColorOn(accent) : "white",
+        // "solid" : bouton plein de la couleur d'accent (ex. bleu Apple), sans halo
+        background: solid ? accent : `linear-gradient(120deg, ${props.palette[1]}, ${accent})`,
+        boxShadow: solid ? "none" : `0 ${u}px ${u * 4}px -${u}px ${accent}`,
+        transform: `scale(${button * (1 + pulse * 0.03)})`,
+        transformOrigin: recipe.composition === "center" ? "50% 50%" : "0% 50%",
+      }}
+    >
+      {host ?? props.appName}
+    </div>
+  );
   return (
-    <Center gap={u * 4}>
-      {props.graph.logoEmphasis && <LogoTile props={props} size={u * 16} />}
-      <AnimatedTitle text={scene.title} size={u * 9.5} color={color} palette={props.palette} energy={props.graph.energy} />
-      {subtitle && <Subtitle text={subtitle} color={color} delay={10} />}
-      <div
-        style={{
-          marginTop: u * 1.5,
-          padding: `${u * 2}px ${u * 5}px`,
-          borderRadius: 999,
-          fontFamily: font,
-          fontWeight: 600,
-          fontSize: u * 3.4,
-          // Texte lisible quelle que soit la couleur d'accent (ex. doré clair du template Luxe)
-          color: solid ? textColorOn(accent) : "white",
-          // "solid" : bouton plein de la couleur d'accent (ex. bleu Apple), sans halo
-          background: solid ? accent : `linear-gradient(120deg, ${props.palette[1]}, ${accent})`,
-          boxShadow: solid ? "none" : `0 ${u}px ${u * 4}px -${u}px ${accent}`,
-          transform: `scale(${button * (1 + pulse * 0.03)})`,
-        }}
-      >
-        {host ?? props.appName}
-      </div>
-    </Center>
+    <TextLayout
+      scene={scene}
+      props={props}
+      titleSize={9.5}
+      header={props.graph.logoEmphasis ? <LogoTile props={props} size={u * 16} /> : undefined}
+      subtitle={subtitle}
+      subtitleDelay={10}
+      footer={button_}
+    />
+  );
+}
+
+// ───────────── Chiffre clé (stat) ─────────────
+
+function StatScene({ scene, props }: SceneProps) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const font = useTitleFont();
+  const color = textColorOn(props.palette[0]);
+  const paint = useTitlePaint(color, props.palette);
+  const stat = parseStat(scene.title);
+  // Le compteur monte vite puis ralentit, et se fige un peu avant la fin de la scène
+  const countFrames = Math.min(fps * (props.graph.energy === "high" ? 0.8 : 1.3), scene.duration * fps * 0.6);
+  const p = interpolate(frame, [4, 4 + countFrames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.exp) });
+  const appear = spring({ frame, fps, config: { damping: 16, stiffness: 140 } });
+  const accent = props.palette[2];
+  const short = scene.title.length <= 10;
+  return (
+    <TextLayout
+      scene={scene}
+      props={props}
+      titleSize={short ? 16 : scene.title.length <= 18 ? 12 : 8.5}
+      rule
+      subtitle={scene.subtitle}
+      subtitleDelay={Math.round(countFrames * 0.6)}
+      title={(align, size) => (
+        <MovableText target="title">
+          <div style={{ ...font, fontSize: size, lineHeight: 1, textAlign: align, fontVariantNumeric: "tabular-nums", opacity: appear, transform: `translateY(${(1 - appear) * size * 0.25}px)`, overflowWrap: "anywhere" }}>
+            {stat ? (
+              <>
+                <span style={paint}>{stat.before}</span>
+                <span style={{ ...paint, color: accent, textShadow: paint.textShadow }}>{formatStat(stat.value * p, stat)}</span>
+                <span style={paint}>{stat.after}</span>
+              </>
+            ) : (
+              <span style={paint}>{scene.title}</span>
+            )}
+          </div>
+        </MovableText>
+      )}
+    />
+  );
+}
+
+// ───────────── Témoignage (quote) ─────────────
+
+function QuoteScene({ scene, props }: SceneProps) {
+  const u = useUnit();
+  const frame = useCurrentFrame();
+  const font = useTitleFont();
+  const accent = props.palette[2];
+  const mark = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
+  const kicker = <span aria-hidden style={{ ...font, fontSize: u * 16, lineHeight: 0.6, height: u * 7, color: accent, opacity: mark, transform: `scale(${0.7 + mark * 0.3})` }}>“</span>;
+  const length = scene.title.length;
+  return (
+    <TextLayout
+      scene={scene}
+      props={props}
+      titleSize={length > 60 ? 5.2 : length > 35 ? 6.4 : 7.8}
+      kicker={kicker}
+      subtitle={scene.subtitle}
+      subtitleDelay={18}
+    />
   );
 }
 
@@ -198,4 +249,6 @@ export const SCENES: Record<Scene["kind"], (p: SceneProps) => ReactNode> = {
   feature: FeatureScene,
   screens: ScreensScene,
   cta: CtaScene,
+  stat: StatScene,
+  quote: QuoteScene,
 };

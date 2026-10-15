@@ -1,9 +1,11 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Button } from "@/components/ui/button";
 import { useComingSoon } from "@/components/ui/toaster";
 import { OAUTH_PROVIDERS, oauthStartUrl, type OAuthProviderId } from "@/lib/auth/providers";
-import { t } from "@/lib/i18n";
 
 function GoogleIcon() {
   return (
@@ -28,9 +30,12 @@ function DiscordIcon() {
 }
 
 const ICONS: Record<OAuthProviderId, () => React.ReactElement> = { google: GoogleIcon, discord: DiscordIcon };
-const LABELS: Record<OAuthProviderId, string> = { google: t.auth.google, discord: t.auth.discord };
 
 export function OAuthButtons({ redirectTo }: { redirectTo?: string }) {
+  const t = useDictionary();
+
+  const LABELS: Record<OAuthProviderId, string> = { google: t.auth.google, discord: t.auth.discord };
+
   const comingSoon = useComingSoon();
 
   return (

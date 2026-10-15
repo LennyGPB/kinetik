@@ -11,6 +11,10 @@ import { isScenePresentation } from "@/config/scene-presentations";
  */
 
 export type GenerationInput = {
+  locale?: "en" | "fr";
+  videoType?: string;
+  screenUrls?: string[];
+  logoUrl?: string | null;
   appName: string;
   duration: number;
   brief?: string | null;
@@ -33,24 +37,61 @@ function sceneId(kind: string, index: number) {
 
 function distribute(total: number, weights: number[]) {
   const sum = weights.reduce((a, b) => a + b, 0);
-  const raw = weights.map((w) => Math.max(1, Math.round((w / sum) * total)));
-  raw[raw.length - 1] += total - raw.reduce((a, b) => a + b, 0);
+  const raw = weights.map((w) => Math.max(1, Math.floor((w / sum) * total * 2) / 2));
+  let remaining = Math.round((total - raw.reduce((a, b) => a + b, 0)) * 2);
+  for (let i = 0; remaining !== 0; i = (i + 1) % raw.length) {
+    const step = remaining > 0 ? 0.5 : -0.5;
+    if (raw[i] + step < 1) continue;
+    raw[i] += step;
+    remaining -= Math.sign(remaining);
+  }
   return raw;
 }
 
 export async function generateVideo(input: GenerationInput): Promise<SceneGraph> {
   await sleep(MOCK_LATENCY_MS);
   const track = getTrack(input.musicTrackId) ?? MUSIC_LIBRARY[0];
+  const en = input.locale === "en";
   const highlight = input.brief?.split(/[.\n]/)[0]?.trim();
 
   const blueprint: Omit<Scene, "duration">[] = [
-    { id: sceneId("intro", 0), kind: "intro", title: `Voici ${input.appName}`, subtitle: "Le futur de ton workflow", transition: "fade" },
+    { id: sceneId("intro", 0), kind: "intro", title: `${en ? "Meet" : "Voici"} ${input.appName}`, subtitle: en ? "The future of your workflow" : "Le futur de ton workflow", transition: "fade" },
     { id: sceneId("logo", 1), kind: "logo", title: input.appName, transition: "zoom" },
-    { id: sceneId("feature", 2), kind: "feature", title: highlight || "Tout au même endroit", subtitle: "Simple. Rapide. Puissant.", transition: "slide" },
-    { id: sceneId("screens", 3), kind: "screens", title: "Pensé pour aller vite", transition: "slide" },
-    { id: sceneId("cta", 4), kind: "cta", title: `Essaie ${input.appName}`, subtitle: "Disponible dès aujourd'hui", transition: "fade" },
+    { id: sceneId("feature", 2), kind: "feature", title: highlight || (en ? "Everything in one place" : "Tout au même endroit"), subtitle: en ? "Simple. Fast. Powerful." : "Simple. Rapide. Puissant.", transition: "slide" },
+    { id: sceneId("screens", 3), kind: "screens", title: en ? "Built for speed" : "Pensé pour aller vite", transition: "slide" },
+    { id: sceneId("cta", 4), kind: "cta", title: `${en ? "Try" : "Essaie"} ${input.appName}`, subtitle: en ? "Available today" : "Disponible dès aujourd'hui", transition: "fade" },
   ];
-  const durations = distribute(input.duration, [2, 1.5, 3, 3, 2]);
+  const hasScreens = Boolean(input.screenUrls?.length);
+  const product = { ...blueprint[3], kind: hasScreens ? "screens" as const : "feature" as const };
+  const feature = blueprint[2];
+  const cta = blueprint[4];
+  let plan: Omit<Scene, "duration">[];
+  switch (input.videoType) {
+    case "demo":
+      plan = [product, { ...product, title: highlight || (en ? "Everything in one place" : "Tout au même endroit") }, { ...product, title: en ? "Take action" : "Passe à l’action" }, cta];
+      break;
+    case "feature":
+      plan = [{ ...feature, title: en ? "Focus on what matters" : "Va à l’essentiel", subtitle: undefined }, { ...product, title: highlight || (en ? "Everything in one place" : "Tout au même endroit") }, feature, cta];
+      break;
+    case "teaser":
+      plan = [{ ...feature, title: en ? "What if…" : "Et si…", subtitle: undefined }, { ...feature, title: en ? "Everything became simple" : "Tout devenait simple", subtitle: undefined }, product, ...(input.logoUrl ? [blueprint[1]] : []), cta];
+      break;
+    default:
+      plan = [blueprint[0], feature, product, cta];
+  }
+  const count = input.duration >= 30 ? 12 : input.duration >= 15 ? 7 : 5;
+  let index = 0;
+  while (plan.length < count) {
+    const source = input.videoType === "demo" ? product : index % 2 ? product : feature;
+    const insertAt = input.videoType === "teaser" && input.logoUrl ? plan.length - 2 : plan.length - 1;
+    plan.splice(insertAt, 0, { ...source });
+    index++;
+  }
+  plan = plan.map((scene, i) => ({ ...scene, id: sceneId(scene.kind, i) }));
+  const shortCount = plan.filter((scene) => scene.kind === "intro" || scene.kind === "logo").length;
+  const opening = input.duration === 10 ? 1 : 1.5;
+  const contentDurations = distribute(input.duration - shortCount * opening, plan.filter((scene) => scene.kind !== "intro" && scene.kind !== "logo").map(() => 1));
+  const durations = plan.map((scene) => scene.kind === "intro" || scene.kind === "logo" ? opening : contentDurations.shift()!);
 
   return {
     schema: 1,
@@ -59,7 +100,7 @@ export async function generateVideo(input: GenerationInput): Promise<SceneGraph>
     screenFrame: "phone",
     musicTrackId: input.musicTrackId ?? null,
     bpm: track.bpm,
-    scenes: blueprint.map((scene, i) => ({ ...scene, duration: durations[i] })),
+    scenes: plan.map((scene, i) => ({ ...scene, duration: durations[i] })),
   };
 }
 
@@ -171,6 +212,7 @@ export async function applyEdit(graph: SceneGraph, message: string, assets?: { h
   return { graph: next, label: "Message ajusté", reply: "C'est noté ! J'ai intégré ta demande dans la scène principale. Dis-moi si tu veux aller plus loin." };
 }
 
-export function welcomeMessage(appName: string) {
+export function welcomeMessage(appName: string, locale: "en" | "fr" = "fr") {
+  if (locale === "en") return `Your video for ${appName} is ready! Ask me to change the pacing, text, music, logo and more.`;
   return `Ta vidéo pour ${appName} est prête ! Demande-moi n'importe quelle modification : rythme, textes, musique, mise en avant du logo…`;
 }

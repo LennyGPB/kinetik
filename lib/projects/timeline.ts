@@ -1,7 +1,7 @@
-import { format, t } from "@/lib/i18n";
+import { format, getDictionary, type Locale } from "@/lib/i18n";
 import { LOGO_LAYOUTS, SCREENS_LAYOUTS, type LogoLayout, type ScreensLayout } from "../../config/recipes";
 import { isScenePresentation, SCENE_PRESENTATIONS, type ScenePresentation } from "../../config/scene-presentations";
-import { FOCUS_MODES, MAX_SCREEN_COUNT, totalDuration, TRANSITIONS, type SceneGraph, type SceneKind, type ScreenFocus, type Transition } from "./scenes";
+import { FOCUS_ANIMATIONS, FOCUS_MODES, MAX_FOCUS_STEPS, MAX_SCREEN_COUNT, totalDuration, TRANSITIONS, type SceneGraph, type SceneKind, type ScreenFocus, type Transition } from "./scenes";
 
 /**
  * Montage manuel depuis la frise de l'éditeur : durée, ordre, suppression, textes, transition et mise en avant des scènes.
@@ -14,10 +14,15 @@ export type TimelineEdit =
   | { kind: "duration"; sceneId: string; duration: number }
   | { kind: "move"; sceneId: string; toIndex: number }
   | { kind: "delete"; sceneId: string }
-  | { kind: "text"; sceneId: string; title: string; subtitle: string | null }
+  /**
+   * `colors` (facultatif) : couleur de chaque texte fourni, null = couleur du template.
+   * `kicker` (facultatif, scènes feature) : surtitre, null = nom de l'app, "" = masqué.
+   */
+  | { kind: "text"; sceneId: string; title: string; subtitle: string | null; colors?: Partial<Record<TextTarget, string | null>>; kicker?: string | null }
   | { kind: "transition"; sceneId: string; transition: Transition }
   /** Scènes screens : zone d'un screen à mettre en avant (null = retirer) */
   | { kind: "focus"; sceneId: string; focus: ScreenFocus | null }
+  | { kind: "focuses"; sceneId: string; focuses: ScreenFocus[] }
   /** Scènes screens : captures à montrer, dans l'ordre (null = automatique) */
   | { kind: "screens"; sceneId: string; screens: string[] | null }
   /** Nouvelle scène après `afterId` (null = au début). L'id est fourni par le client pour que le serveur rejoue la même suite. */
@@ -35,8 +40,13 @@ export const MIN_SCENES = 2;
 export const MAX_SCENES = 12;
 /** Durée d'une scène ajoutée depuis la frise */
 export const NEW_SCENE_SECONDS = 3;
-export const SCENE_KINDS: SceneKind[] = ["intro", "logo", "feature", "screens", "cta"];
+export const SCENE_KINDS: SceneKind[] = ["intro", "logo", "feature", "screens", "stat", "quote", "cta"];
 const SCENE_ID = /^[a-z]+-[a-z0-9]{4,24}$/;
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+type TextTarget = "title" | "subtitle" | "kicker";
+const TEXT_TARGETS: TextTarget[] = ["title", "subtitle", "kicker"];
+/** Surtitre d'une scène feature (court, en capitales dans la vidéo) */
+export const KICKER_MAX = 40;
 
 /** Identifiant d'une scène créée depuis l'éditeur (unique, généré côté client). */
 export function newSceneId(kind: SceneKind) {
@@ -46,7 +56,7 @@ export function newSceneId(kind: SceneKind) {
 export const TITLE_MAX = 80;
 export const SUBTITLE_MAX = 120;
 /** Scènes dont le sous-titre est affiché (la scène logo affiche le nom de l'app, la scène screens seulement un titre). */
-export const SUBTITLE_KINDS: SceneGraph["scenes"][number]["kind"][] = ["intro", "feature", "cta"];
+export const SUBTITLE_KINDS: SceneGraph["scenes"][number]["kind"][] = ["intro", "feature", "cta", "stat", "quote"];
 /** Scènes dont le titre est modifiable (la scène logo affiche toujours le nom de l'app). */
 export function hasEditableTitle(kind: SceneGraph["scenes"][number]["kind"]) {
   return kind !== "logo";
@@ -55,7 +65,6 @@ export function hasEditableTitle(kind: SceneGraph["scenes"][number]["kind"]) {
 /** Nombre maximum de modifications envoyées en une fois (anti-abus). */
 export const MAX_EDITS_PER_COMMIT = 50;
 
-const tl = t.app.editor.timeline;
 
 export function clampDuration(seconds: number) {
   return Math.round(Math.min(SCENE_MAX_SECONDS, Math.max(SCENE_MIN_SECONDS, seconds)) * 100) / 100;
@@ -84,9 +93,16 @@ export function isTimelineEdit(value: unknown): value is TimelineEdit {
   if (v.kind === "presentation") return v.value === null || (typeof v.value === "string" && [...SCENE_PRESENTATIONS, ...LOGO_LAYOUTS, ...SCREENS_LAYOUTS].some((item) => item === v.value));
   if (v.kind === "duration") return typeof v.duration === "number" && Number.isFinite(v.duration);
   if (v.kind === "move") return Number.isInteger(v.toIndex);
-  if (v.kind === "text") return typeof v.title === "string" && v.title.length <= 500 && (v.subtitle === null || (typeof v.subtitle === "string" && v.subtitle.length <= 500));
+  if (v.kind === "text") {
+    const colors = v.colors as Record<string, unknown> | undefined;
+    const isColor = (c: unknown) => c === undefined || c === null || (typeof c === "string" && HEX_COLOR.test(c));
+    return typeof v.title === "string" && v.title.length <= 500 && (v.subtitle === null || (typeof v.subtitle === "string" && v.subtitle.length <= 500))
+      && (v.kicker === undefined || v.kicker === null || (typeof v.kicker === "string" && v.kicker.length <= 500))
+      && (colors === undefined || Boolean(colors && typeof colors === "object" && Object.keys(colors).every((key) => TEXT_TARGETS.includes(key as TextTarget) && isColor(colors[key]))));
+  }
   if (v.kind === "transition") return TRANSITIONS.includes(v.transition as Transition);
   if (v.kind === "focus") return v.focus === null || isFocus(v.focus);
+  if (v.kind === "focuses") return Array.isArray(v.focuses) && v.focuses.length <= MAX_FOCUS_STEPS && v.focuses.every(isFocus);
   if (v.kind === "screens") return v.screens === null || (Array.isArray(v.screens) && v.screens.length <= MAX_SCREEN_COUNT && v.screens.every((u) => typeof u === "string" && u.startsWith("/api/uploads/") && u.length < 300));
   if (v.kind === "duplicate") return typeof v.id === "string" && SCENE_ID.test(v.id);
   return v.kind === "delete";
@@ -101,7 +117,9 @@ function isFocus(f: unknown): f is ScreenFocus {
       v.src.length < 300 &&
       [v.x, v.y, v.w, v.h].every((n) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1) &&
       FOCUS_MODES.includes(v.mode as ScreenFocus["mode"]) &&
-      (v.label === undefined || (typeof v.label === "string" && v.label.length <= 40)),
+      (v.animation === undefined || FOCUS_ANIMATIONS.includes(v.animation)) &&
+      (v.label === undefined || (typeof v.label === "string" && v.label.length <= 40)) &&
+      (v.title === undefined || (typeof v.title === "string" && v.title.length <= TITLE_MAX)),
   );
 }
 
@@ -110,7 +128,8 @@ function clampFocus(f: ScreenFocus): ScreenFocus {
   const w = Math.min(1, Math.max(0.08, f.w));
   const h = Math.min(1, Math.max(0.05, f.h));
   const label = f.label?.trim().slice(0, 40);
-  return { src: f.src, mode: f.mode, w, h, x: Math.min(1 - w, Math.max(0, f.x)), y: Math.min(1 - h, Math.max(0, f.y)), ...(label && f.mode === "popout" && { label }) };
+  const title = f.title?.trim().slice(0, TITLE_MAX);
+  return { src: f.src, mode: f.mode, w, h, x: Math.min(1 - w, Math.max(0, f.x)), y: Math.min(1 - h, Math.max(0, f.y)), ...(f.mode === "popout" && f.animation && { animation: f.animation }), ...(label && f.mode === "popout" && { label }), ...(title && { title }) };
 }
 
 /** Applique une modification ; renvoie le graph inchangé si elle est impossible (scène introuvable, limites…). */
@@ -169,6 +188,21 @@ export function applyTimelineEdit(graph: SceneGraph, edit: TimelineEdit): SceneG
       const subtitle = SUBTITLE_KINDS.includes(scenes[index].kind) ? edit.subtitle?.trim().slice(0, SUBTITLE_MAX) || undefined : scenes[index].subtitle;
       scenes[index] = { ...scenes[index], title, subtitle };
       if (!subtitle) delete scenes[index].subtitle;
+      if (edit.kicker !== undefined && scenes[index].kind === "feature") {
+        const kicker = edit.kicker?.trim().slice(0, KICKER_MAX);
+        if (kicker === undefined) delete scenes[index].kicker;
+        else scenes[index].kicker = kicker;
+      }
+      if (edit.colors) {
+        const textColors = { ...scenes[index].textColors };
+        for (const target of TEXT_TARGETS.filter((key) => key in edit.colors!)) {
+          const color = edit.colors[target];
+          if (color && HEX_COLOR.test(color)) textColors[target] = color.toLowerCase();
+          else delete textColors[target];
+        }
+        if (Object.keys(textColors).length) scenes[index].textColors = textColors;
+        else delete scenes[index].textColors;
+      }
       break;
     }
     case "transition":
@@ -178,6 +212,8 @@ export function applyTimelineEdit(graph: SceneGraph, edit: TimelineEdit): SceneG
       if (scenes[index].kind !== "screens") return graph;
       const list = edit.screens ? [...new Set(edit.screens)].slice(0, MAX_SCREEN_COUNT) : [];
       scenes[index] = { ...scenes[index], screens: list };
+      if (list.length && scenes[index].focus && !list.includes(scenes[index].focus!.src)) delete scenes[index].focus;
+      if (list.length && scenes[index].focuses) scenes[index] = { ...scenes[index], focuses: scenes[index].focuses!.filter((f) => list.includes(f.src)) };
       if (!list.length) delete scenes[index].screens;
       break;
     }
@@ -190,12 +226,19 @@ export function applyTimelineEdit(graph: SceneGraph, edit: TimelineEdit): SceneG
       if (scenes[index].kind !== "screens") return graph;
       scenes[index] = { ...scenes[index], focus: edit.focus ? clampFocus(edit.focus) : undefined };
       if (!edit.focus) delete scenes[index].focus;
+      delete scenes[index].focuses;
+      break;
+    case "focuses":
+      if (scenes[index].kind !== "screens" || !isTimelineEdit(edit)) return graph;
+      scenes[index] = { ...scenes[index], focuses: edit.focuses.map(clampFocus) };
+      delete scenes[index].focus;
       break;
   }
   return { ...graph, scenes };
 }
 
 function addScene(graph: SceneGraph, edit: Extract<TimelineEdit, { kind: "add" }>): SceneGraph {
+  const tl = getDictionary(graph.language ?? "en").app.editor.timeline;
   if (graph.scenes.length >= MAX_SCENES || graph.scenes.some((s) => s.id === edit.id)) return graph;
   const duration = Math.min(NEW_SCENE_SECONDS, VIDEO_MAX_SECONDS - totalDuration(graph));
   if (duration < SCENE_MIN_SECONDS) return graph;
@@ -210,28 +253,30 @@ export function applyTimelineEdits(graph: SceneGraph, edits: TimelineEdit[]) {
   return edits.reduce(applyTimelineEdit, graph);
 }
 
-export function sceneLabel(kind: SceneGraph["scenes"][number]["kind"]) {
-  return tl.kinds[kind];
+export function sceneLabel(kind: SceneGraph["scenes"][number]["kind"], locale: Locale = "en") {
+  return getDictionary(locale).app.editor.timeline.kinds[kind];
 }
 
-export function formatSeconds(seconds: number) {
-  return `${seconds.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} s`;
+export function formatSeconds(seconds: number, locale: Locale = "en") {
+  return `${seconds.toLocaleString(locale === "fr" ? "fr-FR" : "en-GB", { maximumFractionDigits: 2 })} s`;
 }
 
 /** Libellé de la version créée (historique). */
 export function timelineEditsLabel(before: SceneGraph, edits: TimelineEdit[]) {
+  const locale = before.language ?? "en";
+  const tl = getDictionary(locale).app.editor.timeline;
   if (edits.length !== 1) return format(tl.versionMany, { count: edits.length });
   const edit = edits[0];
-  if (edit.kind === "add") return format(tl.versionAdd, { name: sceneLabel(edit.sceneKind) });
+  if (edit.kind === "add") return format(tl.versionAdd, { name: sceneLabel(edit.sceneKind, locale) });
   const scene = before.scenes.find((s) => s.id === edit.sceneId);
-  const name = scene ? sceneLabel(scene.kind) : "";
+  const name = scene ? sceneLabel(scene.kind, locale) : "";
   switch (edit.kind) {
     case "textPosition":
-      return `Position du texte · ${name}`;
+      return `${locale === "en" ? "Text position" : "Position du texte"} · ${name}`;
     case "presentation":
-      return `Mise en scène · ${name}`;
+      return `${locale === "en" ? "Scene layout" : "Mise en scène"} · ${name}`;
     case "duration":
-      return format(tl.versionDuration, { name, from: formatSeconds(scene?.duration ?? 0), to: formatSeconds(clampDuration(edit.duration)) });
+      return format(tl.versionDuration, { name, from: formatSeconds(scene?.duration ?? 0, locale), to: formatSeconds(clampDuration(edit.duration), locale) });
     case "move":
       return format(tl.versionMove, { name });
     case "delete":
@@ -246,5 +291,7 @@ export function timelineEditsLabel(before: SceneGraph, edits: TimelineEdit[]) {
       return format(tl.versionDuplicate, { name });
     case "focus":
       return edit.focus ? format(tl.versionFocus, { mode: tl.focusModes[edit.focus.mode] }) : tl.versionFocusRemoved;
+    case "focuses":
+      return edit.focuses.length ? format(tl.versionFocusSteps, { count: edit.focuses.length }) : tl.versionFocusRemoved;
   }
 }

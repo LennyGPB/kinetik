@@ -1,3 +1,4 @@
+import { PreviewTarget } from "./movable-text";
 import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill, Easing, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Scene, ScreenFocus } from "../../lib/projects/scenes";
@@ -15,7 +16,7 @@ import { isLight, textColorOn, useBodyFont, useIsPortrait, useUnit } from "./the
  * (VideoProps.screenRatios) : les coordonnées 0 → 1 de la zone correspondent alors à l'écran.
  */
 
-type Props = { scene: Scene; props: VideoProps; focus: ScreenFocus; src: string; ratio: number };
+type Props = { scene: Scene; props: VideoProps; focus: ScreenFocus; src: string; ratio: number; stepFrames?: number; hold?: boolean };
 type Rect = { x: number; y: number; w: number; h: number };
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
@@ -24,9 +25,10 @@ const ease = Easing.inOut(Easing.cubic);
 /** Calendrier (en images, locales à la scène) */
 const T = { enter: 0, mark: 16, act: 30, actLength: 26 };
 
-export function FocusLayout({ scene, props, focus, src, ratio }: Props) {
+export function FocusLayout({ scene, props, focus, src, ratio, stepFrames, hold }: Props) {
   const u = useUnit();
-  const frame = useCurrentFrame();
+  const localFrame = useCurrentFrame();
+  const frame = localFrame * (stepFrames ? Math.max(1, 75 / stepFrames) : 1);
   const { fps, width, height } = useVideoConfig();
   const portrait = useIsPortrait();
   const device = props.graph.screenFrame ?? "none";
@@ -35,13 +37,13 @@ export function FocusLayout({ scene, props, focus, src, ratio }: Props) {
 
   // Taille de l'appareil : son écran a les proportions de l'image
   const titleSpace = u * 22;
-  const areaW = portrait ? width * 0.72 : width * (popout ? 0.4 : 0.5);
-  const areaH = (height - titleSpace) * (portrait && popout ? 0.56 : 0.86);
+  const areaW = portrait ? width * 0.72 : width * (popout || stepFrames ? 0.4 : 0.5);
+  const areaH = (height - titleSpace) * (portrait && (popout || stepFrames) ? 0.56 : 0.86);
   const box = deviceBox(device, ratio, areaW, areaH);
 
-  const enter = spring({ frame: frame - T.enter, fps, config: { damping: 18, stiffness: 110 } });
+  const enter = stepFrames ? 1 : spring({ frame: frame - T.enter, fps, config: { damping: 18, stiffness: 110 } });
   const mark = interpolate(frame, [T.mark, T.mark + 10], [0, 1], clamp);
-  const act = interpolate(frame, [T.act, T.act + T.actLength], [0, 1], { ...clamp, easing: ease });
+  const act = hold ? 1 : interpolate(frame, [T.act, T.act + T.actLength], [0, 1], { ...clamp, easing: ease });
 
   // Position de l'appareil : centré, ou décalé pour faire de la place à la découpe
   const centerX = width / 2 - (popout && !portrait ? width * 0.17 * act : 0);
@@ -53,7 +55,7 @@ export function FocusLayout({ scene, props, focus, src, ratio }: Props) {
   const region: Rect = { x: focus.x * box.screen.w, y: focus.y * box.screen.h, w: focus.w * box.screen.w, h: focus.h * box.screen.h };
   const regionOnVideo: Rect = { x: left + box.screen.x + region.x, y: top + box.screen.y + region.y, w: region.w, h: region.h };
 
-  const content = <ScreenContent src={src} region={region} screen={box.screen} mark={mark * (1 - act * (popout ? 1 : 0.7))} accent={accent} dim={popout ? act : 0} />;
+  const content = <ScreenContent src={src} region={region} screen={box.screen} mark={(hold ? 1 : mark) * (1 - act * (popout ? 1 : 0.7))} accent={accent} dim={popout ? act : 0} />;
 
   // Zoom caméra : l'appareil grandit autour de la zone, qui vient se centrer et remplir l'image
   const zoomScale = Math.max(1.2, Math.min(4, (width * 0.82) / region.w, ((height - titleSpace) * 0.62) / region.h));
@@ -82,12 +84,12 @@ export function FocusLayout({ scene, props, focus, src, ratio }: Props) {
           {content}
         </Frame>
       </div>
-      {popout && act > 0 && <Cutout src={src} region={region} screen={box.screen} from={regionOnVideo} progress={act} accent={accent} label={focus.label} props={props} />}
+      {popout && act > 0 && <Cutout src={src} region={region} screen={box.screen} from={regionOnVideo} progress={act} animation={focus.animation} accent={accent} label={focus.label} props={props} />}
       {/* Titre par-dessus : en zoom, l'appareil agrandi passe derrière (fondu du fond pour la lisibilité) */}
       {!popout && <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: titleSpace * 1.3, opacity: act, background: `linear-gradient(${props.palette[0]} 35%, transparent)` }} />}
-      <div style={{ position: "absolute", top: u * 6, left: u * 8, right: u * 8, filter: popout ? undefined : `drop-shadow(0 ${u * 0.4}px ${u * 1.6}px rgb(0 0 0 / ${0.6 * act}))` }}>
-        <AnimatedTitle text={scene.title} size={u * 6.5} color={textColorOn(props.palette[0])} palette={props.palette} energy={props.graph.energy} />
-      </div>
+      {!stepFrames && <div style={{ position: "absolute", top: u * 6, left: u * 8, right: u * 8, filter: popout ? undefined : `drop-shadow(0 ${u * 0.4}px ${u * 1.6}px rgb(0 0 0 / ${0.6 * act}))` }}>
+        <AnimatedTitle text={focus.title?.trim() || scene.title} size={u * 6.5} color={textColorOn(props.palette[0])} palette={props.palette} energy={props.graph.energy} />
+      </div>}
     </AbsoluteFill>
   );
 }
@@ -124,7 +126,7 @@ function ScreenContent({ src, region, mark, accent, dim }: { src: string; region
   return (
     <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", background: "#000" }}>
       <div style={{ position: "absolute", inset: 0 }}>
-        <Img src={src} style={{ width: "100%", height: "100%", display: "block" }} />
+        <PreviewTarget target="screens"><Img src={src} style={{ width: "100%", height: "100%", display: "block" }} /></PreviewTarget>
         {/* Repère : le reste de l'écran s'assombrit, la zone est cerclée */}
         {mark > 0 && (
           <div
@@ -148,7 +150,7 @@ function ScreenContent({ src, region, mark, accent, dim }: { src: string; region
 }
 
 /** Découpe qui sort de l'écran : part de sa place exacte dans l'appareil et vient s'agrandir à côté. */
-function Cutout({ src, region, screen, from, progress, accent, label, props }: { src: string; region: Rect; screen: { w: number; h: number }; from: Rect; progress: number; accent: string; label?: string; props: VideoProps }) {
+function Cutout({ src, region, screen, from, progress, animation, accent, label, props }: { src: string; region: Rect; screen: { w: number; h: number }; from: Rect; progress: number; animation?: ScreenFocus["animation"]; accent: string; label?: string; props: VideoProps }) {
   const u = useUnit();
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
@@ -167,6 +169,9 @@ function Cutout({ src, region, screen, from, progress, accent, label, props }: {
     y: portrait ? height * 0.74 - (region.h * scale) / 2 : height / 2 - (region.h * scale) / 2 + u * 4,
   };
   const p = progress;
+  // A bounded arc returns to a flat, readable card at the end of the entrance.
+  const pivot = animation === "pivot";
+  const arc = Math.sin(Math.PI * p);
   const rect = { x: from.x + (to.x - from.x) * p, y: from.y + (to.y - from.y) * p, w: from.w + (to.w - from.w) * p, h: from.h + (to.h - from.h) * p };
   const k = rect.w / region.w; // échelle de l'image dans la découpe
   const float = Math.sin(frame / 18) * u * 0.6 * p;
@@ -175,21 +180,21 @@ function Cutout({ src, region, screen, from, progress, accent, label, props }: {
   const cardStyle: CSSProperties = {
     position: "absolute",
     left: rect.x,
-    top: rect.y + float,
+    top: rect.y + (pivot ? -u * 9 * arc : float),
     width: rect.w,
     height: rect.h,
     overflow: "hidden",
     borderRadius: u * (0.8 + 1.2 * p),
     border: `${Math.max(1.5, u * 0.3)}px solid ${accent}`,
     boxShadow: `0 ${u * 3 * p}px ${u * 8 * p}px -${u * 2}px rgb(0 0 0 / 0.6), 0 0 ${u * 4 * p}px color-mix(in oklab, ${accent}, transparent 40%)`,
-    transform: `rotate(${-2 * p}deg)`,
+    transform: pivot ? `perspective(${u * 160}px) rotateY(${-32 * arc}deg) rotateX(${14 * arc}deg) rotateZ(${-6 * arc}deg)` : `rotate(${-2 * p}deg)`,
     background: "#000",
   };
 
   return (
     <>
       <div style={cardStyle}>
-        <Img src={src} style={{ position: "absolute", left: -region.x * k, top: -region.y * k, width: screen.w * k, height: screen.h * k, maxWidth: "none" }} />
+        <PreviewTarget target="screens"><Img src={src} style={{ position: "absolute", left: -region.x * k, top: -region.y * k, width: screen.w * k, height: screen.h * k, maxWidth: "none" }} /></PreviewTarget>
       </div>
       {label && (
         <div

@@ -21,11 +21,13 @@ export const demoProps: VideoProps = {
     musicTrackId: "launch-day",
     bpm: 128,
     scenes: [
-      { id: "intro-0", kind: "intro", title: "Voici Flowly", subtitle: "Le futur de ton workflow", duration: 5, transition: "fade" },
-      { id: "logo-1", kind: "logo", title: "Flowly", duration: 4, transition: "zoom" },
-      { id: "feature-2", kind: "feature", title: "Tout au même endroit", subtitle: "Simple. Rapide. Puissant.", duration: 7, transition: "slide" },
-      { id: "screens-3", kind: "screens", title: "Pensé pour aller vite", duration: 7, transition: "slide" },
-      { id: "cta-4", kind: "cta", title: "Essaie Flowly", subtitle: "Disponible dès aujourd'hui", duration: 7, transition: "fade" },
+      { id: "intro-0", kind: "intro", title: "Voici Flowly", subtitle: "Le futur de ton workflow", duration: 1.5, transition: "fade" },
+      { id: "logo-1", kind: "logo", title: "Flowly", duration: 1.5, transition: "zoom" },
+      { id: "feature-2", kind: "feature", title: "Tout au même endroit", subtitle: "Simple. Rapide. Puissant.", duration: 3, transition: "slide" },
+      // App fictive de démonstration : chiffre d'exemple pour montrer la scène stat dans la galerie
+      { id: "stat-3", kind: "stat", title: "+40 %", subtitle: "de temps gagné chaque semaine", duration: 3, transition: "slide" },
+      { id: "screens-4", kind: "screens", title: "Pensé pour aller vite", duration: 3, transition: "slide" },
+      { id: "cta-5", kind: "cta", title: "Essaie Flowly", subtitle: "Disponible dès aujourd'hui", duration: 3, transition: "fade" },
     ],
   },
 };

@@ -1,7 +1,10 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Activity, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/i18n/navigation";
 import { useState } from "react";
 import { UploadZone } from "@/components/create/upload-zone";
 import { Button } from "@/components/ui/button";
@@ -11,14 +14,13 @@ import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { MUSIC_LIBRARY } from "@/config/music";
 import { detectTempo } from "@/lib/audio/tempo";
-import { format, t } from "@/lib/i18n";
+import { format, localizeText } from "@/lib/i18n";
 import { updateProjectSound } from "@/lib/projects/actions";
 import type { AudioSettings } from "@/lib/projects/scenes";
 import type { EditorProject, EditorVersion } from "@/lib/projects/types";
 import type { UploadedFile } from "@/lib/storage/client";
 import { cn } from "@/lib/utils";
 
-const m = t.app.sound;
 type MusicMode = "library" | "upload" | "none";
 
 /**
@@ -39,6 +41,10 @@ export function SoundDialog({
   audio: AudioSettings | undefined;
   onVersion: (version: EditorVersion) => void;
 }) {
+  const t = useDictionary();
+
+  const m = t.app.sound;
+
   const { media } = project;
   const [mode, setMode] = useState<MusicMode>(media.music ? "upload" : media.musicTrackId ? "library" : "none");
   const [trackId, setTrackId] = useState(media.musicTrackId ?? MUSIC_LIBRARY[0].id);
@@ -109,7 +115,7 @@ export function SoundDialog({
             >
               {MUSIC_LIBRARY.map((track) => (
                 <option key={track.id} value={track.id}>
-                  {track.title} · {track.mood} · {track.bpm} BPM
+                  {track.title} · {localizeText(track.mood, t)} · {track.bpm}  {"BPM"}
                 </option>
               ))}
             </select>
@@ -162,12 +168,13 @@ export function SoundDialog({
 }
 
 function Slider({ label, value, min, max, step = 1, unit, onChange }: { label: string; value: number; min: number; max: number; step?: number; unit: string; onChange: (v: number) => void }) {
+  const t = useDictionary();
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="flex justify-between">
         {label}
         <span className="font-mono text-xs text-muted tabular-nums">
-          {value.toLocaleString("fr-FR")}
+          {value.toLocaleString(t.locale === "fr" ? "fr-FR" : "en-GB")}
           {unit}
         </span>
       </span>

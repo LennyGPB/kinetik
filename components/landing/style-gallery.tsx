@@ -1,13 +1,16 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { ArrowUpRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
+import Link from "@/lib/i18n/navigation";
 import { useState } from "react";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { Badge } from "@/components/ui/badge";
 import { STYLE_CATEGORIES, VIDEO_STYLES, type StyleCategory } from "@/config/styles";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 import { Section, SectionHeading } from "./section-heading";
 
@@ -15,6 +18,8 @@ type Filter = StyleCategory | "all";
 const PREVIEW_COUNT = 6;
 
 export function StyleGallery() {
+  const t = useDictionary();
+
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState(false);
   const styles = filter === "all" ? VIDEO_STYLES : VIDEO_STYLES.filter((s) => s.category === filter);
@@ -96,7 +101,7 @@ export function StyleGallery() {
               >
                 <div className="overflow-hidden">
                   <div className="transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.06]">
-                    <VideoPlaceholder ratio={style.ratio} palette={style.palette} scene={style.recipe.background} label={style.name.split(" ")[0]} src={style.previewSrc} />
+                    <VideoPlaceholder ratio={style.ratio} palette={style.palette} templateId={style.id} scene={style.recipe.background} label={style.name.split(" ")[0]} src={style.previewSrc} />
                   </div>
                 </div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 pt-12 sm:p-4 sm:pt-16">
@@ -128,7 +133,7 @@ export function StyleGallery() {
             onClick={() => setExpanded((value) => !value)}
             className="px-3 py-2 text-sm text-muted underline-offset-4 transition-colors hover:text-fg hover:underline"
           >
-            {expanded ? "Voir moins" : "Voir +"}
+            {expanded ? t.copy["e7bd64d3ec4d"] : t.copy["be55c61d5ebf"]}
           </button>
         </div>
       )}

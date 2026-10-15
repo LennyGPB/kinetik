@@ -14,10 +14,13 @@ export const DIMENSIONS: Record<VideoFormatId, { width: number; height: number }
 
 /** Tout ce dont la composition a besoin pour rendre une vidéo. */
 export type VideoProps = {
+  locale?: "en" | "fr";
   appName: string;
   format: VideoFormatId;
   /** [fond, principale, accent] */
   palette: [string, string, string];
+  /** Complete brand palette; secondary colours are distributed across scenes. */
+  brandColors?: string[];
   /** Recette du template : typo, fond, mise en scène, animations… (config/recipes.ts) */
   recipe: Recipe;
   graph: SceneGraph;

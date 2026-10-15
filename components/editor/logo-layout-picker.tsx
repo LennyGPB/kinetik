@@ -1,24 +1,16 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Player, type PlayerRef } from "@remotion/player";
 import { useReducedMotion } from "motion/react";
 import { useRef } from "react";
 import { LOGO_LAYOUTS, type LogoLayout } from "@/config/recipes";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 import type { VideoProps } from "@/remotion/props";
 import { KinetikVideo } from "@/remotion/video/KinetikVideo";
-
-const descriptions: Record<LogoLayout, string> = {
-  orbit: "Des orbites en mouvement autour de ta marque.",
-  poster: "Une affiche graphique, entre typo et couleur.",
-  echo: "Des échos du logo se rejoignent sur le beat.",
-  emblem: "Un emblème géométrique qui se dessine.",
-  signature: "Logo, nom et accroche, en douceur.",
-  "app-icon": "Une icône en gros plan qui prend sa place.",
-  typographic: "Le nom prend l'écran, le logo le rejoint.",
-  product: "Tes captures laissent place à ta marque.",
-};
 
 export function LogoLayoutPicker({ videoProps, value, defaultValue, disabled, onChange }: {
   videoProps: VideoProps;
@@ -44,6 +36,19 @@ function LogoOption({ layout, videoProps, selected, template, disabled, onChoose
   disabled?: boolean;
   onChoose: () => void;
 }) {
+  const t = useDictionary();
+
+  const descriptions: Record<LogoLayout, string> = {
+  orbit: t.copy["aa61eddc0f39"],
+  poster: t.copy["6ccc221a69ed"],
+  echo: t.copy["b01aacad32d4"],
+  emblem: t.copy["9a893f6825e9"],
+  signature: t.copy["cf59dc68da1b"],
+  "app-icon": t.copy["e3e0e22a66ed"],
+  typographic: t.copy["b45ab31d7dbf"],
+  product: t.copy["f3b328cd630a"],
+};
+
   const ref = useRef<PlayerRef>(null);
   const reduceMotion = useReducedMotion();
   const scene = videoProps.graph.scenes.find((item) => item.kind === "logo");
@@ -82,8 +87,8 @@ function LogoOption({ layout, videoProps, selected, template, disabled, onChoose
       <span className="block px-2.5 py-2">
         <span className="block text-xs font-medium text-fg">{t.app.editor.logoLayouts[layout]}</span>
         <span className="mt-1 block text-[11px] leading-relaxed text-muted">{descriptions[layout]}</span>
-        {template && <span className="mt-1 block text-[10px] text-accent-text">Choix du template</span>}
-        {layout === "product" && videoProps.screenUrls.length === 0 && <span className="mt-1 block text-[10px] text-muted">Ajoute des captures pour révéler cet effet.</span>}
+        {template && <span className="mt-1 block text-[10px] text-accent-text">{t.copy["03555edd4361"]}</span>}
+        {layout === "product" && videoProps.screenUrls.length === 0 && <span className="mt-1 block text-[10px] text-muted">{t.copy["f0b9be896118"]}</span>}
       </span>
     </button>
   );

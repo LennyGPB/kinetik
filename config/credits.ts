@@ -6,7 +6,9 @@ export const CREDIT_COSTS = {
   /** Premier jet d'une vidéo */
   generation: 10,
   /** Une modification demandée via le chat */
-  edit: 1,
+  edit: 2,
+  /** Traduction des textes FR ↔ EN (sans images, bien moins coûteuse qu'une modification) */
+  translation: 1,
   /** Restaurer une ancienne version */
   restore: 0,
   export: {
@@ -24,7 +26,12 @@ export const SIGNUP_BONUS_CREDITS = 30;
 
 export type ExportQuality = "HD" | "UHD";
 
-export function getExportCost({ duration, quality }: { duration: number; quality: ExportQuality }) {
+/**
+ * Coût d'un export. `reexport` : le projet a déjà été exporté (rendu réussi ou en cours) → moitié prix, arrondi au supérieur.
+ * Une déclinaison (autre format, version courte) est un projet à part : son premier export est plein tarif.
+ */
+export function getExportCost({ duration, quality, reexport = false }: { duration: number; quality: ExportQuality; reexport?: boolean }) {
   const { shortMaxSeconds, short, long } = CREDIT_COSTS.export;
-  return quality === "HD" && duration <= shortMaxSeconds ? short : long;
+  const full = quality === "HD" && duration <= shortMaxSeconds ? short : long;
+  return reexport ? Math.ceil(full / 2) : full;
 }

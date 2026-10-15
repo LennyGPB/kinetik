@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import type { VideoProps } from "../props";
-import { textColorOn, useBeat, useTitleFont, useUnit } from "./theme";
+import { textColorOn, useBeat, useUnit } from "./theme";
+import { AnimatedTitle } from "./titles";
 
 export type ExtraLogoLayout = "orbit" | "poster" | "echo" | "emblem";
 
@@ -18,7 +19,6 @@ export function ExtraLogoScene({ layout, props, tile, name, subtitle, progress, 
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const u = useUnit();
-  const font = useTitleFont();
   const color = textColorOn(props.palette[0]);
   const accent = props.palette[2];
   const pulse = useBeat().pulse(frame);
@@ -53,7 +53,7 @@ export function ExtraLogoScene({ layout, props, tile, name, subtitle, progress, 
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
         <div style={{ position: "relative", width: posterWidth, height: posterHeight, overflow: "hidden", color, border: `${u * 0.15}px solid ${color}40`, transform: `translateY(${(1 - eased) * u * 15}px) rotate(${(1 - eased) * -6}deg)`, opacity: Math.min(1, progress * 5), background: props.palette[0] }}>
           <div style={{ position: "absolute", inset: 0, background: props.palette[1], clipPath: `polygon(${100 - eased * 45}% 30%, 100% 30%, 100% 100%, ${100 - eased * 68}% 100%)` }} />
-          <div style={{ position: "absolute", top: u * 5, left: u * 5, right: u * 5, ...font, fontSize: fitName, lineHeight: 1.05, overflowWrap: "anywhere", color }}>{props.appName}</div>
+          <div style={{ position: "absolute", top: u * 5, left: u * 5, right: u * 5, color }}><AnimatedTitle text={props.appName} size={fitName} color={color} palette={props.palette} energy={props.graph.energy} align="left" delay={8} /></div>
           <div style={{ position: "absolute", left: u * 6, bottom: u * 6, opacity: settle, transform: `rotate(-8deg) scale(${0.8 + settle * 0.2})` }}>{tile}</div>
           {subtitle && <div style={{ position: "absolute", bottom: u * 6, right: u * 5, width: posterWidth * 0.42, padding: u * 1.5, background: props.palette[0], textAlign: "right", opacity: settle }}>{subtitle}</div>}
           <div style={{ position: "absolute", top: u * 3, left: u * 5, width: u * 10 * eased, height: u * 0.3, background: accent }} />

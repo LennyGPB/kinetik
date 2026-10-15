@@ -1,8 +1,11 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { ArrowRight, Check, Play } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
+import Link from "@/lib/i18n/navigation";
 import { useCallback, useState } from "react";
 import { Player } from "@/components/editor/player";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
@@ -12,11 +15,10 @@ import { Dialog } from "@/components/ui/dialog";
 import { Segmented } from "@/components/ui/segmented";
 import { FORMAT_IDS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import { STYLE_CATEGORIES, VIDEO_STYLES, type StyleCategory, type VideoStyle } from "@/config/styles";
-import { format, t } from "@/lib/i18n";
+import { format } from "@/lib/i18n";
 import { demoVideoProps } from "@/lib/projects/demo-video";
 import { cn } from "@/lib/utils";
 
-const tt = t.app.templates;
 type Filter = StyleCategory | "all";
 
 export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
@@ -24,6 +26,10 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
   onSelect?: (styleId: string) => void;
   compact?: boolean;
 }) {
+  const t = useDictionary();
+
+  const tt = t.app.templates;
+
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<VideoStyle | null>(null);
   const [videoFormat, setVideoFormat] = useState<VideoFormatId>("LANDSCAPE");
@@ -59,12 +65,12 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
               <button
                 type="button"
                 onClick={() => setOpen(style)}
-                aria-label={`${style.name}${selectedId === style.id ? " · sélectionné" : ""} · Voir l’aperçu`}
+                aria-label={format(t.copy["e0e8865ec0d0"], { p0: style.name, p1: selectedId === style.id ? t.copy["5bc7b547e31e"] : "" })}
                 className={cn("group block w-full cursor-pointer overflow-hidden rounded-3xl border bg-surface text-left transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]", selectedId === style.id ? "border-accent ring-1 ring-accent" : "border-line hover:border-line-strong")}
               >
                 <div className="relative overflow-hidden">
                   <div className="transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-105">
-                    <VideoPlaceholder ratio="4:5" palette={style.palette} scene={style.recipe.background} label={style.name.split(" ")[0]} />
+                    <VideoPlaceholder ratio="4:5" palette={style.palette} templateId={style.id} scene={style.recipe.background} label={style.name.split(" ")[0]} />
                   </div>
                   <span className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover:bg-black/25">
                     <span className="grid size-12 scale-75 place-items-center rounded-full bg-white text-black opacity-0 shadow-xl transition-all duration-300 group-hover:scale-100 group-hover:opacity-100">
@@ -106,7 +112,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
               />
             </div>
             {/* `key` : relance la démo à chaque changement de style ou de format */}
-            <Player key={`${open.id}-${videoFormat}`} videoProps={demoVideoProps(open, videoFormat)} />
+            <Player key={`${open.id}-${videoFormat}-${t.locale}`} videoProps={demoVideoProps(open, videoFormat, t.locale)} />
             <p className="text-xs text-subtle">{tt.previewHint}</p>
             {onSelect ? <Button size="lg" className="cursor-pointer self-stretch sm:self-end" onClick={() => { onSelect(open.id); setOpen(null); }}>
               {tt.use} <Check />

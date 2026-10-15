@@ -26,6 +26,9 @@ export type EditorVersion = {
   graph: SceneGraph;
 };
 
+/** Longueur maximale d'un message du chat d'édition (champ de saisie et serveur). */
+export const MAX_CHAT_MESSAGE_LENGTH = 1500;
+
 export type EditorMessage = {
   id: string;
   role: "user" | "assistant";
@@ -34,6 +37,7 @@ export type EditorMessage = {
 };
 
 export type EditorProject = {
+  locale?: "en" | "fr";
   id: string;
   name: string;
   appName: string;
@@ -55,9 +59,16 @@ export type EditorProject = {
   media: { logo: UploadedFile | null; screens: UploadedFile[]; music: UploadedFile | null; musicTrackId: string | null };
   /** Jeton du lien de partage public, null si désactivé */
   shareToken: string | null;
+  /** Le projet et ses déclinaisons (autres formats, version courte), l'original en premier ; un seul élément s'il n'y en a pas */
+  variants: ProjectVariant[];
+  /** Déjà exporté au moins une fois (rendu réussi ou en cours) : les exports suivants sont à moitié prix */
+  exported: boolean;
   versions: EditorVersion[];
   messages: EditorMessage[];
 };
 
-export type ActionError = "unauthorized" | "not_found" | "insufficient_credits" | "invalid" | "busy" | "ai_unavailable" | "refused" | "rate_limited" | "render_failed";
+/** Une déclinaison d'un même projet : chacune garde ses propres versions, l'éditeur passe de l'une à l'autre. */
+export type ProjectVariant = { id: string; format: VideoFormatId; short: boolean };
+
+export type ActionError = "unauthorized" | "not_found" | "insufficient_credits" | "invalid" | "busy" | "ai_unavailable" | "refused" | "rate_limited" | "render_failed" | "export_busy";
 export type ActionResult<T> = ({ ok: true } & T) | { ok: false; error: ActionError; required?: number; available?: number };

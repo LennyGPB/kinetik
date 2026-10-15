@@ -1,6 +1,9 @@
 "use client";
 
-import { CheckCircle2, Coins, Download, Info, Lock } from "lucide-react";
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
+import { Check, CheckCircle2, Coins, Download, Info, Lock } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -10,13 +13,14 @@ import { useToast } from "@/components/ui/toaster";
 import { getExportCost, type ExportQuality } from "@/config/credits";
 import { FORMAT_IDS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import type { PricingPlan } from "@/config/pricing";
-import { t } from "@/lib/i18n";
-import { getRenderStatus, startExport } from "@/lib/projects/actions";
+
+import { format as interpolate } from "@/lib/i18n";
+import { getRenderStatuses, startExports } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
 
-const x = t.app.editor.exportDialog;
-
-type Phase = { kind: "config" } | { kind: "rendering"; renderId: string; progress: number } | { kind: "done"; url: string | null };
+/** Un rendu par format exporté. */
+type Job = { format: VideoFormatId; renderId: string; status: "rendering" | "done" | "failed"; progress: number; url: string | null };
+type Phase = { kind: "config" } | { kind: "rendering"; jobs: Job[] } | { kind: "done"; jobs: Job[] };
 
 export function ExportDialog({
   open,
@@ -27,6 +31,7 @@ export function ExportDialog({
   plan,
   balance,
   onBalance,
+  exported,
 }: {
   open: boolean;
   onClose: () => void;
@@ -36,43 +41,92 @@ export function ExportDialog({
   plan: Pick<PricingPlan, "watermark" | "maxQuality">;
   balance: number;
   onBalance: (balance: number) => void;
+  /** Le projet a déjà été exporté : ré-export à moitié prix */
+  exported: boolean;
 }) {
-  const [formatId, setFormatId] = useState<VideoFormatId>(defaultFormat);
+  const t = useDictionary();
+
+  const x = t.app.editor.exportDialog;
+
+  // Un ou plusieurs formats, dans l'ordre d'affichage
+  const [formats, setFormats] = useState<VideoFormatId[]>([defaultFormat]);
   const [quality, setQuality] = useState<ExportQuality>("HD");
   const [phase, setPhase] = useState<Phase>({ kind: "config" });
   const [starting, setStarting] = useState(false);
   const toast = useToast();
+  const toggleFormat = (id: VideoFormatId) => setFormats((list) => (list.includes(id) ? (list.length > 1 ? list.filter((f) => f !== id) : list) : FORMAT_IDS.filter((f) => f === id || list.includes(f))));
 
-  const cost = getExportCost({ duration, quality });
+  // Le premier export lancé ici fait aussi passer les suivants à moitié prix ; plusieurs formats = exports successifs
+  const [exportedNow, setExportedNow] = useState(false);
+  const reexport = exported || exportedNow;
+  const costs = formats.map((_, i) => getExportCost({ duration, quality, reexport: reexport || i > 0 }));
+  const cost = costs.reduce((sum, c) => sum + c, 0);
   const canAfford = balance >= cost;
 
-  // Suivi du rendu (Remotion Lambda, ou simulé sans configuration AWS)
+  // Suivi des rendus (Remotion Lambda, ou simulés sans configuration AWS) : un seul appel pour tous les formats,
+  // et le suivant n'est planifié qu'une fois la réponse reçue (pas d'appels qui se chevauchent si le serveur est lent)
+  const rendering = phase.kind === "rendering";
   useEffect(() => {
-    if (phase.kind !== "rendering") return;
-    const timer = setInterval(async () => {
-      const status = await getRenderStatus(phase.renderId);
-      if (!status.ok) return;
-      if (status.status === "DONE") setPhase({ kind: "done", url: status.url });
-      else if (status.status === "FAILED") {
-        setPhase({ kind: "config" });
-        toast({ title: x.failed, description: x.failedText, tone: "error" });
-      } else setPhase((p) => (p.kind === "rendering" ? { ...p, progress: status.progress } : p));
-    }, 1200);
-    return () => clearInterval(timer);
-  }, [phase, toast]);
+    if (!rendering) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let jobs = (phase as Extract<Phase, { kind: "rendering" }>).jobs;
+
+    async function poll() {
+      const pending = jobs.filter((job) => job.status === "rendering");
+      const result = await getRenderStatuses(pending.map((job) => job.renderId)).catch(() => null);
+      if (cancelled) return;
+      if (result?.ok) {
+        const byId = new Map(result.renders.map((render) => [render.renderId, render]));
+        jobs = jobs.map((job) => {
+          const status = byId.get(job.renderId);
+          if (job.status !== "rendering" || !status) return job;
+          if (status.status === "DONE") return { ...job, status: "done" as const, progress: 100, url: status.url };
+          if (status.status === "FAILED") return { ...job, status: "failed" as const };
+          return { ...job, progress: status.progress };
+        });
+      }
+      if (jobs.some((job) => job.status === "rendering")) {
+        setPhase({ kind: "rendering", jobs });
+        timer = setTimeout(poll, 2000);
+        return;
+      }
+      const done = jobs.filter((job) => job.status === "done");
+      if (jobs.some((job) => job.status === "failed")) toast({ title: done.length ? x.partialFailed : x.failed, description: x.failedText, tone: "error" });
+      if (!done.length) {
+        // Rendus échoués = remboursés : ils ne comptent pas comme un premier export
+        if (!exported) setExportedNow(false);
+        return setPhase({ kind: "config" });
+      }
+      setPhase({ kind: "done", jobs: done });
+    }
+
+    timer = setTimeout(poll, 1200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // Une boucle par export lancé : les mises à jour de progression ne la relancent pas
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rendering]);
 
   async function start() {
     setStarting(true);
-    const result = await startExport(projectId, { format: formatId, quality });
+    const result = await startExports(projectId, { formats, quality });
     setStarting(false);
     if (!result.ok) {
       if (result.error === "render_failed") toast({ title: x.failed, description: x.failedText, tone: "error" });
-      else toast({ title: result.error === "insufficient_credits" ? t.app.editor.insufficient : t.common.error, tone: "error" });
+      else if (result.error === "export_busy") toast({ title: t.copy["bef0fd3d94d3"], description: t.copy["fd6de14de72d"], tone: "error" });
+      else toast({ title: result.error === "insufficient_credits" ? t.app.editor.insufficient : result.error === "rate_limited" ? t.app.editor.rateLimited : t.common.error, tone: "error" });
       return;
     }
     onBalance(result.balance);
-    setPhase({ kind: "rendering", renderId: result.renderId, progress: 0 });
+    setExportedNow(true);
+    setPhase({ kind: "rendering", jobs: result.renders.map((render) => ({ ...render, status: "rendering", progress: 0, url: null })) });
   }
+
+  // Avancement global : moyenne des rendus en cours
+  const overall = phase.kind === "rendering" ? Math.round(phase.jobs.reduce((sum, job) => sum + job.progress, 0) / phase.jobs.length) : 0;
 
   function close() {
     onClose();
@@ -85,23 +139,36 @@ export function ExportDialog({
         {phase.kind === "config" && (
           <motion.div key="config" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
             <div>
-              <p className="mb-2.5 text-sm font-medium">{x.format}</p>
+              <div className="mb-2.5 flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">{x.format}</p>
+                <button
+                  type="button"
+                  onClick={() => setFormats(formats.length === FORMAT_IDS.length ? [defaultFormat] : [...FORMAT_IDS])}
+                  className="text-xs font-medium text-accent-text hover:underline"
+                >
+                  {formats.length === FORMAT_IDS.length ? VIDEO_FORMATS[defaultFormat].ratio : x.allFormats}
+                </button>
+              </div>
               <div className="grid grid-cols-3 gap-2">
-                {FORMAT_IDS.map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    aria-pressed={formatId === id}
-                    onClick={() => setFormatId(id)}
-                    className={cn(
-                      "rounded-xl border-2 px-3 py-3 text-center transition-colors",
-                      formatId === id ? "border-accent bg-accent-soft" : "border-line hover:border-line-strong",
-                    )}
-                  >
-                    <span className="block font-mono text-sm font-semibold">{VIDEO_FORMATS[id].ratio}</span>
-                    <span className="block text-[11px] text-muted">{VIDEO_FORMATS[id].resolution}</span>
-                  </button>
-                ))}
+                {FORMAT_IDS.map((id) => {
+                  const selected = formats.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => toggleFormat(id)}
+                      className={cn(
+                        "relative rounded-xl border-2 px-3 py-3 text-center transition-colors",
+                        selected ? "border-accent bg-accent-soft" : "border-line hover:border-line-strong",
+                      )}
+                    >
+                      {selected && <Check className="absolute top-1.5 right-1.5 size-3.5 text-accent-text" aria-hidden />}
+                      <span className="block font-mono text-sm font-semibold">{VIDEO_FORMATS[id].ratio}</span>
+                      <span className="block text-[11px] text-muted">{VIDEO_FORMATS[id].resolution}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -138,15 +205,24 @@ export function ExportDialog({
               </p>
             )}
 
-            <div className="flex items-center justify-between rounded-2xl border border-line bg-surface-2/60 px-4 py-3">
-              <span className="text-sm text-muted">{x.cost}</span>
-              <span className="flex items-center gap-1.5 font-semibold">
-                <Coins className="size-4 text-accent-text" /> {cost} {t.common.credits}
-              </span>
+            <div className="rounded-2xl border border-line bg-surface-2/60 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted">{x.cost}</span>
+                <span className="flex items-center gap-1.5 font-semibold">
+                  {reexport && <span className="rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">{x.reexport}</span>}
+                  <Coins className="size-4 text-accent-text" /> {cost} {t.common.credits}
+                </span>
+              </div>
+              {/* Détail par format : le premier export au plein tarif, les suivants à moitié prix */}
+              {formats.length > 1 && (
+                <p className="mt-1 text-right font-mono text-[11px] text-subtle">
+                  {formats.map((id, i) => `${VIDEO_FORMATS[id].ratio} ${costs[i]}`).join(" + ")}
+                </p>
+              )}
             </div>
 
             <Button size="lg" onClick={start} loading={starting} disabled={!canAfford} className="w-full">
-              {x.start}
+              {formats.length > 1 ? interpolate(x.startMany, { count: formats.length }) : x.start}
             </Button>
             {!canAfford && <p className="-mt-3 text-center text-sm text-danger">{t.app.editor.insufficient}</p>}
           </motion.div>
@@ -166,7 +242,7 @@ export function ExportDialog({
                   strokeWidth="8"
                   strokeLinecap="round"
                   strokeDasharray={276.5}
-                  animate={{ strokeDashoffset: 276.5 * (1 - phase.progress / 100) }}
+                  animate={{ strokeDashoffset: 276.5 * (1 - overall / 100) }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
                 />
                 <defs>
@@ -176,17 +252,24 @@ export function ExportDialog({
                   </linearGradient>
                 </defs>
               </svg>
-              <span className="font-display text-2xl font-bold tabular-nums">{phase.progress}%</span>
+              <span className="font-display text-2xl font-bold tabular-nums">{overall}%</span>
             </div>
             <div>
               <p className="font-semibold">{x.rendering}</p>
-              <p className="mt-1 text-sm text-muted">
-                {VIDEO_FORMATS[formatId].ratio} · {quality === "HD" ? x.hd : x.uhd}
-              </p>
+              <p className="mt-1 text-sm text-muted">{quality === "HD" ? x.hd : x.uhd}</p>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
-              <motion.div className="h-full origin-left rounded-full bg-accent-gradient" animate={{ scaleX: phase.progress / 100 }} transition={{ duration: 0.6 }} />
-            </div>
+            {/* Une barre par format */}
+            <ul className="flex w-full flex-col gap-2.5">
+              {phase.jobs.map((job) => (
+                <li key={job.renderId} className="flex items-center gap-3">
+                  <span className="w-10 shrink-0 text-left font-mono text-xs text-muted">{VIDEO_FORMATS[job.format].ratio}</span>
+                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-3">
+                    <motion.span className={cn("block h-full origin-left rounded-full", job.status === "failed" ? "bg-danger" : "bg-accent-gradient")} animate={{ scaleX: job.status === "failed" ? 1 : job.progress / 100 }} transition={{ duration: 0.6 }} />
+                  </span>
+                  <span className="w-9 shrink-0 text-right font-mono text-xs tabular-nums text-subtle">{job.progress}%</span>
+                </li>
+              ))}
+            </ul>
           </motion.div>
         )}
 
@@ -200,21 +283,22 @@ export function ExportDialog({
             >
               <CheckCircle2 className="size-10" />
             </motion.span>
-            <p className="text-lg font-semibold">{x.done}</p>
+            <p className="text-lg font-semibold">{phase.jobs.length > 1 ? x.doneMany : x.done}</p>
             <div className="flex w-full flex-col gap-2">
-              {phase.url?.startsWith("http") ? (
-                <>
-                  {/* Lien S3 signé : le fichier est servi avec Content-Disposition: attachment (téléchargement direct) */}
-                  <a href={phase.url} className={cn(buttonVariants({ size: "lg" }), "w-full")}>
-                    <Download /> {x.download}
+              {phase.jobs.map((job) => {
+                const label = phase.jobs.length > 1 ? `${x.download} · ${VIDEO_FORMATS[job.format].ratio}` : x.download;
+                // Lien S3 signé : le fichier est servi avec Content-Disposition: attachment (téléchargement direct)
+                return job.url?.startsWith("http") ? (
+                  <a key={job.renderId} href={job.url} className={cn(buttonVariants({ size: "lg" }), "w-full")}>
+                    <Download /> {label}
                   </a>
-                  <p className="text-xs text-subtle">{x.linkExpiry}</p>
-                </>
-              ) : (
-                <Button size="lg" className="w-full" onClick={() => toast({ title: x.download, description: x.downloadMock, tone: "info" })}>
-                  <Download /> {x.download}
-                </Button>
-              )}
+                ) : (
+                  <Button key={job.renderId} size="lg" className="w-full" onClick={() => toast({ title: x.download, description: x.downloadMock, tone: "info" })}>
+                    <Download /> {label}
+                  </Button>
+                );
+              })}
+              {phase.jobs.some((job) => job.url?.startsWith("http")) && <p className="text-xs text-subtle">{x.linkExpiry}</p>}
               <Button variant="ghost" onClick={() => setPhase({ kind: "config" })}>
                 {x.another}
               </Button>

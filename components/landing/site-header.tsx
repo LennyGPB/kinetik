@@ -1,16 +1,23 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { ArrowRight } from "lucide-react";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
-import Link from "next/link";
+import Link from "@/lib/i18n/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/brand/logo";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 
-const NAV = [
+export function SiteHeader() {
+  const t = useDictionary();
+
+  const NAV = [
   { href: "#styles", label: t.nav.styles },
   { href: "#how", label: t.nav.how },
   { href: "#features", label: t.nav.features },
@@ -18,7 +25,6 @@ const NAV = [
   { href: "#faq", label: t.nav.faq },
 ];
 
-export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { scrollY } = useScroll();
@@ -65,7 +71,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <ThemeToggle />
+          <LanguageToggle /><ThemeToggle />
           <Link href="/login" className={buttonVariants({ variant: "ghost", size: "sm", className: "hidden sm:inline-flex" })}>
             {t.common.login}
           </Link>

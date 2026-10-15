@@ -1,17 +1,18 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { ArrowUp, Coins } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LogoMark } from "@/components/brand/logo";
 import { CREDIT_COSTS } from "@/config/credits";
-import { format, t } from "@/lib/i18n";
-import type { EditorMessage } from "@/lib/projects/types";
+import { format } from "@/lib/i18n";
+import { MAX_CHAT_MESSAGE_LENGTH, type EditorMessage } from "@/lib/projects/types";
 import type { Scene } from "@/lib/projects/scenes";
 import { sceneLabel } from "@/lib/projects/timeline";
 import { cn } from "@/lib/utils";
-
-const e = t.app.editor;
 
 export function ChatPanel({
   messages,
@@ -35,6 +36,10 @@ export function ChatPanel({
   targetSceneId?: string | null;
   onTargetChange?: (sceneId: string | null) => void;
 }) {
+  const t = useDictionary();
+
+  const e = t.app.editor;
+
   const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -111,18 +116,19 @@ export function ChatPanel({
         {onTargetChange && scenes && (
           <div className="mb-2 flex flex-col gap-1.5">
             <label className="flex items-center gap-2 text-xs text-muted">
-              Modifier
+
+              {t.copy["42e37604b638"]}
               <select
                 value={targetSceneId ?? "all"}
                 disabled={thinking || disabled}
                 onChange={(event) => onTargetChange(event.target.value === "all" ? null : event.target.value)}
                 className={cn("h-8 min-w-0 flex-1 rounded-lg border bg-surface px-2 text-xs outline-none focus:border-accent disabled:opacity-50", targetSceneId ? "border-accent/50 text-accent-text" : "border-line text-fg")}
               >
-                <option value="all">Toute la vidéo</option>
-                {scenes.map((scene, index) => <option key={scene.id} value={scene.id}>Scène {index + 1} · {sceneLabel(scene.kind)} — {scene.title}</option>)}
+                <option value="all">{t.copy["6242ca792c21"]}</option>
+                {scenes.map((scene, index) => <option key={scene.id} value={scene.id}>{t.copy["aaa5ee83327d"]} {index + 1} · {sceneLabel(scene.kind, t.locale)} — {scene.title}</option>)}
               </select>
             </label>
-            {targetSceneId && <p className="text-[11px] text-accent-text">Seule cette scène sera modifiée.</p>}
+            {targetSceneId && <p className="text-[11px] text-accent-text">{t.copy["c9943f2eec68"]}</p>}
           </div>
         )}
         <form
@@ -140,7 +146,7 @@ export function ChatPanel({
             id="chat-input"
             rows={1}
             value={draft}
-            maxLength={500}
+            maxLength={MAX_CHAT_MESSAGE_LENGTH}
             onChange={(ev) => setDraft(ev.target.value)}
             onKeyDown={(ev) => {
               if (ev.key === "Enter" && !ev.shiftKey) {
@@ -148,7 +154,7 @@ export function ChatPanel({
                 send(draft);
               }
             }}
-            placeholder={targetSceneId ? "Que veux-tu changer dans cette scène ?" : e.inputPlaceholder}
+            placeholder={targetSceneId ? t.copy["3c928bf55f06"] : e.inputPlaceholder}
             className="max-h-32 min-h-9 flex-1 resize-none bg-transparent py-2 text-base outline-none placeholder:text-subtle focus-visible:outline-none sm:text-sm [field-sizing:content]"
           />
           <button

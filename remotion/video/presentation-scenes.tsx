@@ -1,3 +1,4 @@
+import { PreviewTarget } from "./movable-text";
 import { MovableText } from "./movable-text";
 import type { ReactNode } from "react";
 import { AbsoluteFill, Img, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
@@ -42,7 +43,7 @@ export function PresentationScene({ scene, props, logo }: { scene: Scene; props:
       <AbsoluteFill style={{ flexDirection: stacked ? "column" : "row", alignItems: "center", justifyContent: "center", padding: u * 8, gap: u * 7 }}>
         <div style={{ width: stacked ? "100%" : "50%", display: "flex", flexDirection: "column", gap: u * 4 }}>{title("left")}{subtitle}</div>
         <div style={{ width: stacked ? u * 62 : "40%", height: u * (portrait ? 62 : stacked ? 40 : 65), display: "grid", placeItems: "center", opacity: p, transform: `translateY(${(1 - eased) * u * 12}px) rotate(${(1 - eased) * 7}deg)` }}>
-          {src ? <Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : logo}
+          {src ? <PreviewTarget target="screens"><Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain" }} /></PreviewTarget> : logo}
         </div>
       </AbsoluteFill>
     );
@@ -82,7 +83,7 @@ export function PresentationScene({ scene, props, logo }: { scene: Scene; props:
         <div style={{ width: "100%", maxWidth: u * 105, borderRadius: u * 1.5, border: `${u * 0.15}px solid ${color}40`, overflow: "hidden", background: props.palette[0], opacity: p, transform: `translateY(${(1 - eased) * u * 10}px)` }}>
           <div style={{ borderBottom: `${u * 0.1}px solid ${color}30`, padding: `${u * 1}px ${u * 2}px`, color, fontFamily: body, fontSize: u * 2, textAlign: "left", overflowWrap: "anywhere" }}>{host}</div>
           <div style={{ height: u * (portrait ? 45 : 32), display: "grid", placeItems: "center", padding: u * 2 }}>
-            {src ? <Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain", minHeight: 0 }} /> : logo}
+            {src ? <PreviewTarget target="screens"><Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain", minHeight: 0 }} /></PreviewTarget> : logo}
           </div>
         </div>
         {cta}

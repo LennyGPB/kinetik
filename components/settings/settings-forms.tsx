@@ -1,5 +1,8 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Laptop, Moon, Sun, Trash2 } from "lucide-react";
 import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import { PasswordInput } from "@/components/auth/password-input";
@@ -9,10 +12,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toaster";
 import { changePassword, deleteAccount, updateEmail, updateProfile, type FormState } from "@/lib/account/actions";
-import { t } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 
-const s = t.app.settings;
+import { cn } from "@/lib/utils";
 
 function Card({ title, description, children, tone }: { title: string; description: string; children: ReactNode; tone?: "danger" }) {
   return (
@@ -33,6 +34,8 @@ function Card({ title, description, children, tone }: { title: string; descripti
 
 /** Toast de succès / erreur à chaque nouvelle réponse d'action. */
 function useActionFeedback(state: FormState, onSuccess?: () => void) {
+  const t = useDictionary();
+
   const toast = useToast();
   const last = useRef(state);
   useEffect(() => {
@@ -42,10 +45,12 @@ function useActionFeedback(state: FormState, onSuccess?: () => void) {
       toast({ title: t.common.saved, tone: "success" });
       onSuccess?.();
     } else if (state.error) toast({ title: state.error, tone: "error" });
-  }, [state, toast, onSuccess]);
+  }, [state, toast, onSuccess, t.common.saved]);
 }
 
 function ProfileForm({ name }: { name: string }) {
+  const t = useDictionary();
+
   const [state, action, pending] = useActionState(updateProfile, {});
   useActionFeedback(state);
   return (
@@ -61,6 +66,10 @@ function ProfileForm({ name }: { name: string }) {
 }
 
 function EmailForm({ email }: { email: string }) {
+  const t = useDictionary();
+
+  const s = t.app.settings;
+
   const formRef = useRef<HTMLFormElement>(null);
   const [state, action, pending] = useActionState(updateEmail, {});
   useActionFeedback(state);
@@ -80,6 +89,10 @@ function EmailForm({ email }: { email: string }) {
 }
 
 function PasswordForm() {
+  const t = useDictionary();
+
+  const s = t.app.settings;
+
   const formRef = useRef<HTMLFormElement>(null);
   const [state, action, pending] = useActionState(changePassword, {});
   useActionFeedback(state, () => formRef.current?.reset());
@@ -99,6 +112,10 @@ function PasswordForm() {
 }
 
 function ThemePicker() {
+  const t = useDictionary();
+
+  const s = t.app.settings;
+
   const { preference, setPreference } = useTheme();
   const options: { value: ThemePreference; label: string; icon: typeof Sun; preview: string }[] = [
     { value: "light", label: t.theme.light, icon: Sun, preview: "bg-white" },
@@ -136,6 +153,10 @@ function ThemePicker() {
 }
 
 function DangerZone() {
+  const t = useDictionary();
+
+  const s = t.app.settings;
+
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(deleteAccount, {});
   return (
@@ -171,6 +192,10 @@ function DangerZone() {
 }
 
 export function SettingsForms({ name, email, hasPassword }: { name: string; email: string; hasPassword: boolean }) {
+  const t = useDictionary();
+
+  const s = t.app.settings;
+
   return (
     <div className="flex flex-col gap-4">
       <Card title={s.profile} description={s.profileDesc}>

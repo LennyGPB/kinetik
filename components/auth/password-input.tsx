@@ -1,15 +1,20 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Eye, EyeOff } from "lucide-react";
 import { useState, type InputHTMLAttributes } from "react";
 import { Input } from "@/components/ui/field";
 import { passwordScore } from "@/lib/auth/validation";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 
 const COLORS = ["bg-danger", "bg-danger", "bg-warning", "bg-success", "bg-success"];
 
 export function PasswordInput({ showStrength, className, ...props }: InputHTMLAttributes<HTMLInputElement> & { showStrength?: boolean }) {
+  const t = useDictionary();
+
   const [visible, setVisible] = useState(false);
   const [value, setValue] = useState("");
   const score = passwordScore(value);

@@ -1,8 +1,12 @@
 import type { CSSProperties, ReactNode } from "react";
-import { AbsoluteFill, interpolate, random, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Easing, interpolate, random, useCurrentFrame, useVideoConfig } from "remotion";
 import type { BackgroundKind, Energy } from "../../config/recipes";
 import { displayFont, monoFont } from "./fonts";
+import { Cube } from "./cube3d";
+import { glitchBurst } from "./glitch-fx";
 import { isLight, useBeat } from "./theme";
+import { SignatureBackground } from "./signature-backgrounds";
+import { CollectionBackground } from "./collection-backgrounds";
 
 /**
  * BRIQUES « fonds animés » (recipe.background), dessinées sous toutes les scènes.
@@ -76,6 +80,10 @@ function blob(color: string, x: number, y: number, size: number, opacity = 1): C
   };
 }
 
+/** Neige numérique du fond glitch (bruit fin, contrasté). */
+const STATIC_NOISE =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='turbulence' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 2.2 -0.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
 const fade = (color: string, percent: number) => `color-mix(in oklab, ${color}, transparent ${percent}%)`;
 
 function Blobs({ c }: { c: BackgroundContext }) {
@@ -90,11 +98,26 @@ function Blobs({ c }: { c: BackgroundContext }) {
 }
 
 const BACKGROUNDS: Record<BackgroundKind, (c: BackgroundContext) => ReactNode> = {
+  monolith: (c) => <CollectionBackground kind="monolith" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  focus: (c) => <CollectionBackground kind="focus" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  prism: (c) => <CollectionBackground kind="prism" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  papercut: (c) => <CollectionBackground kind="papercut" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  metro: (c) => <CollectionBackground kind="metro" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  "blueprint-draft": (c) => <SignatureBackground kind="blueprint-draft" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  "ocean-tide": (c) => <SignatureBackground kind="ocean-tide" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  "playful-fluid": (c) => <SignatureBackground kind="playful-fluid" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  "corporate-panels": (c) => <SignatureBackground kind="corporate-panels" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  "swiss-rules": (c) => <SignatureBackground kind="swiss-rules" palette={[c.bg, c.rawMain, c.rawAccent]} />,
+  "pulse-edge": (c) => <SignatureBackground kind="pulse-edge" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} pulse={c.pulse} />,
+  "studio-stage": (c) => <SignatureBackground kind="studio-stage" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  "gold-atelier": (c) => <SignatureBackground kind="gold-atelier" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   blobs: (c) => <Blobs c={c} />,
 
   // Taches sombres et retenues, bande de balayage RGB lente, et bandes décalées par saccades (toutes les ~2,4 s)
   glitch: (c) => {
-    const glitching = c.frame % 72 > 66;
+    // Sursauts sur le même calendrier que la caméra « glitch » (glitch-fx.ts)
+    const glitching = glitchBurst(c.frame, "bg") > 0;
+    const noiseStep = Math.floor(c.frame / 2) % 8;
     const scan = ((c.frame / c.fps) * 0.18) % 1.4 - 0.2;
     return (
       <>
@@ -112,6 +135,15 @@ const BACKGROUNDS: Record<BackgroundKind, (c: BackgroundContext) => ReactNode> =
             boxShadow: `0 ${c.min * 0.004}px 0 ${fade(c.rawAccent, 80)}, 0 -${c.min * 0.004}px 0 ${fade(c.rawMain, 80)}`,
           }}
         />
+        {/* Neige numérique permanente, qui saute toutes les 2 images */}
+        <AbsoluteFill style={{ backgroundImage: STATIC_NOISE, backgroundSize: `${c.min * 0.35}px ${c.min * 0.35}px`, backgroundPosition: `${random(`sn-x-${noiseStep}`) * 300}px ${random(`sn-y-${noiseStep}`) * 300}px`, opacity: c.light ? 0.05 : 0.07, mixBlendMode: c.light ? "multiply" : "screen" }} />
+        {/* Datamosh : macro-blocs pendant un sursaut */}
+        {glitching &&
+          Array.from({ length: 7 }, (_, i) => {
+            const r = (k: string) => random(`mosh-${k}-${c.frame}-${i}`);
+            const s = c.min * (0.05 + r("s") * 0.12);
+            return <div key={`mosh-${i}`} style={{ position: "absolute", left: r("x") * c.width, top: r("y") * c.height, width: s * (1 + r("w") * 2.5), height: s * 0.6, background: i % 2 ? c.rawMain : c.rawAccent, opacity: 0.22, mixBlendMode: "screen" }} />;
+          })}
         {glitching &&
           [c.rawMain, c.rawAccent].map((color, i) => (
             <div
@@ -158,34 +190,73 @@ const BACKGROUNDS: Record<BackgroundKind, (c: BackgroundContext) => ReactNode> =
     </>
   ),
 
-  // Ondes concentriques (aperçus du site ; plus utilisé par une recette)
-  rings: (c) => (
-    <>
-      <div style={blob(c.main, c.width / 2, c.height / 2, c.min * 1.2, 0.55 + c.pulse * 0.25)} />
-      {[0, 1, 2, 3].map((i) => {
-        const cycle = 4 * c.fps;
-        const progress = ((c.frame + i * c.fps) % cycle) / cycle;
-        const size = c.min * interpolate(progress, [0, 1], [0.15, 1.3]);
-        const color = i % 2 ? c.accent : c.main;
-        return (
+  // Pulse : piloté par la musique. À chaque temps, une onde de choc part du centre (épaisse puis fine) ;
+  // un spectre circulaire de barres réagit au beat autour d'un anneau lumineux ; le cœur flashe sur chaque temps.
+  rings: (c) => {
+    const { width, height, min, frame, beat, pulse } = c;
+    const cx = width / 2;
+    const cy = height / 2;
+    const reach = Math.hypot(width, height) / 2;
+    const beatIndex = Math.floor(frame / Math.max(1, beat));
+    const core = min * 0.3;
+    const waves = [0, 1, 2, 3, 4].flatMap((k) => {
+      const b = beatIndex - k;
+      if (b < 0) return [];
+      const age = (frame - b * beat) / (beat * 5);
+      if (age < 0 || age >= 1) return [];
+      const size = (core + Easing.out(Easing.cubic)(age) * (reach * 1.15 - core)) * 2;
+      const color = b % 2 ? c.rawAccent : c.rawMain;
+      return [{ key: b, size, color, opacity: Math.pow(1 - age, 1.6) * 0.85, thickness: min * (0.002 + 0.014 * Math.pow(1 - age, 2)) }];
+    });
+    const bars = 72;
+    return (
+      <>
+        <div style={blob(c.main, cx, cy, min * (1.15 + pulse * 0.12), 0.5 + pulse * 0.3)} />
+        {waves.map((w) => (
           <div
-            key={i}
+            key={w.key}
             style={{
               position: "absolute",
-              left: c.width / 2 - size / 2,
-              top: c.height / 2 - size / 2,
-              width: size,
-              height: size,
+              left: cx - w.size / 2,
+              top: cy - w.size / 2,
+              width: w.size,
+              height: w.size,
               borderRadius: "50%",
-              border: `${c.min * 0.004}px solid ${color}`,
-              boxShadow: `0 0 ${c.min * 0.03}px ${color}`,
-              opacity: interpolate(progress, [0, 0.25, 1], [0, 1, 0]),
+              border: `${w.thickness}px solid ${w.color}`,
+              boxShadow: `0 0 ${min * 0.04}px ${w.color}, inset 0 0 ${min * 0.03}px ${w.color}`,
+              opacity: w.opacity,
             }}
           />
-        );
-      })}
-    </>
-  ),
+        ))}
+        {/* Spectre circulaire : chaque barre a sa « fréquence », amplifiée sur le temps fort */}
+        {Array.from({ length: bars }, (_, i) => {
+          const angle = (i / bars) * 360;
+          const level = 0.25 + 0.75 * Math.abs(Math.sin(i * 0.73 + frame * 0.11)) * (0.55 + 0.45 * random(`spectrum-${i}-${beatIndex}`));
+          const len = min * (0.012 + 0.11 * level * (0.35 + pulse * 0.65));
+          const w = min * 0.007;
+          return (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                left: cx - w / 2,
+                top: cy - core - len,
+                width: w,
+                height: len,
+                borderRadius: w,
+                background: `linear-gradient(0deg, ${c.rawMain}, ${c.rawAccent})`,
+                opacity: 0.55,
+                transformOrigin: `50% ${core + len}px`,
+                transform: `rotate(${angle}deg)`,
+              }}
+            />
+          );
+        })}
+        <div style={{ position: "absolute", left: cx - core, top: cy - core, width: core * 2, height: core * 2, borderRadius: "50%", border: `${min * 0.004}px solid ${fade(c.rawAccent, 30)}`, boxShadow: `0 0 ${min * (0.03 + pulse * 0.05)}px ${c.rawAccent}` }} />
+        <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 50%, ${fade("#ffffff", 100 - pulse * 14)}, transparent ${min * 0.35}px)` }} />
+      </>
+    );
+  },
 
   // Neon : grille fine qui s'efface vers les bords, deux faisceaux de lumière qui dérivent,
   // ligne d'horizon lumineuse qui respire sur le beat.
@@ -408,14 +479,14 @@ const BACKGROUNDS: Record<BackgroundKind, (c: BackgroundContext) => ReactNode> =
           const cx = width * cube.x;
           const cy = height * cube.y;
           const color = cube.accent ? c.rawAccent : c.rawMain;
+          // Vrai cube 3D qui tourne lentement sur lui-même (sens et vitesse propres à chaque cube) en flottant
+          const spin = t * (14 + i * 5) * (i % 2 ? -1 : 1);
           return (
             <div key={i}>
-              <div style={{ position: "absolute", left: cx - s, top: cy + s * 0.75, width: s * 2, height: s * 0.7, borderRadius: "50%", background: "rgb(0 0 0 / 0.12)", transform: `scale(${1 - lift / (min * 0.1)})`, filter: `blur(${s * 0.12}px)` }} />
-              <svg viewBox="-0.87 -1 1.74 2" width={s * 1.74} height={s * 2} style={{ position: "absolute", left: cx - s * 0.87, top: cy - s - lift }}>
-                <polygon points="0,-1 0.866,-0.5 0,0 -0.866,-0.5" fill={`color-mix(in oklab, ${color}, white 40%)`} />
-                <polygon points="-0.866,-0.5 0,0 0,1 -0.866,0.5" fill={color} />
-                <polygon points="0,0 0.866,-0.5 0.866,0.5 0,1" fill={`color-mix(in oklab, ${color}, black 22%)`} />
-              </svg>
+              <div style={{ position: "absolute", left: cx - s, top: cy + s * 0.85, width: s * 2, height: s * 0.6, borderRadius: "50%", background: "rgb(0 0 0 / 0.14)", transform: `scale(${1 - lift / (min * 0.1)})`, filter: `blur(${s * 0.12}px)` }} />
+              <div style={{ position: "absolute", left: cx - s / 2, top: cy - s / 2 - lift, width: s, height: s, perspective: s * 6 }}>
+                <Cube size={s} rotateX={-28 + Math.sin(t * 0.5 + i) * 8} rotateY={35 + spin} color={color} />
+              </div>
             </div>
           );
         })}
@@ -653,6 +724,268 @@ const BACKGROUNDS: Record<BackgroundKind, (c: BackgroundContext) => ReactNode> =
             );
           })}
         </svg>
+      </>
+    );
+  },
+
+  // Pop art : trame de points fine partout, et une trame plus grosse révélée par une tache qui se promène (et respire sur le beat)
+  halftone: (c) => {
+    const { width, height, min, t, pulse, rawMain, rawAccent } = c;
+    const cell = min * 0.045;
+    const dots = (color: string, radius: number) => `radial-gradient(circle, ${color} ${radius}px, transparent ${radius + 1}px)`;
+    const cx = width * (0.5 + 0.32 * Math.sin(t * 0.35));
+    const cy = height * (0.5 + 0.28 * Math.cos(t * 0.27));
+    const reveal = min * (0.42 + pulse * 0.05);
+    const mask = `radial-gradient(circle ${reveal}px at ${cx}px ${cy}px, black, black 35%, transparent)`;
+    return (
+      <>
+        <div style={blob(c.accent, width * 0.82, height * 0.18, min * 1.1, 0.45)} />
+        <AbsoluteFill style={{ backgroundImage: dots(fade(rawMain, c.light ? 70 : 78), cell * 0.12), backgroundSize: `${cell}px ${cell}px` }} />
+        <AbsoluteFill
+          style={{
+            backgroundImage: dots(fade(rawAccent, c.light ? 55 : 60), cell * 0.28),
+            backgroundSize: `${cell}px ${cell}px`,
+            backgroundPosition: `${cell / 2}px ${cell / 2}px`,
+            maskImage: mask,
+            WebkitMaskImage: mask,
+          }}
+        />
+      </>
+    );
+  },
+
+  // Sport : trois grandes bandes diagonales qui défilent, sur un fin rayé, accélérées par l'énergie
+  stripes: (c) => {
+    const { width, height, min, t, pulse } = c;
+    const span = Math.hypot(width, height) * 1.6;
+    const band = min * 0.16;
+    const travel = span * 0.5;
+    const shift = ((t * min * 0.12) % travel) - travel / 2;
+    return (
+      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
+        <div style={{ position: "absolute", width: span, height: span, transform: `rotate(-24deg)` }}>
+          <AbsoluteFill style={{ backgroundImage: `repeating-linear-gradient(90deg, ${fade(c.rawMain, c.light ? 88 : 92)} 0 ${min * 0.004}px, transparent ${min * 0.004}px ${min * 0.05}px)` }} />
+          {[c.main, c.accent, c.main].map((color, i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                left: span / 2 + shift + (i - 1) * span * 0.17 - band / 2 + (i === 1 ? band * 0.6 : 0),
+                width: i === 1 ? band * 0.45 : band,
+                background: color,
+                opacity: (i === 1 ? 0.26 : 0.16) + pulse * 0.06,
+              }}
+            />
+          ))}
+        </div>
+      </AbsoluteFill>
+    );
+  },
+
+  // Soleil rétro : ciel dégradé, grand disque qui monte lentement, coupé de bandes de plus en plus épaisses vers le bas
+  sun: (c) => {
+    const { width, height, min, frame, fps, pulse } = c;
+    const size = min * 0.78;
+    // Le soleil se couche sous le texte (bas du cadre) et remonte à peine : le centre reste libre pour les titres
+    const rise = interpolate(frame, [0, fps * 30], [0.05, -0.03], { extrapolateRight: "clamp" });
+    const cx = width / 2;
+    const cy = height * (height > width ? 0.8 : 0.93) + min * rise;
+    // Rayures du soleil : des bandes transparentes de plus en plus épaisses vers le bas, dans le disque lui-même
+    const stripes = "linear-gradient(180deg, black 52%, transparent 52% 55%, black 55% 63%, transparent 63% 67.5%, black 67.5% 74%, transparent 74% 80%, black 80% 85%, transparent 85% 92.5%, black 92.5%)";
+    return (
+      <>
+        <AbsoluteFill style={{ background: `linear-gradient(180deg, ${c.bg} 25%, ${fade(c.main, 60)} 100%)` }} />
+        <div style={blob(c.accent, cx, cy, size * 2, 0.45 + pulse * 0.12)} />
+        <div
+          style={{
+            position: "absolute",
+            left: cx - size / 2,
+            top: cy - size / 2,
+            width: size,
+            height: size,
+            borderRadius: "50%",
+            background: `linear-gradient(180deg, ${c.rawAccent}, ${c.rawMain})`,
+            opacity: c.light ? 0.5 : 0.7,
+            maskImage: stripes,
+            WebkitMaskImage: stripes,
+          }}
+        />
+      </>
+    );
+  },
+
+  // Fête : confettis (rectangles et ronds) qui tombent en tournoyant, chacun sa vitesse ; positions tirées au sort de façon stable
+  confetti: (c) => {
+    const { width, height, min, frame, fps } = c;
+    const colors = [c.rawMain, c.rawAccent, c.light ? "#111111" : "#ffffff"];
+    return (
+      <>
+        <div style={blob(c.main, width * 0.5, height * 0.45, min * 1.3, 0.35)} />
+        {Array.from({ length: 42 }, (_, i) => {
+          const r = (k: string) => random(`confetti-${k}-${i}`);
+          const size = min * (0.012 + r("s") * 0.018);
+          const speed = height * (0.06 + r("v") * 0.08);
+          const fall = height + size * 4;
+          const y = ((r("y") * fall + (frame / fps) * speed) % fall) - size * 2;
+          const x = width * r("x") + Math.sin((frame / fps) * (0.8 + r("w")) + r("p") * 6.28) * min * 0.02;
+          const round = r("shape") > 0.7;
+          return (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                left: x,
+                top: y,
+                width: size,
+                height: round ? size : size * 0.45,
+                borderRadius: round ? "50%" : size * 0.08,
+                background: colors[i % colors.length],
+                opacity: 0.75,
+                transform: `rotate(${(frame / fps) * (90 + r("r") * 240) * (r("d") > 0.5 ? 1 : -1)}deg) scaleX(${Math.cos((frame / fps) * (2 + r("f") * 3))})`,
+              }}
+            />
+          );
+        })}
+      </>
+    );
+  },
+
+  // Océan : quatre vagues pleines superposées dans le bas du cadre, chacune son rythme ; la plus proche respire sur le beat
+  waves: (c) => {
+    const { width, height, min, t, pulse } = c;
+    const layers = [
+      { base: 0.58, amp: 0.035, k: 1.6, speed: 0.35, color: fade(c.main, 78) },
+      { base: 0.66, amp: 0.04, k: 2.3, speed: -0.45, color: fade(c.accent, 75) },
+      { base: 0.75, amp: 0.035, k: 1.9, speed: 0.6, color: fade(c.main, 62) },
+      { base: 0.85, amp: 0.03 + pulse * 0.008, k: 2.8, speed: -0.8, color: fade(c.accent, 55) },
+    ];
+    return (
+      <>
+        <div style={blob(c.accent, width * 0.75, height * 0.2, min * 1.1, 0.35)} />
+        <svg width={width} height={height} style={{ position: "absolute", inset: 0 }}>
+          {layers.map((l, i) => {
+            const points = Array.from({ length: 49 }, (_, k) => {
+              const x = (k / 48) * width;
+              const u = k / 48;
+              const y = height * (l.base + l.amp * Math.sin(u * Math.PI * 2 * l.k + t * l.speed * 2 + i) + l.amp * 0.4 * Math.sin(u * Math.PI * 5 - t * l.speed * 3));
+              return `${x.toFixed(1)},${y.toFixed(1)}`;
+            }).join(" L");
+            return <path key={i} d={`M0,${height} L${points} L${width},${height} Z`} fill={l.color} />;
+          })}
+        </svg>
+      </>
+    );
+  },
+
+  // Années 70 : éventail de rayons qui tourne lentement autour d'un point sous le cadre, halo chaud au centre
+  sunburst: (c) => {
+    const { width, height, min, t, pulse } = c;
+    const angle = t * 4;
+    const rays = `repeating-conic-gradient(from ${angle}deg at 50% 115%, ${fade(c.rawMain, c.light ? 80 : 84)} 0deg 6deg, transparent 6deg 12deg)`;
+    return (
+      <>
+        <AbsoluteFill style={{ background: rays }} />
+        <div style={blob(c.accent, width / 2, height * 1.05, min * (1.5 + pulse * 0.08), 0.6)} />
+        <AbsoluteFill style={{ background: `linear-gradient(180deg, ${c.bg} 0%, transparent 35%)` }} />
+      </>
+    );
+  },
+
+  // Topographie : courbes de niveau autour de deux sommets, qui ondulent lentement
+  topo: (c) => {
+    const { width, height, min, t } = c;
+    const peaks = [
+      { x: width * 0.78, y: height * 0.3, rings: 11, seed: 0 },
+      { x: width * 0.18, y: height * 0.82, rings: 8, seed: 3 },
+    ];
+    const stroke = Math.max(1, min * 0.0016);
+    return (
+      <>
+        <div style={blob(c.main, width * 0.78, height * 0.3, min * 0.9, 0.3)} />
+        <svg width={width} height={height} style={{ position: "absolute", inset: 0 }}>
+          {peaks.flatMap((p) =>
+            Array.from({ length: p.rings }, (_, k) => {
+              const r0 = min * (0.05 + k * 0.055);
+              const pts = Array.from({ length: 73 }, (_, j) => {
+                const a = (j / 72) * Math.PI * 2;
+                const r = r0 * (1 + 0.12 * Math.sin(3 * a + p.seed + k * 0.35 + t * 0.12) + 0.07 * Math.sin(5 * a - p.seed - t * 0.09));
+                return `${(p.x + Math.cos(a) * r).toFixed(1)},${(p.y + Math.sin(a) * r * 0.85).toFixed(1)}`;
+              }).join(" ");
+              return <polygon key={`${p.seed}-${k}`} points={pts} fill="none" stroke={k % 4 === 0 ? c.rawAccent : c.rawMain} strokeWidth={k % 4 === 0 ? stroke * 1.8 : stroke} opacity={k % 4 === 0 ? 0.35 : 0.2} />;
+            }),
+          )}
+        </svg>
+      </>
+    );
+  },
+
+  // Hyperespace : étoiles qui jaillissent du centre en traînées, plus vite en énergie haute
+  starfield: (c) => {
+    const { width, height, min, t } = c;
+    const cx = width / 2;
+    const cy = height / 2;
+    const reach = Math.hypot(width, height) / 2;
+    return (
+      <>
+        <div style={blob(c.main, cx, cy, min * 0.9, 0.35)} />
+        {Array.from({ length: 90 }, (_, i) => {
+          const r = (k: string) => random(`star-${k}-${i}`);
+          const angle = r("a") * Math.PI * 2;
+          // Profondeur 0 → 1 qui boucle : l'étoile part du centre et accélère vers le bord
+          const depth = (r("z") + t * (0.12 + r("v") * 0.1)) % 1;
+          const dist = Math.pow(depth, 2.2) * reach * 1.1;
+          const len = Math.max(min * 0.002, dist * 0.12 * depth);
+          const size = Math.max(1, min * 0.0035 * depth + 0.5);
+          return (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                left: cx + Math.cos(angle) * dist,
+                top: cy + Math.sin(angle) * dist - size / 2,
+                width: len,
+                height: size,
+                borderRadius: size,
+                background: `linear-gradient(90deg, transparent, ${i % 5 === 0 ? c.rawAccent : c.light ? c.rawMain : "#ffffff"})`,
+                opacity: Math.min(1, depth * 1.6),
+                transform: `rotate(${angle}rad) translateX(-${len}px)`,
+                transformOrigin: "0 50%",
+              }}
+            />
+          );
+        })}
+      </>
+    );
+  },
+
+  // Rétro jeu vidéo : grille de pixels dont quelques cases s'allument à chaque temps musical
+  pixels: (c) => {
+    const { width, height, min, frame, pulse } = c;
+    const cell = min * 0.065;
+    const cols = Math.ceil(width / cell);
+    const rows = Math.ceil(height / cell);
+    const beatIndex = Math.floor(frame / Math.max(1, c.beat));
+    const lit: ReactNode[] = [];
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const roll = random(`px-${x}-${y}-${beatIndex}`);
+        if (roll < 0.9) continue;
+        lit.push(
+          <div
+            key={`${x}-${y}`}
+            style={{ position: "absolute", left: x * cell + cell * 0.08, top: y * cell + cell * 0.08, width: cell * 0.84, height: cell * 0.84, background: roll > 0.97 ? c.rawAccent : c.main, opacity: 0.14 + pulse * 0.22 }}
+          />,
+        );
+      }
+    }
+    const line = fade(c.rawMain, c.light ? 85 : 88);
+    return (
+      <>
+        <AbsoluteFill style={{ backgroundImage: `linear-gradient(${line} 1px, transparent 1px), linear-gradient(90deg, ${line} 1px, transparent 1px)`, backgroundSize: `${cell}px ${cell}px` }} />
+        {/* Le centre reste calme : les cases allumées n'y passent jamais derrière les textes */}
+        <AbsoluteFill style={{ maskImage: "radial-gradient(ellipse 62% 52% at 50% 50%, transparent 55%, black 100%)", WebkitMaskImage: "radial-gradient(ellipse 62% 52% at 50% 50%, transparent 55%, black 100%)" }}>{lit}</AbsoluteFill>
       </>
     );
   },

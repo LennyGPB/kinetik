@@ -1,11 +1,14 @@
 "use client";
 
-import { ChevronsUpDown, Coins, LogOut, Settings } from "lucide-react";
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
+import { ChevronsUpDown, Coins, LogOut, Settings, ShieldCheck } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
+import Link from "@/lib/i18n/navigation";
 import { useEffect, useRef, useState } from "react";
 import { logout } from "@/lib/auth/actions";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 
 export function Avatar({ name, className }: { name: string; className?: string }) {
@@ -22,7 +25,9 @@ export function Avatar({ name, className }: { name: string; className?: string }
   );
 }
 
-export function UserMenu({ name, email, compact }: { name: string; email: string; compact?: boolean }) {
+export function UserMenu({ name, email, compact, admin }: { name: string; email: string; compact?: boolean; admin?: boolean }) {
+  const t = useDictionary();
+
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -88,6 +93,12 @@ export function UserMenu({ name, email, compact }: { name: string; email: string
             <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-fg">
               <Settings className="size-4" /> {t.app.nav.settings}
             </Link>
+            {/* Visible uniquement pour le rôle ADMIN ; l'espace demande ensuite le mot de passe admin */}
+            {admin && (
+              <Link role="menuitem" href="/admin" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-fg">
+                <ShieldCheck className="size-4" />  {"Admin"}
+              </Link>
+            )}
             <form action={logout}>
               <button role="menuitem" type="submit" className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-danger hover:bg-danger/10">
                 <LogOut className="size-4" /> {t.common.logout}

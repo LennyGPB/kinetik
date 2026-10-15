@@ -1,11 +1,13 @@
 import { TextSceneContext } from "./movable-text";
 import { overlayApplies } from "../../lib/projects/overlays";
 import { OverlayLayer } from "./overlays";
-import { AbsoluteFill, Audio, interpolate, Sequence, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, interpolate, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
 import { beatGrid } from "../../lib/projects/scenes";
 import { sceneSettings } from "../../lib/projects/scene-settings";
 import { durationInFrames, type VideoProps } from "../props";
+import { scenePalette } from "../palette";
 import { Background } from "./backgrounds";
+import { CameraMove } from "./camera";
 import { Effects } from "./effects";
 import { SCENES } from "./scenes";
 import { BeatContext, bodyFont, luminance, RecipeContext, useUnit } from "./theme";
@@ -17,6 +19,7 @@ import { SceneShell, sceneTimeline } from "./transitions";
  * Le rendu d'un template dépend de `props.recipe` (config/recipes.ts), sauf réglages choisis par l'utilisateur dans le SceneGraph.
  */
 export function KinetikVideo(input: VideoProps) {
+  const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const u = useUnit();
   const props = withUserSettings(input);
@@ -25,26 +28,33 @@ export function KinetikVideo(input: VideoProps) {
   const grid = beatGrid(graph);
   const phaseFrames = grid.phase * fps;
   const timeline = sceneTimeline(graph.scenes, fps, graph.bpm, grid.phase);
+  const colors = props.brandColors ?? graph.colors;
+  const activeIndex = Math.max(0, timeline.findIndex((item) => frame >= item.from && frame < item.from + item.duration));
+  const activePalette = scenePalette(palette, colors, activeIndex);
 
   return (
     <RecipeContext value={recipe}>
       <BeatContext value={{ bpm: graph.bpm, phaseFrames }}>
         <AbsoluteFill style={{ backgroundColor: palette[0], overflow: "hidden" }}>
-          <Background kind={recipe.background} palette={palette} energy={graph.energy} />
-          <Effects effects={recipe.effects} layer="under" palette={palette} />
+          <Background kind={recipe.background} palette={activePalette} energy={graph.energy} />
+          <Effects effects={recipe.effects} layer="under" palette={activePalette} />
 
           {timeline.map(({ scene, from, duration }, i) => {
             const Scene = SCENES[scene.kind];
             const sceneGraph = sceneSettings(graph, scene);
             const sceneRecipe = sceneGraph.titleAnimation ? { ...recipe, titleAnimation: sceneGraph.titleAnimation } : recipe;
-            const sceneProps = { ...props, recipe: sceneRecipe, graph: sceneGraph };
+            const localPalette = scenePalette(palette, colors, i);
+            const nextPalette = scenePalette(palette, colors, i + 1);
+            const sceneProps = { ...props, palette: localPalette, recipe: sceneRecipe, graph: sceneGraph };
             return (
               <Sequence key={scene.id} from={from} durationInFrames={duration} name={`${scene.kind} · ${scene.title}`}>
                 {/* Dans une Sequence, les images repartent de 0 : on décale la grille des temps d'autant */}
                 <BeatContext value={{ bpm: graph.bpm, phaseFrames: phaseFrames - from }}>
                   <RecipeContext value={sceneRecipe}>
-                    <SceneShell transition={scene.transition} next={timeline[i + 1]?.scene.transition} energy={sceneGraph.energy} accent={curtainColor(palette)}>
-                      <TextSceneContext value={scene}><Scene scene={scene} props={sceneProps} /></TextSceneContext>
+                    <SceneShell transition={scene.transition} next={timeline[i + 1]?.scene.transition} energy={sceneGraph.energy} accent={curtainColor(localPalette)} nextAccent={curtainColor(nextPalette)}>
+                      <CameraMove index={i} energy={sceneGraph.energy}>
+                        <TextSceneContext value={scene}><Scene scene={scene} props={sceneProps} /></TextSceneContext>
+                      </CameraMove>
                     </SceneShell>
                   </RecipeContext>
                 </BeatContext>
@@ -52,7 +62,7 @@ export function KinetikVideo(input: VideoProps) {
             );
           })}
 
-          <Effects effects={recipe.effects} layer="over" palette={palette} />
+          <Effects effects={recipe.effects} layer="over" palette={activePalette} />
 
           {timeline.map(({ scene, from, duration }) => (graph.overlays ?? []).filter((layer) => overlayApplies(layer, scene.id)).map((layer) => (
             <Sequence key={`overlay-${scene.id}-${layer.id}`} from={from} durationInFrames={duration} name={`Calque · ${layer.type}`}>

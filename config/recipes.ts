@@ -23,8 +23,25 @@ import type { Transition } from "../lib/projects/scenes";
  * terminal : lignes de code qui défilent · spotlight : faisceau doré et poussière · chrome : reflets irisés et étincelles
  * data : courbes de données qui se tracent · glass : panneaux de verre dépoli · iso : cubes isométriques
  * blocks : filets épais et blocs pleins qui sautent sur le tempo · line : un cercle fin et un point, presque rien
+ * halftone : trame de points pop art, révélée par une tache qui se promène · stripes : grandes bandes diagonales qui défilent
+ * sun : soleil rétro rayé sur un ciel dégradé · confetti : confettis qui tombent en tournoyant
+ * waves : vagues pleines superposées dans le bas du cadre · sunburst : éventail de rayons années 70 qui tourne
+ * topo : courbes de niveau qui ondulent · starfield : saut dans l'hyperespace · pixels : cases qui s'allument sur le beat
  */
 export type BackgroundKind =
+  | "monolith"
+  | "focus"
+  | "prism"
+  | "papercut"
+  | "metro"
+  | "blueprint-draft"
+  | "ocean-tide"
+  | "playful-fluid"
+  | "corporate-panels"
+  | "swiss-rules"
+  | "pulse-edge"
+  | "studio-stage"
+  | "gold-atelier"
   | "blobs"
   | "type"
   | "glitch"
@@ -43,7 +60,16 @@ export type BackgroundKind =
   | "glass"
   | "iso"
   | "blocks"
-  | "line";
+  | "line"
+  | "halftone"
+  | "stripes"
+  | "sun"
+  | "confetti"
+  | "waves"
+  | "sunburst"
+  | "topo"
+  | "starfield"
+  | "pixels";
 
 /**
  * Mise en scène des screens — remotion/video/screens.tsx.
@@ -94,9 +120,34 @@ export type AccentStyle = "gradient" | "solid";
 /**
  * Effets globaux — remotion/video/effects.tsx.
  * vignette : bords assombris (sous les scènes) · grain : grain de pellicule · light : fuite de lumière qui traverse l'image
- * scanlines : lignes d'écran cathodique
+ * scanlines : lignes d'écran cathodique · letterbox : bandes noires de cinéma · viewfinder : viseur de caméra (coins, REC, timecode)
+ * film : pellicule ancienne (scintillement, poussières, rayures) · rays : faisceaux de lumière depuis un coin · border : passe-partout imprimé
+ * depth : gros cubes 3D flous au premier plan qui traversent le cadre
+ * liquid : lentilles de verre liquide qui se déforment, dérivent et passent sur les textes (backdrop-filter)
+ * letterbox, viewfinder et border occupent les bords du cadre : les associer aux compositions center ou left, pas à poster.
  */
-export type Effect = "vignette" | "grain" | "light" | "scanlines";
+export type Effect = "vignette" | "grain" | "light" | "scanlines" | "letterbox" | "viewfinder" | "film" | "rays" | "border" | "liquid" | "depth";
+
+/**
+ * Composition des scènes de texte (intro, feature, cta, stat, quote en mise en scène « du template ») — remotion/video/composition.tsx.
+ * center : tout centré, symétrique · left : bloc aligné à gauche avec un filet, façon éditorial / keynote B2B
+ * poster : typo géante qui remplit le cadre, calée en haut à gauche, façon affiche
+ * extrude : titre en relief 3D (épaisseur extrudée), bloc qui se pose en perspective
+ * glass : bloc centré posé sur une carte de verre dépoli (backdrop-filter), qui arrive en se défloutant
+ * C'est ce qui change la silhouette d'une vidéo : deux recettes au même fond mais à la composition différente ne se ressemblent pas.
+ */
+export const COMPOSITIONS = ["center", "left", "poster", "glass", "extrude"] as const;
+export type Composition = (typeof COMPOSITIONS)[number];
+
+/**
+ * Mouvement de caméra global, appliqué au contenu de chaque scène (pas au fond) — remotion/video/camera.tsx.
+ * still : plan fixe · drift : lent travelling latéral et léger zoom, très doux · push : avancée continue vers le texte
+ * handheld : caméra à l'épaule, petites secousses organiques (à réserver aux styles nerveux)
+ * swing : balancier 3D en perspective (rotations lentes sur deux axes) · glitch : sursauts aléatoires de glitch sur tout le contenu
+ * (tranches décalées + séparation RGB), avec une légère séparation RGB permanente
+ */
+export const CAMERAS = ["still", "drift", "push", "handheld", "swing", "glitch"] as const;
+export type Camera = (typeof CAMERAS)[number];
 
 export type Energy = "calm" | "balanced" | "high";
 
@@ -108,6 +159,8 @@ export type Recipe = {
   screens: ScreensLayout;
   logo: LogoReveal;
   logoLayout?: LogoLayout;
+  composition: Composition;
+  camera: Camera;
   accent: AccentStyle;
   /** Le logo et le bouton final pulsent sur le tempo de la musique. */
   beatPulse: boolean;
@@ -133,6 +186,8 @@ const BASE: Omit<Recipe, "background" | "screens" | "direction"> = {
   titleAnimation: "words",
   titleEffect: "none",
   logo: "pop",
+  composition: "center",
+  camera: "still",
   accent: "gradient",
   beatPulse: true,
   energy: "balanced",
@@ -149,9 +204,41 @@ export const DEFAULT_RECIPE: Recipe = {
 };
 
 export const RECIPES: Record<string, Recipe> = {
+  monolith: {
+    ...BASE, composition: "left", camera: "still", typography: "sans", titleAnimation: "mask",
+    background: "monolith", screens: "hero", logo: "soft", accent: "solid", beatPulse: false,
+    transitions: ["shutter", "cut"], effects: [],
+    direction: "Minimalisme monumental noir sur blanc : titres affirmés de 1 à 4 mots, beaucoup de vide. Privilégie shutter, des volets noirs s’ouvrent franchement pour révéler la scène ; cut pour ponctuer. Pas d’ornement ajouté.",
+  },
+  focus: {
+    ...BASE, composition: "center", camera: "push", typography: "sans", titleAnimation: "fade",
+    background: "focus", screens: "hero", logo: "soft", accent: "solid", beatPulse: false,
+    transitions: ["iris", "zoom"], effects: [],
+    direction: "Minimalisme sombre de précision optique : une idée nette par scène, titres de 2 à 4 mots. Privilégie iris, révélation circulaire ample suivie d’un contenu stable ; zoom pour les détails du produit. Aucun halo criard ni surcharge.",
+  },
+  prism: {
+    ...BASE, composition: "left", camera: "drift", typography: "display", titleAnimation: "words",
+    background: "prism", screens: "tilt", logoLayout: "signature", accent: "solid", beatPulse: false,
+    transitions: ["prism", "fade"], effects: [],
+    direction: "Réfraction graphique : facettes violettes et menthe en périphérie, texte blanc net, titres de 2 à 4 mots. Privilégie prism, balayage de lamelles diagonales colorées. Une sensation de précision et de découverte, pas de glitch.",
+  },
+  papercut: {
+    ...BASE, composition: "center", camera: "still", typography: "serif", titleAnimation: "words",
+    background: "papercut", screens: "fan", logo: "soft", logoLayout: "app-icon", accent: "solid", beatPulse: false,
+    transitions: ["fold", "slide"], effects: [],
+    direction: "Atelier de papier découpé, crème, terracotta et vert profond. Titres chaleureux de 2 à 5 mots, courts et concrets. Privilégie fold, une feuille se replie pour dévoiler la suite. Pas d’effet numérique, néon ou verre.",
+  },
+  metro: {
+    ...BASE, composition: "center", camera: "still", typography: "sans", titleAnimation: "mask",
+    background: "metro", screens: "row", logo: "soft", logoLayout: "typographic", accent: "solid", beatPulse: false,
+    transitions: ["track", "cut"], effects: [],
+    direction: "Signalétique de réseau de transport : parcours clair, stations et lignes animées, titres de 1 à 4 mots. Privilégie track, passage horizontal rapide comme une rame. Présente les bénéfices comme les étapes d’un trajet, sans inventer de données.",
+  },
   // ── Minimal ──
   apple: {
     ...BASE,
+    composition: "center",
+    camera: "push",
     typography: "sans",
     titleAnimation: "fade",
     background: "clean",
@@ -167,6 +254,8 @@ export const RECIPES: Record<string, Recipe> = {
   },
   minimal: {
     ...BASE,
+    composition: "left",
+    camera: "still",
     typography: "sans",
     titleAnimation: "mask",
     background: "line",
@@ -181,16 +270,18 @@ export const RECIPES: Record<string, Recipe> = {
   },
   luxe: {
     ...BASE,
+    composition: "center",
+    camera: "still",
     typography: "serif",
     titleAnimation: "fade",
-    background: "spotlight",
+    background: "gold-atelier",
     screens: "hero",
     logo: "soft",
     accent: "solid",
     beatPulse: false,
     energy: "calm",
     transitions: ["fade"],
-    effects: ["vignette", "grain", "light"],
+    effects: [],
     direction:
       "Haut de gamme et feutré : vocabulaire choisi, phrases courtes et posées (2 à 5 mots), jamais de superlatif criard ni de point d'exclamation. Rythme lent, uniquement des fondus.",
   },
@@ -198,6 +289,8 @@ export const RECIPES: Record<string, Recipe> = {
   // ── Typo ──
   "kinetic-typo": {
     ...BASE,
+    composition: "poster",
+    camera: "push",
     titleAnimation: "letters",
     background: "type",
     screens: "split",
@@ -209,6 +302,8 @@ export const RECIPES: Record<string, Recipe> = {
   },
   brutalist: {
     ...BASE,
+    composition: "poster",
+    camera: "still",
     typography: "condensed",
     titleAnimation: "mask",
     background: "blocks",
@@ -221,6 +316,8 @@ export const RECIPES: Record<string, Recipe> = {
   },
   editorial: {
     ...BASE,
+    composition: "left",
+    camera: "drift",
     typography: "serif",
     titleAnimation: "mask",
     background: "paper",
@@ -238,6 +335,8 @@ export const RECIPES: Record<string, Recipe> = {
   // ── Bold ──
   neon: {
     ...BASE,
+    composition: "center",
+    camera: "handheld",
     titleAnimation: "flicker",
     titleEffect: "glow",
     background: "aurora",
@@ -250,6 +349,8 @@ export const RECIPES: Record<string, Recipe> = {
   },
   glitch: {
     ...BASE,
+    composition: "poster",
+    camera: "glitch",
     typography: "mono",
     titleAnimation: "glitch",
     background: "glitch",
@@ -261,6 +362,8 @@ export const RECIPES: Record<string, Recipe> = {
   },
   "beat-cut": {
     ...BASE,
+    composition: "poster",
+    camera: "handheld",
     typography: "condensed",
     titleAnimation: "words",
     background: "bars",
@@ -274,6 +377,8 @@ export const RECIPES: Record<string, Recipe> = {
   // ── Tech ──
   "gradient-flow": {
     ...BASE,
+    composition: "center",
+    camera: "drift",
     titleAnimation: "fade",
     background: "blobs",
     screens: "carousel",
@@ -283,18 +388,23 @@ export const RECIPES: Record<string, Recipe> = {
   },
   "liquid-glass": {
     ...BASE,
+    composition: "center",
+    camera: "drift",
     typography: "sans",
     titleAnimation: "fade",
     background: "glass",
     screens: "carousel",
     logo: "soft",
     energy: "calm",
-    transitions: ["fade", "slide"],
-    effects: ["vignette", "light"],
-    direction: "Élégant et aérien : ton premium, titres courts, transitions douces et fluides.",
+    transitions: ["glass", "fade", "slide"],
+    effects: ["vignette", "liquid", "light"],
+    direction:
+      "Élégant et aérien, tout en verre : ton premium, titres courts (2 à 4 mots), transitions douces. Privilégie la transition glass (une vitre passe et dévoile la scène suivante), en alternance avec des fondus.",
   },
   terminal: {
     ...BASE,
+    composition: "left",
+    camera: "still",
     typography: "mono",
     titleAnimation: "typewriter",
     titleEffect: "glow",
@@ -310,23 +420,31 @@ export const RECIPES: Record<string, Recipe> = {
   // ── Fun ──
   playful: {
     ...BASE,
-    titleAnimation: "letters",
-    background: "shapes",
+    composition: "center",
+    camera: "drift",
+    titleAnimation: "words",
+    background: "playful-fluid",
     screens: "fan",
+    beatPulse: false,
     transitions: ["zoom", "slide", "curtain"],
     effects: [],
     direction: "Fun et chaleureux : ton complice et enjoué, tutoiement, titres courts et souriants.",
   },
   "3d-flat": {
     ...BASE,
+    composition: "extrude",
+    camera: "swing",
     background: "iso",
     screens: "tilt",
-    transitions: ["zoom", "slide", "fade"],
-    effects: ["vignette", "light"],
-    direction: "Moderne et accessible : ton positif, titres clairs qui décrivent un bénéfice.",
+    transitions: ["cube", "zoom", "slide"],
+    effects: ["vignette", "depth", "light"],
+    direction:
+      "Moderne et accessible, en volume : ton positif, titres clairs de 2 à 5 mots qui décrivent un bénéfice. Privilégie la transition cube (les scènes tournent comme les faces d'un cube), en alternance avec des zooms.",
   },
   y2k: {
     ...BASE,
+    composition: "center",
+    camera: "push",
     titleAnimation: "letters",
     titleEffect: "chrome",
     background: "chrome",
@@ -340,18 +458,24 @@ export const RECIPES: Record<string, Recipe> = {
   // ── Business ──
   corporate: {
     ...BASE,
+    composition: "left",
+    camera: "still",
     typography: "sans",
-    background: "grid",
+    background: "corporate-panels",
     screens: "row",
     logo: "soft",
+    accent: "solid",
+    beatPulse: false,
     energy: "calm",
     transitions: ["fade", "slide"],
-    effects: ["vignette"],
+    effects: [],
     direction:
       "B2B rassurant et structuré : bénéfices concrets et mesurables, ton professionnel, pas d'argot. Rythme posé, transitions sobres.",
   },
   dashboard: {
     ...BASE,
+    composition: "left",
+    camera: "push",
     typography: "sans",
     titleAnimation: "words",
     background: "data",
@@ -360,6 +484,294 @@ export const RECIPES: Record<string, Recipe> = {
     effects: ["vignette"],
     direction:
       "Produit data / analytics : titres orientés résultat (suivre, comprendre, décider), ton précis et confiant. N'invente aucun chiffre. Rythme régulier.",
+  },
+  // ── Nouvelles compositions ──
+  swiss: {
+    ...BASE,
+    composition: "poster",
+    camera: "still",
+    typography: "sans",
+    titleAnimation: "mask",
+    background: "swiss-rules",
+    screens: "split",
+    logo: "soft",
+    accent: "solid",
+    beatPulse: false,
+    transitions: ["cut", "slide"],
+    effects: [],
+    direction:
+      "Style international suisse : grille stricte, titres factuels de 1 à 4 mots, aucun adjectif superflu, ton neutre et précis. Une idée par scène. Coupes nettes et glissés.",
+  },
+  pitch: {
+    ...BASE,
+    composition: "left",
+    camera: "push",
+    typography: "sans",
+    titleAnimation: "words",
+    background: "clean",
+    screens: "bento",
+    logo: "soft",
+    accent: "solid",
+    beatPulse: false,
+    transitions: ["slide", "fade", "curtain"],
+    effects: [],
+    direction:
+      "Pitch de startup : on montre des résultats. Titres orientés bénéfice mesurable (2 à 5 mots), ton confiant et concret. Si le brief contient des chiffres réels, consacre-leur une scène stat ; s'il contient un vrai témoignage client, une scène quote. Rythme régulier.",
+  },
+  orbit: {
+    ...BASE,
+    composition: "center",
+    camera: "drift",
+    typography: "display",
+    titleAnimation: "fade",
+    background: "orbit",
+    screens: "tilt",
+    logoLayout: "orbit",
+    transitions: ["zoom", "fade", "slide"],
+    effects: ["vignette", "light"],
+    direction: "Ambiance spatiale et ambitieuse : titres courts et inspirants (2 à 4 mots), ton visionnaire sans emphase creuse. Rythme ample, zooms et fondus.",
+  },
+  pulse: {
+    ...BASE,
+    composition: "poster",
+    camera: "still",
+    typography: "condensed",
+    titleAnimation: "words",
+    background: "pulse-edge",
+    screens: "stack",
+    accent: "solid",
+    beatPulse: false,
+    energy: "high",
+    transitions: ["cut", "zoom"],
+    effects: [],
+    direction: "Pub sociale qui claque : accroche percutante dès la première scène, titres de 1 à 3 mots en capitales, scènes courtes calées sur le beat. Quasi uniquement des coupes sèches.",
+  },
+  zine: {
+    ...BASE,
+    composition: "left",
+    camera: "handheld",
+    typography: "serif",
+    titleAnimation: "letters",
+    background: "paper",
+    screens: "fan",
+    logoLayout: "poster",
+    transitions: ["curtain", "slide", "zoom"],
+    effects: ["grain"],
+    direction:
+      "Fanzine indépendant : ton complice et un brin décalé, tutoiement, titres courts et vivants (2 à 5 mots) avec de la personnalité. Rideaux et glissés pour un côté collage.",
+  },
+  synthwave: {
+    ...BASE,
+    composition: "center",
+    camera: "drift",
+    typography: "mono",
+    titleAnimation: "flicker",
+    titleEffect: "glow",
+    background: "grid",
+    screens: "tilt",
+    energy: "high",
+    transitions: ["zoom", "glitch", "cut"],
+    effects: ["vignette", "scanlines", "grain"],
+    direction: "Rétro années 80, route au néon vers l'horizon : titres de 2 à 4 mots qui brillent, ton cool et nostalgique. Rythme soutenu, zooms et coupes sur le beat.",
+  },
+  pop: {
+    ...BASE,
+    composition: "poster",
+    camera: "handheld",
+    typography: "condensed",
+    titleAnimation: "letters",
+    background: "halftone",
+    screens: "fan",
+    accent: "solid",
+    energy: "high",
+    transitions: ["zoom", "cut", "curtain"],
+    effects: ["grain"],
+    direction: "Pop art et bande dessinée : titres explosifs de 1 à 3 mots, onomatopées bienvenues si elles collent au produit, ton enthousiaste et direct. Rythme vif.",
+  },
+  sprint: {
+    ...BASE,
+    composition: "center",
+    camera: "push",
+    typography: "condensed",
+    titleAnimation: "words",
+    background: "stripes",
+    screens: "stack",
+    energy: "high",
+    transitions: ["slide", "cut", "zoom"],
+    effects: ["vignette", "grain"],
+    direction: "Énergie de marque de sport : titres à l'impératif de 1 à 3 mots (va plus vite, dépasse-toi), ton motivant et franc. Scènes courtes, glissés et coupes sur le beat.",
+  },
+  "golden-hour": {
+    ...BASE,
+    composition: "center",
+    camera: "drift",
+    typography: "serif",
+    titleAnimation: "fade",
+    background: "sun",
+    screens: "hero",
+    logo: "soft",
+    accent: "solid",
+    beatPulse: false,
+    energy: "calm",
+    transitions: ["fade", "slide"],
+    effects: ["light", "grain"],
+    direction: "Chaleureux et apaisant, lumière de fin de journée : titres doux de 2 à 5 mots, ton bienveillant et humain, aucun superlatif. Rythme lent, fondus.",
+  },
+  fiesta: {
+    ...BASE,
+    composition: "center",
+    camera: "push",
+    typography: "display",
+    titleAnimation: "letters",
+    background: "confetti",
+    screens: "carousel",
+    transitions: ["zoom", "curtain", "slide"],
+    effects: ["vignette"],
+    direction: "Célébration (lancement, nouveauté, cap franchi) : titres festifs et courts de 2 à 4 mots, ton joyeux et reconnaissant envers les utilisateurs. Rythme enlevé.",
+  },
+  blueprint: {
+    ...BASE,
+    composition: "left",
+    camera: "still",
+    typography: "mono",
+    titleAnimation: "typewriter",
+    background: "blueprint-draft",
+    screens: "row",
+    logo: "soft",
+    accent: "solid",
+    beatPulse: false,
+    transitions: ["slide", "cut"],
+    effects: [],
+    direction: "Plan technique d'ingénieur : titres précis comme des annotations (2 à 5 mots), ton factuel et rigoureux, aucun jargon marketing. Rythme régulier.",
+  },
+  studio: {
+    ...BASE,
+    composition: "left",
+    camera: "push",
+    typography: "sans",
+    titleAnimation: "mask",
+    background: "studio-stage",
+    screens: "hero",
+    logo: "soft",
+    accent: "solid",
+    beatPulse: false,
+    transitions: ["slide", "fade", "cut"],
+    effects: [],
+    direction: "Agence produit haut de gamme : titres nets de 2 à 5 mots centrés sur la valeur pour le client, ton premium et sûr de lui sans emphase. Rythme posé.",
+  },
+  cinema: {
+    ...BASE,
+    composition: "center",
+    camera: "push",
+    typography: "condensed",
+    titleAnimation: "fade",
+    background: "spotlight",
+    screens: "hero",
+    logo: "soft",
+    accent: "solid",
+    beatPulse: false,
+    energy: "calm",
+    transitions: ["fade", "cut"],
+    effects: ["letterbox", "film", "grain"],
+    direction: "Bande-annonce de cinéma : titres courts et solennels (2 à 4 mots), en crescendo, ton dramatique mais sincère. Plans longs, fondus au noir et coupes franches.",
+  },
+  ocean: {
+    ...BASE,
+    composition: "center",
+    camera: "drift",
+    typography: "sans",
+    titleAnimation: "fade",
+    background: "ocean-tide",
+    screens: "carousel",
+    logo: "soft",
+    accent: "solid",
+    beatPulse: false,
+    energy: "calm",
+    transitions: ["fade", "slide"],
+    effects: [],
+    direction: "Fluide et serein comme l'océan : titres apaisants de 2 à 5 mots, ton clair et rassurant, promesse de simplicité. Rythme lent, fondus et glissés.",
+  },
+  arcade: {
+    ...BASE,
+    composition: "center",
+    camera: "still",
+    typography: "mono",
+    titleAnimation: "letters",
+    background: "pixels",
+    screens: "row",
+    energy: "high",
+    transitions: ["cut", "zoom", "glitch"],
+    effects: ["scanlines", "border"],
+    direction: "Borne d'arcade rétro : titres de 1 à 3 mots façon écran de jeu (niveau suivant, prêt ?), ton joueur et compétitif. Rythme vif, coupes sur le beat.",
+  },
+  seventies: {
+    ...BASE,
+    composition: "center",
+    camera: "drift",
+    typography: "display",
+    titleAnimation: "letters",
+    background: "sunburst",
+    screens: "fan",
+    accent: "solid",
+    transitions: ["curtain", "zoom", "slide"],
+    effects: ["film", "grain"],
+    direction: "Affiche des années 70 : titres ronds et chaleureux de 2 à 4 mots, ton optimiste et groovy sans caricature. Rythme dansant, rideaux et zooms.",
+  },
+  terrain: {
+    ...BASE,
+    composition: "left",
+    camera: "drift",
+    typography: "sans",
+    titleAnimation: "words",
+    background: "topo",
+    screens: "hero",
+    logo: "soft",
+    accent: "solid",
+    beatPulse: false,
+    transitions: ["slide", "fade"],
+    effects: ["vignette", "grain"],
+    direction: "Exploration et terrain : titres orientés progression et cap (2 à 5 mots), ton calme et déterminé, vocabulaire concret. Rythme régulier.",
+  },
+  hyperspace: {
+    ...BASE,
+    composition: "center",
+    camera: "push",
+    typography: "display",
+    titleAnimation: "fade",
+    titleEffect: "glow",
+    background: "starfield",
+    screens: "tilt",
+    logoLayout: "echo",
+    energy: "high",
+    transitions: ["zoom", "fade", "cut"],
+    effects: ["vignette", "light"],
+    direction: "Saut dans l'hyperespace : titres très courts et audacieux (1 à 3 mots), ton de lancement de fusée, sensation de vitesse. Zooms et coupes sur le beat.",
+  },
+  creator: {
+    ...BASE,
+    composition: "left",
+    camera: "handheld",
+    typography: "display",
+    titleAnimation: "words",
+    background: "blobs",
+    screens: "stack",
+    transitions: ["cut", "slide", "zoom"],
+    effects: ["viewfinder", "grain"],
+    direction: "Vlog de créateur filmé caméra à l'épaule : titres parlés et spontanés (2 à 5 mots), tutoiement, ton authentique comme une story. Coupes rapides.",
+  },
+  riso: {
+    ...BASE,
+    composition: "left",
+    camera: "still",
+    typography: "display",
+    titleAnimation: "mask",
+    background: "halftone",
+    screens: "split",
+    accent: "solid",
+    beatPulse: false,
+    transitions: ["curtain", "cut"],
+    effects: ["border", "grain"],
+    direction: "Impression risographie d'atelier : titres graphiques de 2 à 4 mots, ton artisanal et créatif, un peu d'humour bienvenu. Rideaux et coupes nettes.",
   },
 };
 

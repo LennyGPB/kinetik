@@ -1,6 +1,6 @@
 import { isBrandFont, type BrandFont } from "@/config/fonts";
 import { SCREENS_LAYOUTS, TITLE_ANIMATIONS, type ScreensLayout, type TitleAnimation } from "@/config/recipes";
-import { format, t } from "@/lib/i18n";
+import { format, getDictionary, type Locale } from "@/lib/i18n";
 import { MAX_SCREEN_COUNT, type SceneGraph } from "./scenes";
 import { LOGO_LAYOUTS, type LogoLayout } from "@/config/recipes";
 
@@ -17,7 +17,6 @@ export type QuickSetting =
   | { kind: "screenCount"; value: number | null }
   | { kind: "fonts"; value: { heading: BrandFont; body: BrandFont } | null };
 
-const s = t.app.editor.settings;
 
 export function isQuickSetting(value: unknown): value is QuickSetting {
   const v = value as Partial<QuickSetting> | null;
@@ -32,8 +31,16 @@ export function isQuickSetting(value: unknown): value is QuickSetting {
 }
 
 /** Applique un réglage à une copie du graph. Les réglages des mockups s'appliquent à toutes les scènes "screens". */
-export function applyQuickSetting(graph: SceneGraph, setting: QuickSetting): SceneGraph {
+export function applyQuickSetting(graph: SceneGraph, setting: QuickSetting, sceneId?: string): SceneGraph {
   const next: SceneGraph = structuredClone(graph);
+  if (sceneId && setting.kind !== "fonts") {
+    const scene = next.scenes.find((item) => item.id === sceneId);
+    if (!scene) return next;
+    const key = setting.kind === "screensLayout" ? "layout" : setting.kind;
+    if (setting.value === null) delete (scene as unknown as Record<string, unknown>)[key];
+    else (scene as unknown as Record<string, unknown>)[key] = setting.value;
+    return next;
+  }
   if (setting.kind === "logoBackground") {
     if (setting.value === null) delete next.logoBackground;
     else next.logoBackground = setting.value;
@@ -68,10 +75,12 @@ export function applyQuickSetting(graph: SceneGraph, setting: QuickSetting): Sce
 }
 
 /** Libellé de la version créée par un réglage rapide (historique). */
-export function quickSettingLabel(setting: QuickSetting) {
-  switch (setting.kind) {
+export function quickSettingLabel(setting: QuickSetting, locale: Locale = "en") {
+  const t = getDictionary(locale);
+  const s = t.app.editor.settings;
+switch (setting.kind) {
     case "logoBackground":
-      return `Logo · ${setting.value === false ? "sans fond" : "avec fond"}`;
+      return `Logo · ${locale === "en" ? setting.value === true ? "with background" : "without background" : setting.value === true ? "avec fond" : "sans fond"}`;
     case "logoLayout":
       return `Logo · ${setting.value ? t.app.editor.logoLayouts[setting.value] : s.versionDefault}`;
     case "titleAnimation":

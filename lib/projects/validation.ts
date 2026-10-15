@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { DURATIONS, FORMAT_IDS } from "@/config/formats";
 import { VIDEO_STYLES } from "@/config/styles";
+import { VIDEO_TYPE_IDS } from "@/config/video-types";
+import { MAX_PROJECT_COLORS } from "@/config/colors";
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 
@@ -20,21 +22,23 @@ export const uploadedFileSchema = z.object({
 export const createProjectSchema = z
   .object({
     appName: z.string().trim().min(1).max(40),
+    videoType: z.enum(VIDEO_TYPE_IDS).default("presentation"),
+    locale: z.enum(["en", "fr"]).default("en"),
     websiteUrl: z.union([z.literal(""), z.url({ protocol: /^https?$/ })]).optional(),
     logo: uploadedFileSchema.nullable(),
     screens: z.array(uploadedFileSchema).max(8),
-    colors: z.array(hex).min(1).max(5),
+    colors: z.array(hex).min(1).max(MAX_PROJECT_COLORS),
     // Template obligatoire pour l'instant (les références perso arrivent plus tard)
     styleId: z.string().max(40),
     format: z.enum(FORMAT_IDS as [string, ...string[]]),
     duration: z.number().refine((d) => (DURATIONS as readonly number[]).includes(d)),
-    musicMode: z.enum(["library", "upload"]),
+    musicMode: z.enum(["library", "upload", "none"]),
     musicTrackId: z.string().max(40).nullable(),
     music: uploadedFileSchema.nullable(),
     brief: z.string().trim().max(1000).optional(),
   })
   .refine((v) => VIDEO_STYLES.some((s) => s.id === v.styleId), { path: ["styleId"] })
-  .refine((v) => (v.musicMode === "library" ? Boolean(v.musicTrackId) : Boolean(v.music)), { path: ["musicTrackId"] });
+  .refine((v) => (v.musicMode === "library" ? Boolean(v.musicTrackId) : v.musicMode === "upload" ? Boolean(v.music) : true), { path: ["musicTrackId"] });
 
 export type CreateProjectInput = z.input<typeof createProjectSchema>;
 

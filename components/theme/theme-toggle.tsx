@@ -1,12 +1,17 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Moon, Sun } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme-provider";
 
 export function ThemeToggle({ className }: { className?: string }) {
+  const t = useDictionary();
+
   const { resolved, toggle } = useTheme();
   const isDark = resolved === "dark";
 

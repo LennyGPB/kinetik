@@ -1,14 +1,17 @@
+import { getServerDictionary } from "@/lib/i18n/server";
 import { Coins, Plus } from "lucide-react";
-import Link from "next/link";
+import Link from "@/lib/i18n/navigation";
 import { getPlan } from "@/config/pricing";
 import { requireUser } from "@/lib/auth/dal";
 import { getCreditBalance } from "@/lib/credits/ledger";
-import { format, t } from "@/lib/i18n";
+import { format } from "@/lib/i18n";
 import { formatNumber } from "@/lib/utils";
 import { UserMenu } from "./user-menu";
 
 /** Bloc compte de la sidebar (solde + menu utilisateur). Rendu sous <Suspense>. */
 export async function SidebarAccount() {
+  const t = await getServerDictionary();
+
   const user = await requireUser();
   const balance = await getCreditBalance(user.id);
   const plan = getPlan(user.plan);
@@ -23,7 +26,7 @@ export async function SidebarAccount() {
           </span>
         </div>
         <p className="mt-1 flex items-baseline gap-1.5">
-          <span className="text-2xl font-semibold tracking-tight tabular-nums">{formatNumber(balance.total)}</span>
+          <span className="text-2xl font-semibold tracking-tight tabular-nums">{formatNumber(balance.total, t.locale)}</span>
           <span className="text-sm text-muted">{t.common.credits}</span>
         </p>
         <Link
@@ -33,12 +36,14 @@ export async function SidebarAccount() {
           <Plus className="size-3.5" /> {t.app.buyCredits}
         </Link>
       </div>
-      <UserMenu name={user.name} email={user.email} />
+      <UserMenu name={user.name} email={user.email} admin={user.role === "ADMIN"} />
     </div>
   );
 }
 
 export async function MobileAccount() {
+  const t = await getServerDictionary();
+
   const user = await requireUser();
   const balance = await getCreditBalance(user.id);
   return (
@@ -46,12 +51,12 @@ export async function MobileAccount() {
       <Link
         href="/credits"
         className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-sm font-semibold"
-        aria-label={`${formatNumber(balance.total)} ${t.common.credits}`}
+        aria-label={`${formatNumber(balance.total, t.locale)} ${t.common.credits}`}
       >
         <Coins className="size-4 text-accent-text" />
-        {formatNumber(balance.total)}
+        {formatNumber(balance.total, t.locale)}
       </Link>
-      <UserMenu name={user.name} email={user.email} compact />
+      <UserMenu name={user.name} email={user.email} admin={user.role === "ADMIN"} compact />
     </>
   );
 }

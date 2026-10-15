@@ -1,22 +1,28 @@
 "use client";
 
-import { ArrowLeft, ChevronDown, Coins, Copy, Download, History, Images, Layers, Music2, Palette, Share2 } from "lucide-react";
-import Link from "next/link";
-import { useState, useTransition } from "react";
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
+import { ArrowLeft, ChevronDown, Coins, Copy, Download, History, Images, Languages, Layers, MessageSquare, MoreHorizontal, Music2, Palette, Share2, SlidersHorizontal, Undo2 } from "lucide-react";
+import Link from "@/lib/i18n/navigation";
+import { useState, useTransition, type ReactNode } from "react";
 import { StatusBadge } from "@/components/app/project-grid";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { AnimatedApply } from "@/components/ui/animated-apply";
+import { Dialog } from "@/components/ui/dialog";
 import type { EditProposal } from "@/lib/projects/edit-proposal";
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import type { PricingPlan } from "@/config/pricing";
-import { format, t } from "@/lib/i18n";
+import { format, localizeVersionLabel } from "@/lib/i18n";
 import { getRecipe } from "@/config/recipes";
 import { applyEditProposal, applyEditorSetting, editTimeline, restoreVersion, sendEditRequest } from "@/lib/projects/actions";
 import type { QuickSetting } from "@/lib/projects/settings";
 import { formatSeconds, type TimelineEdit } from "@/lib/projects/timeline";
 import { totalDuration } from "@/lib/projects/scenes";
+import { undoTarget } from "@/lib/projects/undo";
 import type { EditorMessage, EditorProject, EditorVersion } from "@/lib/projects/types";
 import { buildVideoProps } from "@/lib/projects/video-props";
 import { projectVisual } from "@/lib/projects/visuals";
@@ -34,9 +40,8 @@ import { ShareDialog } from "./share-dialog";
 import { SoundDialog } from "./sound-dialog";
 import { StyleDialog } from "./style-dialog";
 import { VariantsDialog } from "./variants-dialog";
+import { TranslationDialog } from "./translation-dialog";
 import { VersionsPanel } from "./versions-panel";
-
-const e = t.app.editor;
 
 export function Editor({
   project,
@@ -47,15 +52,24 @@ export function Editor({
   initialBalance: number;
   plan: Pick<PricingPlan, "watermark" | "maxQuality">;
 }) {
+  const t = useDictionary();
+
+  const e = t.app.editor;
+
   const [versions, setVersions] = useState<EditorVersion[]>(project.versions);
   const [messages, setMessages] = useState<EditorMessage[]>(project.messages);
   const [selected, setSelected] = useState(project.versions.at(-1)?.number ?? 1);
   const [balance, setBalance] = useState(initialBalance);
   const [thinking, setThinking] = useState(false);
+  // Le lecteur change de clé à chaque version ; le choix audio reste dans la session d'édition.
+  const [previewMuted, setPreviewMuted] = useState(false);
+  const [previewPlaying, setPreviewPlaying] = useState(true);
   const [proposal, setProposal] = useState<EditProposal | null>(null);
   const [compareOriginal, setCompareOriginal] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [translationOpen, setTranslationOpen] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [variantsOpen, setVariantsOpen] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);
@@ -65,10 +79,13 @@ export function Editor({
   // Historique des versions replié par défaut (desktop) : on l'ouvre au besoin
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [shareToken, setShareToken] = useState(project.shareToken);
-  const [mobileTab, setMobileTab] = useState<"chat" | "versions">("chat");
+  // Mobile : un seul panneau à la fois sous la barre du haut (montage en grand, ou chat / versions avec un aperçu compact)
+  const [mobileTab, setMobileTab] = useState<"edit" | "chat" | "versions">("edit");
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [restoring, startRestore] = useTransition();
   const [applying, startApply] = useTransition();
   // Scène à resélectionner dans la frise après un montage (le lecteur est rechargé avec la nouvelle version)
+  const [editingSceneId, setEditingSceneId] = useState<string | null>(project.versions.at(-1)?.graph.scenes[0]?.id ?? null);
   const [focusScene, setFocusScene] = useState<string | null>(null);
   const [chatSceneId, setChatSceneId] = useState<string | null>(null);
   const toast = useToast();
@@ -76,12 +93,13 @@ export function Editor({
   const visual = projectVisual(project);
   const current = versions.find((v) => v.number === selected) ?? versions.at(-1);
   const latest = versions.at(-1);
+  const undoNumber = undoTarget(versions);
   const chatTarget = latest?.graph.scenes.find((scene) => scene.id === chatSceneId) ?? null;
 
   async function handleSend(content: string) {
-    if (proposal || thinking || confirming) return;
+    if (proposal || thinking || confirming || translating) return;
     const targetId = chatTarget?.id ?? null;
-    const displayedContent = chatTarget ? `[Scène ${(latest?.graph.scenes.indexOf(chatTarget) ?? 0) + 1} · ${chatTarget.kind}] ${content}` : content;
+    const displayedContent = chatTarget ? format(t.copy["4ea5097e235c"], { p0: (latest?.graph.scenes.indexOf(chatTarget) ?? 0) + 1, p1: chatTarget.kind, p2: content }) : content;
     const optimistic: EditorMessage = { id: `tmp-${messages.length}`, role: "user", content: displayedContent, createdAt: "" };
     setMessages((list) => [...list, optimistic]);
     setThinking(true);
@@ -128,23 +146,24 @@ export function Editor({
     try {
       const result = await applyEditProposal(proposal.token);
       if (!result.ok) {
-        toast({ title: result.error === "busy" ? "La vidéo a changé. Relance ta demande sur la dernière version." : result.error === "invalid" ? "Cet aperçu a expiré. Relance ta demande." : t.common.error, tone: "error" });
+        toast({ title: result.error === "busy" ? t.copy["6b2c6c24eb15"] : result.error === "invalid" ? t.copy["5214bfb8bef8"] : t.common.error, tone: "error" });
         if (result.error === "busy" || result.error === "invalid") setProposal(null);
         return;
       }
       setVersions((list) => list.some((version) => version.id === result.version.id) ? list : [...list, result.version]);
       setSelected(result.version.number);
       setProposal(null);
-      toast({ title: "Modifications appliquées", tone: "success" });
+      toast({ title: t.copy["b8dd4518a23e"], tone: "success" });
     } finally { setConfirming(false); }
   }
 
   /** Réglage rapide : nouvelle version créée côté serveur, sans Claude ni crédit. */
-  function handleSetting(setting: QuickSetting) {
+  function handleSetting(setting: QuickSetting, sceneId?: string) {
+    if (restoring) return;
     startApply(async () => {
-      const result = await applyEditorSetting(project.id, setting);
+      const result = await applyEditorSetting(project.id, setting, sceneId);
       if (!result.ok) return toast({ title: result.error === "rate_limited" ? e.rateLimited : t.common.error, tone: "error" });
-      setFocusScene(null);
+      setFocusScene(sceneId ?? null);
       setVersions((list) => [...list, result.version]);
       setSelected(result.version.number);
     });
@@ -152,12 +171,14 @@ export function Editor({
 
   /** Montage depuis la frise : une version par lot de modifications. */
   async function handleTimelineCommit(edits: TimelineEdit[], focusSceneId: string | null) {
+    if (restoring) return false;
     const result = await editTimeline(project.id, edits);
     if (!result.ok) {
       toast({ title: result.error === "rate_limited" ? e.rateLimited : t.common.error, tone: "error" });
       return false;
     }
     setFocusScene(focusSceneId);
+    setEditingSceneId(focusSceneId);
     setVersions((list) => [...list, result.version]);
     setSelected(result.version.number);
     return true;
@@ -174,47 +195,73 @@ export function Editor({
     });
   }
 
+  function handleUndo() {
+    if (undoNumber === null || !latest || restoring || proposal || thinking || applying || translating) return;
+    startRestore(async () => {
+      try {
+        const result = await restoreVersion(project.id, undoNumber, { expectedVersion: latest.number, undo: true });
+        if (!result.ok) return toast({ title: t.common.error, tone: "error" });
+        setVersions((list) => [...list, result.version]);
+        setSelected(result.version.number);
+        setEditingSceneId(result.version.graph.scenes[0]?.id ?? null);
+        setFocusScene(result.version.graph.scenes[0]?.id ?? null);
+        toast({ title: e.undone, tone: "success" });
+      } catch {
+        toast({ title: t.common.error, tone: "error" });
+      }
+    });
+  }
+
+  // Outils du projet : icônes dans la barre dès lg, regroupés dans une feuille « Plus » sur mobile et tablette
+  const tools: { key: string; label: string; icon: ReactNode; onClick: () => void }[] =
+    project.status === "READY"
+      ? [
+          { key: "style", label: t.app.style.button, icon: <Palette />, onClick: () => setStyleOpen(true) },
+          { key: "media", label: t.app.media.button, icon: <Images />, onClick: () => setMediaOpen(true) },
+          { key: "layers", label: t.copy["eaa1ecaa099b"], icon: <Layers />, onClick: () => setOverlaysOpen(true) },
+          { key: "sound", label: t.app.sound.button, icon: <Music2 />, onClick: () => setSoundOpen(true) },
+          { key: "variants", label: t.app.variants.button, icon: <Copy />, onClick: () => setVariantsOpen(true) },
+          { key: "share", label: t.app.share.button, icon: <Share2 />, onClick: () => setShareOpen(true) },
+        ]
+      : [];
+
   const topBar = (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-3 sm:px-4">
+    <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-line px-2 sm:gap-3 sm:px-4">
       <Link
         href="/dashboard"
         aria-label={t.common.back}
-        className="grid size-9 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+        className="grid size-10 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-fg"
       >
         <ArrowLeft className="size-4" />
       </Link>
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <ProjectName projectId={project.id} initialName={project.name} />
-        <span className="hidden sm:inline-flex">
-          <StatusBadge status={project.status} />
+        {/* Statut affiché seulement s'il y a quelque chose à signaler (génération, échec…) */}
+        {project.status !== "READY" && (
+          <span className="hidden sm:inline-flex">
+            <StatusBadge status={project.status} />
+          </span>
+        )}
+        <ThemeToggle className="hidden shrink-0 lg:grid" />
+        <span className="hidden shrink-0 sm:inline-flex"><LanguageToggle /></span>
+        <span className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-sm font-semibold sm:px-3" aria-label={`${balance} ${t.common.credits}`}>
+          <Coins className="size-4 text-accent-text" /> {formatNumber(balance, t.locale)}
         </span>
-        <ThemeToggle className="hidden shrink-0 sm:grid" />
       </div>
-      <span className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-sm font-semibold" aria-label={`${balance} ${t.common.credits}`}>
-        <Coins className="size-4 text-accent-text" /> {formatNumber(balance)}
-      </span>
-      {project.status === "READY" && (
-        <>
-          <Button variant="ghost" size="md" disabled={Boolean(proposal)} onClick={() => setStyleOpen(true)} aria-label={t.app.style.button} className="h-9 px-2.5 xl:px-3.5">
-            <Palette /> <span className="hidden xl:inline">{t.app.style.button}</span>
-          </Button>
-          <Button variant="ghost" size="md" disabled={Boolean(proposal)} onClick={() => setMediaOpen(true)} aria-label={t.app.media.button} className="h-9 px-2.5 xl:px-3.5">
-            <Images /> <span className="hidden xl:inline">{t.app.media.button}</span>
-          </Button>
-          <Button variant="ghost" size="md" disabled={Boolean(proposal)} onClick={() => setOverlaysOpen(true)} aria-label="Éléments superposés" className="h-9 px-2.5 xl:px-3.5"><Layers /><span className="hidden xl:inline">Calques</span></Button>
-          <Button variant="ghost" size="md" disabled={Boolean(proposal)} onClick={() => setSoundOpen(true)} aria-label={t.app.sound.button} className="h-9 px-2.5 xl:px-3.5">
-            <Music2 /> <span className="hidden xl:inline">{t.app.sound.button}</span>
-          </Button>
-          <Button variant="ghost" size="md" disabled={Boolean(proposal)} onClick={() => setVariantsOpen(true)} aria-label={t.app.variants.button} className="h-9 px-2.5 xl:px-3.5">
-            <Copy /> <span className="hidden xl:inline">{t.app.variants.button}</span>
-          </Button>
-          <Button variant="ghost" size="md" disabled={Boolean(proposal)} onClick={() => setShareOpen(true)} aria-label={t.app.share.button} className="h-9 px-2.5 xl:px-3.5">
-            <Share2 /> <span className="hidden xl:inline">{t.app.share.button}</span>
-          </Button>
-        </>
+      {project.status === "READY" && <Button variant="ghost" size="md" disabled={undoNumber === null || restoring || Boolean(proposal) || thinking || applying || translating || current?.number !== latest?.number} onClick={handleUndo} aria-label={e.undo} title={e.undoHelp} className="h-9 shrink-0 px-2.5"><Undo2 /><span className="hidden sm:inline">{e.undo}</span></Button>}
+      {project.status === "READY" && <Button variant="ghost" size="md" disabled={Boolean(proposal) || thinking || applying || restoring || translating || current?.number !== latest?.number} onClick={() => setTranslationOpen(true)} aria-label={t.copy["e6646d000948"]} title={t.copy["e6646d000948"]} className="h-9 shrink-0 px-2.5"><Languages /><span className="hidden sm:inline">{t.copy["e6646d000948"]}</span></Button>}
+      {tools.map((tool) => (
+        <Button key={tool.key} variant="ghost" size="md" disabled={restoring || Boolean(proposal) || translating} onClick={tool.onClick} aria-label={tool.label} className="hidden h-9 px-2.5 lg:inline-flex xl:px-3.5">
+          {tool.icon} <span className="hidden xl:inline">{tool.label}</span>
+        </Button>
+      ))}
+      {tools.length > 0 && (
+        <Button variant="ghost" size="md" disabled={restoring || Boolean(proposal)} onClick={() => setToolsOpen(true)} aria-label={t.copy["9fa688952e6d"]} className="size-10 shrink-0 px-0 lg:hidden">
+          <MoreHorizontal />
+        </Button>
       )}
       {project.status === "READY" && (
-        <Button disabled={Boolean(proposal)} onClick={() => setExportOpen(true)} size="md" className="h-9 px-3.5 sm:px-5">
+        <Button disabled={restoring || Boolean(proposal)} onClick={() => setExportOpen(true)} size="md" aria-label={e.export} className="h-9 shrink-0 px-3 sm:px-5">
           <Download /> <span className="hidden sm:inline">{e.export}</span>
         </Button>
       )}
@@ -243,35 +290,68 @@ export function Editor({
     <VersionsPanel versions={versions} selected={selected} onSelect={setSelected} onRestore={handleRestore} restoring={restoring || Boolean(proposal)} layout={layout} showHeader={layout === "list"} />
   );
 
+  const quickSettings = latest && (
+    <QuickSettings key={editingSceneId ?? "global"} sceneId={editingSceneId} graph={latest.graph} videoProps={buildVideoProps(project, latest.graph, plan.watermark)} recipe={getRecipe(latest.graph.styleId ?? project.styleId)} brandFonts={project.brandFonts} onApply={(setting) => handleSetting(setting, editingSceneId ?? undefined)} disabled={restoring || thinking || applying || translating || Boolean(proposal)} />
+  );
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       {topBar}
+      {/* Mobile : onglets Montage / Chat / Versions */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2 lg:hidden">
+        <Segmented
+          label={e.chat}
+          size="sm"
+          value={mobileTab}
+          onChange={setMobileTab}
+          options={[
+            { value: "edit", label: <span className="inline-flex items-center gap-1.5"><SlidersHorizontal className="size-3.5" />{t.copy["121e2522a136"]}</span> },
+            { value: "chat", label: <span className="inline-flex items-center gap-1.5"><MessageSquare className="size-3.5" />{e.chat}{thinking && <span className="size-1.5 animate-pulse rounded-full bg-accent" />}</span> },
+            { value: "versions", label: `${e.versions} (${versions.length})` },
+          ]}
+        />
+        <span className="ml-auto font-mono text-[11px] text-subtle max-[379px]:hidden">{formatSeconds(totalDuration(current.graph), t.locale)}</span>
+      </div>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* Aperçu */}
-        <section aria-label={e.preview} className="relative flex shrink-0 flex-col gap-5 overflow-y-auto bg-bg-subtle p-3 sm:p-6 lg:min-w-0 lg:flex-1 lg:p-8">
+        {/* Aperçu (mobile : en grand dans l'onglet Montage, compact au-dessus du chat et des versions) */}
+        <section
+          aria-label={e.preview}
+          className={cn(
+            "relative flex flex-col gap-4 bg-bg-subtle p-3 sm:p-6 lg:min-w-0 lg:flex-1 lg:gap-5 lg:overflow-y-auto lg:p-8",
+            mobileTab === "edit" ? "max-lg:min-h-0 max-lg:flex-1 max-lg:overflow-y-auto max-lg:overscroll-contain" : "max-lg:shrink-0 max-lg:py-2",
+          )}
+        >
           <div className="pointer-events-none absolute inset-0 bg-grid opacity-60" aria-hidden />
           <div className="relative flex flex-1 items-center">
             <Player
+              initiallyMuted={previewMuted}
+              onMutedChange={setPreviewMuted}
+              initiallyPlaying={previewPlaying}
+              onPlayingChange={setPreviewPlaying}
               key={proposal ? `${proposal.token.slice(-12)}-${compareOriginal}` : current.id}
               videoProps={buildVideoProps(project, proposal && !compareOriginal ? proposal.graph : current.graph, plan.watermark)}
+              compact={mobileTab !== "edit"}
+              variants={{ list: project.variants, currentId: project.id, canCreate: project.status === "READY" && !restoring && !proposal }}
               // Montage seulement sur la dernière version (une ancienne version se restaure d'abord)
-              editing={!proposal && current.number === latest?.number ? { onCommit: handleTimelineCommit, disabled: thinking || applying, initialSceneId: focusScene, onAskScene: (sceneId) => { setChatSceneId(sceneId); setMobileTab("chat"); } } : undefined}
+              editing={!proposal && current.number === latest?.number ? { onCommit: handleTimelineCommit, onSelectScene: setEditingSceneId, onSetting: handleSetting, onMedia: () => setMediaOpen(true), disabled: restoring || thinking || applying, initialSceneId: focusScene, onAskScene: (sceneId) => { setChatSceneId(sceneId); setMobileTab("chat"); } } : undefined}
             />
           </div>
           {proposal && (
-            <div className="relative flex flex-col gap-3 rounded-2xl border border-line-strong bg-surface p-4" aria-live="polite">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div><p className="text-sm font-semibold">Aperçu · {proposal.label}</p><p className="mt-1 text-xs text-muted">Rien n’est enregistré avant validation. La demande au chat utilise un crédit ; appliquer n’en utilise pas d’autre.</p></div>
-                <label className="flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" checked={compareOriginal} disabled={confirming} onChange={(event) => setCompareOriginal(event.target.checked)} className="accent-[var(--accent)]" />Voir l’original</label>
+            <div className="relative flex flex-col gap-3 rounded-2xl border border-line-strong bg-surface p-3 sm:p-4" aria-live="polite">
+              <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+                <div className="min-w-0"><p className="text-sm font-semibold">{t.copy["26594ccd807f"]} {proposal.label}</p><p className="mt-1 text-xs text-muted max-sm:hidden">{t.copy["4983fac3bb52"]}</p></div>
+                <label className="flex min-h-9 cursor-pointer items-center gap-2 text-sm"><input type="checkbox" checked={compareOriginal} disabled={confirming} onChange={(event) => setCompareOriginal(event.target.checked)} className="size-4 accent-[var(--accent)]" />{t.copy["c5f7f2745d2a"]}</label>
               </div>
               <AnimatedApply disabled={confirming} onApply={confirmProposal} onCancel={() => setProposal(null)} />
             </div>
           )}
           {selected !== latest?.number && (
             <p className="relative -mt-2 text-center text-xs text-warning">
-              {format(e.versionLabel, { number: selected })} · {current.label}
+              {format(e.versionLabel, { number: selected })} · {localizeVersionLabel(current.label, t.locale)}
             </p>
           )}
+          {/* Mobile : les réglages d'apparence vivent dans l'onglet Montage (le chat garde toute sa hauteur) */}
+          {mobileTab === "edit" && quickSettings && <div className="relative overflow-hidden rounded-2xl border border-line bg-bg lg:hidden">{quickSettings}</div>}
           <div className="relative hidden flex-col gap-3 lg:flex">
             <button
               type="button"
@@ -293,25 +373,12 @@ export function Editor({
           </div>
         </section>
 
-        {/* Chat (desktop : colonne, mobile : sous l'aperçu avec onglets) */}
-        <aside className="flex min-h-0 flex-1 flex-col border-t border-line bg-bg lg:w-[400px] lg:flex-none lg:border-t-0 lg:border-l">
-          <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2 lg:hidden">
-            <Segmented
-              label={e.chat}
-              size="sm"
-              value={mobileTab}
-              onChange={setMobileTab}
-              options={[
-                { value: "chat", label: e.chat },
-                { value: "versions", label: `${e.versions} (${versions.length})` },
-              ]}
-            />
-            <span className="font-mono text-[11px] text-subtle">{formatSeconds(totalDuration(current.graph))}</span>
-          </div>
+        {/* Chat (desktop : colonne ; mobile : onglets Chat et Versions) */}
+        <aside className={cn("flex min-h-0 flex-1 flex-col border-t border-line bg-bg lg:w-[400px] lg:flex-none lg:border-t-0 lg:border-l", mobileTab === "edit" && "max-lg:hidden")}>
           <div className="hidden items-center justify-between border-b border-line px-4 py-3 lg:flex">
             <p className="text-sm font-semibold">{e.chat}</p>
             <span className="font-mono text-xs text-subtle">
-              {format(e.versionLabel, { number: latest?.number ?? 1 })} · {formatSeconds(totalDuration(current.graph))}
+              {format(e.versionLabel, { number: latest?.number ?? 1 })} · {formatSeconds(totalDuration(current.graph), t.locale)}
             </span>
           </div>
           <ChatPanel
@@ -321,13 +388,44 @@ export function Editor({
             scenes={latest?.graph.scenes}
             targetSceneId={chatTarget?.id ?? null}
             onTargetChange={setChatSceneId}
-            disabled={applying || Boolean(proposal)}
-            toolbar={latest && <QuickSettings graph={latest.graph} videoProps={buildVideoProps(project, latest.graph, plan.watermark)} recipe={getRecipe(latest.graph.styleId ?? project.styleId)} brandFonts={project.brandFonts} onApply={handleSetting} disabled={thinking || applying || Boolean(proposal)} />}
+            disabled={restoring || applying || Boolean(proposal)}
+            toolbar={quickSettings && <div className="max-lg:hidden">{quickSettings}</div>}
             className={cn("flex-1", mobileTab !== "chat" && "max-lg:hidden")}
           />
           {mobileTab === "versions" && <div className="flex-1 overflow-y-auto p-4 lg:hidden">{versionsPanel("list")}</div>}
         </aside>
       </div>
+
+      <TranslationDialog open={translationOpen} onClose={() => setTranslationOpen(false)} projectId={project.id} versionId={current.id} balance={balance} onBusy={setTranslating} onTranslated={(version, nextBalance) => {
+        setBalance(nextBalance);
+        setVersions((list) => list.some((item) => item.id === version.id) ? list : [...list, version]);
+        setSelected(version.number);
+      }} />
+      {/* Mobile : outils du projet en feuille, grandes cibles tactiles */}
+      <Dialog open={toolsOpen} onClose={() => setToolsOpen(false)} title={t.copy["384445ff9409"]}>
+        <div className="mb-3 flex justify-end sm:hidden"><LanguageToggle /></div>
+        <div className="grid grid-cols-2 gap-2">
+          {tools.map((tool) => (
+            <button
+              key={tool.key}
+              type="button"
+              onClick={() => {
+                setToolsOpen(false);
+                tool.onClick();
+              }}
+              className="flex min-h-14 items-center gap-3 rounded-2xl border border-line bg-surface px-4 text-left text-sm font-semibold transition-colors hover:border-line-strong active:bg-surface-2 [&_svg]:size-5 [&_svg]:text-accent-text"
+            >
+              {tool.icon}
+              {tool.label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-2 text-sm font-semibold">
+
+          {t.copy["ee2141f73f7e"]}
+          <ThemeToggle />
+        </div>
+      </Dialog>
 
       {latest && (
         <MediaDialog
@@ -369,7 +467,7 @@ export function Editor({
         />
       )}
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} projectId={project.id} token={shareToken} onToken={setShareToken} />
-      {latest && <VariantsDialog open={variantsOpen} onClose={() => setVariantsOpen(false)} projectId={project.id} format={project.format} graph={latest.graph} />}
+      {latest && <VariantsDialog open={variantsOpen} onClose={() => setVariantsOpen(false)} projectId={project.id} format={project.format} graph={latest.graph} variants={project.variants} />}
 
       <ExportDialog
         open={exportOpen}
@@ -380,6 +478,7 @@ export function Editor({
         plan={plan}
         balance={balance}
         onBalance={setBalance}
+        exported={project.exported}
       />
     </div>
   );

@@ -1,14 +1,19 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { useId, useState } from "react";
 import { Reveal } from "@/components/motion/reveal";
-import { t } from "@/lib/i18n";
+
 import { cn } from "@/lib/utils";
 import { Section, SectionHeading } from "./section-heading";
 
 export function Faq() {
+  const t = useDictionary();
+
   const [open, setOpen] = useState<number | null>(0);
   const baseId = useId();
 

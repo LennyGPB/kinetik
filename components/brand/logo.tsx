@@ -1,29 +1,26 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
+/**
+ * Symbole Kinetik (public/medias) : version noire sur le thème clair, blanche sur le thème sombre.
+ * Les deux images sont rendues, le thème (data-theme sur <html>) choisit laquelle s'affiche : aucun flash au chargement.
+ * Les fichiers ont une marge transparente : le symbole est agrandi pour remplir la boîte.
+ */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        "relative grid size-8 place-items-center overflow-hidden rounded-[10px] bg-accent-gradient shadow-[0_4px_16px_-4px_var(--accent-glow)]",
-        className,
-      )}
-      aria-hidden
-    >
-      <svg viewBox="0 0 24 24" className="size-[62%] text-white" fill="none">
-        <path d="M6 4v16" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
-        <path d="M18 4 9.5 12 18 20" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="18.5" cy="12" r="1.6" fill="currentColor" />
-      </svg>
-      <span className="absolute inset-0 bg-gradient-to-b from-white/25 to-transparent" />
+    <span className={cn("relative grid size-8 shrink-0 place-items-center", className)} aria-hidden>
+      <Image src="/medias/logo_kinetik.png" alt="" width={537} height={538} className="size-full scale-[1.3] object-contain dark:hidden" />
+      <Image src="/medias/logo_kinetik_blanc.png" alt="" width={537} height={538} className="hidden size-full scale-[1.3] object-contain dark:block" />
     </span>
   );
 }
 
 export function Logo({ className }: { className?: string }) {
+
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <LogoMark />
-      <span className="font-display text-[19px] font-bold tracking-[-0.04em]">Kinetik</span>
+      <span className="font-display text-[19px] font-bold tracking-[-0.04em]">{"Kinetik"}</span>
     </span>
   );
 }

@@ -4,7 +4,7 @@ import { getPlan } from "@/config/pricing";
 import { db } from "@/lib/db";
 import { imageSize } from "@/lib/storage";
 import { parseSceneGraph } from "./scenes";
-import type { EditorProject, ProjectCard } from "./types";
+import type { EditorProject, ProjectCard, ProjectVariant } from "./types";
 import type { VideoSource } from "./video-props";
 
 type MediaAsset = { id: string; type: string; url: string; width: number | null; height: number | null };
@@ -55,9 +55,26 @@ export async function listProjects(userId: string): Promise<ProjectCard[]> {
   const rows = await db.project.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
-    select: { id: true, name: true, appName: true, status: true, format: true, duration: true, styleId: true, colors: true, updatedAt: true },
+    select: { id: true, name: true, appName: true, status: true, format: true, duration: true, styleId: true, colors: true, updatedAt: true, sourceProjectId: true },
   });
-  return rows.map((row) => ({ ...row, colors: toColors(row.colors) }));
+  // Les déclinaisons s'ouvrent depuis l'éditeur de leur projet d'origine ; une déclinaison orpheline reste listée
+  const ids = new Set(rows.map((row) => row.id));
+  return rows
+    .filter((row) => !row.sourceProjectId || !ids.has(row.sourceProjectId))
+    .map((row) => ({ id: row.id, name: row.name, appName: row.appName, status: row.status, format: row.format, duration: row.duration, styleId: row.styleId, colors: toColors(row.colors), updatedAt: row.updatedAt }));
+}
+
+/** Le projet d'origine et ses déclinaisons, l'original en premier. La version courte garde le format de l'original. */
+export async function getProjectVariants(userId: string, rootId: string): Promise<ProjectVariant[]> {
+  const rows = await db.project.findMany({
+    where: { userId, OR: [{ id: rootId }, { sourceProjectId: rootId }] },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, format: true, sourceProjectId: true },
+  });
+  const root = rows.find((row) => row.id === rootId);
+  return rows
+    .sort((a, b) => Number(b.id === rootId) - Number(a.id === rootId))
+    .map((row) => ({ id: row.id, format: row.format, short: Boolean(row.sourceProjectId && root && row.format === root.format) }));
 }
 
 export async function getEditorProject(userId: string, projectId: string): Promise<EditorProject | null> {
@@ -70,12 +87,13 @@ export async function getEditorProject(userId: string, projectId: string): Promi
     },
   });
   if (!project) return null;
-  const brandFonts = await getBrandFonts(userId);
+  const [brandFonts, variants, renders] = await Promise.all([getBrandFonts(userId), getProjectVariants(userId, project.sourceProjectId ?? project.id), db.render.count({ where: { projectId: project.id, status: { not: "FAILED" } } })]);
 
   return {
     id: project.id,
     name: project.name,
     appName: project.appName,
+    locale: project.locale === "en" ? "en" : "fr",
     status: project.status,
     format: project.format,
     duration: project.duration,
@@ -91,6 +109,8 @@ export async function getEditorProject(userId: string, projectId: string): Promi
       musicTrackId: project.musicTrackId,
     },
     shareToken: project.shareToken,
+    variants,
+    exported: renders > 0,
     versions: project.versions.map((v) => ({
       id: v.id,
       number: v.number,
@@ -142,6 +162,7 @@ export async function getVideoSource(projectId: string): Promise<VideoSource | n
   if (!project) return null;
   return {
     appName: project.appName,
+    locale: project.locale === "en" ? "en" : "fr",
     format: project.format,
     styleId: project.styleId,
     colors: toColors(project.colors),
@@ -165,6 +186,7 @@ export async function getSharedVideo(token: string) {
   if (!project || project.status !== "READY" || !version) return null;
   const source: VideoSource = {
     appName: project.appName,
+    locale: project.locale === "en" ? "en" : "fr",
     format: project.format,
     styleId: project.styleId,
     colors: toColors(project.colors),

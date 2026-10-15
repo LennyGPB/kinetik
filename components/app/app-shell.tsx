@@ -1,23 +1,19 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Coins, LayoutGrid, LayoutTemplate, Palette, Plus, Settings } from "lucide-react";
 import { motion } from "motion/react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "@/lib/i18n/navigation";
+import { usePathname } from "@/lib/i18n/navigation";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/brand/logo";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
-import { t } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/dashboard", label: t.app.nav.dashboard, icon: LayoutGrid },
-  { href: "/templates", label: t.app.nav.templates, icon: LayoutTemplate },
-  { href: "/brand-kit", label: t.app.nav.brandKit, icon: Palette },
-  { href: "/credits", label: t.app.nav.credits, icon: Coins },
-  { href: "/settings", label: t.app.nav.settings, icon: Settings },
-];
+import { cn } from "@/lib/utils";
 
 function useIsActive() {
   const pathname = usePathname();
@@ -33,6 +29,16 @@ export function AppShell({
   mobileAccount: ReactNode;
   children: ReactNode;
 }) {
+  const t = useDictionary();
+
+  const NAV = [
+  { href: "/dashboard", label: t.app.nav.dashboard, icon: LayoutGrid },
+  { href: "/templates", label: t.app.nav.templates, icon: LayoutTemplate },
+  { href: "/brand-kit", label: t.app.nav.brandKit, icon: Palette },
+  { href: "/credits", label: t.app.nav.credits, icon: Coins },
+  { href: "/settings", label: t.app.nav.settings, icon: Settings },
+];
+
   const isActive = useIsActive();
 
   return (
@@ -45,6 +51,7 @@ export function AppShell({
           </Link>
           <ThemeToggle />
         </div>
+        <div className="px-2 pt-2"><LanguageToggle /></div>
 
         <Link href="/create" className={buttonVariants({ className: "mt-5 w-full rounded-xl" })}>
           <Plus /> {t.app.nav.create}
@@ -89,6 +96,7 @@ export function AppShell({
           <Logo />
         </Link>
         <div className="flex items-center gap-2">
+          <LanguageToggle />
           <ThemeToggle />
           {mobileAccount}
         </div>

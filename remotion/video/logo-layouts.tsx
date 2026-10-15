@@ -6,6 +6,7 @@ import type { Scene } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
 import { textColorOn, useBodyFont, useIsPortrait, useTitleFont, useUnit } from "./theme";
 import { ExtraLogoScene } from "./logo-extra-layouts";
+import { AnimatedTitle } from "./titles";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
@@ -30,11 +31,7 @@ export function LogoLayoutScene({ layout, scene, props, tile }: {
   const settle = interpolate(progress, [0.45, 1], [0, 1], clamp);
   const nameSize = Math.min(u * (portrait ? 8 : 10), (width - u * 16) / Math.max(1, props.appName.length * 0.72));
   const name = (
-    <MovableText target="title">
-    <div style={{ ...font, color, fontSize: nameSize, lineHeight: 1.12, overflowWrap: "anywhere", maxWidth: "100%" }}>
-      {props.appName}
-    </div>
-    </MovableText>
+    <AnimatedTitle text={props.appName} size={nameSize} color={color} palette={props.palette} energy={props.graph.energy} delay={8} />
   );
   const subtitle = scene.subtitle && (
     <MovableText target="subtitle"><p style={{ margin: 0, fontFamily: body, fontSize: u * 3.2, lineHeight: 1.4, color, opacity: settle * 0.75, maxWidth: u * 75 }}>{scene.subtitle}</p></MovableText>

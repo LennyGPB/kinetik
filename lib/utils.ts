@@ -6,12 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /** Formatage de date stable serveur/client (fuseau fixe pour éviter les écarts d'hydratation). */
-export function formatDate(date: Date | string, options: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" }) {
-  return new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", ...options }).format(new Date(date));
+export function formatDate(date: Date | string, options: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" }, locale: "en" | "fr" = "en") {
+  return new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-GB", { timeZone: "Europe/Paris", ...options }).format(new Date(date));
 }
 
-export function formatNumber(value: number) {
-  return new Intl.NumberFormat("fr-FR").format(value);
+export function formatNumber(value: number, locale: "en" | "fr" = "en") {
+  return new Intl.NumberFormat(locale === "fr" ? "fr-FR" : "en-GB").format(value);
 }
 
 /** mm:ss */

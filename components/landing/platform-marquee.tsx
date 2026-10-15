@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { t } from "@/lib/i18n";
 
-const PLATFORMS = ["Product Hunt", "YouTube", "TikTok", "Instagram", "LinkedIn", "X", "App Store", "Google Play", "Reels", "Shorts"];
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
+import { useEffect, useRef, useState } from "react";
 
 export function PlatformMarquee() {
+  const t = useDictionary();
+
+  const PLATFORMS = ["Product Hunt", "YouTube", "TikTok", "Instagram", "LinkedIn", "X", "App Store", "Google Play", "Reels", "Shorts"];
+
   const sectionRef = useRef<HTMLDivElement>(null);
   const [running, setRunning] = useState(true);
 

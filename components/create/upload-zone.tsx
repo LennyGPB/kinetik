@@ -1,14 +1,15 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { ChevronLeft, ChevronRight, FileAudio, ImagePlus, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useToast } from "@/components/ui/toaster";
-import { t } from "@/lib/i18n";
+
 import { uploadFile, type UploadedFile } from "@/lib/storage/client";
 import { cn } from "@/lib/utils";
-
-const a = t.app.create.assets;
 
 type Pending = { id: string; name: string; preview?: string; progress: number };
 
@@ -23,8 +24,10 @@ export function UploadZone({
   className,
   tileClassName,
   reorderable = false,
+  onBusyChange,
 }: {
   value: UploadedFile[];
+  onBusyChange?: (busy: boolean) => void;
   onChange: (files: UploadedFile[]) => void;
   kind?: "image" | "audio";
   multiple?: boolean;
@@ -36,11 +39,16 @@ export function UploadZone({
   /** Flèches pour changer l'ordre des fichiers (images multiples) */
   reorderable?: boolean;
 }) {
+  const t = useDictionary();
+
+  const a = t.app.create.assets;
+
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<Pending[]>([]);
   const [dragging, setDragging] = useState(false);
   const toast = useToast();
+  const uploadingRef = useRef(false);
   // Valeur à jour pendant les uploads parallèles
   const valueRef = useRef(value);
   useEffect(() => {
@@ -51,20 +59,21 @@ export function UploadZone({
   const accept = kind === "image" ? "image/png,image/jpeg,image/webp,image/svg+xml,image/gif" : "audio/*";
 
   async function handleFiles(list: FileList | null) {
-    if (!list?.length) return;
+    if (!list?.length || uploadingRef.current) return;
     const files = Array.from(list).slice(0, multiple ? Math.max(remaining, 0) : 1);
-    if (!multiple) onChange([]);
+    if (!files.length) return;
+    uploadingRef.current = true;
+    onBusyChange?.(true);
 
-    await Promise.all(
-      files.map(async (file) => {
-        const id = `${file.name}-${file.size}-${file.lastModified}`;
+    for (const file of files) {
+        const id = crypto.randomUUID();
         const preview = kind === "image" ? URL.createObjectURL(file) : undefined;
         setPending((list) => [...list, { id, name: file.name, preview, progress: 0 }]);
         try {
           const uploaded = await uploadFile(file, kind, (progress) =>
             setPending((list) => list.map((p) => (p.id === id ? { ...p, progress } : p))),
           );
-          const next = multiple ? [...valueRef.current, uploaded] : [uploaded];
+          const next = multiple ? [...valueRef.current, uploaded].slice(0, max) : [uploaded];
           valueRef.current = next;
           onChange(next);
         } catch (error) {
@@ -73,8 +82,9 @@ export function UploadZone({
           setPending((list) => list.filter((p) => p.id !== id));
           if (preview) URL.revokeObjectURL(preview);
         }
-      }),
-    );
+    }
+    uploadingRef.current = false;
+    onBusyChange?.(false);
     if (inputRef.current) inputRef.current.value = "";
   }
 

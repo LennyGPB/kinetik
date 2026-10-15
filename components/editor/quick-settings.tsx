@@ -1,20 +1,19 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { ChevronDown, ChevronRight, Hash, LayoutPanelTop, RotateCcw, SlidersHorizontal, Type, WholeWord } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import type { BrandFont } from "@/config/fonts";
 import { SCREENS_LAYOUTS, TITLE_ANIMATIONS, type Recipe, type ScreensLayout } from "@/config/recipes";
-import { format, t } from "@/lib/i18n";
-import { MAX_SCREEN_COUNT, type SceneGraph } from "@/lib/projects/scenes";
+import { format } from "@/lib/i18n";
+import { MAX_SCREEN_COUNT, sceneFocuses, type SceneGraph } from "@/lib/projects/scenes";
 import { currentSettings, type QuickSetting } from "@/lib/projects/settings";
 import { cn } from "@/lib/utils";
 import { defaultLogoLayout } from "@/config/recipes";
 import type { VideoProps } from "@/remotion/props";
 import { LogoLayoutPicker } from "./logo-layout-picker";
-
-const s = t.app.editor.settings;
-const animations = t.app.editor.titleAnimations;
-const layouts = t.app.editor.screensLayouts;
 
 type RowId = "animation" | "fonts" | "layout" | "count" | "logo" | "logoBackground";
 
@@ -30,7 +29,13 @@ export function QuickSettings({
   brandFonts,
   onApply,
   disabled,
+  sceneId,
+  logoOnly = false,
+  initiallyOpen = false,
 }: {
+  logoOnly?: boolean;
+  initiallyOpen?: boolean;
+  sceneId?: string | null;
   graph: SceneGraph;
   videoProps: VideoProps;
   recipe: Recipe;
@@ -39,11 +44,22 @@ export function QuickSettings({
   onApply: (setting: QuickSetting) => void;
   disabled?: boolean;
 }) {
+  const t = useDictionary();
+
+  const s = t.app.editor.settings;
+  const animations = t.app.editor.titleAnimations;
+  const layouts = t.app.editor.screensLayouts;
+
   // null = pas encore touché : ouvert sur desktop, replié sur mobile (place limitée sous l'aperçu)
-  const [open, setOpen] = useState<boolean | null>(null);
+  const [open, setOpen] = useState<boolean | null>(initiallyOpen ? true : null);
   const [row, setRow] = useState<RowId | null>(null);
   const id = useId();
-  const current = currentSettings(graph);
+  const scene = graph.scenes.find((item) => item.id === sceneId);
+  const current = currentSettings(scene ? { ...graph, ...scene, scenes: [scene] } : graph);
+  const showScreenCount = videoProps.format === "LANDSCAPE"
+    && !["hero", "split", "bento"].includes(current.screensLayout ?? recipe.screens)
+    && !(scene && sceneFocuses(scene).length)
+    && !scene?.screens?.length;
   const modified = [current.titleAnimation, current.fonts, current.screensLayout, current.screenCount, current.logoLayout, current.logoBackground !== null].filter(Boolean).length;
 
   const apply = (setting: QuickSetting) => {
@@ -64,11 +80,11 @@ export function QuickSettings({
       >
         <SlidersHorizontal className="size-4 shrink-0" />
         <span className="min-w-0 flex-1">
-          <span className="block">{s.title}</span>
+          <span className="block">{scene ? t.copy["419a7e80c9a5"] : s.title}</span>
           <span className="mt-0.5 block text-[11px] font-normal text-accent-fg/80">
             {open === null ? (
-              <><span className="lg:hidden">Ouvrir les réglages</span><span className="hidden lg:inline">Fermer les réglages</span></>
-            ) : open ? "Fermer les réglages" : "Ouvrir les réglages"}
+              <><span className="lg:hidden">{t.copy["57091951bccb"]}</span><span className="hidden lg:inline">{t.copy["5888cb0b1e81"]}</span></>
+            ) : open ? t.copy["5888cb0b1e81"] : t.copy["57091951bccb"]}
           </span>
         </span>
         {modified > 0 && <span className="shrink-0 rounded-full bg-accent-fg/15 px-2 py-0.5 text-[11px] font-medium">{format(modified > 1 ? s.modifiedMany : s.modifiedOne, { count: modified })}</span>}
@@ -77,7 +93,7 @@ export function QuickSettings({
 
       {open !== false && (
         <div id={id} className={cn("mt-5 flex flex-col gap-3 px-2 pb-3", open === null && "max-lg:hidden")}>
-          <Group label={s.groupText}>
+          {!logoOnly && <Group initiallyOpen={Boolean(scene)} key={sceneId ?? "global"} label={s.groupText}>
             <Row
               icon={<Type />}
               label={s.rowAnimation}
@@ -90,10 +106,10 @@ export function QuickSettings({
               <Choices
                 options={TITLE_ANIMATIONS.map((value) => ({ value, label: animations[value], template: value === recipe.titleAnimation }))}
                 value={current.titleAnimation ?? recipe.titleAnimation}
-                onChange={(value) => apply({ kind: "titleAnimation", value: value === recipe.titleAnimation ? null : value })}
+                onChange={(value) => apply({ kind: "titleAnimation", value: scene ? value : value === recipe.titleAnimation ? null : value })}
               />
             </Row>
-            <Row
+            <li><details><summary className="cursor-pointer px-2 py-2 text-xs text-muted">{t.copy["1473558a0745"]}</summary><ul><Row
               icon={<WholeWord />}
               label={s.rowFonts}
               value={current.fonts ? s.fontsBrandShort : s.fontsTemplate}
@@ -112,13 +128,14 @@ export function QuickSettings({
                 columns={1}
               />
             </Row>
-          </Group>
+            </ul></details></li>
+          </Group>}
 
-          {current.hasLogo && (
-            <Group label="Logo">
-              <Row
-                icon={<span className="font-mono text-xs">Aa</span>}
-                label="Mise en scène"
+          {(current.hasLogo || logoOnly) && (
+            <Group initiallyOpen={Boolean(scene)} key={`logo-${sceneId}`} label="Logo">
+              {(!scene || scene.kind === "logo") && <Row
+                icon={<span className="font-mono text-xs">{"Aa"}</span>}
+                label={t.copy["2945e0bae765"]}
                 value={t.app.editor.logoLayouts[current.logoLayout ?? defaultLogoLayout(recipe)]}
                 custom={Boolean(current.logoLayout)}
                 open={row === "logo"}
@@ -132,29 +149,29 @@ export function QuickSettings({
                   disabled={disabled}
                   onChange={(value) => apply({ kind: "logoLayout", value: value === defaultLogoLayout(recipe) ? null : value })}
                 />
-              </Row>
+              </Row>}
               <Row
                 icon={<span className="inline-block size-3 border border-current" />}
-                label="Fond du logo"
-                value={current.logoBackground === false ? "Sans fond" : "Avec fond"}
+                label={t.copy["85e159008364"]}
+                value={current.logoBackground === true ? t.copy["3e76e7f64eaa"] : t.copy["b56f34762139"]}
                 custom={current.logoBackground !== null}
                 open={row === "logoBackground"}
                 disabled={disabled}
                 onToggle={() => toggle("logoBackground")}
               >
                 <Choices
-                  options={[{ value: "with", label: "Avec fond", template: true }, { value: "without", label: "Sans fond" }]}
-                  value={current.logoBackground === false ? "without" : "with"}
-                  onChange={(value) => apply({ kind: "logoBackground", value: value === "without" ? false : null })}
+                  options={[{ value: "without", label: t.copy["b56f34762139"], template: true }, { value: "with", label: t.copy["3e76e7f64eaa"] }]}
+                  value={current.logoBackground === true ? "with" : "without"}
+                  onChange={(value) => apply({ kind: "logoBackground", value: value === "with" ? true : scene ? false : null })}
                 />
-                <p className="mt-2 text-xs leading-relaxed text-muted">Retire la tuile derrière le logo. Pour un logo détouré, utilise une image transparente.</p>
+                <p className="mt-2 text-xs leading-relaxed text-muted">{t.copy["1c5397d837ed"]}</p>
               </Row>
             </Group>
           )}
 
           {/* Réglages des mockups : seulement si la vidéo a des scènes de mockups */}
-          {current.hasScreens && (
-            <Group label={s.groupMockups}>
+          {!logoOnly && current.hasScreens && (
+            <Group initiallyOpen={Boolean(scene)} key={`screens-${sceneId}`} label={s.groupMockups}>
               <Row
                 icon={<LayoutPanelTop />}
                 label={s.rowLayout}
@@ -170,22 +187,22 @@ export function QuickSettings({
                   onChange={(value) => apply({ kind: "screensLayout", value: value === recipe.screens ? null : value })}
                 />
               </Row>
-              <Row
+              {showScreenCount && <Row
                 icon={<Hash />}
                 label={s.rowCount}
-                value={current.screenCount ? countLabel(current.screenCount) : s.auto}
+                value={current.screenCount ? countLabel(current.screenCount, t) : s.auto}
                 custom={Boolean(current.screenCount)}
                 open={row === "count"}
                 disabled={disabled}
                 onToggle={() => toggle("count")}
               >
                 <Choices
-                  options={[{ value: "auto", label: s.auto, template: true }, ...Array.from({ length: MAX_SCREEN_COUNT }, (_, i) => ({ value: String(i + 1), label: countLabel(i + 1) }))]}
+                  options={[{ value: "auto", label: s.auto, template: true }, ...Array.from({ length: MAX_SCREEN_COUNT }, (_, i) => ({ value: String(i + 1), label: countLabel(i + 1, t) }))]}
                   value={current.screenCount ? String(current.screenCount) : "auto"}
                   onChange={(value) => apply({ kind: "screenCount", value: value === "auto" ? null : Number(value) })}
                   columns={4}
                 />
-              </Row>
+              </Row>}
             </Group>
           )}
         </div>
@@ -194,12 +211,15 @@ export function QuickSettings({
   );
 }
 
-function countLabel(count: number) {
+function countLabel(count: number, t: ReturnType<typeof useDictionary>) {
+  const s = t.app.editor.settings;
+
   return count === 1 ? s.oneScreen : format(s.screens, { count });
 }
 
-function Group({ label, children }: { label: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+function Group({ label, children, initiallyOpen = false }: { label: string; children: ReactNode; initiallyOpen?: boolean }) {
+
+  const [open, setOpen] = useState(initiallyOpen);
   const id = useId();
   return (
     <div>
@@ -239,6 +259,10 @@ function Row({
   onToggle: () => void;
   children: ReactNode;
 }) {
+  const t = useDictionary();
+
+  const s = t.app.editor.settings;
+
   const id = useId();
   return (
     <li>
@@ -280,6 +304,10 @@ function Choices<T extends string>({
   onChange: (value: T) => void;
   columns?: 1 | 2 | 4;
 }) {
+  const t = useDictionary();
+
+  const s = t.app.editor.settings;
+
   return (
     <div className={cn("grid gap-1.5", columns === 1 ? "grid-cols-1" : columns === 4 ? "grid-cols-4" : "grid-cols-2")}>
       {options.map((option) => {
@@ -312,6 +340,7 @@ function Choices<T extends string>({
 
 /** Mini-schéma de chaque mise en scène des mockups (24 × 16). */
 function LayoutIcon({ layout }: { layout: ScreensLayout }) {
+
   let key = 0;
   const r = (x: number, y: number, w: number, h: number, extra?: string) => <rect key={key++} x={x} y={y} width={w} height={h} rx={1} transform={extra} />;
   const shapes: Record<ScreensLayout, ReactNode> = {

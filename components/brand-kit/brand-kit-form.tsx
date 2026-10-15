@@ -1,5 +1,8 @@
 "use client";
 
+
+import { useDictionary } from "@/lib/i18n/use-dictionary";
+
 import { Plus, Save } from "lucide-react";
 import { useState, useTransition } from "react";
 import { ColorInput } from "@/components/create/color-input";
@@ -10,11 +13,9 @@ import { Label } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toaster";
 import { BRAND_FONTS, googleFontsHref } from "@/config/fonts";
 import { saveBrandKit } from "@/lib/account/actions";
-import { format, t } from "@/lib/i18n";
+import { format } from "@/lib/i18n";
 import type { BrandKitData } from "@/lib/projects/queries";
 import type { UploadedFile } from "@/lib/storage/client";
-
-const b = t.app.brandKit;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -46,6 +47,10 @@ function FontSelect({ id, label, value, onChange }: { id: string; label: string;
 }
 
 export function BrandKitForm({ initial }: { initial: BrandKitData | null }) {
+  const t = useDictionary();
+
+  const b = t.app.brandKit;
+
   const [logo, setLogo] = useState<UploadedFile[]>(initial?.logo ? [initial.logo] : []);
   const [colors, setColors] = useState<string[]>(initial?.colors.length ? initial.colors : ["#7c3aed", "#f472b6"]);
   const [headingFont, setHeadingFont] = useState(initial?.headingFont ?? "Bricolage Grotesque");
