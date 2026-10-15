@@ -624,7 +624,6 @@
     "registerCta": "Create my account",
     "or": "or",
     "google": "Continue with Google",
-    "discord": "Continue with Discord",
     "noAccount": "Don’t have an account yet?",
     "hasAccount": "Already have an account?",
     "signUpLink": "Sign up",
@@ -647,7 +646,9 @@
       "tooManyAttempts": "Too many attempts. Try again in a few minutes.",
       "disposableEmail": "Disposable email addresses are not accepted. Use your regular address.",
       "noMailServer": "This domain cannot receive emails. Check the address.",
-      "signupBlocked": "Sign-up is unavailable right now. Reload the page and try again."
+      "signupBlocked": "Sign-up is unavailable right now. Reload the page and try again.",
+      "oauthFailed": "Signing in with Google didn't work. Please try again.",
+      "oauthUnverified": "Your Google address isn't verified. Verify it with Google or sign up with your email."
     },
     "visualQuote": "“We launched our product video the very same day. No motion designer could have met that deadline.”",
     "visualAuthor": "Camille R. · Founder of Flowly"

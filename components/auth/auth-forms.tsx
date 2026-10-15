@@ -74,6 +74,8 @@ export function LoginForm() {
   const [state, action, pending] = useActionState<AuthFormState, FormData>(login, {});
   const redirectTo = useRedirectTarget();
   const comingSoon = useComingSoon();
+  // Retour en échec de la connexion Google (app/api/auth/google/callback)
+  const oauthError = { oauth: a.errors.oauthFailed, "oauth-unverified": a.errors.oauthUnverified, disposable: a.errors.disposableEmail, "too-many": a.errors.tooManyAttempts }[useSearchParams().get("error") ?? ""];
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,7 +83,7 @@ export function LoginForm() {
       <Divider />
       <form action={action} className="flex flex-col gap-4" noValidate>
         <input type="hidden" name="redirectTo" value={redirectTo} />
-        <FormError message={state.message} />
+        <FormError message={state.message ?? oauthError} />
         <Field label={a.email} htmlFor="email">
           <Input
             id="email"

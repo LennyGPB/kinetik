@@ -98,7 +98,7 @@ const s = t.app.settings;
   const limited = await accountLimited(user.id);
   if (limited) return { error: limited };
   if (formData.get("keyword") !== s.deleteKeyword) return { error: s.errors.keyword };
-  if (!(await checkPassword(user.id, String(formData.get("password") ?? "")))) return { error: s.errors.wrongPassword };
+  if (user.hasPassword && !(await checkPassword(user.id, String(formData.get("password") ?? "")))) return { error: s.errors.wrongPassword };
 
   // Compte supprimé avant la déconnexion : si la résiliation Stripe échoue, l'utilisateur reste connecté et peut réessayer
   try { await deleteUserWithFiles(user.id); }

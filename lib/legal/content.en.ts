@@ -3,9 +3,8 @@ import type { LegalDoc, LegalSlug } from "./types";
 
 export function legalEn(d: LegalData): Record<LegalSlug, LegalDoc> {
   const vat = d.vatExempt ? "VAT not applicable, article 293 B of the French General Tax Code." : "";
-  const mediator = d.mediator
-    ? `${d.mediator.name}, ${d.mediator.address} — [${d.mediator.url}](${d.mediator.url})`
-    : `${d.placeholder} (consumer mediator)`;
+  // Médiateur de la consommation : affiché seulement une fois renseigné dans config/legal.ts
+  const mediator = d.mediator && `${d.mediator.name}, ${d.mediator.address} — [${d.mediator.url}](${d.mediator.url})`;
 
   return {
     legal: {
@@ -200,10 +199,10 @@ export function legalEn(d: LegalData): Record<LegalSlug, LegalDoc> {
           ],
         },
         {
-          title: "17. Complaints and mediation",
+          title: mediator ? "17. Complaints and mediation" : "17. Complaints",
           blocks: [
             `For any complaint, write to us at ${d.contactEmail}. We reply within 15 business days.`,
-            `Consumers: if the dispute is not resolved, you can refer it free of charge to the consumer mediator, within one year of your written complaint: ${mediator}.`,
+            ...(mediator ? [`Consumers: if the dispute is not resolved, you can refer it free of charge to the consumer mediator, within one year of your written complaint: ${mediator}.`] : []),
           ],
         },
         {

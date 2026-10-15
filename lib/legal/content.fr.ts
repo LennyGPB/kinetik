@@ -3,9 +3,8 @@ import type { LegalDoc, LegalSlug } from "./types";
 
 export function legalFr(d: LegalData): Record<LegalSlug, LegalDoc> {
   const vat = d.vatExempt ? "TVA non applicable, article 293 B du Code général des impôts." : "";
-  const mediator = d.mediator
-    ? `${d.mediator.name}, ${d.mediator.address} — [${d.mediator.url}](${d.mediator.url})`
-    : `${d.placeholder} (médiateur de la consommation)`;
+  // Médiateur de la consommation : affiché seulement une fois renseigné dans config/legal.ts
+  const mediator = d.mediator && `${d.mediator.name}, ${d.mediator.address} — [${d.mediator.url}](${d.mediator.url})`;
 
   return {
     legal: {
@@ -200,10 +199,10 @@ export function legalFr(d: LegalData): Record<LegalSlug, LegalDoc> {
           ],
         },
         {
-          title: "17. Réclamations et médiation",
+          title: mediator ? "17. Réclamations et médiation" : "17. Réclamations",
           blocks: [
             `Pour toute réclamation, écrivez-nous à ${d.contactEmail}. Nous répondons sous 15 jours ouvrés.`,
-            `Consommateurs : si le différend n'est pas résolu, vous pouvez saisir gratuitement le médiateur de la consommation, dans un délai d'un an à compter de votre réclamation écrite : ${mediator}.`,
+            ...(mediator ? [`Consommateurs : si le différend n'est pas résolu, vous pouvez saisir gratuitement le médiateur de la consommation, dans un délai d'un an à compter de votre réclamation écrite : ${mediator}.`] : []),
           ],
         },
         {

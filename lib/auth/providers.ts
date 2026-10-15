@@ -1,13 +1,9 @@
 /**
- * Fournisseurs OAuth — UI uniquement pour l'instant.
- *
- * Pour brancher un fournisseur :
- *  1. Renseigner les variables d'env (GOOGLE_CLIENT_ID / _SECRET, DISCORD_CLIENT_ID / _SECRET).
- *  2. Créer `app/api/auth/[provider]/route.ts` (redirection vers `authorizeUrl` avec state + PKCE)
- *     et `app/api/auth/[provider]/callback/route.ts` (échange du code, upsert User + Account, createSession).
- *  3. Passer `enabled` à true.
+ * Fournisseurs OAuth affichés sur les pages de connexion et d'inscription.
+ * Google : lib/auth/google.ts et app/api/auth/google (variables GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).
+ * Discord retiré pour l'instant (la table Account reste multi-fournisseurs).
  */
-export type OAuthProviderId = "google" | "discord";
+export type OAuthProviderId = "google";
 
 export type OAuthProvider = {
   id: OAuthProviderId;
@@ -21,20 +17,13 @@ export const OAUTH_PROVIDERS: OAuthProvider[] = [
   {
     id: "google",
     name: "Google",
-    enabled: false,
+    enabled: true,
     authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     scopes: ["openid", "email", "profile"],
   },
-  {
-    id: "discord",
-    name: "Discord",
-    enabled: false,
-    authorizeUrl: "https://discord.com/oauth2/authorize",
-    scopes: ["identify", "email"],
-  },
 ];
 
-/** URL de démarrage du flux OAuth (route à créer à l'étape 2). */
+/** URL de démarrage du flux OAuth. */
 export function oauthStartUrl(provider: OAuthProviderId, redirectTo?: string) {
   const params = redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : "";
   return `/api/auth/${provider}${params}`;

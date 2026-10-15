@@ -152,7 +152,8 @@ function ThemePicker() {
   );
 }
 
-function DangerZone() {
+/** Comptes Google sans mot de passe : la confirmation par mot-clé suffit (la session prouve déjà l'identité). */
+function DangerZone({ hasPassword }: { hasPassword: boolean }) {
   const t = useDictionary();
 
   const s = t.app.settings;
@@ -174,9 +175,11 @@ function DangerZone() {
           <Field label={s.deleteKeyword} htmlFor="delete-keyword">
             <Input id="delete-keyword" name="keyword" autoComplete="off" placeholder={s.deleteKeyword} required />
           </Field>
-          <Field label={t.auth.password} htmlFor="delete-password">
-            <PasswordInput id="delete-password" name="password" autoComplete="current-password" required />
-          </Field>
+          {hasPassword && (
+            <Field label={t.auth.password} htmlFor="delete-password">
+              <PasswordInput id="delete-password" name="password" autoComplete="current-password" required />
+            </Field>
+          )}
           <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="ghost" onClick={() => setOpen(false)}>
               {t.common.cancel}
@@ -215,7 +218,7 @@ export function SettingsForms({ name, email, hasPassword }: { name: string; emai
         <ThemePicker />
       </Card>
       <Card title={s.danger} description={s.dangerDesc} tone="danger">
-        <DangerZone />
+        <DangerZone hasPassword={hasPassword} />
       </Card>
     </div>
   );
