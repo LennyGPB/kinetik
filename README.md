@@ -1,5 +1,8 @@
 # Kinetik
 
+**Posts Instagram et carrousels** : formulaire `/create?kind=post`, éditeur dédié, 1 à 5 images,
+templates classiques ou liés, exports PNG/JPG et crédits partagés. Voir [docs/POSTS.md](docs/POSTS.md).
+
 SaaS de génération de vidéos de motion design (lancement produit, présentation d'app) par IA.
 **Phase 1 : design + front.** Auth, base de données et ledger de crédits sont réels ; génération IA, rendu vidéo, paiement et analyse audio sont mockés derrière des interfaces prêtes à brancher.
 

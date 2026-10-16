@@ -31,6 +31,7 @@ export function SceneTimeline({
   total,
   onSeek,
   editable,
+  preview = false,
   selectedId,
   onSelect,
   onEdit,
@@ -40,6 +41,7 @@ export function SceneTimeline({
   total: number;
   onSeek: (frame: number) => void;
   editable: boolean;
+  preview?: boolean;
   selectedId: string | null;
   onSelect: (sceneId: string | null) => void;
   onEdit: (edit: TimelineEdit) => void;
@@ -208,15 +210,15 @@ export function SceneTimeline({
               }
               className={cn(
                 "group/tl relative h-7 min-w-3 overflow-visible rounded-md max-lg:h-12 max-lg:rounded-lg transition-[opacity,box-shadow]",
-                SCENE_COLORS[scene.kind].bg,
+                preview ? "bg-surface-2 ring-1 ring-inset ring-line" : SCENE_COLORS[scene.kind].bg,
                 editable && "cursor-grab outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing",
                 selected && "ring-2 ring-accent ring-offset-2 ring-offset-bg-subtle shadow-[0_0_18px_-2px_var(--accent-glow)]",
                 dragging && drag?.mode === "move" && "z-10 -translate-y-0.5 shadow-lg",
               )}
               style={{ flex: duration }}
             >
-              <span className={cn("pointer-events-none absolute inset-0 hidden items-center truncate overflow-hidden rounded-md px-1.5 text-[10px] font-semibold sm:flex", SCENE_COLORS[scene.kind].text)}>
-                {editable ? sceneLabel(scene.kind, t.locale) : scene.kind}
+              <span className={cn("pointer-events-none absolute inset-0 hidden items-center truncate overflow-hidden rounded-md px-1.5 text-[10px] font-semibold sm:flex", preview ? "text-muted" : SCENE_COLORS[scene.kind].text)}>
+                {editable || preview ? sceneLabel(scene.kind, t.locale) : scene.kind}
               </span>
               {editable && (
                 <span

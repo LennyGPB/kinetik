@@ -42,7 +42,7 @@ function insufficient(error: InsufficientCreditsError) {
 }
 
 async function ownedProject(userId: string, projectId: string) {
-  return db.project.findFirst({ where: { id: projectId, userId } });
+  return db.project.findFirst({ where: { id: projectId, userId, kind: "MOTION" } });
 }
 
 type LimitKind = "generation" | "edit" | "setting" | "project" | "export" | "renderStatus";
@@ -522,7 +522,7 @@ async function editableProject(projectId: string) {
   const user = await getCurrentUser();
   if (!user) return { ok: false as const, error: "unauthorized" as const };
   if (await overLimit("setting", user.id)) return { ok: false as const, error: "rate_limited" as const };
-  const project = await db.project.findFirst({ where: { id: projectId, userId: user.id }, include: { assets: { where: { type: "MUSIC" } } } });
+  const project = await db.project.findFirst({ where: { id: projectId, userId: user.id, kind: "MOTION" }, include: { assets: { where: { type: "MUSIC" } } } });
   if (!project) return { ok: false as const, error: "not_found" as const };
   if (project.status !== "READY") return { ok: false as const, error: "busy" as const };
   return { ok: true as const, project };
@@ -616,7 +616,7 @@ const v = t.app.variants;
   if (!unique.length || unique.length > 4 || !unique.every(isVariantKind)) return { ok: false, error: "invalid" };
   if (await overLimit("setting", user.id)) return { ok: false, error: "rate_limited" };
 
-  const project = await db.project.findFirst({ where: { id: projectId, userId: user.id }, include: { assets: true } });
+  const project = await db.project.findFirst({ where: { id: projectId, userId: user.id, kind: "MOTION" }, include: { assets: true } });
   if (!project) return { ok: false, error: "not_found" };
   if (project.status !== "READY") return { ok: false, error: "busy" };
   const latest = await db.projectVersion.findFirst({ where: { projectId }, orderBy: { number: "desc" } });
@@ -714,6 +714,8 @@ const types = t.app.credits.types;
   let cost = 0;
 
   if (!(await limitKey("export-global", "all", LIMITS.exportGlobal)).ok) return { ok: false, error: "rate_limited" };
+  // Les comptes gratuits (faciles à multiplier) ne peuvent consommer qu'une partie du plafond global : les clients payants gardent leur part
+  if (plan.id === "FREE" && !(await limitKey("export-global-free", "all", LIMITS.exportGlobalFree)).ok) return { ok: false, error: "rate_limited" };
 
   const lock = await acquireLock(`export:${user.id}`, 15_000, true);
   if (!lock) return { ok: false, error: "export_busy" };
@@ -846,6 +848,9 @@ async function renderStatus(userId: string, renderId: string): Promise<RenderSta
 
   // Rendu Lambda en cours
   if (render.lambdaRenderId && render.bucketName) {
+    // Chaque lecture de progression invoque une Lambda (coût + quota d'exécutions simultanées partagé par TOUS les exports) :
+    // au plus une lecture toutes les 3 s par rendu, quels que soient le nombre d'onglets ou les appels répétés
+    if (!(await acquireLock(`render-poll:${render.id}`, 3000))) return { renderId, status: "RENDERING", progress: render.progress, url: null };
     const lambda = await getLambdaProgress(render.lambdaRenderId, render.bucketName);
     // Quota AWS saturé le temps d'une lecture : le rendu continue, on garde la dernière progression connue
     if (!lambda) return { renderId, status: "RENDERING", progress: render.progress, url: null };
@@ -907,6 +912,7 @@ export async function duplicateProject(projectId: string): Promise<ActionResult<
       videoType: project.videoType,
       locale: project.locale,
       // Sans version (brouillon, génération échouée) : la copie repart en brouillon
+      kind: project.kind,
       status: latest ? "READY" : "DRAFT",
       format: project.format,
       duration: project.duration,

@@ -4,6 +4,7 @@ import { getPlan } from "@/config/pricing";
 import { db } from "@/lib/db";
 import { imageSize } from "@/lib/storage";
 import { parseSceneGraph } from "./scenes";
+import { PostDocumentSchema } from "@/lib/posts/document";
 import type { EditorProject, ProjectCard, ProjectVariant } from "./types";
 import type { VideoSource } from "./video-props";
 
@@ -55,13 +56,13 @@ export async function listProjects(userId: string): Promise<ProjectCard[]> {
   const rows = await db.project.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
-    select: { id: true, name: true, appName: true, status: true, format: true, duration: true, styleId: true, colors: true, updatedAt: true, sourceProjectId: true },
+    select: { id: true, name: true, appName: true, status: true, format: true, duration: true, styleId: true, colors: true, updatedAt: true, sourceProjectId: true, kind: true, versions: { where: { project: { kind: "POST" } }, orderBy: { number: "desc" }, take: 1, select: { scenes: true } }, assets: { where: { project: { kind: "POST" }, type: { in: ["LOGO", "SCREEN"] } }, orderBy: { position: "asc" }, select: { type: true, url: true, width: true, height: true } } },
   });
   // Les déclinaisons s'ouvrent depuis l'éditeur de leur projet d'origine ; une déclinaison orpheline reste listée
   const ids = new Set(rows.map((row) => row.id));
   return rows
     .filter((row) => !row.sourceProjectId || !ids.has(row.sourceProjectId))
-    .map((row) => ({ id: row.id, name: row.name, appName: row.appName, status: row.status, format: row.format, duration: row.duration, styleId: row.styleId, colors: toColors(row.colors), updatedAt: row.updatedAt }));
+    .map((row) => ({ id: row.id, name: row.name, appName: row.appName, status: row.status, format: row.format, duration: row.duration, styleId: row.styleId, colors: toColors(row.colors), updatedAt: row.updatedAt, kind: row.kind, ...(row.kind === "POST" && { postDocument: PostDocumentSchema.safeParse(row.versions[0]?.scenes).data, postMedia: { logoUrl: row.assets.find((asset) => asset.type === "LOGO")?.url ?? null, screenUrls: row.assets.filter((asset) => asset.type === "SCREEN").map((asset) => asset.url), screenRatios: row.assets.filter((asset) => asset.type === "SCREEN").map((asset) => asset.width && asset.height ? asset.width / asset.height : null) } }) }));
 }
 
 /** Le projet d'origine et ses déclinaisons, l'original en premier. La version courte garde le format de l'original. */
@@ -79,7 +80,7 @@ export async function getProjectVariants(userId: string, rootId: string): Promis
 
 export async function getEditorProject(userId: string, projectId: string): Promise<EditorProject | null> {
   const project = await db.project.findFirst({
-    where: { id: projectId, userId },
+    where: { id: projectId, userId, kind: "MOTION" },
     include: {
       versions: { orderBy: { number: "asc" } },
       messages: { orderBy: { createdAt: "asc" } },
@@ -183,7 +184,7 @@ export async function getSharedVideo(token: string) {
     },
   });
   const version = project?.versions[0];
-  if (!project || project.status !== "READY" || !version) return null;
+  if (!project || project.kind !== "MOTION" || project.status !== "READY" || !version) return null;
   const source: VideoSource = {
     appName: project.appName,
     locale: project.locale === "en" ? "en" : "fr",

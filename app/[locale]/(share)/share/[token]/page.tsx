@@ -16,6 +16,8 @@ import { buildVideoProps } from "@/lib/projects/video-props";
 import { LIMITS, limitKey, requestIp, tooMany } from "@/lib/security/limits";
 import { cn } from "@/lib/utils";
 import { withSharedMedia } from "@/lib/storage/shared-media";
+import { getSharedPost } from "@/lib/posts/queries";
+import { PostPreview } from "@/components/posts/post-preview";
 
 // Lien privé : jamais indexé
 export async function generateMetadata(): Promise<Metadata> { const t = await getServerDictionary(); return { title: t.app.share.madeWith, robots: { index: false, follow: false } }; }
@@ -29,6 +31,8 @@ async function SharedVideo({ params }: { params: PageProps<"/[locale]/share/[tok
   // Page publique : limite par IP (énumération de jetons, aspiration)
   const limited = await limitKey("share", await requestIp(), LIMITS.sharePage);
   if (!limited.ok) return <p className="text-center text-muted">{tooMany(limited)}</p>;
+  const post = await getSharedPost(token);
+  if (post) return <div className="w-full max-w-5xl"><h1 className="mb-6 text-center text-xl font-semibold">{post.name}</h1><div className="overflow-x-auto pb-4"><div className="flex w-max min-w-full justify-center">{post.document.pages.map((page, index) => <PostPreview key={page.id} document={post.document} index={index} appName={post.appName} logoUrl={post.logoUrl} screenUrls={post.screenUrls} screenRatios={post.screenRatios} watermark={post.watermark} className="w-[280px] shrink-0 sm:w-[340px]" />)}</div></div></div>;
   const shared = await getSharedVideo(token);
   if (!shared) notFound();
 

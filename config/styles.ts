@@ -7,7 +7,7 @@ export type { BackgroundKind, Recipe, ScreensLayout, Typography } from "./recipe
 /** Fond animé du template (alias historique). */
 export type SceneKind = BackgroundKind;
 
-export type StyleCategory = "tech" | "minimal" | "typo" | "bold" | "fun" | "business";
+export type StyleCategory = "editorial" | "tech" | "minimal" | "typo" | "bold" | "fun" | "business";
 
 /** Fiche catalogue d'un template. Son rendu est décrit par sa recette (config/recipes.ts). */
 export type VideoStyle = {
@@ -23,9 +23,24 @@ export type VideoStyle = {
   recipe: Recipe;
 };
 
-export const STYLE_CATEGORIES: StyleCategory[] = ["tech", "minimal", "typo", "bold", "fun", "business"];
+export const STYLE_CATEGORIES: StyleCategory[] = ["editorial", "tech", "minimal", "typo", "bold", "fun", "business"];
 
 const CATALOG: Omit<VideoStyle, "recipe">[] = [
+  { id: "cadran", name: "Cadran", category: "editorial", palette: ["#242724", "#FBF0DF", "#CDBFA3"], ratio: "9:16" },
+  { id: "passage", name: "Passage", category: "editorial", palette: ["#171B1E", "#FFF0DD", "#DA6944"], ratio: "9:16" },
+  { id: "reverie", name: "Rêverie", category: "editorial", palette: ["#23302D", "#F9EEDD", "#E6AF91"], ratio: "9:16" },
+  { id: "duplex", name: "Duplex", category: "editorial", palette: ["#292623", "#FAEEDA", "#BFA580"], ratio: "4:5" },
+  { id: "terracotta", name: "Terracotta", category: "editorial", palette: ["#873C2B", "#FFF1DD", "#DE9972"], ratio: "9:16" },
+  { id: "silhouette", name: "Silhouette", category: "editorial", palette: ["#242320", "#F8EDDE", "#C1A27B"], ratio: "9:16" },
+  { id: "bulletin", name: "Bulletin", category: "editorial", palette: ["#202020", "#FFF3E6", "#C63D20"], ratio: "9:16" },
+  { id: "montage", name: "Montage", category: "editorial", palette: ["#191D20", "#FFF3E6", "#D87550"], ratio: "9:16" },
+  { id: "fervor", name: "Fervor", category: "editorial", palette: ["#6A2418", "#FFF3E2", "#F16D2E"], ratio: "9:16" },
+  { id: "horizon", name: "Horizon", category: "editorial", palette: ["#17353E", "#FFF0D7", "#D4B986"], ratio: "4:5" },
+  { id: "dispatch", name: "Dispatch", category: "editorial", palette: ["#181818", "#FFF5E9", "#D83A18"], ratio: "9:16" },
+  { id: "maison", name: "Maison", category: "editorial", palette: ["#242B28", "#FFF3E6", "#DEC6A5"], ratio: "9:16" },
+  { id: "oblique", name: "Oblique", category: "editorial", palette: ["#181A1A", "#F6F0E5", "#EB633A"], ratio: "9:16" },
+  { id: "solstice", name: "Solstice", category: "editorial", palette: ["#433425", "#FFF2DB", "#EAC496"], ratio: "9:16" },
+  { id: "archive", name: "Archive", category: "editorial", palette: ["#252725", "#F6F0E5", "#CAB898"], ratio: "4:5" },
   { id: "monolith", name: "Monolith", category: "minimal", palette: ["#f4f3ef", "#171717", "#171717"], ratio: "9:16" },
   { id: "focus", name: "Focus", category: "minimal", palette: ["#111316", "#e9e7df", "#e9e7df"], ratio: "16:9" },
   { id: "prism", name: "Prism", category: "tech", palette: ["#110e23", "#b49bfa", "#64dbc3"], ratio: "9:16" },

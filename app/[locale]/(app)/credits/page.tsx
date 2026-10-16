@@ -138,7 +138,7 @@ async function CreditsContent() {
         </div>
         <div>
           <h2 className="text-xl font-semibold">{t.landing.pricing.costsTitle}</h2>
-          <CreditCosts className="mt-4" />
+          <CreditCosts className="mt-4" includePosts />
         </div>
       </section>
 

@@ -13,6 +13,8 @@ import { getCreditBalance } from "@/lib/credits/ledger";
 import { format } from "@/lib/i18n";
 import { listProjects } from "@/lib/projects/queries";
 import { cn } from "@/lib/utils";
+import { postCopy } from "@/lib/posts/copy";
+import { getPostGenerationCost } from "@/config/credits";
 
 export async function generateMetadata(): Promise<Metadata> { const t = await getServerDictionary(); return { title: t.app.nav.dashboard }; }
 
@@ -26,7 +28,7 @@ async function DashboardContent() {
 
   const user = await requireUser();
   const [projects, balance] = await Promise.all([listProjects(user.id), getCreditBalance(user.id)]);
-  const canGenerate = balance.total >= CREDIT_COSTS.generation;
+  const canGenerate = balance.total >= getPostGenerationCost(1);
   const firstName = user.name.split(" ")[0];
 
   return (
@@ -50,15 +52,18 @@ async function DashboardContent() {
             )}
           >
             <Coins className="size-3.5" />
-            {format(canGenerate ? d.hero.cost : d.hero.lowBalance, { cost: CREDIT_COSTS.generation, balance: balance.total })}
+            {format(canGenerate ? d.hero.cost : d.hero.lowBalance, { cost: canGenerate ? CREDIT_COSTS.generation : getPostGenerationCost(1), postCost: getPostGenerationCost(1), balance: balance.total })}
           </Link>
           <div>
             <h2 className="font-heading text-2xl font-semibold text-balance sm:text-[2rem] sm:leading-[1.1]">{d.hero.title}</h2>
             <p className="mt-3 max-w-md text-muted">{d.hero.text}</p>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <Link href="/create" className={buttonVariants({ size: "lg" })}>
-              <Plus /> {d.newVideo}
+            <Link href="/create" className={buttonVariants({ size: "lg", variant: "purple" })}>
+              <Plus /> {d.newVideo} · {CREDIT_COSTS.generation} {t.common.credits}
+            </Link>
+            <Link href="/create?kind=post" className={buttonVariants({ size: "lg", variant: "outline" })}>
+              <Plus /> {postCopy(t.locale).create} · {getPostGenerationCost(1)} {postCopy(t.locale).credits}
             </Link>
             <Link href="/templates" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-fg">
               {d.hero.templates} <ArrowRight className="size-4" />

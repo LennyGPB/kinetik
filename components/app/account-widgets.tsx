@@ -2,7 +2,7 @@ import { getServerDictionary } from "@/lib/i18n/server";
 import { Coins, Plus } from "lucide-react";
 import Link from "@/lib/i18n/navigation";
 import { buttonVariants } from "@/components/ui/button";
-import { CREDIT_COSTS } from "@/config/credits";
+import { CREDIT_COSTS, getPostGenerationCost } from "@/config/credits";
 import { getPlan } from "@/config/pricing";
 import { requireUser } from "@/lib/auth/dal";
 import { getCreditBalance } from "@/lib/credits/ledger";
@@ -19,6 +19,7 @@ export async function SidebarAccount() {
   const plan = getPlan(user.plan);
   // Ce que représente le solde : nombre de vidéos générables (hors modifs et export)
   const videos = Math.floor(balance.total / CREDIT_COSTS.generation);
+  const posts = Math.floor(balance.total / getPostGenerationCost(1));
 
   return (
     <div className="flex flex-col gap-3">
@@ -37,10 +38,10 @@ export async function SidebarAccount() {
           <span className="text-3xl font-semibold tracking-tight tabular-nums">{formatNumber(balance.total, t.locale)}</span>
           <span className="text-sm text-muted">{t.common.credits}</span>
         </p>
-        <p className={cn("relative mt-0.5 text-xs", videos ? "text-subtle" : "font-medium text-accent-text")}>
-          {videos ? format(videos === 1 ? t.app.videosLeftOne : t.app.videosLeft, { count: videos }) : t.app.notEnoughForVideo}
+        <p className={cn("relative mt-0.5 text-xs", posts ? "text-subtle" : "font-medium text-accent-text")}>
+          {t.locale === "fr" ? `Génération : ≈ ${videos} vidéos ou ${posts} posts` : `Generation: ≈ ${videos} videos or ${posts} posts`}
         </p>
-        <Link href="/credits" className={cn(buttonVariants({ variant: videos ? "soft" : "primary", size: "sm" }), "relative mt-3 w-full")}>
+        <Link href="/credits" className={cn(buttonVariants({ variant: posts ? "soft" : "primary", size: "sm" }), "relative mt-3 w-full")}>
           <Plus /> {t.app.buyCredits}
         </Link>
       </div>

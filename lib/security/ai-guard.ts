@@ -25,6 +25,8 @@ export async function allowAiAttempt(caller: AiCaller): Promise<boolean> {
     [`ai:account:${caller.userId}`, { limit: free ? 12 : 200, windowMs: DAY, strict: true }],
   ]);
   if (!account.ok) return false;
+  // Comptes gratuits (faciles à multiplier) : au plus 40 % du plafond global, pour qu'ils ne puissent pas l'épuiser au détriment des payants
+  if (free && !(await rateLimitAll([["ai:global-free", { limit: Math.max(1, Math.floor(daily * 0.4)), windowMs: DAY, strict: true }]])).ok) return false;
   return (await rateLimitAll([["ai:global", { limit: daily, windowMs: DAY, strict: true }]])).ok;
 }
 

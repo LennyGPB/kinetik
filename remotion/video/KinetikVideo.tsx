@@ -1,7 +1,8 @@
 import { SceneClock, TextSceneContext } from "./movable-text";
 import { overlayApplies } from "../../lib/projects/overlays";
 import { OverlayLayer } from "./overlays";
-import { AbsoluteFill, Audio, interpolate, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Img, getRemotionEnvironment, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { EditorialBackdrop } from "./editorial-backdrop";
 import { beatGrid } from "../../lib/projects/scenes";
 import { sceneSettings } from "../../lib/projects/scene-settings";
 import { durationInFrames, type VideoProps } from "../props";
@@ -31,12 +32,19 @@ export function KinetikVideo(input: VideoProps) {
   const colors = props.brandColors ?? graph.colors;
   const activeIndex = Math.max(0, timeline.findIndex((item) => frame >= item.from && frame < item.from + item.duration));
   const activePalette = scenePalette(palette, colors, activeIndex);
+  const activeScene = timeline[activeIndex];
+  const photoUrls = props.screenUrls;
+  const photoUrl = activeScene?.scene.screens?.find((url) => photoUrls.includes(url)) ?? photoUrls[activeIndex % Math.max(1, photoUrls.length)];
+  const photoSrc = photoUrl?.startsWith("/post-demos/") && getRemotionEnvironment().isRendering ? staticFile(photoUrl.slice(1)) : photoUrl;
 
   return (
     <RecipeContext value={recipe}>
       <BeatContext value={{ bpm: graph.bpm, phaseFrames }}>
         <AbsoluteFill style={{ backgroundColor: palette[0], overflow: "hidden" }}>
-          <Background kind={recipe.background} palette={activePalette} energy={graph.energy} />
+          {recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={activePalette}
+            progress={activeScene ? Math.max(0, Math.min(1, (frame - activeScene.from) / activeScene.duration)) : 0}
+            renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} />
+            : <Background kind={recipe.background} palette={activePalette} energy={graph.energy} />}
           <Effects effects={recipe.effects} layer="under" palette={activePalette} />
 
           {timeline.map(({ scene, from, duration }, i) => {

@@ -19,8 +19,11 @@ import { deleteProject, duplicateProject } from "@/lib/projects/actions";
 import type { ProjectCard, ProjectStatus } from "@/lib/projects/types";
 import { projectVisual } from "@/lib/projects/visuals";
 import { formatDate } from "@/lib/utils";
+import { postCopy } from "@/lib/posts/copy";
+import { PostPreview } from "@/components/posts/post-preview";
+import { POST_FORMATS } from "@/config/post-templates";
 
-type Filter = "all" | Exclude<ProjectStatus, "FAILED">;
+type Filter = "all" | ProjectStatus;
 
 const STATUS_TONE: Record<ProjectStatus, BadgeTone> = { DRAFT: "neutral", GENERATING: "accent", READY: "success", FAILED: "danger" };
 
@@ -41,6 +44,8 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
   const d = t.app.dashboard;
 
   const [filter, setFilter] = useState<Filter>("all");
+  const [kind, setKind] = useState("all");
+  const c = postCopy(t.locale);
   const [toDelete, setToDelete] = useState<ProjectCard | null>(null);
   const [pending, startTransition] = useTransition();
   const [duplicating, setDuplicating] = useState<string | null>(null);
@@ -53,7 +58,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
   };
   const toast = useToast();
 
-  const visible = useMemo(() => (filter === "all" ? projects : projects.filter((p) => p.status === filter)), [filter, projects]);
+  const visible = useMemo(() => projects.filter((p) => (filter === "all" || p.status === filter) && (kind === "all" || (p.kind ?? "MOTION") === kind)), [filter, kind, projects]);
 
   if (projects.length === 0) return <EmptyState />;
 
@@ -70,10 +75,13 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
             size="sm"
             value={filter}
             onChange={setFilter}
-            options={(["all", "DRAFT", "GENERATING", "READY"] as Filter[]).map((value) => ({ value, label: d.filters[value] }))}
+            options={(["all", "DRAFT", "GENERATING", "READY", "FAILED"] as Filter[]).map((value) => ({ value, label: value === "FAILED" ? t.app.status.FAILED : d.filters[value] }))}
           />
         </div>
       </div>
+
+      <div className="mt-5 overflow-x-auto"><Segmented label={c.newContent} value={kind} onChange={setKind} options={[{ value: "all", label: c.all }, { value: "MOTION", label: c.motion }, { value: "POST", label: c.posts }]} /></div>
+      {visible.length === 0 && <p className="py-12 text-center text-sm text-muted">{c.empty}</p>}
 
       <motion.ul layout className="mt-5 grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence mode="popLayout">
@@ -92,7 +100,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
                 <Link href={`/project/${project.id}`} className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-accent">
                   <div className="relative aspect-video overflow-hidden rounded-2xl border border-line bg-surface transition-[border-color] duration-300 group-hover:border-line-strong">
                     <div className="absolute inset-0 transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.03]">
-                      <VideoPlaceholder ratio="fill" palette={visual.palette} scene={visual.scene} label={project.appName} paused={project.status !== "READY"} />
+                      {project.kind === "POST" && project.postDocument ? <div className="flex h-full items-center justify-center" style={{ background: project.postDocument.colors[0] }}><PostPreview document={project.postDocument} appName={project.appName} {...project.postMedia} className="h-full" /></div> : <VideoPlaceholder ratio="fill" palette={visual.palette} scene={visual.scene} label={project.appName} paused={project.status !== "READY"} />}
                     </div>
                     {project.status === "GENERATING" && (
                       <div className="absolute inset-0 overflow-hidden bg-black/30">
@@ -110,7 +118,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
                     <div className="min-w-0">
                       <p className="truncate text-[15px] font-medium">{project.name}</p>
                       <p className="mt-0.5 text-[13px] text-subtle">
-                        {VIDEO_FORMATS[project.format].ratio} · {project.duration}  {"s ·"} {formatDate(project.updatedAt, undefined, t.locale)}
+                        {project.kind === "POST" ? `${c.posts} · ${project.postDocument?.pages.length ?? 1} ${c.pages.toLowerCase()} · ${project.postDocument ? POST_FORMATS[project.postDocument.format].ratio : ""}` : `${VIDEO_FORMATS[project.format].ratio} · ${project.duration} s`} · {formatDate(project.updatedAt, undefined, t.locale)}
                       </p>
                     </div>
                   </div>

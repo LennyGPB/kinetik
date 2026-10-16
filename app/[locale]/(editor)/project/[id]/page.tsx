@@ -9,12 +9,25 @@ import { requireUser } from "@/lib/auth/dal";
 import { getCreditBalance } from "@/lib/credits/ledger";
 
 import { getEditorProject } from "@/lib/projects/queries";
+import { db } from "@/lib/db";
+import { getPostEditor } from "@/lib/posts/queries";
+import { PostEditor } from "@/components/posts/post-editor";
+
+export const maxDuration = 180;
 
 export async function generateMetadata(): Promise<Metadata> { const t = await getServerDictionary(); return { title: t.app.editor.title }; }
 
 async function EditorLoader({ params }: { params: PageProps<"/[locale]/project/[id]">["params"] }) {
   const { id } = await params;
   const user = await requireUser();
+  const content = await db.project.findFirst({ where: { id, userId: user.id }, select: { kind: true } });
+  if (!content) notFound();
+  if (content.kind === "POST") {
+    const post = await getPostEditor(user.id, id);
+    const balance = await getCreditBalance(user.id);
+    if (!post || !post.versions.length) notFound();
+    return <PostEditor key={post.id} project={post} initialBalance={balance.total} watermark={getPlan(user.plan).watermark} />;
+  }
   const [project, balance] = await Promise.all([getEditorProject(user.id, id), getCreditBalance(user.id)]);
   if (!project) notFound();
 

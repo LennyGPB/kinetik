@@ -44,6 +44,8 @@ export const LIMITS = {
   exportConcurrent: 3,
   captureGlobal: [{ limit: 100, windowMs: DAY, strict: true }],
   exportGlobal: [{ limit: 100, windowMs: DAY, strict: true }],
+  /** Part du plafond global ouverte aux comptes gratuits (les payants gardent le reste) */
+  exportGlobalFree: [{ limit: 40, windowMs: DAY, strict: true }],
 
   // ── Écritures en base / stockage ──
   setting: [{ limit: 30, windowMs: MIN }, { limit: 600, windowMs: HOUR }],

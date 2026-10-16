@@ -1,5 +1,3 @@
-import { format } from "@/lib/i18n";
-
 import { getServerDictionary } from "@/lib/i18n/server";
 import type { Metadata } from "next";
 import Link from "@/lib/i18n/navigation";
@@ -10,7 +8,7 @@ import { requireAdmin } from "@/lib/admin/auth";
 import { listAdminProjects, parsePage } from "@/lib/admin/queries";
 import { cn, formatDate, formatNumber } from "@/lib/utils";
 
-export async function generateMetadata(): Promise<Metadata> { const t = await getServerDictionary(); return { title: t.copy["b7c5258e03c5"] }; }
+export async function generateMetadata(): Promise<Metadata> { const t = await getServerDictionary(); return { title: t.locale === "fr" ? "Projets" : "Projects" }; }
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -33,7 +31,7 @@ async function VideosContent({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <>
-      <AdminHeader title={t.copy["b7c5258e03c5"]} subtitle={format(t.copy["3ad43cff59c7"], { p0: formatNumber(total, t.locale), p1: total > 1 ? "s" : "", p2: q ? ` pour « ${q} »` : "" })} />
+      <AdminHeader title={t.locale === "fr" ? "Projets" : "Projects"} subtitle={`${formatNumber(total, t.locale)} ${t.locale === "fr" ? "projets" : "projects"}`} />
       <SearchForm action="/admin/videos" q={q} placeholder={t.copy["b4798ae501ba"]} />
       <div className="overflow-hidden rounded-2xl border border-line bg-bg-subtle">
         {projects.length ? (
@@ -51,7 +49,7 @@ async function VideosContent({ searchParams }: { searchParams: SearchParams }) {
                       <Link href={`/admin/users/${project.user.id}`} className="hover:text-fg hover:underline">
                         {project.user.email}
                       </Link>{" "}
-                      · {FORMAT[project.format]} · {project.duration}  {"s ·"} {project._count.renders}  {"export"}{project._count.renders > 1 ? "s" : ""} · {formatDate(project.createdAt, undefined, t.locale)}
+                      · {project.kind === "POST" ? "Instagram" : `${FORMAT[project.format]} · ${project.duration} s`} · {project._count.renders + project._count.postExports} exports · {formatDate(project.createdAt, undefined, t.locale)}
                     </p>
                   </div>
                   <DeleteProjectButton projectId={project.id} name={project.name} />

@@ -22,7 +22,7 @@ export async function getAdminStats() {
   const since14 = new Date(now - 13 * DAY);
   since14.setHours(0, 0, 0, 0);
 
-  const [usersTotal, users7, users30, byPlan, admins, projectsTotal, projectsReady, rendersDone, renders30, spent30, refunded30, bought30, signups, recentUsers] =
+  const [usersTotal, users7, users30, byPlan, admins, projectsTotal, projectsReady, rendersDone, renders30, spent30, refunded30, bought30, signups, recentUsers, postExportsDone, postExports30] =
     await Promise.all([
       db.user.count(),
       db.user.count({ where: { createdAt: { gte: since7 } } }),
@@ -38,6 +38,8 @@ export async function getAdminStats() {
       db.creditTransaction.aggregate({ where: { type: { in: ["PURCHASE", "SUBSCRIPTION"] }, amount: { gt: 0 }, createdAt: { gte: since30 } }, _sum: { amount: true } }),
       db.user.findMany({ where: { createdAt: { gte: since14 } }, select: { createdAt: true } }),
       db.user.findMany({ orderBy: { createdAt: "desc" }, take: 6, select: { id: true, name: true, email: true, plan: true, createdAt: true } }),
+      db.postExport.count({ where: { status: "DONE" } }),
+      db.postExport.count({ where: { status: "DONE", createdAt: { gte: since30 } } }),
     ]);
 
   const plans = { FREE: 0, STARTER: 0, PRO: 0 };
@@ -57,7 +59,7 @@ export async function getAdminStats() {
     users: { total: usersTotal, last7: users7, last30: users30, admins },
     subscribers: { total: plans.STARTER + plans.PRO, ...plans },
     projects: { total: projectsTotal, ready: projectsReady },
-    renders: { done: rendersDone, last30: renders30 },
+    renders: { done: rendersDone + postExportsDone, last30: renders30 + postExports30 },
     credits: { spent30: Math.max(0, -(spent30._sum.amount ?? 0) - (refunded30._sum.amount ?? 0)), bought30: bought30._sum.amount ?? 0 },
     signupsByDay: days,
     recentUsers,
@@ -116,7 +118,7 @@ export async function getAdminUser(id: string) {
     db.project.findMany({
       where: { userId: id },
       orderBy: { updatedAt: "desc" },
-      select: { id: true, name: true, status: true, format: true, duration: true, createdAt: true, updatedAt: true, _count: { select: { versions: true, renders: true } } },
+      select: { id: true, name: true, kind: true, status: true, format: true, duration: true, createdAt: true, updatedAt: true, _count: { select: { versions: true, renders: true, postExports: true } } },
     }),
     db.creditTransaction.findMany({ where: { userId: id }, orderBy: { createdAt: "desc" }, take: 25, select: { id: true, amount: true, type: true, description: true, createdAt: true } }),
   ]);
@@ -153,12 +155,13 @@ export async function listAdminProjects({ q, page }: { q: string; page: number }
       select: {
         id: true,
         name: true,
+        kind: true,
         status: true,
         format: true,
         duration: true,
         createdAt: true,
         user: { select: { id: true, email: true } },
-        _count: { select: { renders: true, versions: true } },
+        _count: { select: { renders: true, versions: true, postExports: true } },
       },
     }),
   ]);

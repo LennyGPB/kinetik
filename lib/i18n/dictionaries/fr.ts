@@ -61,6 +61,7 @@ export const fr = {
   },
 
   styleCategories: {
+    editorial: "Éditorial",
     all: "Tous",
     tech: "Tech",
     minimal: "Minimal",
@@ -71,6 +72,21 @@ export const fr = {
   },
 
   styles: {
+    cadran: "Portrait de galerie, cadres fins qui s’alignent et titres serif élégants.",
+    passage: "Ruban photo urbain en travelling, titres condensés et bord corail.",
+    reverie: "Une fenêtre de couleur traverse une photo monochrome, tout en douceur.",
+    duplex: "Deux panneaux photo décalés, titre central et transitions de magazine.",
+    terracotta: "Portrait noir et blanc, panneau terracotta mobile et manchette crème.",
+    silhouette: "Portrait monochrome révélé par une ouverture verticale et titres serif délicats.",
+    bulletin: "Bandes photo, grande manchette condensée et filets vermillon animés.",
+    montage: "Trois cadrages photographiques en mouvement alterné et titres affirmés.",
+    fervor: "Photo diffuse, lumière orange mouvante et lettres serif qui se révèlent.",
+    horizon: "Paysage panoramique sur fond pétrole, cadre ample et ligne dorée mobile.",
+    dispatch: "Photo monochrome, bande vermillon et titres condensés révélés par des volets francs.",
+    maison: "Portrait éditorial, cadre fin et titres serif qui apparaissent en douceur.",
+    oblique: "Photo asymétrique, typographie condensée et transitions horizontales d’agence.",
+    solstice: "Paysages chaleureux, avancée lente et ligne d’horizon dorée.",
+    archive: "Deux cadrages photographiques animés, serif de magazine et transitions de papier.",
     monolith: "Noir sur blanc, grands espaces et volets francs. Minimal, avec de l’impact.",
     focus: "Minimal sombre, révélation en iris et zoom précis sur l’essentiel.",
     prism: "Facettes colorées, reflets géométriques et balayages diagonaux.",
@@ -353,7 +369,7 @@ export const fr = {
   app: {
     nav: {
       dashboard: "Dashboard",
-      create: "Nouvelle vidéo",
+      create: "Créer un contenu",
       templates: "Templates",
       brandKit: "Brand kit",
       credits: "Crédits",
@@ -371,18 +387,18 @@ export const fr = {
       subtitle: "Prêt à lancer quelque chose ?",
       newVideo: "Nouvelle vidéo",
       hero: {
-        title: "Ton app en vidéo de lancement, en 2 minutes",
-        text: "Logo, captures d'écran et musique : Kinetik écrit, anime et cale tout sur le beat.",
+        title: "Ton produit, en motion ou en images",
+        text: "Un brief, tes captures et ton identité : crée une vidéo, un post ou un carrousel assorti.",
         templates: "Voir les templates",
-        cost: "Une vidéo = {cost} crédits · Solde : {balance}",
+        cost: "Motion : {cost} crédits · Posts dès {postCost} · Solde : {balance}",
         lowBalance: "Il te faut {cost} crédits · Solde : {balance} · Recharger",
         showcaseHint: "Survole un template pour le voir en mouvement, clique pour démarrer avec.",
       },
-      projects: "Tes vidéos",
+      projects: "Tes projets",
       filters: { all: "Toutes", DRAFT: "Brouillons", GENERATING: "En génération", READY: "Prêtes" },
-      emptyTitle: "Aucune vidéo pour l'instant",
-      emptyText: "Ta première vidéo de motion design est à deux minutes.",
-      emptyCta: "Créer ma première vidéo",
+      emptyTitle: "Aucun projet pour l’instant",
+      emptyText: "Crée une vidéo motion, un post Instagram ou un carrousel.",
+      emptyCta: "Créer mon premier contenu",
       quick: {
         brandKit: "Configure ton brand kit",
         brandKitDesc: "Logo, couleurs et polices réutilisés partout.",
@@ -880,7 +896,7 @@ export const fr = {
 
     templates: {
       title: "Templates",
-      subtitle: "Tous les styles de Kinetik. Clique pour voir une vraie vidéo générée dans ce style.",
+      subtitle: "Tous les styles de Kinetik. Survole pour un aperçu, clique pour découvrir le template.",
       count: "{count} templates",
       preview: "Aperçu réel",
       previewHint: "Vidéo de démonstration générée par le moteur Kinetik, avec ce style et ses couleurs.",

@@ -8,6 +8,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { buttonVariants, type ButtonVariant } from "./button";
 
 /** Attente d'une action longue (ex. traduction) : le bouton recule et revient se cogner au bout du rail, en boucle (s) */
 const KNOCK = 0.85;
@@ -150,7 +151,8 @@ function Knock({ left }: { left: number }) {
 }
 
 /** Shared confirmation rail: only commits once the button reaches its destination. */
-export function AnimatedApply({ disabled, onApply, onCancel, onBegin, onApplyingChange, submit = false, label, icon }: {
+export function AnimatedApply({ disabled, onApply, onCancel, onBegin, onApplyingChange, submit = false, label, icon, variant = "primary" }: {
+  variant?: ButtonVariant;
   disabled?: boolean;
   onApply: () => void | Promise<void>;
   onCancel: () => void;
@@ -222,7 +224,7 @@ export function AnimatedApply({ disabled, onApply, onCancel, onBegin, onApplying
           setTrailWidth(distance + (button.current?.offsetWidth ?? 0) / 2);
           setButtonWidth(button.current?.offsetWidth ?? 0);
           setTravel(distance);
-        }} className={cn("flex h-10 cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-accent-fg transition-shadow duration-300 disabled:cursor-not-allowed", applying ? "shadow-[0_0_28px_6px_var(--accent-glow)]" : "disabled:opacity-40")}>
+        }} className={cn(buttonVariants({ variant }), "h-10 cursor-pointer font-semibold disabled:cursor-not-allowed", applying ? "shadow-[0_0_28px_6px_var(--accent-glow)]" : "disabled:opacity-40")}>
           {label ?? t.app.editor.timeline.apply} {icon ?? <ArrowRight className="size-4" aria-hidden />}
         </button>
       </motion.div>

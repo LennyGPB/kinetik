@@ -6,6 +6,8 @@ import { TemplateThumbnail } from "./template-thumbnail";
 import { CatalogThumbnail, hasCatalogThumbnail } from "./catalog-thumbnail";
 import { SignatureBackground } from "../../remotion/video/signature-backgrounds";
 import { CollectionThumbnail, isCollectionTemplate } from "./collection-thumbnail";
+import { getEditorialMotion } from "../../config/editorial-motion";
+import { EditorialBackdrop } from "../../remotion/video/editorial-backdrop";
 
 export type VideoPlaceholderProps = {
   /** Ratio du cadre. "fill" = prend la taille du parent. */
@@ -55,6 +57,7 @@ export function VideoPlaceholder({
 };
 
   const [bg, main, accent] = palette;
+  const editorial = getEditorialMotion(templateId);
   const style = { "--vp-bg": bg, "--vp-main": main, "--vp-accent": accent } as CSSProperties;
 
   return (
@@ -71,7 +74,10 @@ export function VideoPlaceholder({
         <video className="absolute inset-0 size-full object-cover" src={src} poster={poster} autoPlay muted loop playsInline />
       ) : (
         <div className="absolute inset-0" aria-hidden>
-          {isCollectionTemplate(templateId) ? <CollectionThumbnail id={templateId} label={label} bare={bare} /> : !bare && (templateId === "pulse" || templateId === "studio" || templateId === "luxe" || templateId === "corporate" || templateId === "playful" || templateId === "blueprint" || templateId === "ocean")
+          {editorial ? <div className="absolute inset-0 [container-type:size]">
+            <EditorialBackdrop treatment={editorial.treatment} palette={palette} progress={0.5} renderPhoto={(photoStyle) => <div style={{ ...photoStyle, backgroundImage: `url(${editorial.photo})`, backgroundSize: "cover", backgroundPosition: "center" }} />} />
+            {!bare && <div className="absolute inset-x-[9%] top-1/2 -translate-y-1/2" style={{ color: main }}><span className={cn("block text-[17cqmin] leading-[1.05]", ["band", "split", "masthead", "strips", "ribbon", "rust-panel"].includes(editorial.treatment) ? "font-condensed uppercase" : "font-serif")}>{editorial.headline}</span><span className="mt-[7cqmin] block text-[4cqmin]">{label}</span></div>}
+          </div> : isCollectionTemplate(templateId) ? <CollectionThumbnail id={templateId} label={label} bare={bare} /> : !bare && (templateId === "pulse" || templateId === "studio" || templateId === "luxe" || templateId === "corporate" || templateId === "playful" || templateId === "blueprint" || templateId === "ocean")
             ? <TemplateThumbnail templateId={templateId} label={label} />
             : !bare && templateId && hasCatalogThumbnail(templateId)
               ? <CatalogThumbnail templateId={templateId} />

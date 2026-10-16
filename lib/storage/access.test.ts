@@ -6,6 +6,7 @@ import type { SceneGraph } from "@/lib/projects/scenes";
 import { withSharedMedia } from "./shared-media";
 import { buildVideoProps } from "@/lib/projects/video-props";
 import { ownsUpload } from "./keys";
+import { demoPost } from "@/lib/posts/document";
 
 const token = "testsharetoken1234567890";
 const image = "/api/uploads/owner/image/screen.png";
@@ -38,6 +39,7 @@ test("media route enforces ownership, project-scoped sharing, revocation and pri
   let viewer: string | null = null;
   let enabled = true;
   let reads = 0;
+  let post = false;
   const originals = new Map<string, NodeJS.Module | undefined>();
   const stub = (name: string, exports: unknown) => {
     const id = require.resolve(name);
@@ -46,7 +48,7 @@ test("media route enforces ownership, project-scoped sharing, revocation and pri
   };
   stub("../db", { db: { project: { findFirst: async ({ where }: { where: { shareToken: string; userId: string; status: string } }) => {
     if (!enabled || where.shareToken !== token || where.userId !== "owner" || where.status !== "READY") return null;
-    return { assets: [{ url: image }], versions: [{ scenes: graph }] };
+    return { kind: post ? "POST" : "MOTION", assets: [{ url: image }], versions: [{ scenes: post ? demoPost("post-orbit") : graph }] };
   } } } });
   stub("../auth/dal", { getCurrentUser: async () => viewer ? { id: viewer } : null });
   stub("./index", { isOwnUpload: ownsUpload, mimeFromKey: () => "image/png", storage: { get: async () => { reads++; return Buffer.from("0123456789"); } } });
@@ -66,6 +68,11 @@ test("media route enforces ownership, project-scoped sharing, revocation and pri
     viewer = null;
     assert.equal((await read("owner/image/screen.png", `?share=${token}`)).status, 200);
     assert.equal((await read("owner/image/previous.png", `?share=${token}`)).status, 200);
+    post = true;
+    assert.equal((await read("owner/image/screen.png", `?share=${token}`)).status, 200);
+    assert.equal((await read("owner/image/previous.png", `?share=${token}`)).status, 404);
+    assert.equal((await read("other/image/screen.png", `?share=${token}`)).status, 404);
+    post = false;
     const beforeDenied = reads;
     assert.equal((await read("owner/image/unrelated.png", `?share=${token}`)).status, 404);
     assert.equal((await read("another/image/screen.png", `?share=${token}`)).status, 404);

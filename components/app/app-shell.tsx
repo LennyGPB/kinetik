@@ -53,7 +53,7 @@ export function AppShell({
         </div>
         <div className="px-2 pt-2"><LanguageToggle /></div>
 
-        <Link href="/create" className={buttonVariants({ className: "mt-5 w-full rounded-xl" })}>
+        <Link href="/create" className={buttonVariants({ variant: "purple", className: "mt-5 w-full rounded-xl" })}>
           <Plus /> {t.app.nav.create}
         </Link>
 
@@ -118,7 +118,7 @@ export function AppShell({
                   <Link
                     href="/create"
                     aria-label={t.app.nav.create}
-                    className="grid size-12 -translate-y-3 place-items-center rounded-2xl bg-accent text-white transition-transform active:scale-95"
+                    className={buttonVariants({ variant: "purple", size: "icon", className: "size-12 -translate-y-3 rounded-2xl [&_svg]:size-6" })}
                   >
                     <Plus className="size-6" />
                   </Link>

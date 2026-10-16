@@ -132,6 +132,8 @@ model Project {
   userId          String
   name            String
   appName         String
+  /// MOTION ou POST (posts et carrousels Instagram)
+  kind            String        @default("MOTION")
   videoType       String        @default("presentation")
   locale          String        @default("fr")
   status          ProjectStatus @default(DRAFT)
@@ -158,8 +160,24 @@ model Project {
   messages ChatMessage[]
   assets   Asset[]
   renders  Render[]
+  postExports PostExport[]
 
   @@index([userId, updatedAt])
+}
+
+model PostExport {
+  id         String   @id @default(cuid())
+  projectId  String
+  versionId  String
+  requestId  String   @unique
+  status     RenderStatus @default(PENDING)
+  format     String
+  files      String[] @default([])
+  creditCost Int
+  createdAt  DateTime @default(now())
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }
 
 model ProjectVersion {

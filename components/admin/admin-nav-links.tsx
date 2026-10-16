@@ -14,7 +14,7 @@ export function AdminNavLinks() {
   const LINKS = [
   { href: "/admin", label: t.copy["0d214ec700d5"], icon: LayoutDashboard },
   { href: "/admin/users", label: t.copy["23d3938b5ef0"], icon: Users },
-  { href: "/admin/videos", label: t.copy["b7c5258e03c5"], icon: Film },
+  { href: "/admin/videos", label: t.locale === "fr" ? "Projets" : "Projects", icon: Film },
   { href: "/admin/logs", label: t.copy["43b7c75d56f0"], icon: ScrollText },
 ];
 

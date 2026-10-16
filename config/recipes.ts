@@ -1,5 +1,6 @@
 // ⚠️ Fichier aussi bundlé par Remotion : imports RELATIFS uniquement.
 import type { Transition } from "../lib/projects/scenes";
+import type { EditorialTreatment } from "./editorial-motion";
 
 /**
  * RECETTES DES TEMPLATES — source unique de vérité du rendu d'un template.
@@ -153,6 +154,7 @@ export type Camera = (typeof CAMERAS)[number];
 export type Energy = "calm" | "balanced" | "high";
 
 export type Recipe = {
+  photoTreatment?: EditorialTreatment;
   typography: Typography;
   titleAnimation: TitleAnimation;
   titleEffect: TitleEffect;
@@ -205,6 +207,81 @@ export const DEFAULT_RECIPE: Recipe = {
 };
 
 export const RECIPES: Record<string, Recipe> = {
+  cadran: {
+    ...BASE, photoTreatment: "gallery", typography: "serif", titleAnimation: "mask", composition: "center", camera: "still",
+    background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["iris", "fade"], effects: [],
+    direction: "A photographic gallery cover with an inset portrait, two fine offset frames and refined serif headlines. Frames gently align as the scene settles. Short concrete titles, quiet optical reveals, imported imagery only.",
+  },
+  passage: {
+    ...BASE, photoTreatment: "ribbon", typography: "condensed", titleAnimation: "letters", composition: "left", camera: "still",
+    background: "clean", screens: "split", accent: "solid", beatPulse: false, energy: "high", transitions: ["track", "cut"], effects: [],
+    direction: "Urban photographic ribbon travels horizontally through an ink poster. Condensed headlines, coral edge and purposeful pacing. Titles of 2 to 4 words, quick horizontal transitions without glitch.",
+  },
+  reverie: {
+    ...BASE, photoTreatment: "color-window", typography: "serif", titleAnimation: "fade", composition: "center", camera: "drift",
+    background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["fade", "iris"], effects: [],
+    direction: "A color window moves across monochrome photography, revealing the original warm colors. Elegant serif type and soft restrained camera motion. A poetic editorial campaign, no invented claims or facts.",
+  },
+  duplex: {
+    ...BASE, photoTreatment: "double-spread", typography: "serif", titleAnimation: "words", composition: "center", camera: "still",
+    background: "clean", screens: "stack", logo: "soft", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["fold", "slide"], effects: [],
+    direction: "Two offset horizontal photographic panels glide in opposite directions around a central editorial headline. Warm ink and ivory, measured serif typography and magazine page-fold transitions.",
+  },
+  terracotta: {
+    ...BASE, photoTreatment: "rust-panel", typography: "condensed", titleAnimation: "mask", composition: "center", camera: "still",
+    background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["curtain", "shutter"], effects: [],
+    direction: "Terracotta campaign poster: a tall monochrome portrait on the right and a broad translucent rust headline panel sliding into place. Bold condensed copy, cream text and clean curtain transitions.",
+  },
+  silhouette: {
+    ...BASE, photoTreatment: "slit", typography: "serif", titleAnimation: "fade", composition: "center", camera: "still",
+    background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["iris", "fade"], effects: [],
+    direction: "Fashion portrait revealed through a widening vertical aperture, warm ink and ivory palette, refined serif titles of 2 to 5 words. Quiet confident rhythm and optical transitions; use imported photos.",
+  },
+  bulletin: {
+    ...BASE, photoTreatment: "masthead", typography: "condensed", titleAnimation: "mask", composition: "center", camera: "still",
+    background: "clean", screens: "split", accent: "solid", beatPulse: false, energy: "high", transitions: ["track", "shutter"], effects: [],
+    direction: "Moving agency bulletin: monochrome photo strips above and below a dark typographic masthead with vermilion rules. Oversized condensed titles of 2 to 4 words, precise fast reveals. No fabricated statistics.",
+  },
+  montage: {
+    ...BASE, photoTreatment: "strips", typography: "condensed", titleAnimation: "words", composition: "center", camera: "still",
+    background: "clean", screens: "fan", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["slide", "cut"], effects: [],
+    direction: "Three photographic strips drift in alternating directions, with different crops and one monochrome strip. Bold short condensed type, restrained coral accents and a contact-sheet feeling.",
+  },
+  fervor: {
+    ...BASE, photoTreatment: "diffuse", typography: "serif", titleAnimation: "letters", composition: "center", camera: "push",
+    background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["curtain", "fade"], effects: [],
+    direction: "Warm abstract photographic poster: imported photo softened into luminous orange and bronze color fields, elegant serif titles emerging letter by letter. Slow moving light, no neon or glitch.",
+  },
+  horizon: {
+    ...BASE, photoTreatment: "panorama", typography: "serif", titleAnimation: "words", composition: "center", camera: "still",
+    background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["fold", "fade"], effects: [],
+    direction: "Panoramic landscape framed by deep teal margins, a gently traveling golden rule and elegant serif type. Calm editorial pacing, 2 to 5 words per title, understated page transitions.",
+  },
+  dispatch: {
+    ...BASE, photoTreatment: "band", typography: "condensed", titleAnimation: "mask", composition: "center", camera: "still",
+    background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "high", transitions: ["shutter", "cut"], effects: [],
+    direction: "Photographic agency campaign: monochrome imagery, vermilion headline band, huge condensed titles of 2 to 4 words. Sharp shutters and confident cuts. Use supplied images, no invented metrics.",
+  },
+  maison: {
+    ...BASE, photoTreatment: "portrait", typography: "serif", titleAnimation: "words", composition: "center", camera: "drift",
+    background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["fade", "iris"], effects: [],
+    direction: "Fashion editorial: immersive portraits, fine inset frame, elegant serif titles of 2 to 5 words, measured reveals and gentle camera motion. Let the supplied photography breathe.",
+  },
+  oblique: {
+    ...BASE, photoTreatment: "split", typography: "condensed", titleAnimation: "letters", composition: "left", camera: "still",
+    background: "clean", screens: "split", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["track", "cut"], effects: [],
+    direction: "Independent creative agency: asymmetric monochrome photograph on the right, ink background, coral rule and condensed headline. Short direct copy, horizontal tracking transitions.",
+  },
+  solstice: {
+    ...BASE, photoTreatment: "warm", typography: "serif", titleAnimation: "fade", composition: "center", camera: "push",
+    background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["fade", "zoom"], effects: [],
+    direction: "Warm landscape editorial: bronze tones, slow photographic push-in, delicate serif typography and a fine expanding horizon. Poetic but concrete titles of 2 to 5 words.",
+  },
+  archive: {
+    ...BASE, photoTreatment: "frames", typography: "serif", titleAnimation: "mask", composition: "center", camera: "still",
+    background: "clean", screens: "stack", logo: "soft", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["fold", "slide"], effects: [],
+    direction: "A moving photographic contact sheet: two staggered crops, one monochrome, sliding gently in opposite directions. Editorial serif titles, restrained captions and page-fold transitions. Use the imported imagery.",
+  },
   monolith: {
     ...BASE, composition: "left", camera: "still", typography: "sans", titleAnimation: "mask",
     background: "monolith", screens: "hero", logo: "soft", accent: "solid", beatPulse: false,

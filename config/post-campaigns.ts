@@ -1,0 +1,40 @@
+/** Photo-led campaign collection. Images are replaceable; each entry has its own composition. */
+export const CAMPAIGN_POST_TEMPLATES = [
+  { id: "post-afterhours", name: "Afterhours", linked: false, layout: "afterhours", palette: ["#131515", "#F8F7F2", "#D4D0C6"], description: { fr: "Photo sombre, titre massif centré et microtypographie de studio.", en: "Dark photography, a bold centered headline and studio microtypography." } },
+  { id: "post-daybook", name: "Daybook", linked: false, layout: "daybook", palette: ["#46362A", "#FFF9E9", "#D4B68B"], description: { fr: "Une scène de travail chaleureuse, avec un grand titre serif en haut de page.", en: "A warm workspace scene with an oversized serif headline at the top." } },
+  { id: "post-muse", name: "Muse", linked: false, layout: "muse", palette: ["#2C3A3C", "#FFF9F0", "#DCCBB8"], description: { fr: "Portrait immersif et duo de typographies pour une campagne mode ou créative.", en: "An immersive portrait and paired typefaces for a fashion or creative campaign." } },
+  { id: "post-ritual", name: "Ritual", linked: true, layout: "ritual", palette: ["#26241F", "#FAF1DE", "#F07142"], description: { fr: "Photo d’intérieur assombrie, petit titre serif corail et fil continu entre les pages.", en: "Moody interiors, a compact coral serif headline and a thread connecting the pages." } },
+  { id: "post-dune", name: "Dune", linked: true, layout: "dune", palette: ["#69523C", "#FFF4DC", "#E9C28D"], description: { fr: "Un paysage panoramique, un titre élégant et des repères de lecture liés.", en: "A panoramic landscape, an elegant headline and connected reading markers." } },
+  { id: "post-still", name: "Still", linked: false, layout: "still", palette: ["#E8E5DF", "#222321", "#667368"], description: { fr: "Une couverture de galerie : titre large, photo centrale et annotations fines.", en: "A gallery cover with a wide headline, a central photo and fine annotations." } },
+  { id: "post-diptych", name: "Diptych", linked: false, layout: "diptych", palette: ["#EA4B24", "#1D1D1B", "#F9EDDC"], description: { fr: "Votre photo en deux bandes, séparées par une manchette typographique.", en: "Your photo in two strips, separated by a typographic masthead." } },
+  { id: "post-ember", name: "Ember", linked: false, layout: "ember", palette: ["#DB491D", "#24231F", "#FFB34D"], description: { fr: "Une affiche incandescente, avec votre photo floutée et une typographie franche.", en: "A glowing poster with your blurred photo and confident typography." } },
+  { id: "post-chromatic", name: "Chromatic", linked: true, layout: "chromatic", palette: ["#183C56", "#FFF1DE", "#F86D35"], description: { fr: "Bleu profond et corail, lumière diffuse et couleur qui se prolonge entre les pages.", en: "Deep blue and coral, diffused light and color flowing across the pages." } },
+  { id: "post-atelier", name: "Atelier", linked: false, layout: "atelier", palette: ["#E6DDCD", "#302B25", "#925E42"], description: { fr: "Photo encadrée, grand titre serif et légende éditoriale sur fond crème.", en: "A framed photo, a large serif headline and an editorial caption on cream." } },
+  {"id":"post-folio","name":"Folio","linked":false,"layout":"folio","palette":["#F1EDE5","#292D29","#8F5840"],"description":{"fr":"Photo en colonne, titre serif et mise en page de magazine.","en":"A photo column, serif headline and magazine layout."}},
+  {"id":"post-aperture","name":"Aperture","linked":false,"layout":"aperture","palette":["#202A2B","#F2EADC","#E5A772"],"description":{"fr":"Portrait encadré et grande signature italique.","en":"A framed portrait and oversized italic signature."}},
+  {"id":"post-index","name":"Index","linked":false,"layout":"index","palette":["#E4E9DE","#242C25","#6D7652"],"description":{"fr":"Photo panoramique, numéro de page et titre condensé.","en":"Panoramic photography, page numbers and condensed headlines."}},
+  {"id":"post-traverse","name":"Traverse","linked":true,"layout":"traverse","palette":["#1E3538","#F5EEDD","#D6B98B"],"description":{"fr":"Paysage immersif et ruban continu entre les pages.","en":"Immersive landscapes and a ribbon spanning the pages."}},
+  {"id":"post-nocturne","name":"Nocturne","linked":true,"layout":"nocturne","palette":["#191A20","#EEE8DE","#BC9A7D"],"description":{"fr":"Photo verticale, serif et ligne continue sur fond encre.","en":"Vertical photography, serif type and a continuous line on an ink backdrop."}},
+  { id: "post-verve", name: "Verve", linked: false, layout: "verve", palette: ["#E84924", "#FBF3E8", "#201F1B"], description: { fr: "Portrait monochrome et grande manchette condensée sur bande vermillon.", en: "Monochrome portrait photography and condensed headlines on vermilion." } },
+  { id: "post-aura", name: "Aura", linked: false, layout: "aura", palette: ["#D8CFC0", "#252722", "#954B32"], description: { fr: "Portrait pleine page, titre serif délicat et cartouche crème.", en: "Full-page portrait photography, delicate serif type and a cream caption panel." } },
+  { id: "post-contact", name: "Contact", linked: false, layout: "contact", palette: ["#ECE8E0", "#252525", "#D64C2F"], description: { fr: "Deux cadrages de votre photo, légendes fines et titre de magazine.", en: "Two crops of your photograph, fine captions and a magazine headline." } },
+  { id: "post-sienna", name: "Sienna", linked: true, layout: "sienna", palette: ["#292622", "#F6EBDC", "#FF8A59"], description: { fr: "Intérieur feutré, titre serif corail et ruban continu entre les pages.", en: "Moody interiors, coral serif headlines and a ribbon spanning the pages." } },
+  { id: "post-tidal", name: "Tidal", linked: true, layout: "tidal", palette: ["#173842", "#F2EBDD", "#D3B784"], description: { fr: "Paysage en bande centrale et courbe dorée reliant les pages.", en: "A landscape strip and a golden curve connecting the pages." } },
+] as const;
+
+export const CAMPAIGN_DEMO_PHOTOS: Record<string, string> = {
+  "post-verve": "/post-demos/portrait-6.jpg", "post-aura": "/post-demos/portrait-4.jpg",
+  "post-contact": "/post-demos/portrait-2.jpg", "post-sienna": "/post-demos/interior.jpg",
+  "post-tidal": "/post-demos/lake.jpg",
+  "post-folio": "/post-demos/interior.jpg",
+  "post-aperture": "/post-demos/portrait-2.jpg",
+  "post-index": "/post-demos/workspace.jpg",
+  "post-traverse": "/post-demos/lake.jpg",
+  "post-nocturne": "/post-demos/city.jpg",
+  "post-afterhours": "/post-demos/workspace.jpg", "post-daybook": "/post-demos/workspace.jpg",
+  "post-muse": "/post-demos/portrait-4.jpg", "post-ritual": "/post-demos/interior.jpg",
+  "post-dune": "/post-demos/desert.jpg", "post-still": "/post-demos/portrait-2.jpg",
+  "post-diptych": "/post-demos/portrait-6.jpg", "post-ember": "/post-demos/detail.jpg",
+  "post-chromatic": "/post-demos/flowers.jpg", "post-atelier": "/post-demos/portrait-4.jpg",
+};
+export function isCampaignPost(id: string) { return CAMPAIGN_POST_TEMPLATES.some((template) => template.id === id); }

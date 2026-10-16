@@ -82,7 +82,7 @@ const SEGMENT = "inline-flex h-8 cursor-pointer items-center justify-center gap-
 const SEGMENT_ON = "bg-accent text-accent-fg shadow-[var(--shadow-soft)]";
 const SEGMENT_OFF = "text-muted hover:text-fg";
 
-export function Player({ videoProps, editing, variants, className, compact = false, initiallyMuted = true, onMutedChange, initiallyPlaying = true, onPlayingChange }: { videoProps: VideoProps; editing?: TimelineEditing; variants?: { list: ProjectVariant[]; currentId: string; canCreate: boolean }; className?: string; compact?: boolean; initiallyMuted?: boolean; onMutedChange?: (muted: boolean) => void; initiallyPlaying?: boolean; onPlayingChange?: (playing: boolean) => void }) {
+export function Player({ videoProps, editing, variants, className, compact = false, preview = false, initiallyMuted = true, onMutedChange, initiallyPlaying = true, onPlayingChange }: { videoProps: VideoProps; editing?: TimelineEditing; variants?: { list: ProjectVariant[]; currentId: string; canCreate: boolean }; className?: string; compact?: boolean; preview?: boolean; initiallyMuted?: boolean; onMutedChange?: (muted: boolean) => void; initiallyPlaying?: boolean; onPlayingChange?: (playing: boolean) => void }) {
   const t = useDictionary();
 
   const e = t.app.editor;
@@ -386,7 +386,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
   };
 
   return (
-    <div className={cn("flex w-full flex-col gap-3", className)}>
+    <div className={cn("flex min-w-0 w-full flex-col gap-3", className)}>
       {/* Mobile, vidéo étroite (9:16, 1:1) : formats en colonne à droite de l'aperçu plutôt que par-dessus */}
       <div className="flex items-center justify-center gap-2">
       <div
@@ -400,7 +400,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           ratio === "1:1" && "lg:max-w-[min(100%,calc(100dvh-21rem))]",
           ratio === "16:9" && compact && "max-w-[calc(26dvh*16/9)]",
           // Mobile 16:9 : limité par la largeur, l'aperçu passe bord à bord (annule la marge de l'éditeur : 0,75rem, 1,5rem dès sm)
-          ratio === "16:9" && !compact && "max-lg:-mx-3 max-lg:w-[calc(100%+1.5rem)] max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 sm:max-lg:-mx-6 sm:max-lg:w-[calc(100%+3rem)]",
+          ratio === "16:9" && !compact && !preview && "max-lg:-mx-3 max-lg:w-[calc(100%+1.5rem)] max-lg:max-w-none max-lg:rounded-none max-lg:border-x-0 sm:max-lg:-mx-6 sm:max-lg:w-[calc(100%+3rem)]",
           ratio === "16:9" && "lg:max-w-[min(100%,calc((100dvh-21rem)*16/9))]",
           // Formats en colonne à côté : l'ensemble aperçu + colonne est centré, pas l'aperçu seul
           narrow && variants && "max-lg:mx-0",
@@ -428,7 +428,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
         </TextEditingContext>
         {positioning && <div aria-hidden className="pointer-events-none absolute inset-0"><div className="absolute inset-y-0 left-1/2 border-l border-dashed border-white/35" /><div className="absolute inset-x-0 top-1/2 border-t border-dashed border-white/35" /></div>}
         <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-black/40 px-2 py-0.5 font-mono text-[10px] text-white/80 backdrop-blur">
-          {index + 1}/{graph.scenes.length} · {graph.scenes[index]?.kind}
+          {index + 1}/{graph.scenes.length} · {preview ? sceneLabel(graph.scenes[index].kind, t.locale) : graph.scenes[index]?.kind}
         </span>
         {/* En pause : icône lecture au centre (le clic sur la vidéo relance la lecture, l'icône ne l'intercepte pas) */}
         <span
@@ -493,6 +493,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           total={total}
           onSeek={seek}
           editable={editable}
+          preview={preview}
           selectedId={selectedId}
           onSelect={setSelectedId}
           onEdit={edit}

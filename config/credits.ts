@@ -11,6 +11,12 @@ export const CREDIT_COSTS = {
   translation: 1,
   /** Restaurer une ancienne version */
   restore: 0,
+  post: {
+    generationBase: 3,
+    generationPerImage: 1,
+    edit: 1,
+    exportPerImage: 1,
+  },
   export: {
     /** Durée max (s) pour le tarif réduit */
     shortMaxSeconds: 30,
@@ -20,6 +26,20 @@ export const CREDIT_COSTS = {
     long: 10,
   },
 } as const;
+
+function checkedPostCount(count: number) {
+  if (!Number.isInteger(count) || count < 1 || count > 5) throw new Error("invalid_post_count");
+  return count;
+}
+
+export function getPostGenerationCost(count: number) {
+  return CREDIT_COSTS.post.generationBase + checkedPostCount(count) * CREDIT_COSTS.post.generationPerImage;
+}
+
+export function getPostExportCost(count: number, reexport = false) {
+  const full = checkedPostCount(count) * CREDIT_COSTS.post.exportPerImage;
+  return reexport ? Math.ceil(full / 2) : full;
+}
 
 /** Crédits offerts à l'inscription (plan gratuit, n'expirent pas) */
 export const SIGNUP_BONUS_CREDITS = 30;

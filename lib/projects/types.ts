@@ -6,6 +6,9 @@ import type { SceneGraph } from "./scenes";
 export type ProjectStatus = "DRAFT" | "GENERATING" | "READY" | "FAILED";
 
 export type ProjectCard = {
+  kind?: string;
+  postDocument?: import("@/lib/posts/document").PostDocument;
+  postMedia?: { logoUrl: string | null; screenUrls: string[]; screenRatios?: (number | null)[] };
   id: string;
   name: string;
   appName: string;

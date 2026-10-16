@@ -75,8 +75,8 @@ async function UserContent({ params }: { params: Promise<{ id: string }> }) {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{project.name}</p>
                     <p className="text-xs text-muted">
-                      {STATUS[project.status]} · {FORMAT[project.format]} · {project.duration}  {"s ·"} {project._count.versions}  {"version"}{project._count.versions > 1 ? "s" : ""} ·{" "}
-                      {project._count.renders}  {"export"}{project._count.renders > 1 ? "s" : ""} · {formatDate(project.createdAt, undefined, t.locale)}
+                      {STATUS[project.status]} · {project.kind === "POST" ? "Instagram" : `${FORMAT[project.format]} · ${project.duration} s`} · {project._count.versions}  {"version"}{project._count.versions > 1 ? "s" : ""} ·{" "}
+                      {project._count.renders + project._count.postExports} exports · {formatDate(project.createdAt, undefined, t.locale)}
                     </p>
                   </div>
                   <DeleteProjectButton projectId={project.id} name={project.name} compact />

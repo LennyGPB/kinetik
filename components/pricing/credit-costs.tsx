@@ -2,7 +2,8 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
-import { CREDIT_COSTS } from "@/config/credits";
+import { CREDIT_COSTS, getPostGenerationCost } from "@/config/credits";
+import { postCopy } from "@/lib/posts/copy";
 
 import { cn } from "@/lib/utils";
 
@@ -28,7 +29,7 @@ function CostGraphic({ kind }: { kind: string }) {
 }
 
 /** `reveal` : les lignes glissent une à une et leur prix apparaît à l'arrivée dans la vue (landing). */
-export function CreditCosts({ className, reveal = false }: { className?: string; reveal?: boolean }) {
+export function CreditCosts({ className, reveal = false, includePosts = false }: { className?: string; reveal?: boolean; includePosts?: boolean }) {
   const t = useDictionary();
   const reduceMotion = useReducedMotion();
   // Les états initiaux ne dépendent jamais de useReducedMotion (null au rendu serveur) : sinon l'hydratation garde
@@ -41,6 +42,12 @@ export function CreditCosts({ className, reveal = false }: { className?: string;
   { graphic: "chat", label: c.edit, cost: CREDIT_COSTS.edit },
   { graphic: "mp4", label: c.exportShort, cost: CREDIT_COSTS.export.short },
   { graphic: "long", label: c.exportLong, cost: CREDIT_COSTS.export.long },
+  ...(includePosts ? [
+    { graphic: "type", label: `${postCopy(t.locale).posts} · ${postCopy(t.locale).generationCost} (1 ${postCopy(t.locale).image.toLowerCase()})`, cost: getPostGenerationCost(1) },
+    { graphic: "type", label: `${postCopy(t.locale).generationCost} · 5 ${postCopy(t.locale).pages.toLowerCase()}`, cost: getPostGenerationCost(5) },
+    { graphic: "chat", label: postCopy(t.locale).ai, cost: CREDIT_COSTS.post.edit },
+    { graphic: "mp4", label: `${postCopy(t.locale).exportCost} / ${postCopy(t.locale).image.toLowerCase()}`, cost: CREDIT_COSTS.post.exportPerImage },
+  ] : []),
 ];
 
   return (
