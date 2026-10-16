@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { SIGNUP_BONUS_CREDITS } from "@/config/credits";
 import { siteConfig } from "@/config/site";
 import { safeRedirect } from "@/lib/auth/constants";
@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { getDictionary } from "@/lib/i18n";
 import { limitKey } from "@/lib/security/limits";
 import { checkEmailDomain } from "@/lib/security/signup-guard";
+import { notifySignup } from "@/lib/services/telegram";
 
 type Pending = { state: string; verifier: string; redirectTo: string; locale: "fr" | "en" };
 
@@ -24,6 +25,7 @@ const sameState = (a: string, b: string) => a.length === b.length && timingSafeE
  * Retour de Google. Trois cas :
  * 1. compte Google déjà lié → connexion ;
  * 2. un compte existe avec la même adresse (vérifiée par Google) → liaison automatique, puis connexion ;
+ *    si cette adresse n'avait jamais été vérifiée, son mot de passe et ses sessions sont révoqués (anti pré-inscription) ;
  * 3. sinon → création du compte avec le bonus d'inscription (mêmes garde-fous que l'inscription par email).
  */
 export async function GET(request: Request) {
@@ -47,8 +49,15 @@ export async function GET(request: Request) {
       if (!profile.emailVerified) return fail("oauth-unverified");
       const existing = await db.user.findUnique({ where: { email: profile.email }, select: { id: true, emailVerified: true } });
       if (existing) {
-        await db.account.create({ data: { userId: existing.id, provider: "google", providerAccountId: profile.sub } });
-        if (!existing.emailVerified) await db.user.update({ where: { id: existing.id }, data: { emailVerified: new Date() } });
+        // Adresse jamais prouvée : le mot de passe et les sessions ont pu être créés par un tiers (pré-inscription
+        // ou changement d'email vers l'adresse de la victime). Google prouve la possession : on les révoque.
+        await db.$transaction([
+          db.account.create({ data: { userId: existing.id, provider: "google", providerAccountId: profile.sub } }),
+          ...(existing.emailVerified ? [] : [
+            db.user.update({ where: { id: existing.id }, data: { emailVerified: new Date(), passwordHash: null } }),
+            db.session.deleteMany({ where: { userId: existing.id } }),
+          ]),
+        ]);
         userId = existing.id;
       } else {
         const domain = await checkEmailDomain(profile.email);
@@ -63,6 +72,7 @@ export async function GET(request: Request) {
           select: { id: true },
         });
         userId = user.id;
+        after(() => notifySignup({ name: profile.name, email: profile.email, method: "google", locale }));
       }
     }
 

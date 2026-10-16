@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import type { ScreenFrame } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
 import { bodyFont, displayFont, luminance } from "./theme";
 
@@ -8,6 +9,26 @@ import { bodyFont, displayFont, luminance } from "./theme";
  */
 
 // ───────────── Cadres d'appareil ─────────────
+
+/** Cadre adapté au format d'un screen (largeur / hauteur) : capture d'ordinateur → navigateur, capture mobile → téléphone ; carré ou inconnu → null. */
+export function frameForRatio(ratio: number | null | undefined): ScreenFrame | null {
+  if (!ratio) return null;
+  if (ratio >= 1.1) return "browser";
+  if (ratio <= 0.9) return "phone";
+  return null;
+}
+
+/**
+ * Cadre des screens d'une scène, d'après leur format réel : tous paysage → navigateur, tous portrait → téléphone.
+ * Formats mélangés, inconnus ou pas de screen → réglage de la vidéo (graph.screenFrame).
+ */
+export function screensDevice(props: VideoProps, srcs: (string | null)[]): ScreenFrame {
+  const configured = props.graph.screenFrame ?? "none";
+  const frames = new Set(srcs.map((src) => (src ? frameForRatio(props.screenRatios?.[props.screenUrls.indexOf(src)]) : null)));
+  if (frames.size !== 1) return configured;
+  const [frame] = frames;
+  return frame ?? configured;
+}
 
 export function PhoneFrame({ width, children }: { width: number; children: ReactNode }) {
   const bezel = phoneBezel(width);

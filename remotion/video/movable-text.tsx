@@ -1,5 +1,5 @@
 import { cloneElement, isValidElement, createContext, useContext, useEffect, useRef, useState, type ReactNode, type ReactElement, type HTMLAttributes } from "react";
-import { useVideoConfig } from "remotion";
+import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Scene } from "../../lib/projects/scenes";
 
 type Offset = { x: number; y: number };
@@ -12,6 +12,28 @@ export const TextEditingContext = createContext<{
   /** Éditeur : couleur affichée par le template (couleur CSS calculée), pour la proposer comme valeur de départ */
   onDefaultColor?: (sceneId: string, target: "title" | "subtitle", color: string) => void;
 } | null>(null);
+
+/**
+ * Horloge de la scène (image locale + durée), transmise aux textes : les mises en page qui découpent la scène
+ * en Sequence imbriquées (cadrages successifs) repartent de 0, mais la disparition d'un texte se cale sur la scène entière.
+ */
+const SceneClockContext = createContext<{ frame: number; duration: number } | null>(null);
+export function SceneClock({ children }: { children: ReactNode }) {
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+  return <SceneClockContext value={{ frame, duration: durationInFrames }}>{children}</SceneClockContext>;
+}
+
+/** Opacité d'un texte qui disparaît avant la fin de sa scène (scene.textEnds) : fondu court jusqu'au moment choisi. */
+export function useTextFade(target: "title" | "subtitle" | "kicker") {
+  const scene = useContext(TextSceneContext);
+  const clock = useContext(SceneClockContext);
+  const end = scene?.textEnds?.[target];
+  if (!clock || end === undefined || end >= 1) return 1;
+  const at = end * clock.duration;
+  const fade = Math.min(8, at * 0.5);
+  return interpolate(clock.frame, [at - fade, at], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+}
 
 /** Inactive in exported videos; direct selection is available only in the editor. */
 export function PreviewTarget({ target, children }: { target: "screens" | "logo"; children: ReactNode }) {
@@ -44,7 +66,9 @@ export function MovableText({ target, children }: { target: "title" | "subtitle"
   const [draft, setDraft] = useState<Offset | null>(null);
   const start = useRef<{ x: number; y: number; offset: Offset; scale: number; box: DOMRect; video: DOMRect } | null>(null);
   const offset = draft ?? scene?.textOffsets?.[target] ?? { x: 0, y: 0 };
+  const scale = scene?.textScales?.[target] ?? 1;
   const color = scene?.textColors?.[target];
+  const fade = useTextFade(target);
   const enabled = Boolean(editor?.enabled && scene);
   const reportDefault = editor?.onDefaultColor;
   const sceneId = scene?.id;
@@ -63,7 +87,7 @@ export function MovableText({ target, children }: { target: "title" | "subtitle"
       tabIndex={enabled || clickable ? 0 : undefined}
       title={clickable ? "Cliquer pour modifier le texte" : undefined}
       aria-label={enabled ? `Déplacer le ${target === "title" ? "titre" : "sous-titre"} avec la souris ou les flèches` : clickable ? `Modifier le ${target === "title" ? "titre" : "sous-titre"}` : undefined}
-      style={{ ...(color && { ["--text-color" as string]: color }), position: "relative", transform: `translate(${offset.x * width}px, ${offset.y * height}px)`, outline: enabled ? `${Math.max(2, width / 500)}px dashed #a78bfa` : undefined, outlineOffset: 6, cursor: enabled ? "grab" : clickable ? "pointer" : undefined, touchAction: enabled ? "none" : undefined, userSelect: enabled || clickable ? "none" : undefined, zIndex: enabled ? 20 : undefined }}
+      style={{ ...(color && { ["--text-color" as string]: color }), position: "relative", ...(fade < 1 && { opacity: fade }), transform: `translate(${offset.x * width}px, ${offset.y * height}px)${scale !== 1 ? ` scale(${scale})` : ""}`, outline: enabled ? `${Math.max(2, width / 500)}px dashed #a78bfa` : undefined, outlineOffset: 6, cursor: enabled ? "grab" : clickable ? "pointer" : undefined, touchAction: enabled ? "none" : undefined, userSelect: enabled || clickable ? "none" : undefined, zIndex: enabled ? 20 : undefined }}
       onDoubleClick={enabled || clickable ? (event) => event.stopPropagation() : undefined}
       onClick={enabled || clickable ? (event) => { event.stopPropagation(); if (clickable && scene) editor?.onActivate?.(scene.id, "text"); } : undefined}
       onPointerDown={(event) => {

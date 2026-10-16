@@ -28,9 +28,10 @@ import { cn, formatTime } from "@/lib/utils";
 import { ColorInput } from "./color-input";
 import { UploadZone } from "./upload-zone";
 import { useWebsiteAnalysis, type WebsiteAnalysis } from "./use-website-analysis";
+import { VideoTypePreview } from "./video-type-preview";
 import { WebsiteAnalysisStatus, WebsiteSuggestions } from "./website-suggestions";
 
-const STEPS = ["app", "assets", "colors", "videoType", "style", "format", "music", "brief", "review"] as const;
+const STEPS = ["app", "assets", "colors", "style", "videoType", "format", "music", "brief", "review"] as const;
 type StepId = (typeof STEPS)[number];
 
 type WizardState = {
@@ -248,19 +249,34 @@ export function CreateWizard({
           <div className="sticky top-10 flex flex-col gap-4">
             <p className="text-sm font-medium text-muted">{t.app.editor.preview}</p>
             <motion.div layout className="mx-auto w-full overflow-hidden rounded-3xl border border-line-strong bg-surface p-1.5 shadow-[var(--shadow-lift)]" style={{ maxWidth: state.format === "PORTRAIT" ? 240 : "100%" }}>
-              <VideoPlaceholder
-                ratio={VIDEO_FORMATS[state.format].ratio}
-                palette={visual.palette}
-                scene={visual.scene}
-                label={state.appName || c.previewFallback}
-                className="rounded-[1.25rem]"
-              >
-                {state.logo[0] && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={state.logo[0].url} alt="" className="absolute top-3 left-3 size-9 rounded-lg bg-white/90 object-contain p-1" />
-                )}
-              </VideoPlaceholder>
+              {/* Étape « Type de vidéo » : exemple animé du montage choisi à la place de l'aperçu statique */}
+              {step === "videoType" ? (
+                <VideoTypePreview
+                  className="rounded-[1.25rem]"
+                  type={state.videoType}
+                  appName={state.appName}
+                  styleId={state.styleId}
+                  colors={state.colors}
+                  format={state.format}
+                  logoUrl={state.logo[0]?.url ?? null}
+                  screens={state.screens}
+                />
+              ) : (
+                <VideoPlaceholder
+                  ratio={VIDEO_FORMATS[state.format].ratio}
+                  palette={visual.palette}
+                  scene={visual.scene}
+                  label={state.appName || c.previewFallback}
+                  className="rounded-[1.25rem]"
+                >
+                  {state.logo[0] && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={state.logo[0].url} alt="" className="absolute top-3 left-3 size-9 rounded-lg bg-white/90 object-contain p-1" />
+                  )}
+                </VideoPlaceholder>
+              )}
             </motion.div>
+            {step === "videoType" && <p className="text-xs text-muted">{c.videoType.previewHint}</p>}
             <div className="flex flex-wrap gap-2">
               <Badge>{VIDEO_FORMATS[state.format].ratio}</Badge>
               <Badge>{state.duration} s</Badge>
@@ -495,6 +511,20 @@ function StepContent({
       return (
         <div>
           <StepHeading title={c.videoType.heading} help={c.videoType.help} />
+          {/* Mobile (pas de colonne Aperçu) : l'exemple au-dessus des choix, pour le voir changer au toucher */}
+          <figure className="mb-5 flex flex-col gap-2 lg:hidden">
+            <VideoTypePreview
+              className={cn("mx-auto rounded-2xl border border-line", state.format === "PORTRAIT" ? "max-w-[15rem]" : state.format === "SQUARE" ? "max-w-sm" : "")}
+              type={state.videoType}
+              appName={state.appName}
+              styleId={state.styleId}
+              colors={state.colors}
+              format={state.format}
+              logoUrl={state.logo[0]?.url ?? null}
+              screens={state.screens}
+            />
+            <figcaption className="text-center text-xs text-muted">{c.videoType.previewHint}</figcaption>
+          </figure>
           <fieldset className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
             <legend className="sr-only">{c.videoType.heading}</legend>
             {VIDEO_TYPE_IDS.map((id) => {
@@ -637,8 +667,8 @@ function StepContent({
             </span>
           ),
         },
-        { step: "videoType", label: c.steps.videoType, value: localizeText(VIDEO_TYPES[state.videoType].label, t) },
         { step: "style", label: c.steps.style, value: style?.name },
+        { step: "videoType", label: c.steps.videoType, value: localizeText(VIDEO_TYPES[state.videoType].label, t) },
         { step: "format", label: c.steps.format, value: `${VIDEO_FORMATS[state.format].ratio} · ${state.duration} s` },
         { step: "music", label: c.steps.music, value: state.musicMode === "library" ? track?.title : state.musicMode === "upload" ? state.music[0]?.fileName ?? c.review.noMusic : c.music.none },
       ];

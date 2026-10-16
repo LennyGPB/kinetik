@@ -86,6 +86,59 @@ const STATIC_NOISE =
 
 const fade = (color: string, percent: number) => `color-mix(in oklab, ${color}, transparent ${percent}%)`;
 
+/** Orbites : [rayon, aplatissement, inclinaison (°), tours par seconde, taille du satellite, couleur] — rayons en fraction du petit côté. */
+const ORBITS = [
+  { r: 0.3, k: 0.34, tilt: -16, speed: 0.09, size: 0.014, color: "accent" },
+  { r: 0.45, k: 0.4, tilt: 11, speed: -0.06, size: 0.02, color: "main" },
+  { r: 0.62, k: 0.3, tilt: -5, speed: 0.04, size: 0.011, color: "accent" },
+] as const;
+
+function OrbitSystem({ c }: { c: BackgroundContext }) {
+  const { width, height, min, t } = c;
+  const cx = width / 2, cy = height / 2;
+  const color = (key: "main" | "accent") => (key === "main" ? c.rawMain : c.rawAccent);
+  // Position d'un satellite sur son orbite (ellipse tournée) ; « front » = moitié avant de l'orbite
+  const at = (o: (typeof ORBITS)[number], angle: number) => {
+    const R = o.r * min, phi = (o.tilt * Math.PI) / 180;
+    const x = R * Math.cos(angle), y = R * o.k * Math.sin(angle);
+    return { x: cx + x * Math.cos(phi) - y * Math.sin(phi), y: cy + x * Math.sin(phi) + y * Math.cos(phi), front: Math.sin(angle) > 0 };
+  };
+  return (
+    <>
+      <div style={blob(c.accent, cx, cy, min * 1.15, 0.38)} />
+      <div style={blob(c.main, cx + min * 0.25 * Math.sin(t * 0.15), cy - min * 0.2, min * 0.9, 0.22)} />
+      <svg width={width} height={height} style={{ position: "absolute", inset: 0 }}>
+        {/* Étoiles fixes qui scintillent (positions déterministes) */}
+        {Array.from({ length: 70 }, (_, i) => {
+          const twinkle = 0.25 + 0.75 * Math.abs(Math.sin(t * (0.6 + random(`os-v-${i}`)) + i));
+          return <circle key={i} cx={random(`os-x-${i}`) * width} cy={random(`os-y-${i}`) * height} r={min * (0.0012 + random(`os-r-${i}`) * 0.0022)} fill="#ffffff" opacity={0.55 * twinkle} />;
+        })}
+        {ORBITS.map((o, i) => (
+          <ellipse key={`orbit-${i}`} cx={cx} cy={cy} rx={o.r * min} ry={o.r * min * o.k} transform={`rotate(${o.tilt} ${cx} ${cy})`}
+            fill="none" stroke={c.rawMain} strokeOpacity={0.28} strokeWidth={min * 0.0018} strokeDasharray={`${min * 0.006} ${min * 0.012}`} />
+        ))}
+        {ORBITS.map((o, i) => {
+          const angle = (t * o.speed + i * 0.37) * Math.PI * 2;
+          const head = at(o, angle);
+          const depth = head.front ? 1 : 0.55; // derrière : plus petit et plus pâle
+          return (
+            <g key={`sat-${i}`} opacity={head.front ? 1 : 0.5}>
+              {/* Traînée : positions précédentes, de plus en plus fines */}
+              {Array.from({ length: 14 }, (_, j) => {
+                const p = at(o, angle - Math.sign(o.speed) * (j + 1) * 0.045);
+                return <circle key={j} cx={p.x} cy={p.y} r={min * o.size * depth * (1 - j / 16) * 0.55} fill={color(o.color)} opacity={0.5 * (1 - j / 14)} />;
+              })}
+              <circle cx={head.x} cy={head.y} r={min * o.size * depth * 2.6} fill={color(o.color)} opacity={0.18} />
+              <circle cx={head.x} cy={head.y} r={min * o.size * depth} fill={color(o.color)} />
+              <circle cx={head.x - min * o.size * depth * 0.3} cy={head.y - min * o.size * depth * 0.3} r={min * o.size * depth * 0.35} fill="#ffffff" opacity={0.85} />
+            </g>
+          );
+        })}
+      </svg>
+    </>
+  );
+}
+
 function Blobs({ c }: { c: BackgroundContext }) {
   const { width, height, min, t, main, accent } = c;
   return (
@@ -107,34 +160,24 @@ const BACKGROUNDS: Record<BackgroundKind, (c: BackgroundContext) => ReactNode> =
   "ocean-tide": (c) => <SignatureBackground kind="ocean-tide" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   "playful-fluid": (c) => <SignatureBackground kind="playful-fluid" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   "corporate-panels": (c) => <SignatureBackground kind="corporate-panels" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
-  "swiss-rules": (c) => <SignatureBackground kind="swiss-rules" palette={[c.bg, c.rawMain, c.rawAccent]} />,
+  "swiss-rules": (c) => <SignatureBackground kind="swiss-rules" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   "pulse-edge": (c) => <SignatureBackground kind="pulse-edge" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} pulse={c.pulse} />,
   "studio-stage": (c) => <SignatureBackground kind="studio-stage" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   "gold-atelier": (c) => <SignatureBackground kind="gold-atelier" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   blobs: (c) => <Blobs c={c} />,
 
-  // Taches sombres et retenues, bande de balayage RGB lente, et bandes décalées par saccades (toutes les ~2,4 s)
+  // Taches sombres et retenues, lignes CRT légères, neige numérique et bandes décalées par saccades
   glitch: (c) => {
     // Sursauts sur le même calendrier que la caméra « glitch » (glitch-fx.ts)
     const glitching = glitchBurst(c.frame, "bg") > 0;
     const noiseStep = Math.floor(c.frame / 2) % 8;
-    const scan = ((c.frame / c.fps) * 0.18) % 1.4 - 0.2;
     return (
       <>
         <AbsoluteFill style={{ opacity: 0.38 }}>
           <Blobs c={c} />
         </AbsoluteFill>
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: c.height * scan,
-            height: c.height * 0.12,
-            background: `linear-gradient(180deg, transparent, ${fade(c.rawMain, 88)} 45%, ${fade(c.rawAccent, 88)} 55%, transparent)`,
-            boxShadow: `0 ${c.min * 0.004}px 0 ${fade(c.rawAccent, 80)}, 0 -${c.min * 0.004}px 0 ${fade(c.rawMain, 80)}`,
-          }}
-        />
+        {/* Lignes de balayage CRT, très légères */}
+        <AbsoluteFill style={{ backgroundImage: `repeating-linear-gradient(180deg, ${fade(c.rawMain, 94)} 0 1px, transparent 1px ${Math.max(3, c.min * 0.004)}px)`, opacity: 0.6 }} />
         {/* Neige numérique permanente, qui saute toutes les 2 images */}
         <AbsoluteFill style={{ backgroundImage: STATIC_NOISE, backgroundSize: `${c.min * 0.35}px ${c.min * 0.35}px`, backgroundPosition: `${random(`sn-x-${noiseStep}`) * 300}px ${random(`sn-y-${noiseStep}`) * 300}px`, opacity: c.light ? 0.05 : 0.07, mixBlendMode: c.light ? "multiply" : "screen" }} />
         {/* Datamosh : macro-blocs pendant un sursaut */}
@@ -389,29 +432,8 @@ const BACKGROUNDS: Record<BackgroundKind, (c: BackgroundContext) => ReactNode> =
     </>
   ),
 
-  // Orbite pointillée avec un satellite
-  orbit: (c) => {
-    const size = c.min * 0.9;
-    return (
-      <>
-        <div style={blob(c.accent, c.width / 2, c.height / 2, c.min * 1.1, 0.4)} />
-        <div
-          style={{
-            position: "absolute",
-            left: c.width / 2 - size / 2,
-            top: c.height / 2 - size / 2,
-            width: size,
-            height: size,
-            borderRadius: "50%",
-            border: `${c.min * 0.003}px dashed ${fade(c.main, 50)}`,
-            transform: `rotate(${c.t * 15}deg)`,
-          }}
-        >
-          <div style={{ position: "absolute", top: -c.min * 0.02, left: size / 2 - c.min * 0.02, width: c.min * 0.04, height: c.min * 0.04, borderRadius: "50%", background: c.accent, boxShadow: `0 0 ${c.min * 0.03}px ${c.accent}` }} />
-        </div>
-      </>
-    );
-  },
+  // Système orbital : 3 orbites elliptiques inclinées, satellites à traînée qui passent devant/derrière, étoiles
+  orbit: (c) => <OrbitSystem c={c} />,
 
   // Apple-like : blanc lumineux, une seule lumière très douce qui respire, aucun décor
   clean: (c) => (

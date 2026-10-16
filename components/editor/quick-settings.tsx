@@ -5,7 +5,7 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 
 import { ChevronDown, ChevronRight, Hash, LayoutPanelTop, RotateCcw, SlidersHorizontal, Type, WholeWord } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
-import type { BrandFont } from "@/config/fonts";
+import { BRAND_FONTS, googleFontsHref, TEMPLATE_FONTS, type BrandFont } from "@/config/fonts";
 import { SCREENS_LAYOUTS, TITLE_ANIMATIONS, type Recipe, type ScreensLayout } from "@/config/recipes";
 import { format } from "@/lib/i18n";
 import { MAX_SCREEN_COUNT, sceneFocuses, type SceneGraph } from "@/lib/projects/scenes";
@@ -95,7 +95,7 @@ export function QuickSettings({
             <li><details><summary className="cursor-pointer px-2 py-2 text-xs text-muted">{t.copy["1473558a0745"]}</summary><ul><Row
               icon={<WholeWord />}
               label={s.rowFonts}
-              value={current.fonts ? s.fontsBrandShort : s.fontsTemplate}
+              value={!current.fonts ? s.fontsTemplate : sameFonts(current.fonts, brandFonts) ? s.fontsBrandShort : `${current.fonts.heading} / ${current.fonts.body}`}
               custom={Boolean(current.fonts)}
               open={row === "fonts"}
               disabled={disabled}
@@ -106,9 +106,14 @@ export function QuickSettings({
                   { value: "template", label: s.fontsTemplate, template: true },
                   { value: "brand", label: brandFonts ? format(s.fontsBrand, brandFonts) : s.fontsNoBrand, disabled: !brandFonts },
                 ]}
-                value={current.fonts ? "brand" : "template"}
+                value={!current.fonts ? "template" : sameFonts(current.fonts, brandFonts) ? "brand" : "custom"}
                 onChange={(value) => apply({ kind: "fonts", value: value === "brand" && brandFonts ? brandFonts : null })}
                 columns={1}
+              />
+              <FontBank
+                value={current.fonts ?? TEMPLATE_FONTS[recipe.typography]}
+                disabled={disabled}
+                onChange={(fonts) => onApply({ kind: "fonts", value: fonts })}
               />
             </Row>
             </ul></details></li>
@@ -311,6 +316,53 @@ function Row({
         </div>
       )}
     </li>
+  );
+}
+
+function sameFonts(a: { heading: string; body: string } | null, b: { heading: string; body: string } | null) {
+  return Boolean(a && b && a.heading === b.heading && a.body === b.body);
+}
+
+/**
+ * Banque de polices (celles du brand kit et des templates) : une pour les titres, une pour les textes.
+ * Chaque pastille est écrite dans sa police ; le choix reste ouvert pour régler les deux à la suite.
+ */
+function FontBank({ value, disabled, onChange }: { value: { heading: BrandFont; body: BrandFont }; disabled?: boolean; onChange: (fonts: { heading: BrandFont; body: BrandFont }) => void }) {
+  const s = useDictionary().app.editor.settings;
+  const href = googleFontsHref([...BRAND_FONTS]);
+  const section = (target: "heading" | "body", label: string) => (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[11px] font-semibold tracking-[0.1em] text-subtle uppercase">{label}</span>
+      <div className="grid grid-cols-2 gap-1.5">
+        {BRAND_FONTS.map((font) => {
+          const selected = value[target] === font;
+          return (
+            <button
+              key={font}
+              type="button"
+              disabled={disabled}
+              aria-pressed={selected}
+              onClick={() => !selected && onChange({ ...value, [target]: font })}
+              style={{ fontFamily: `"${font}", sans-serif` }}
+              className={cn(
+                "min-w-0 truncate rounded-lg border px-2.5 py-2 text-left text-[14px] transition-colors disabled:opacity-40",
+                target === "heading" && "font-bold",
+                selected ? "border-accent bg-accent-soft text-fg" : "border-line text-muted hover:border-line-strong hover:text-fg",
+              )}
+            >
+              {font}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+  return (
+    <div className="mt-3 flex flex-col gap-3">
+      {href && <link rel="stylesheet" href={href} />}
+      {section("heading", s.fontsHeading)}
+      {section("body", s.fontsBody)}
+    </div>
   );
 }
 

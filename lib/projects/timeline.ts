@@ -1,7 +1,7 @@
 import { format, getDictionary, type Locale } from "@/lib/i18n";
 import { LOGO_LAYOUTS, SCREENS_LAYOUTS, type LogoLayout, type ScreensLayout } from "../../config/recipes";
 import { isScenePresentation, SCENE_PRESENTATIONS, type ScenePresentation } from "../../config/scene-presentations";
-import { FOCUS_ANIMATIONS, FOCUS_MODES, MAX_FOCUS_STEPS, MAX_SCREEN_COUNT, totalDuration, TRANSITIONS, type SceneGraph, type SceneKind, type ScreenFocus, type Transition } from "./scenes";
+import { FOCUS_ANIMATIONS, FOCUS_MODES, HEADLINES_MAX, toHeadlines, MAX_FOCUS_STEPS, MAX_SCREEN_COUNT, totalDuration, TRANSITIONS, type SceneGraph, type SceneKind, type ScreenFocus, type Transition } from "./scenes";
 
 /**
  * Montage manuel depuis la frise de l'éditeur : durée, ordre, suppression, textes, transition et mise en avant des scènes.
@@ -10,6 +10,8 @@ import { FOCUS_ANIMATIONS, FOCUS_MODES, MAX_FOCUS_STEPS, MAX_SCREEN_COUNT, total
  */
 export type TimelineEdit =
   | { kind: "textPosition"; sceneId: string; target: "title" | "subtitle"; offset: { x: number; y: number } | null }
+  /** Taille d'un texte par rapport au template (null = taille du template) */
+  | { kind: "textScale"; sceneId: string; target: "title" | "subtitle"; scale: number | null }
   | { kind: "presentation"; sceneId: string; value: ScenePresentation | LogoLayout | ScreensLayout | null }
   | { kind: "duration"; sceneId: string; duration: number }
   | { kind: "move"; sceneId: string; toIndex: number }
@@ -17,8 +19,10 @@ export type TimelineEdit =
   /**
    * `colors` (facultatif) : couleur de chaque texte fourni, null = couleur du template.
    * `kicker` (facultatif, scènes feature) : surtitre, null = nom de l'app, "" = masqué.
+   * `badge` (facultatif, scènes cta) : texte du bouton, null = automatique (site ou nom de l'app), "" = masqué.
+   * `lines` (facultatif, scènes headlines) : titres qui suivent `title`.
    */
-  | { kind: "text"; sceneId: string; title: string; subtitle: string | null; colors?: Partial<Record<TextTarget, string | null>>; kicker?: string | null }
+  | { kind: "text"; sceneId: string; title: string; subtitle: string | null; colors?: Partial<Record<TextTarget, string | null>>; ends?: Partial<Record<TextTarget, number | null>>; kicker?: string | null; badge?: string | null; lines?: string[]; lineColors?: (string | null)[] }
   | { kind: "transition"; sceneId: string; transition: Transition }
   /** Scènes screens : zone d'un screen à mettre en avant (null = retirer) */
   | { kind: "focus"; sceneId: string; focus: ScreenFocus | null }
@@ -40,13 +44,20 @@ export const MIN_SCENES = 2;
 export const MAX_SCENES = 12;
 /** Durée d'une scène ajoutée depuis la frise */
 export const NEW_SCENE_SECONDS = 3;
-export const SCENE_KINDS: SceneKind[] = ["intro", "logo", "feature", "screens", "stat", "quote", "cta"];
+export const SCENE_KINDS: SceneKind[] = ["intro", "logo", "feature", "screens", "stat", "quote", "headlines", "cta"];
 const SCENE_ID = /^[a-z]+-[a-z0-9]{4,24}$/;
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 type TextTarget = "title" | "subtitle" | "kicker";
 const TEXT_TARGETS: TextTarget[] = ["title", "subtitle", "kicker"];
+/** Taille d'un texte : de la moitié au double de celle du template */
+export const TEXT_SCALE_MIN = 0.5;
+export const TEXT_SCALE_MAX = 2;
+/** Un texte reste visible au moins ce pourcentage de la scène */
+export const TEXT_END_MIN = 0.1;
 /** Surtitre d'une scène feature (court, en capitales dans la vidéo) */
 export const KICKER_MAX = 40;
+/** Texte du bouton d'une scène cta */
+export const BADGE_MAX = 40;
 
 /** Identifiant d'une scène créée depuis l'éditeur (unique, généré côté client). */
 export function newSceneId(kind: SceneKind) {
@@ -90,15 +101,22 @@ export function isTimelineEdit(value: unknown): value is TimelineEdit {
     const offset = v.offset as { x?: unknown; y?: unknown } | null;
     return (v.target === "title" || v.target === "subtitle") && (offset === null || Boolean(offset && [offset.x, offset.y].every((n) => typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= 1)));
   }
+  if (v.kind === "textScale") return (v.target === "title" || v.target === "subtitle") && (v.scale === null || (typeof v.scale === "number" && Number.isFinite(v.scale) && v.scale >= TEXT_SCALE_MIN && v.scale <= TEXT_SCALE_MAX));
   if (v.kind === "presentation") return v.value === null || (typeof v.value === "string" && [...SCENE_PRESENTATIONS, ...LOGO_LAYOUTS, ...SCREENS_LAYOUTS].some((item) => item === v.value));
   if (v.kind === "duration") return typeof v.duration === "number" && Number.isFinite(v.duration);
   if (v.kind === "move") return Number.isInteger(v.toIndex);
   if (v.kind === "text") {
     const colors = v.colors as Record<string, unknown> | undefined;
+    const ends = v.ends as Record<string, unknown> | undefined;
+    const isEnd = (n: unknown) => n === undefined || n === null || (typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1);
     const isColor = (c: unknown) => c === undefined || c === null || (typeof c === "string" && HEX_COLOR.test(c));
     return typeof v.title === "string" && v.title.length <= 500 && (v.subtitle === null || (typeof v.subtitle === "string" && v.subtitle.length <= 500))
       && (v.kicker === undefined || v.kicker === null || (typeof v.kicker === "string" && v.kicker.length <= 500))
-      && (colors === undefined || Boolean(colors && typeof colors === "object" && Object.keys(colors).every((key) => TEXT_TARGETS.includes(key as TextTarget) && isColor(colors[key]))));
+      && (v.badge === undefined || v.badge === null || (typeof v.badge === "string" && v.badge.length <= 500))
+      && (v.lines === undefined || (Array.isArray(v.lines) && v.lines.length < HEADLINES_MAX && v.lines.every((line) => typeof line === "string" && line.length <= 500)))
+      && (v.lineColors === undefined || (Array.isArray(v.lineColors) && v.lineColors.length <= HEADLINES_MAX && v.lineColors.every((c) => c === null || (typeof c === "string" && HEX_COLOR.test(c)))))
+      && (colors === undefined || Boolean(colors && typeof colors === "object" && Object.keys(colors).every((key) => TEXT_TARGETS.includes(key as TextTarget) && isColor(colors[key]))))
+      && (ends === undefined || Boolean(ends && typeof ends === "object" && Object.keys(ends).every((key) => TEXT_TARGETS.includes(key as TextTarget) && isEnd(ends[key]))));
   }
   if (v.kind === "transition") return TRANSITIONS.includes(v.transition as Transition);
   if (v.kind === "focus") return v.focus === null || isFocus(v.focus);
@@ -140,6 +158,15 @@ export function applyTimelineEdit(graph: SceneGraph, edit: TimelineEdit): SceneG
   const scenes = [...graph.scenes];
 
   switch (edit.kind) {
+    case "textScale": {
+      if (!isTimelineEdit(edit)) return graph;
+      const textScales = { ...scenes[index].textScales };
+      if (edit.scale === null || Math.abs(edit.scale - 1) < 0.005) delete textScales[edit.target];
+      else textScales[edit.target] = Math.round(edit.scale * 100) / 100;
+      scenes[index] = { ...scenes[index], textScales };
+      if (!Object.keys(textScales).length) delete scenes[index].textScales;
+      break;
+    }
     case "textPosition": {
       if (!isTimelineEdit(edit)) return graph;
       const textOffsets = { ...scenes[index].textOffsets };
@@ -188,6 +215,19 @@ export function applyTimelineEdit(graph: SceneGraph, edit: TimelineEdit): SceneG
       const subtitle = SUBTITLE_KINDS.includes(scenes[index].kind) ? edit.subtitle?.trim().slice(0, SUBTITLE_MAX) || undefined : scenes[index].subtitle;
       scenes[index] = { ...scenes[index], title, subtitle };
       if (!subtitle) delete scenes[index].subtitle;
+      if (edit.lines && scenes[index].kind === "headlines") {
+        const headlines = toHeadlines([title, ...edit.lines], edit.lineColors);
+        scenes[index].title = headlines.title;
+        if (headlines.lines.length) scenes[index].lines = headlines.lines;
+        else delete scenes[index].lines;
+        if (headlines.lineColors) scenes[index].lineColors = headlines.lineColors;
+        else delete scenes[index].lineColors;
+      }
+      if (edit.badge !== undefined && scenes[index].kind === "cta") {
+        const badge = edit.badge?.trim().slice(0, BADGE_MAX);
+        if (badge === undefined) delete scenes[index].badge;
+        else scenes[index].badge = badge;
+      }
       if (edit.kicker !== undefined && scenes[index].kind === "feature") {
         const kicker = edit.kicker?.trim().slice(0, KICKER_MAX);
         if (kicker === undefined) delete scenes[index].kicker;
@@ -202,6 +242,17 @@ export function applyTimelineEdit(graph: SceneGraph, edit: TimelineEdit): SceneG
         }
         if (Object.keys(textColors).length) scenes[index].textColors = textColors;
         else delete scenes[index].textColors;
+      }
+      if (edit.ends) {
+        const textEnds = { ...scenes[index].textEnds };
+        for (const target of TEXT_TARGETS.filter((key) => key in edit.ends!)) {
+          const end = edit.ends[target];
+          // Pleine durée = comportement par défaut : rien à enregistrer
+          if (typeof end === "number" && end < 1) textEnds[target] = Math.round(Math.max(TEXT_END_MIN, end) * 1000) / 1000;
+          else delete textEnds[target];
+        }
+        if (Object.keys(textEnds).length) scenes[index].textEnds = textEnds;
+        else delete scenes[index].textEnds;
       }
       break;
     }
@@ -245,7 +296,7 @@ function addScene(graph: SceneGraph, edit: Extract<TimelineEdit, { kind: "add" }
   const at = edit.afterId === null ? 0 : graph.scenes.findIndex((s) => s.id === edit.afterId) + 1;
   if (at === 0 && edit.afterId !== null) return graph;
   const scenes = [...graph.scenes];
-  scenes.splice(at, 0, { id: edit.id, kind: edit.sceneKind, title: edit.title.trim().slice(0, TITLE_MAX) || tl.newTitles[edit.sceneKind], duration, transition: edit.transition });
+  scenes.splice(at, 0, { id: edit.id, kind: edit.sceneKind, title: edit.title.trim().slice(0, TITLE_MAX) || tl.newTitles[edit.sceneKind], duration, transition: edit.transition, ...(edit.sceneKind === "headlines" && { lines: [...tl.newHeadlines] }) });
   return { ...graph, scenes };
 }
 
@@ -271,6 +322,8 @@ export function timelineEditsLabel(before: SceneGraph, edits: TimelineEdit[]) {
   const scene = before.scenes.find((s) => s.id === edit.sceneId);
   const name = scene ? sceneLabel(scene.kind, locale) : "";
   switch (edit.kind) {
+    case "textScale":
+      return `${locale === "en" ? "Text size" : "Taille du texte"} · ${name}`;
     case "textPosition":
       return `${locale === "en" ? "Text position" : "Position du texte"} · ${name}`;
     case "presentation":

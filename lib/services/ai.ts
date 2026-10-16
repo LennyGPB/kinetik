@@ -13,7 +13,7 @@ import { VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import { getTrack, MUSIC_LIBRARY } from "@/config/music";
 import { getRecipe, SCREENS_LAYOUTS, TITLE_ANIMATIONS, type Recipe } from "@/config/recipes";
 import { getStyle } from "@/config/styles";
-import { FOCUS_ANIMATIONS, FOCUS_MODES, MAX_SCREEN_COUNT, sceneFocuses, sceneScreens, TRANSITIONS, type Scene, type SceneGraph, type ScreenFocus } from "@/lib/projects/scenes";
+import { FOCUS_ANIMATIONS, FOCUS_MODES, HEADLINES_SEPARATOR, MAX_SCREEN_COUNT, sceneFocuses, sceneHeadlines, sceneScreens, toHeadlines, TRANSITIONS, type Scene, type SceneGraph, type ScreenFocus } from "@/lib/projects/scenes";
 import { storage } from "@/lib/storage";
 import { SCENE_MAX_SECONDS, SCENE_MIN_SECONDS } from "@/lib/projects/timeline";
 import * as mock from "./ai-mock";
@@ -92,8 +92,8 @@ const FocusOutput = z
 
 const SceneOutput = z.object({
   id: z.string().nullable().describe("Identifiant de la scène actuelle à conserver lors d'une modification, null pour une nouvelle scène."),
-  presentation: z.enum(SCENE_PRESENTATIONS).nullable().describe("Mise en scène : intro = classic/editorial/split ; feature = classic/spotlight/card ; cta = classic/end-card/browser. Conserver le choix actuel, sinon null."),
-  kind: z.enum(["intro", "logo", "feature", "screens", "cta", "stat", "quote"]),
+  presentation: z.enum(SCENE_PRESENTATIONS).nullable().describe("Mise en scène : intro = classic/editorial/split ; feature = classic/spotlight/card ; cta = classic/end-card/browser ; headlines = punch/wipe/roll. Conserver le choix actuel, sinon null."),
+  kind: z.enum(["intro", "logo", "feature", "screens", "cta", "stat", "quote", "headlines"]),
   title: z.string().describe("Texte principal affiché à l'écran, court et percutant (2 à 6 mots idéalement)"),
   subtitle: z.string().nullable().describe("Ligne secondaire optionnelle, ou null"),
   duration: z.number().describe("Durée de la scène en secondes"),
@@ -187,6 +187,7 @@ Types de scènes disponibles :
   Choisis screenFrame d'après les images : "phone" pour des captures d'app mobile (format vertical), "browser" pour un site ou une app web (format horizontal), "none" si ce sont déjà des visuels mis en scène.
 - cta : appel à l'action final (essayer, télécharger, s'inscrire). L'adresse du site s'affiche automatiquement dans un bouton : ne la répète ni dans le titre ni dans le sous-titre.
 - stat : un chiffre clé qui défile à l'écran. Titre = le chiffre et son unité, très court ("+40 %", "10 000 équipes", "2x plus rapide", "4,9/5") ; sous-titre = ce qu'il mesure. UNIQUEMENT avec un chiffre réel donné par l'utilisateur (brief, chat) ou lisible sur un screen. Jamais de chiffre inventé ou arrondi à la hausse : sans chiffre réel, pas de scène stat.
+- headlines : 2 à 5 gros titres très courts (1 à 4 mots chacun) qui s'enchaînent rapidement, pour un rythme percutant (ex. "Plus simple. | Plus rapide. | Plus fort."). Titre = tous les titres dans l'ordre, séparés par " | " ; pas de sous-titre. Le dernier titre est mis en avant. Au plus une par vidéo, plutôt de 2 à 4 s. presentation : punch (impact), wipe (balayage), roll (défilement) ou null.
 - quote : un témoignage client. Titre = la citation exacte, sans guillemets (ils s'affichent seuls), 80 caractères maximum ; sous-titre = l'auteur et son rôle. UNIQUEMENT avec une citation réelle fournie par l'utilisateur (brief, chat) ou lisible sur un screen, recopiée sans la reformuler sur le fond. Jamais de témoignage, de nom ou d'entreprise inventés : sans citation réelle, pas de scène quote. Si l'utilisateur en demande une sans fournir le texte, demande-lui la citation et son auteur.
 
 Transitions (chaque style n'en autorise que certaines) :
@@ -367,6 +368,12 @@ function toFocus(focus: z.infer<typeof SceneOutput>["focus"], screenUrls: string
 }
 
 /** Numéros de screens → URLs (doublons et numéros inconnus écartés, 3 au maximum). */
+/** Scène headlines : Claude écrit tous les titres dans `title`, séparés par « | ». */
+function headlinesFromOutput(text: string): Pick<Scene, "title" | "lines"> {
+  const { title, lines } = toHeadlines(text.split("|"));
+  return { title: title || text.trim().slice(0, 80), ...(lines.length && { lines }) };
+}
+
 function toScreens(numbers: number[] | null, screenUrls: string[]) {
   const urls = [...new Set((numbers ?? []).map((n) => screenUrls[Math.round(n)]).filter((u): u is string => Boolean(u)))].slice(0, MAX_SCREEN_COUNT);
   return urls.length ? urls : undefined;
@@ -376,7 +383,7 @@ function toScreens(numbers: number[] | null, screenUrls: string[]) {
 function sceneToOutput(s: Scene, screenUrls: string[]): SceneOut {
   const focusOut = (f: ScreenFocus) => ({ screen: screenUrls.indexOf(f.src), x: f.x, y: f.y, w: f.w, h: f.h, mode: f.mode, animation: f.animation ?? null, label: f.label ?? null });
   return {
-    id: s.id, presentation: s.presentation ?? null, kind: s.kind, title: s.title, subtitle: s.subtitle ?? null, duration: s.duration, transition: s.transition,
+    id: s.id, presentation: s.presentation ?? null, kind: s.kind, title: s.kind === "headlines" ? sceneHeadlines(s).join(HEADLINES_SEPARATOR) : s.title, subtitle: s.subtitle ?? null, duration: s.duration, transition: s.transition,
     layout: s.layout ?? null, screenCount: s.screenCount ?? null,
     screens: s.screens ? s.screens.map((url) => screenUrls.indexOf(url)).filter((n) => n >= 0) : null,
     focus: s.focus ? focusOut(s.focus) : null,
@@ -478,7 +485,7 @@ function normalize(output: z.infer<typeof GraphOutput>, targetDuration: number |
       id: sceneIds[i],
       kind: s.kind,
       ...(s.presentation && isScenePresentation(s.kind, s.presentation) ? { presentation: s.presentation } : {}),
-      title: s.title.trim().slice(0, 80),
+      ...(s.kind === "headlines" ? headlinesFromOutput(s.title) : { title: s.title.trim().slice(0, 80) }),
       subtitle: s.subtitle?.trim().slice(0, 120) || undefined,
       duration: Math.max(SCENE_MIN_SECONDS, durations[i]),
       transition: allowedTransition(s.transition, recipe, i),

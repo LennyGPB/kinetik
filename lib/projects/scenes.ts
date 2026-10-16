@@ -7,7 +7,7 @@ import type { ScenePresentation } from "../../config/scene-presentations";
  * Format du "JSON des scènes" stocké dans ProjectVersion.scenes.
  * C'est le contrat entre l'IA (génération / modifs) et le moteur de rendu (Remotion).
  */
-export type SceneKind = "intro" | "logo" | "feature" | "screens" | "cta" | "stat" | "quote";
+export type SceneKind = "intro" | "logo" | "feature" | "screens" | "cta" | "stat" | "quote" | "headlines";
 /**
  * Transitions d'entrée/sortie d'une scène (rendu : remotion/video/transitions.tsx).
  * - fade : fondu · slide : glissé latéral · zoom : arrivée en zoom arrière · glitch : secousse RGB
@@ -22,10 +22,16 @@ export type ScreenFrame = "phone" | "browser" | "none";
 
 export type Scene = {
   textOffsets?: Partial<Record<"title" | "subtitle", { x: number; y: number }>>;
+  /** Taille du titre / sous-titre par rapport à celle du template (1 = inchangée) */
+  textScales?: Partial<Record<"title" | "subtitle", number>>;
   /** Couleur choisie pour le titre / sous-titre / surtitre (#rrggbb) ; absente = couleur du template */
   textColors?: Partial<Record<"title" | "subtitle" | "kicker", string>>;
+  /** Moment où le texte disparaît, en fraction de la durée de la scène (0 → 1) ; absent = visible jusqu'à la fin */
+  textEnds?: Partial<Record<"title" | "subtitle" | "kicker", number>>;
   /** Surtitre des scènes feature (au-dessus du titre) : absent = nom de l'app, "" = masqué */
   kicker?: string;
+  /** Texte du bouton des scènes cta : absent = adresse du site (sinon nom de l'app), "" = bouton masqué */
+  badge?: string;
   presentation?: ScenePresentation;
   /** Overrides scoped to this scene; absent = video settings. */
   energy?: SceneGraph["energy"];
@@ -54,7 +60,36 @@ export type Scene = {
   focuses?: ScreenFocus[];
   /** Scènes "screens" : URLs des screens à montrer, dans l'ordre (absent = les suivants dans l'ordre du projet). */
   screens?: string[];
+  /** Scènes "headlines" : titres qui suivent le titre principal, dans l'ordre (1 à 4) */
+  lines?: string[];
+  /** Scènes "headlines" : couleur de chaque titre (#rrggbb), dans l'ordre de sceneHeadlines ; null = couleur du template */
+  lineColors?: (string | null)[];
 };
+
+/** Scène "headlines" : 2 à 5 gros titres enchaînés, courts. */
+export const HEADLINES_MIN = 2;
+export const HEADLINES_MAX = 5;
+export const HEADLINE_MAX = 40;
+/** Séparateur des titres quand ils tiennent dans un seul texte (échanges avec Claude) */
+export const HEADLINES_SEPARATOR = " | ";
+
+/** Tous les titres d'une scène "headlines", dans l'ordre (le titre principal en premier). */
+export function sceneHeadlines(scene: Pick<Scene, "title" | "lines">): string[] {
+  return [scene.title, ...(scene.lines ?? [])].map((line) => line.trim()).filter(Boolean).slice(0, HEADLINES_MAX);
+}
+
+/**
+ * Découpe une liste de titres en titre principal + suivants, bornés. `colors` (facultatif) suit la liste d'entrée :
+ * les couleurs restent attachées à leur titre quand des titres vides sont retirés.
+ */
+export function toHeadlines(lines: string[], colors?: (string | null | undefined)[]): { title: string; lines: string[]; lineColors?: (string | null)[] } {
+  const clean = lines
+    .map((line, i) => ({ text: line.trim().slice(0, HEADLINE_MAX), color: colors?.[i] && /^#[0-9a-fA-F]{6}$/.test(colors[i]!) ? colors[i]!.toLowerCase() : null }))
+    .filter((item) => item.text)
+    .slice(0, HEADLINES_MAX);
+  const lineColors = clean.map((item) => item.color);
+  return { title: clean[0]?.text ?? "", lines: clean.slice(1).map((item) => item.text), ...(lineColors.some(Boolean) && { lineColors }) };
+}
 
 export const FOCUS_MODES = ["zoom", "popout"] as const;
 export const FOCUS_ANIMATIONS = ["lift", "pivot"] as const;

@@ -249,6 +249,7 @@ export function legalEn(d: LegalData): Record<LegalSlug, LegalDoc> {
               "Securing the service and preventing abuse (rate limiting by IP address, detecting disposable emails, bots and multiple accounts): legitimate interest.",
               "Sending emails about your account and purchases (confirmations, renewal reminders, changes to the Terms): performance of the contract and legal obligation.",
               "Answering your requests: legitimate interest.",
+              "Measuring site traffic in aggregate (page views, country, device type), without cookies: legitimate interest.",
               "Featuring some videos as examples (see the [terms](/terms), section 9): legitimate interest, with the right to object at any time.",
             ] },
             "If we ever send promotional emails, it will be with your consent, or about offers similar to those you have bought, with an unsubscribe link in every email.",
@@ -259,7 +260,7 @@ export function legalEn(d: LegalData): Record<LegalSlug, LegalDoc> {
           blocks: [
             "Your data is only accessible to the Publisher and to the technical providers that help run the service, each for its own task:",
             { list: [
-              "Vercel (United States): hosting of the website and app.",
+              "Vercel (United States): hosting of the website and app, and cookieless traffic measurement (Vercel Web Analytics).",
               "Neon (database hosted in London, United Kingdom): accounts, projects, credit history.",
               "Cloudflare (R2 storage): uploaded files, captures and media.",
               "Amazon Web Services (Frankfurt, Germany): rendering of exported videos.",
@@ -333,6 +334,12 @@ export function legalEn(d: LegalData): Record<LegalSlug, LegalDoc> {
               "KINETIK_LOCALE: remembers your chosen language. Duration: 1 year.",
               "Theme preference (light or dark): saved in your browser's local storage, never sent to our servers.",
             ] },
+          ],
+        },
+        {
+          title: "Traffic measurement",
+          blocks: [
+            "We use Vercel Web Analytics to understand how the site is used (page views, country, device and browser type). It sets no cookies and reads nothing from your device: each visitor is counted using a technical fingerprint that is renewed every day, which cannot identify you or track you across websites. Results are statistical only.",
           ],
         },
         {

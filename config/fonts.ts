@@ -14,7 +14,20 @@ export const BRAND_FONTS = [
   "Playfair Display",
   "Syne",
   "Outfit",
+  // Polices des templates (remotion/video/fonts.ts)
+  "Anton",
+  "Instrument Serif",
+  "JetBrains Mono",
 ] as const;
+
+/** Polices de chaque typographie de template, pour partir du rendu actuel quand on n'en change qu'une. */
+export const TEMPLATE_FONTS: Record<"display" | "sans" | "serif" | "condensed" | "mono", { heading: BrandFont; body: BrandFont }> = {
+  display: { heading: "Bricolage Grotesque", body: "Inter" },
+  sans: { heading: "Inter", body: "Inter" },
+  serif: { heading: "Instrument Serif", body: "Inter" },
+  condensed: { heading: "Anton", body: "Inter" },
+  mono: { heading: "JetBrains Mono", body: "JetBrains Mono" },
+};
 
 export type BrandFont = (typeof BRAND_FONTS)[number];
 

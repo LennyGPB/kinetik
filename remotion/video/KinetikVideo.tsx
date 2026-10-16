@@ -1,4 +1,4 @@
-import { TextSceneContext } from "./movable-text";
+import { SceneClock, TextSceneContext } from "./movable-text";
 import { overlayApplies } from "../../lib/projects/overlays";
 import { OverlayLayer } from "./overlays";
 import { AbsoluteFill, Audio, interpolate, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
@@ -53,7 +53,7 @@ export function KinetikVideo(input: VideoProps) {
                   <RecipeContext value={sceneRecipe}>
                     <SceneShell transition={scene.transition} next={timeline[i + 1]?.scene.transition} energy={sceneGraph.energy} accent={curtainColor(localPalette)} nextAccent={curtainColor(nextPalette)}>
                       <CameraMove index={i} energy={sceneGraph.energy}>
-                        <TextSceneContext value={scene}><Scene scene={scene} props={sceneProps} /></TextSceneContext>
+                        <TextSceneContext value={scene}><SceneClock><Scene scene={scene} props={sceneProps} /></SceneClock></TextSceneContext>
                       </CameraMove>
                     </SceneShell>
                   </RecipeContext>

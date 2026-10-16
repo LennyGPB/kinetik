@@ -204,6 +204,9 @@
     "801061e0f155": "Benefit card",
     "7411dbedb541": "Final signature",
     "0d4c23f11688": "Browser window",
+    "a1f0c3d2e401": "Impact",
+    "a1f0c3d2e402": "Wipe",
+    "a1f0c3d2e403": "Roll",
     "835b83ffe0b5": "App overview",
     "405342c86f07": "Introduce your product and inspire people to try it.",
     "dc052fc01689": "Hook → product → benefits → call to action",
@@ -339,6 +342,7 @@
     "features": "Features",
     "formats": "Formats",
     "pricing": "Pricing",
+    "support": "Support",
     "faq": "FAQ"
   },
   "styleCategories": {
@@ -384,7 +388,7 @@
     "golden-hour": "A striped sunset, soft serif type and a calming pace.",
     "fiesta": "Confetti and bright colours to celebrate a launch.",
     "blueprint": "Technical drafting, measurement marks and precise typewriter text.",
-    "studio": "Matte surfaces, warm light and a refined product-studio atmosphere.",
+    "studio": "A product shoot under studio lights, turntable and display stand.",
     "cinema": "Letterboxing, film texture and a spotlight for your trailer.",
     "ocean": "Layered waves and slow underwater reflections.",
     "arcade": "Pixels on the beat, a CRT screen and an arcade cabinet frame.",
@@ -392,7 +396,9 @@
     "terrain": "Contour lines and left-aligned text, moving towards progress.",
     "hyperspace": "Star trails and luminous titles at full speed.",
     "creator": "A viewfinder, REC indicator and handheld camera, just like a story.",
-    "riso": "Print textures, borders and risograph colours."
+    "riso": "Print textures, borders and risograph colours.",
+    "summit": "A premium keynote: 3D-extruded titles and cube transitions.",
+    "aurora": "Northern lights and quiet titles, smooth and calm."
   },
   "landing": {
     "hero": {
@@ -473,7 +479,11 @@
       "editorDemo": {
         "badge": "Edit mode",
         "framing": "Framing {current}/{total}",
-        "framingTexts": ["Your whole schedule", "Book in one tap", "Built-in payments"],
+        "framingTexts": [
+          "Your whole schedule",
+          "Book in one tap",
+          "Built-in payments"
+        ],
         "tools": {
           "framing": "Chained zooms & cutouts",
           "text": "Drag-and-drop text",
@@ -664,16 +674,21 @@
     },
     "balance": "Balance",
     "buyCredits": "Top up",
+    "videosLeft": "≈ {count} videos to generate",
+    "videosLeftOne": "≈ 1 video to generate",
+    "notEnoughForVideo": "Not enough for a new video",
     "plan": "{plan} plan",
     "dashboard": {
       "greeting": "Hi {name}",
       "subtitle": "Ready to launch something?",
       "newVideo": "New video",
       "hero": {
-        "eyebrow": "New video",
         "title": "Your app’s launch video, in 2 minutes",
         "text": "Logo, screenshots and music: Kinetik writes, animates and syncs everything to the beat.",
-        "templates": "Explore templates"
+        "templates": "Explore templates",
+        "cost": "One video = {cost} credits · Balance: {balance}",
+        "lowBalance": "You need {cost} credits · Balance: {balance} · Top up",
+        "showcaseHint": "Hover a template to see it move, click to start with it."
       },
       "projects": "Your videos",
       "filters": {
@@ -694,6 +709,11 @@
       "updated": "Updated on {date}",
       "videosLeft": "≈ {count} video(s) · {cost} credits per generation",
       "deleteLabel": "Delete {name}",
+      "duplicateLabel": "Duplicate {name}",
+      "duplicated": "“{name}” created",
+      "duplicateFailed": "Couldn't duplicate this project",
+      "copyName": "{name} (copy)",
+      "copyVersion": "Copy of “{name}”",
       "deleteTitle": "Delete “{name}”?",
       "deleteText": "The project, its versions and exports will be permanently deleted.",
       "deleteCta": "Delete",
@@ -721,8 +741,10 @@
       },
       "videoType": {
         "heading": "What kind of video would you like to create?",
-        "help": "Choose your video’s purpose. The template will define its visual style.",
-        "demoHint": "For a product demo, add screenshots in the Logo & screenshots step. Without screenshots, the video will explain the steps using text."
+        "help": "Choose your video’s purpose. The example plays in your template.",
+        "demoHint": "For a product demo, add screenshots in the Logo & screenshots step. Without screenshots, the video will explain the steps using text.",
+        "previewBadge": "Example",
+        "previewHint": "A preview of the structure with your visuals. Your video’s copy will be written for your app."
       },
       "app": {
         "heading": "What’s your app called?",
@@ -911,6 +933,8 @@
         "fontsTemplate": "Template fonts",
         "fontsBrand": "My brand · {heading} / {body}",
         "fontsNoBrand": "My brand (set up your brand kit)",
+        "fontsHeading": "Headings",
+        "fontsBody": "Body text",
         "versionLayout": "Mockups: {name}",
         "versionDefault": "default"
       },
@@ -922,7 +946,8 @@
           "screens": "Mockups",
           "cta": "Call to action",
           "stat": "Key figure",
-          "quote": "Testimonial"
+          "quote": "Testimonial",
+          "headlines": "Headline burst"
         },
         "hint": "Drag a scene to move it, or its right edge to change its duration.",
         "selected": "Selected scene",
@@ -960,8 +985,10 @@
           "screens": "Discover the app",
           "cta": "Try it now",
           "stat": "+40%",
-          "quote": "Your customer testimonial here"
+          "quote": "Your customer testimonial here",
+          "headlines": "Simpler."
         },
+        "newHeadlines": ["Faster.", "Stronger."],
         "kindHints": {
           "intro": "Opening hook",
           "logo": "App logo and name",
@@ -969,7 +996,8 @@
           "screens": "Your screenshots",
           "cta": "Final call to action",
           "stat": "An animated figure, e.g. +40%",
-          "quote": "A customer quote and its author"
+          "quote": "A customer quote and its author",
+          "headlines": "2 to 5 big headlines, one after another"
         },
         "screensPick": "Choose screenshots",
         "screensPickTitle": "Screenshots in this scene",
@@ -1020,6 +1048,10 @@
         "focusStepTitleHint": "Replaces the scene title while this framing plays.",
         "focusRemove": "Remove",
         "focusDraw": "Draw a box on the image",
+        "focusScreenHeading": "Screenshot",
+        "focusAreaHeading": "Area",
+        "focusSettingsHeading": "Settings",
+        "focusEffect": "Effect",
         "editText": "Edit text",
         "logoText": "This scene displays the app’s name",
         "titleLabel": "Title",
@@ -1028,10 +1060,24 @@
         "kickerLabel": "Eyebrow",
         "kickerHidden": "Hidden",
         "kickerHint": "Leave empty to remove it.",
+        "textSize": "Text size",
+        "textSizeDone": "Done",
+        "textSizeReset": "Template size",
+        "badgeLabel": "Button text",
+        "badgeHidden": "Button hidden",
+        "badgeHint": "Defaults to your website address (or the app name). Leave empty to hide the button.",
+        "textEndLabel": "Text display duration",
+        "textEndFull": "Visible for the whole scene",
+        "textEndAt": "Disappears at {time}",
+        "textEndReset": "Whole scene",
         "statTitleLabel": "Figure (e.g. +40%, 10,000 teams)",
         "statSubtitleLabel": "What it measures",
         "quoteTitleLabel": "Quote (real, without quotation marks)",
         "quoteSubtitleLabel": "Author (e.g. Alex, founder of North Studio)",
+        "headlineLabel": "Headline {n}",
+        "headlineAdd": "Add a headline",
+        "headlineRemove": "Remove this headline",
+        "headlinesHint": "They play across the scene: the shorter the scene, the faster the pace.",
         "apply": "Apply",
         "cancel": "Cancel",
         "focusAnimation": "Cutout animation",
@@ -1108,6 +1154,7 @@
       "accent": "Accent",
       "additionalColor": "Colour {n}",
       "addColor": "Add a colour",
+      "templateColors": "Template colours",
       "colorsHelp": "The background stays based on your primary colour. The palette is distributed across scene decorations and accents. Play the preview to see them.",
       "preview": "Preview",
       "current": "Current",
@@ -1286,6 +1333,42 @@
         "subscriptionCancel": "We couldn't cancel your subscription right now. Try again in a few minutes: your account has not been deleted.",
         "keyword": "Type DELETE to confirm."
       }
+    }
+  },
+  "support": {
+    "metaTitle": "Support",
+    "title": "How can we help?",
+    "subtitle": "A question, a bug, a billing issue? Write to us and we will get back to you by email, usually within 24 hours.",
+    "faqTitle": "Check the FAQ",
+    "faqBody": "The most common questions are answered there.",
+    "emailTitle": "Prefer email?",
+    "name": "Name",
+    "namePlaceholder": "Jane Doe",
+    "email": "Email",
+    "topic": "Subject",
+    "topics": {
+      "question": "General question",
+      "bug": "Bug or technical issue",
+      "billing": "Billing and credits",
+      "account": "My account",
+      "other": "Other"
+    },
+    "message": "Message",
+    "messagePlaceholder": "Describe your request. For a bug, tell us what you did and what you expected.",
+    "messageHint": "We reply to the email address above.",
+    "submit": "Send message",
+    "success": {
+      "title": "Message sent",
+      "body": "Thanks! We will reply by email as soon as possible.",
+      "again": "Send another message"
+    },
+    "errors": {
+      "email": "Enter a valid email address.",
+      "messageShort": "Your message is too short (10 characters minimum).",
+      "messageLong": "Your message is too long (3,000 characters maximum).",
+      "tooMany": "Too many messages sent. Try again later or write to us by email.",
+      "blocked": "Your message could not be sent. Reload the page and try again.",
+      "failed": "Sending failed. Try again or write to us by email."
     }
   }
 }

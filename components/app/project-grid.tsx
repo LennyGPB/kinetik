@@ -3,7 +3,7 @@
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { Clapperboard, Plus, Trash2 } from "lucide-react";
+import { Clapperboard, Copy, Loader2, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -15,7 +15,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { VIDEO_FORMATS } from "@/config/formats";
 import { format } from "@/lib/i18n";
-import { deleteProject } from "@/lib/projects/actions";
+import { deleteProject, duplicateProject } from "@/lib/projects/actions";
 import type { ProjectCard, ProjectStatus } from "@/lib/projects/types";
 import { projectVisual } from "@/lib/projects/visuals";
 import { formatDate } from "@/lib/utils";
@@ -43,6 +43,14 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [toDelete, setToDelete] = useState<ProjectCard | null>(null);
   const [pending, startTransition] = useTransition();
+  const [duplicating, setDuplicating] = useState<string | null>(null);
+  const duplicate = async (project: ProjectCard) => {
+    setDuplicating(project.id);
+    const result = await duplicateProject(project.id).catch(() => null);
+    setDuplicating(null);
+    if (result?.ok) toast({ title: format(d.duplicated, { name: result.name }), tone: "success" });
+    else toast({ title: result?.error === "rate_limited" ? t.app.editor.rateLimited : d.duplicateFailed, tone: "error" });
+  };
   const toast = useToast();
 
   const visible = useMemo(() => (filter === "all" ? projects : projects.filter((p) => p.status === filter)), [filter, projects]);
@@ -107,14 +115,29 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
                     </div>
                   </div>
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => setToDelete(project)}
-                  aria-label={format(d.deleteLabel, { name: project.name })}
-                  className="absolute top-2.5 right-2.5 grid size-8 place-items-center rounded-full bg-black/55 text-white/90 backdrop-blur transition-[opacity,background-color] hover:bg-danger sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
-                >
-                  <Trash2 className="size-4" />
-                </button>
+                <div className={`absolute top-2.5 right-2.5 flex gap-1.5 transition-opacity sm:group-hover:opacity-100 sm:focus-within:opacity-100 ${duplicating === project.id ? "" : "sm:opacity-0"}`}>
+                  {project.status !== "GENERATING" && (
+                    <button
+                      type="button"
+                      disabled={duplicating !== null}
+                      onClick={() => duplicate(project)}
+                      aria-label={format(d.duplicateLabel, { name: project.name })}
+                      title={format(d.duplicateLabel, { name: project.name })}
+                      className="grid size-8 place-items-center rounded-full bg-black/55 text-white/90 backdrop-blur transition-colors hover:bg-accent disabled:cursor-wait"
+                    >
+                      {duplicating === project.id ? <Loader2 className="size-4 animate-spin" /> : <Copy className="size-4" />}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setToDelete(project)}
+                    aria-label={format(d.deleteLabel, { name: project.name })}
+                    title={format(d.deleteLabel, { name: project.name })}
+                    className="grid size-8 place-items-center rounded-full bg-black/55 text-white/90 backdrop-blur transition-colors hover:bg-danger"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
               </motion.li>
             );
           })}

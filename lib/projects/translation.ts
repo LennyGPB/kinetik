@@ -1,4 +1,4 @@
-import type { SceneGraph } from "./scenes";
+import { HEADLINE_MAX, type SceneGraph } from "./scenes";
 
 export type TranslationLanguage = "fr" | "en";
 export type TranslationEntry = { key: string; text: string; maxLength: number };
@@ -11,6 +11,12 @@ export function translationEntries(graph: SceneGraph): TranslationEntry[] {
     if (scene.subtitle?.trim()) entries.push({ key: `scene-${index}-subtitle`, text: scene.subtitle, maxLength: Math.max(120, scene.subtitle.length) });
     // Surtitre personnalisé (le nom de l'app par défaut n'est pas traduit)
     if (scene.kicker?.trim()) entries.push({ key: `scene-${index}-kicker`, text: scene.kicker, maxLength: Math.max(40, scene.kicker.length) });
+    // Titres enchaînés : chacun des titres qui suivent le titre principal
+    scene.lines?.forEach((line, step) => {
+      if (line.trim()) entries.push({ key: `scene-${index}-line-${step}`, text: line, maxLength: Math.max(HEADLINE_MAX, line.length) });
+    });
+    // Texte du bouton personnalisé (l'adresse du site par défaut n'est pas traduite)
+    if (scene.badge?.trim()) entries.push({ key: `scene-${index}-badge`, text: scene.badge, maxLength: Math.max(40, scene.badge.length) });
     if (scene.focus?.label?.trim()) entries.push({ key: `scene-${index}-focus`, text: scene.focus.label, maxLength: Math.max(80, scene.focus.label.length) });
     scene.focuses?.forEach((focus, step) => {
       if (focus.label?.trim()) entries.push({ key: `scene-${index}-focus-${step}`, text: focus.label, maxLength: Math.max(80, focus.label.length) });
@@ -37,6 +43,9 @@ export function applyTranslation(graph: SceneGraph, translated: { key: string; t
     if (subtitle) scene.subtitle = subtitle;
     const kicker = byKey.get(`scene-${index}-kicker`);
     if (kicker) scene.kicker = kicker;
+    if (scene.lines) scene.lines = scene.lines.map((line, step) => byKey.get(`scene-${index}-line-${step}`) ?? line);
+    const badge = byKey.get(`scene-${index}-badge`);
+    if (badge) scene.badge = badge;
     if (label && scene.focus) scene.focus.label = label;
     scene.focuses?.forEach((focus, step) => {
       const translatedLabel = byKey.get(`scene-${index}-focus-${step}`);

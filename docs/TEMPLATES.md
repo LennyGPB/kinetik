@@ -110,7 +110,7 @@ Les valeurs possibles de chaque champ sont documentées en tête de `config/reci
 **Composition et caméra sont les briques qui changent le plus la vidéo.** Deux recettes au même fond mais à la composition différente ne se ressemblent pas : à varier en priorité quand on crée un template.
 La caméra s'applique au contenu des scènes (jamais au fond) et se fige pendant le déplacement des textes dans l'éditeur.
 
-## Les 37 templates
+## Les templates
 
 | Template | Catégorie | Typo | Titre | Fond | Screens | Composition | Caméra | Transitions |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -120,7 +120,7 @@ La caméra s'applique au contenu des scènes (jamais au fond) et se fige pendant
 | Kinetic Typo | typo | display | letters | type | split | poster | push | cut, slide, curtain, zoom |
 | Brutalist | typo | condensed | mask | blocks | split | poster | still | cut, curtain |
 | Editorial | typo | serif | mask | paper | hero | left | drift | curtain, fade |
-| Swiss | typo | sans | mask | line | split | poster | still | cut, slide |
+| Swiss | typo | sans | mask | swiss-rules (grille, cercle à arc rouge) | split | poster | push | shutter, slide, cut |
 | Neon | bold | display | flicker + glow | aurora | tilt | center | handheld | cut, zoom, fade |
 | Glitch | bold | mono | glitch | glitch | stack | poster | glitch | glitch, cut, zoom |
 | Beat Cut | bold | condensed | words | bars | stack | poster | handheld | cut, zoom |
@@ -129,7 +129,7 @@ La caméra s'applique au contenu des scènes (jamais au fond) et se fige pendant
 | Gradient Flow | tech | display | fade | blobs | carousel | center | drift | fade, slide, curtain |
 | Liquid Glass | tech | sans | fade | glass (+ liquid) | carousel | glass | drift | glass, fade, slide |
 | Terminal | tech | mono | typewriter + glow | terminal | row | left | still | cut, fade |
-| Orbit | tech | display | fade | orbit | tilt | center | drift | zoom, fade, slide |
+| Orbit | tech | display | letters + glow | orbit (3 orbites, satellites, étoiles) | carousel | center | swing | zoom, fade, slide |
 | Playful | fun | display | letters | shapes | fan | center | push | zoom, slide, curtain |
 | 3D Flat | fun | display | words | iso (+ depth) | tilt | extrude | swing | cube, zoom, slide |
 | Y2K | fun | display | letters + chrome | chrome | fan | center | push | zoom, glitch, curtain |
@@ -137,7 +137,7 @@ La caméra s'applique au contenu des scènes (jamais au fond) et se fige pendant
 | Corporate | business | sans | words | grid | row | left | still | fade, slide |
 | Dashboard | business | sans | words | data | bento | left | push | slide, fade, cut |
 | Pitch | business | sans | words | clean | bento | left | push | slide, fade, curtain |
-| Studio | business | sans | mask | glass | hero | left | push | glass, slide, fade |
+| Studio | business | display | words | studio-stage (+ rays, grain) | fan | center | swing | zoom, slide, fade |
 | Pop Art | fun | condensed | letters | halftone | fan | poster | handheld | zoom, cut, curtain |
 | Fiesta | fun | display | letters | confetti | carousel | center | push | zoom, curtain, slide |
 | Sprint | bold | condensed | words | stripes | stack | center | push | slide, cut, zoom |
@@ -151,6 +151,8 @@ La caméra s'applique au contenu des scènes (jamais au fond) et se fige pendant
 | Hyperspace | tech | display | fade + glow | starfield | tilt | center | push | zoom, fade, cut |
 | Creator | bold | display | words | blobs (+ viewfinder) | stack | left | handheld | cut, slide, zoom |
 | Riso | typo | display | mask | halftone (+ border) | split | left | still | curtain, cut |
+| Summit | business | sans | mask | spotlight (+ light) | tilt | extrude | push | cube, slide, fade |
+| Aurore | tech | sans | fade | aurora | hero | center | drift | fade, slide |
 
 (La table fait foi au moment où elle est écrite ; en cas de doute, `config/recipes.ts` a raison.)
 

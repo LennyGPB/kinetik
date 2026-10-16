@@ -11,5 +11,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: "yearly" as const,
     priority: 0.3,
   })));
-  return [...home, ...legal];
+  const support = ["en", "fr"].map((locale) => ({
+    url: `${siteConfig.url}/${locale}/support`,
+    alternates: { languages: { en: `${siteConfig.url}/en/support`, fr: `${siteConfig.url}/fr/support` } },
+    changeFrequency: "yearly" as const,
+    priority: 0.4,
+  }));
+  return [...home, ...support, ...legal];
 }

@@ -1,10 +1,10 @@
-import { PreviewTarget } from "./movable-text";
+import { MovableText, PreviewTarget } from "./movable-text";
 import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill, Img, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { ScreensLayout } from "../../config/recipes";
 import { MAX_SCREEN_COUNT, sceneFocuses, sceneScreens, type Scene, type ScreenFocus, type ScreenFrame } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
-import { BrowserFrame, MockScreen, PhoneFrame } from "./devices";
+import { BrowserFrame, MockScreen, PhoneFrame, screensDevice } from "./devices";
 import { FocusLayout } from "./focus";
 import { framingTransition } from "./focus-transition";
 import { AnimatedTitle } from "./titles";
@@ -100,9 +100,8 @@ function FramingTitle({ text, props }: { text: string; props: VideoProps }) {
 
 // ───────────── Briques communes ─────────────
 
-function Device({ props, src, box, index, style }: { props: VideoProps; src: string | string[] | null; box: Box; index: number; style?: CSSProperties }) {
+function Device({ props, device, src, box, index, style }: { props: VideoProps; device: ScreenFrame; src: string | string[] | null; box: Box; index: number; style?: CSSProperties }) {
   const u = useUnit();
-  const device = props.graph.screenFrame ?? "none";
   const content = Array.isArray(src) ? <CyclingScreens srcs={src} /> : src ? <ScreenImage src={src} /> : <MockScreen palette={props.palette} variant={index} width={box.w} />;
   return (
     <div style={{ width: box.w, height: box.h, flexShrink: 0, ...style }}>
@@ -165,8 +164,10 @@ function RowLayout({ scene, props }: Props) {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const portrait = useIsPortrait();
-  const device = props.graph.screenFrame ?? "none";
-  const screens = pickScreens(props, scene, device === "browser" ? 2 : portrait ? 2 : 3);
+  const rowCount = (frame: ScreenFrame) => (frame === "browser" ? 2 : portrait ? 2 : 3);
+  const configured = props.graph.screenFrame ?? "none";
+  const device = screensDevice(props, pickScreens(props, scene, rowCount(configured)));
+  const screens = pickScreens(props, scene, rowCount(device));
   const n = screens.length;
   const stacked = device === "browser" && portrait;
   const gap = u * 4;
@@ -183,6 +184,7 @@ function RowLayout({ scene, props }: Props) {
             {(p) => (
               <Device
                 props={props}
+                device={device}
                 src={src}
                 box={box}
                 index={i}
@@ -206,14 +208,15 @@ function HeroLayout({ scene, props }: Props) {
   const { width, height, durationInFrames } = useVideoConfig();
   const portrait = useIsPortrait();
   const terrain = props.recipe.background === "topo";
-  const device = props.graph.screenFrame ?? "none";
   const p = useEnter(4);
   const push = interpolate(frame, [0, durationInFrames], [1, 1.06]);
   const screens = pickScreens(props, scene, 3);
+  const device = screensDevice(props, screens);
   const box = portrait ? fit(width * 0.78, height * 0.58, RATIO[device]) : fit(width * 0.46, height * 0.76, RATIO[device]);
   const deviceEl = (
     <Device
       props={props}
+      device={device}
       src={screens.some(Boolean) ? (screens as string[]) : null}
       box={box}
       index={0}
@@ -246,9 +249,9 @@ function SplitLayout({ scene, props }: Props) {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const portrait = useIsPortrait();
-  const device = props.graph.screenFrame ?? "none";
   const p = useEnter(2, props.graph.energy === "high");
   const screens = pickScreens(props, scene, 3);
+  const device = screensDevice(props, screens);
   const box = fit(width * (portrait ? 0.62 : 0.34), height * 0.78, RATIO[device]);
   const word = `${scene.title.toUpperCase()} · `;
   const textColor = props.palette[2];
@@ -256,7 +259,10 @@ function SplitLayout({ scene, props }: Props) {
 
   return (
     <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-      <AbsoluteFill style={{ justifyContent: "center", gap: u * 2 }}>
+      {/* Le mur de texte est le titre de la scène : taille, placement, couleur et durée réglables dans l'éditeur */}
+      <AbsoluteFill style={{ justifyContent: "center" }}>
+        <MovableText target="title">
+        <div style={{ display: "flex", flexDirection: "column", gap: u * 2 }}>
         {[0, 1, 2].map((row) => (
           <div
             key={row}
@@ -274,9 +280,12 @@ function SplitLayout({ scene, props }: Props) {
             {word.repeat(4)}
           </div>
         ))}
+        </div>
+        </MovableText>
       </AbsoluteFill>
       <Device
         props={props}
+        device={device}
         src={screens.some(Boolean) ? (screens as string[]) : null}
         box={box}
         index={1}
@@ -290,8 +299,8 @@ function SplitLayout({ scene, props }: Props) {
 function FanLayout({ scene, props }: Props) {
   const u = useUnit();
   const { width, height } = useVideoConfig();
-  const device = props.graph.screenFrame ?? "none";
   const screens = pickScreens(props, scene, 3);
+  const device = screensDevice(props, screens);
   const n = screens.length;
   const portrait = useIsPortrait();
   // En vertical l'éventail doit tenir dans une largeur étroite
@@ -310,6 +319,7 @@ function FanLayout({ scene, props }: Props) {
               {(p) => (
                 <Device
                   props={props}
+                  device={device}
                   src={screens[i]}
                   box={box}
                   index={i}
@@ -338,8 +348,8 @@ function TiltLayout({ scene, props }: Props) {
   const frame = useCurrentFrame();
   const { width, height, durationInFrames } = useVideoConfig();
   const portrait = useIsPortrait();
-  const device = props.graph.screenFrame ?? "none";
   const screens = pickScreens(props, scene, portrait ? 2 : 3);
+  const device = screensDevice(props, screens);
   const n = screens.length;
   const gap = u * 5;
   const box = fit((width * 0.72 - gap * (n - 1)) / n, height - u * 46, RATIO[device]);
@@ -356,6 +366,7 @@ function TiltLayout({ scene, props }: Props) {
               {(p) => (
                 <Device
                   props={props}
+                  device={device}
                   src={src}
                   box={box}
                   index={i}
@@ -375,8 +386,8 @@ function StackLayout({ scene, props }: Props) {
   const u = useUnit();
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
-  const device = props.graph.screenFrame ?? "none";
   const screens = pickScreens(props, scene, 3);
+  const device = screensDevice(props, screens);
   const n = screens.length;
   const box = fit(width * 0.5, height - u * 34, RATIO[device]);
   const beatInfo = useBeat();
@@ -399,6 +410,7 @@ function StackLayout({ scene, props }: Props) {
             <Device
               key={i}
               props={props}
+              device={device}
               src={src}
               box={box}
               index={i}
@@ -424,9 +436,9 @@ function CarouselLayout({ scene, props }: Props) {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const portrait = useIsPortrait();
-  const device = props.graph.screenFrame ?? "none";
   const chosen = scene.screens?.filter((url) => props.screenUrls.includes(url)) ?? [];
   const base = chosen.length ? chosen : props.screenUrls.length ? props.screenUrls.slice(0, screenCount(scene, props.screenUrls.length)) : Array.from({ length: screenCount(scene, 4) }, () => null);
+  const device = screensDevice(props, base);
   const track = Array.from({ length: Math.max(6, base.length) }, (_, i) => base[i % base.length]);
   const box = fit(width / (portrait ? 1.9 : 3.6), height - u * 32, RATIO[device]);
   const gap = u * 4;
@@ -447,6 +459,7 @@ function CarouselLayout({ scene, props }: Props) {
             <Device
               key={i}
               props={props}
+              device={device}
               src={src}
               box={box}
               index={i}
@@ -470,8 +483,8 @@ function BentoLayout({ scene, props }: Props) {
   const u = useUnit();
   const { width, height } = useVideoConfig();
   const portrait = useIsPortrait();
-  const device = props.graph.screenFrame ?? "none";
   const screens = pickScreens(props, scene, 3);
+  const device = screensDevice(props, screens);
   const gap = u * 3;
   const areaW = width - u * (portrait ? 10 : 16);
   const areaH = height - u * (portrait ? 36 : 30);
@@ -497,7 +510,7 @@ function BentoLayout({ scene, props }: Props) {
       <Title scene={scene} props={props} size={u * 6.5} />
       <div style={{ display: "flex", flexDirection: portrait ? "column" : "row", gap, alignItems: "center" }}>
         <EnterItem index={0}>
-          {(p) => <Device props={props} src={screens.some(Boolean) ? (screens as string[]) : null} box={deviceBox} index={1} style={enter(p)} />}
+          {(p) => <Device props={props} device={device} src={screens.some(Boolean) ? (screens as string[]) : null} box={deviceBox} index={1} style={enter(p)} />}
         </EnterItem>
         <div style={{ display: "flex", flexDirection: portrait ? "row" : "column", gap }}>
           <EnterItem index={1}>{(p) => <div style={{ ...card, ...enter(p) }}><BarsTile palette={props.palette} light={light} /></div>}</EnterItem>

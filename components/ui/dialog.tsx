@@ -21,6 +21,7 @@ export function Dialog({
   description,
   children,
   className,
+  aside,
 }: {
   open: boolean;
   onClose: () => void;
@@ -28,6 +29,8 @@ export function Dialog({
   description?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Contenu posé à côté de la modale, hors de son fond (grands écrans uniquement), ex. un aperçu */
+  aside?: ReactNode;
 }) {
   const t = useDictionary();
 
@@ -82,6 +85,7 @@ export function Dialog({
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
+          <div className={cn("relative flex w-full items-center justify-center", aside && "sm:w-auto lg:gap-8")}>
           <motion.div
             ref={panelRef}
             role="dialog"
@@ -93,6 +97,7 @@ export function Dialog({
             transition={{ type: "spring", stiffness: 380, damping: 34 }}
             className={cn(
               "relative max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl border border-line-strong bg-surface/90 p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[inset_0_1px_0_rgb(255_255_255/0.08),0_24px_80px_-24px_rgb(0_0_0/0.45)] backdrop-blur-2xl backdrop-saturate-125 sm:max-w-lg sm:rounded-3xl sm:pb-6",
+              aside && "sm:w-[32rem] sm:shrink-0",
               className,
             )}
           >
@@ -111,6 +116,18 @@ export function Dialog({
             {description && <p className="mt-1.5 text-sm text-muted">{description}</p>}
             <div className="mt-5">{children}</div>
           </motion.div>
+          {aside && (
+            <motion.div
+              className="relative hidden lg:block"
+              initial={{ opacity: 0, x: 24, scale: 0.97 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 16, transition: { duration: 0.18 } }}
+              transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.05 }}
+            >
+              {aside}
+            </motion.div>
+          )}
+          </div>
         </div>
       )}
     </AnimatePresence>,

@@ -29,9 +29,21 @@ const serveUrl = process.env.REMOTION_SERVE_URL;
 const maxLambdas = Math.max(1, Number(process.env.REMOTION_MAX_LAMBDAS) || 8);
 const concurrency = Math.max(2, Number(process.env.REMOTION_CONCURRENCY) || 10);
 
+/**
+ * Exécutions gardées libres dans le quota : chaque suivi de progression (getRenderProgress) invoque aussi la fonction,
+ * et une Lambda d'un rendu précédent peut encore tourner. Sans cette marge, AWS refuse les invocations (« Rate Exceeded »).
+ */
+const HEADROOM = 2;
+
 /** Lambdas de rendu par vidéo quand `batch` rendus démarrent ensemble (chacun garde aussi sa Lambda principale). */
 export function lambdasPerRender(batch: number) {
-  return Math.max(1, Math.min(maxLambdas, Math.floor(concurrency / Math.max(1, batch)) - 1));
+  return Math.max(1, Math.min(maxLambdas, Math.floor((concurrency - HEADROOM) / Math.max(1, batch)) - 1));
+}
+
+/** Refus d'AWS pour dépassement du quota d'exécutions simultanées (temporaire : le rendu continue). */
+function isThrottled(error: unknown) {
+  const e = error as { name?: string; Reason?: string; $metadata?: { httpStatusCode?: number } } | null;
+  return e?.name === "TooManyRequestsException" || e?.Reason === "ConcurrentInvocationLimitExceeded" || e?.$metadata?.httpStatusCode === 429;
 }
 
 export function isLambdaConfigured() {
@@ -100,9 +112,15 @@ export async function startLambdaRender({ props, uhd, fileName, userId, batch = 
   return { renderId, bucketName };
 }
 
+/** Avancement d'un rendu ; null si AWS refuse temporairement la lecture (quota saturé) : on réessaiera au prochain suivi. */
 export async function getLambdaProgress(renderId: string, bucketName: string) {
   if (!functionName) throw new Error("Remotion Lambda n'est pas configuré");
-  const progress = await getRenderProgress({ renderId, bucketName, functionName, region });
+  let progress: Awaited<ReturnType<typeof getRenderProgress>>;
+  try { progress = await getRenderProgress({ renderId, bucketName, functionName, region }); }
+  catch (error) {
+    if (isThrottled(error)) return null;
+    throw error;
+  }
   return {
     progress: Math.min(99, Math.round(progress.overallProgress * 100)),
     done: progress.done,

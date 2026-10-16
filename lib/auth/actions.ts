@@ -1,4 +1,5 @@
 "use server";
+import { after } from "next/server";
 import { getServerDictionary } from "@/lib/i18n/server";
 
 import { localizedRedirect } from "@/lib/i18n/redirect";
@@ -8,6 +9,7 @@ import { db } from "@/lib/db";
 import { rateLimitAll, resetRateLimit } from "@/lib/rate-limit";
 import { LIMITS, limitKey, requestIp } from "@/lib/security/limits";
 import { checkEmailDomain, checkSignupForm, issueSignupToken } from "@/lib/security/signup-guard";
+import { notifySignup } from "@/lib/services/telegram";
 import { safeRedirect } from "./constants";
 import { burnPasswordCheck, hashPassword, verifyPassword } from "./password";
 import { createSession, destroySession } from "./session";
@@ -65,6 +67,7 @@ export async function register(_prev: AuthFormState, formData: FormData): Promis
     amount: SIGNUP_BONUS_CREDITS, type: "SIGNUP_BONUS", source: "PACK", description: t.app.credits.types.SIGNUP_BONUS,
   } } }, select: { id: true } });
   await createSession(user.id);
+  after(() => notifySignup({ name, email, method: "email", locale: t.locale }));
 
   return await localizedRedirect(safeRedirect(String(formData.get("redirectTo") ?? "")));
 }

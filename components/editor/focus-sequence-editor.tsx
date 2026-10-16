@@ -39,7 +39,9 @@ export function FocusSequenceEditor({ screens, sceneScreens, value, sceneTitle, 
     value={steps[editing] ?? null}
     sceneTitle={sceneTitle}
     disabled={disabled}
-    onCancel={() => setEditing(null)}
+    // Annuler revient à la liste des cadrages (ou ferme tout si elle n'existait pas encore) ; la croix ferme tout, sans rien appliquer
+    onCancel={() => (steps.length ? setEditing(null) : onCancel())}
+    onClose={onCancel}
     onApply={(focus) => {
       setSteps((current) => focus ? current.map((step, i) => i === editing ? focus : step).concat(editing === current.length ? [focus] : []) : current.filter((_, i) => i !== editing));
       setEditing(null);

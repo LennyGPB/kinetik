@@ -5,7 +5,8 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 
 import { ArrowRight, Check, Clock, RectangleHorizontal, RectangleVertical, Square } from "lucide-react";
 import Link from "@/lib/i18n/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { AnimatedApply } from "@/components/ui/animated-apply";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toaster";
@@ -31,21 +32,20 @@ export function VariantsDialog({ open, onClose, projectId, format: current, grap
   const available = VARIANT_KINDS.filter((kind) => !taken.has(kind) && (kind !== "short" || totalDuration(graph) > SHORT_DURATION));
   const [picked, setPicked] = useState<VariantKind[]>([]);
   const [created, setCreated] = useState<{ id: string; name: string; kind: VariantKind }[] | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [applying, setApplying] = useState(false);
   const toast = useToast();
 
   function toggle(kind: VariantKind) {
     setPicked((list) => (list.includes(kind) ? list.filter((k) => k !== kind) : [...list, kind]));
   }
 
-  function submit() {
-    startTransition(async () => {
-      const result = await createVariants(projectId, picked);
-      if (!result.ok) return toast({ title: result.error === "rate_limited" ? t.app.editor.rateLimited : t.common.error, tone: "error" });
-      setCreated(result.projects);
-      setPicked([]);
-      toast({ title: v.done, tone: "success" });
-    });
+  // Appelé à la fin de la glissade du bouton ; il reste au bout du rail tant que la création n'est pas finie
+  async function submit() {
+    const result = await createVariants(projectId, picked);
+    if (!result.ok) return toast({ title: result.error === "rate_limited" ? t.app.editor.rateLimited : t.common.error, tone: "error" });
+    setCreated(result.projects);
+    setPicked([]);
+    toast({ title: v.done, tone: "success" });
   }
 
   return (
@@ -92,7 +92,7 @@ export function VariantsDialog({ open, onClose, projectId, format: current, grap
                     type="button"
                     role="checkbox"
                     aria-checked={checked}
-                    disabled={!enabled}
+                    disabled={!enabled || applying}
                     onClick={() => toggle(kind)}
                     className={cn(
                       "flex h-full w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition-[border-color,background-color] disabled:cursor-not-allowed disabled:opacity-45",
@@ -111,12 +111,14 @@ export function VariantsDialog({ open, onClose, projectId, format: current, grap
               );
             })}
           </ul>
-          <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-center text-xs text-subtle sm:text-left">{v.free}</span>
-            <Button size="lg" disabled={!picked.length} loading={pending} onClick={submit}>
-              {picked.length > 1 ? format(v.create, { count: picked.length }) : v.createOne}
-            </Button>
-          </div>
+          <p className="text-xs text-subtle">{v.free}</p>
+          <AnimatedApply
+            disabled={!picked.length}
+            onApplyingChange={setApplying}
+            onApply={submit}
+            onCancel={onClose}
+            label={picked.length > 1 ? format(v.create, { count: picked.length }) : v.createOne}
+          />
         </div>
       )}
     </Dialog>

@@ -92,17 +92,22 @@ export async function syncSubscription(subscriptionId: string) {
   if (ACTIVE.has(sub.status) && invoice?.status === "paid") await grantSlot(user.id, sub.id, parsed.planId, periodStart, periodEnd);
 }
 
-/** Achat d'un pack : crédite une seule fois, après vérification du montant réellement payé. */
+/**
+ * Achat d'un pack : crédite une seule fois, après vérification du montant réellement payé.
+ * Renvoie le pack s'il vient d'être crédité (null si déjà servi ou ignoré), pour ne notifier qu'une fois.
+ */
 export async function fulfillPackSession(session: Stripe.Checkout.Session) {
-  if (session.mode !== "payment" || session.payment_status !== "paid") return;
+  if (session.mode !== "payment" || session.payment_status !== "paid") return null;
   const userId = session.metadata?.userId;
   const pack = CREDIT_PACKS.find((p) => p.id === session.metadata?.packId);
   if (!userId || !pack) throw new Error(`stripe_session_metadata:${session.id}`);
   if (session.currency !== "eur" || session.amount_total !== pack.price * 100) throw new Error(`stripe_amount_mismatch:${session.id}`);
-  if (!(await db.user.findUnique({ where: { id: userId }, select: { id: true } }))) return;
+  if (!(await db.user.findUnique({ where: { id: userId }, select: { id: true } }))) return null;
+  let created = false;
   await grantCredits(userId, {
     amount: pack.credits, type: "PURCHASE", source: "PACK", reference: `checkout:${session.id}`, description: `Pack ${pack.credits} crédits`,
-  });
+  }, async () => { created = true; });
+  return created ? pack : null;
 }
 
 /** Rattrapage quotidien (cron) : tranches mensuelles des abonnements annuels, webhooks manqués. */

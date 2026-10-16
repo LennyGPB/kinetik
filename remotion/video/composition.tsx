@@ -1,11 +1,11 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Composition } from "../../config/recipes";
 import type { Scene } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
 import { MovableText } from "./movable-text";
 import { AnimatedTitle } from "./titles";
-import { isLight, textColorOn, useBodyFont, useIsPortrait, useRecipe, useUnit } from "./theme";
+import { isLight, textColorOn, useBodyFont, useIsPortrait, useRecipe, useTitleFont, useTitleScale, useUnit } from "./theme";
 
 /**
  * BRIQUES « composition » (recipe.composition) : où se placent le titre, le sous-titre et les éléments d'une scène de texte.
@@ -54,6 +54,26 @@ function AccentRule({ props, width, delay = 8 }: { props: VideoProps; width: num
 /** Taille du titre en affiche : énorme pour un titre court, raisonnable pour un long (il ne doit jamais déborder). */
 function posterScale(text: string) {
   return text.length <= 12 ? 1.75 : text.length <= 24 ? 1.4 : text.length <= 40 ? 1.12 : 0.95;
+}
+
+/**
+ * Largeur du mot le plus long d'un titre, en em (1 = taille de la police), mesurée avec la vraie police.
+ * Tant que la police n'est pas chargée (ou hors navigateur) : estimation prudente.
+ */
+let measureContext: CanvasRenderingContext2D | null | undefined;
+function longestWordEm(text: string, font: CSSProperties) {
+  const words = text.split(/s+/).filter(Boolean);
+  const upper = font.textTransform === "uppercase";
+  const spacing = Number.parseFloat(String(font.letterSpacing ?? 0)) || 0;
+  if (measureContext === undefined) measureContext = typeof document === "undefined" ? null : document.createElement("canvas").getContext("2d");
+  const spec = `${font.fontWeight ?? 400} 100px ${font.fontFamily}`;
+  const ready = Boolean(measureContext && typeof document !== "undefined" && document.fonts?.check(spec));
+  if (measureContext && ready) measureContext.font = spec;
+  return Math.max(0, ...words.map((raw) => {
+    const word = upper ? raw.toUpperCase() : raw;
+    const width = measureContext && ready ? measureContext.measureText(word).width / 100 : word.length * 0.62;
+    return width + spacing * word.length;
+  }));
 }
 
 export function TextLayout(layout: TextLayoutProps) {
@@ -112,8 +132,15 @@ function PosterLayout(l: TextLayoutProps) {
   const index = l.props.graph.scenes.findIndex((s) => s.id === l.scene.id);
   const line = interpolate(frame, [4, 22], [0, 100], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const meta = interpolate(frame, [0, 10], [0, 0.7], { extrapolateRight: "clamp" });
+  // Titre géant, mais jamais coupé au milieu d'un mot : le plus long doit tenir sur une ligne (marges latérales réduites)
+  const { width } = useVideoConfig();
+  const titleFont = useTitleFont();
+  const titleScale = useTitleScale();
+  const padX = u * 5;
+  const wordEm = longestWordEm(l.scene.title, titleFont) * (l.title ? 1 : titleScale);
+  const titleSize = Math.min(u * l.titleSize * posterScale(l.scene.title), wordEm ? (width - padX * 2 - u) / wordEm : Infinity);
   return (
-    <AbsoluteFill style={{ padding: u * 7, display: "flex", flexDirection: "column", textAlign: "left" }}>
+    <AbsoluteFill style={{ padding: `${u * 7}px ${padX}px`, display: "flex", flexDirection: "column", textAlign: "left" }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontFamily: font, fontWeight: 600, fontSize: u * 2.4, letterSpacing: "0.14em", textTransform: "uppercase", color, opacity: meta }}>
         <span>{l.props.appName}</span>
         <span>{String(Math.max(0, index) + 1).padStart(2, "0")}</span>
@@ -121,7 +148,7 @@ function PosterLayout(l: TextLayoutProps) {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", gap: u * 3, minHeight: 0 }}>
         {l.header}
         {l.kicker}
-        {titleNode(l, "left", u * l.titleSize * posterScale(l.scene.title))}
+        {titleNode(l, "left", titleSize)}
       </div>
       <div style={{ height: Math.max(2, u * 0.25), width: `${line}%`, background: color, opacity: 0.85 }} />
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: u * 4, paddingTop: u * 3, minHeight: u * 6 }}>

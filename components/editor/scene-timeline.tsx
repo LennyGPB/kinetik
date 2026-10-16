@@ -4,6 +4,7 @@
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
 import { useRef, useState } from "react";
+import { SCENE_COLORS } from "@/config/scene-colors";
 import { format } from "@/lib/i18n";
 import { beatGrid, type SceneGraph } from "@/lib/projects/scenes";
 import { applyTimelineEdit, clampDuration, DURATION_STEP, formatSeconds, sceneLabel, type TimelineEdit } from "@/lib/projects/timeline";
@@ -47,16 +48,6 @@ export function SceneTimeline({
 
   const e = t.app.editor;
   const tl = e.timeline;
-  const SEGMENT_COLORS: Record<SceneGraph["scenes"][number]["kind"], string> = {
-  intro: "from-indigo-500 to-violet-500",
-  logo: "from-violet-500 to-fuchsia-500",
-  feature: "from-fuchsia-500 to-pink-500",
-  screens: "from-sky-500 to-indigo-500",
-  cta: "from-violet-600 to-purple-400",
-  stat: "from-amber-500 to-orange-500",
-  quote: "from-emerald-500 to-teal-500",
-};
-
   const ref = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
 
@@ -216,15 +207,15 @@ export function SceneTimeline({
                   : undefined
               }
               className={cn(
-                "group/tl relative h-7 min-w-3 overflow-visible rounded-md max-lg:h-12 max-lg:rounded-lg bg-gradient-to-r transition-[opacity,box-shadow]",
-                SEGMENT_COLORS[scene.kind],
+                "group/tl relative h-7 min-w-3 overflow-visible rounded-md max-lg:h-12 max-lg:rounded-lg transition-[opacity,box-shadow]",
+                SCENE_COLORS[scene.kind].bg,
                 editable && "cursor-grab outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing",
-                selected && "ring-2 ring-fg ring-offset-1 ring-offset-bg-subtle",
+                selected && "ring-2 ring-accent ring-offset-2 ring-offset-bg-subtle shadow-[0_0_18px_-2px_var(--accent-glow)]",
                 dragging && drag?.mode === "move" && "z-10 -translate-y-0.5 shadow-lg",
               )}
               style={{ flex: duration }}
             >
-              <span className="pointer-events-none absolute inset-0 hidden items-center truncate overflow-hidden rounded-md px-1.5 text-[10px] font-medium text-white sm:flex">
+              <span className={cn("pointer-events-none absolute inset-0 hidden items-center truncate overflow-hidden rounded-md px-1.5 text-[10px] font-semibold sm:flex", SCENE_COLORS[scene.kind].text)}>
                 {editable ? sceneLabel(scene.kind, t.locale) : scene.kind}
               </span>
               {editable && (

@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill, Easing, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Scene, ScreenFocus } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
-import { BrowserFrame, browserBarHeight, PhoneFrame, phoneBezel } from "./devices";
+import { BrowserFrame, browserBarHeight, frameForRatio, PhoneFrame, phoneBezel } from "./devices";
 import { AnimatedTitle } from "./titles";
 import { isLight, textColorOn, useBodyFont, useIsPortrait, useUnit } from "./theme";
 
@@ -31,7 +31,8 @@ export function FocusLayout({ scene, props, focus, src, ratio, stepFrames, hold 
   const frame = localFrame * (stepFrames ? Math.max(1, 75 / stepFrames) : 1);
   const { fps, width, height } = useVideoConfig();
   const portrait = useIsPortrait();
-  const device = props.graph.screenFrame ?? "none";
+  // Cadre adapté au format du screen (capture d'ordinateur → navigateur, mobile → téléphone)
+  const device = frameForRatio(props.screenRatios?.[props.screenUrls.indexOf(src)]) ?? props.graph.screenFrame ?? "none";
   const popout = focus.mode === "popout";
   const accent = props.palette[2];
 

@@ -847,6 +847,8 @@ async function renderStatus(userId: string, renderId: string): Promise<RenderSta
   // Rendu Lambda en cours
   if (render.lambdaRenderId && render.bucketName) {
     const lambda = await getLambdaProgress(render.lambdaRenderId, render.bucketName);
+    // Quota AWS saturé le temps d'une lecture : le rendu continue, on garde la dernière progression connue
+    if (!lambda) return { renderId, status: "RENDERING", progress: render.progress, url: null };
     if (lambda.failed) {
       await failRender(render.id, userId, render.creditCost, render.project.name, lambda.error ?? "Échec du rendu");
       return { renderId, status: "FAILED", progress: lambda.progress, url: null };
@@ -881,6 +883,45 @@ export async function renameProject(projectId: string, name: string): Promise<Ac
   if (!value) return { ok: false, error: "invalid" };
   const { count } = await db.project.updateMany({ where: { id: projectId, userId: user.id }, data: { name: value } });
   return count ? { ok: true } : { ok: false, error: "not_found" };
+}
+
+/**
+ * Duplique un projet : nouveau projet indépendant (pas une déclinaison), repartant de sa dernière version.
+ * Mêmes fichiers (mêmes URLs, rien n'est copié dans le stockage), sans historique, chat, exports ni lien de partage. Gratuit.
+ */
+export async function duplicateProject(projectId: string): Promise<ActionResult<{ id: string; name: string }>> {
+  const t = await getServerDictionary();
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+  if (await overLimit("project", user.id)) return { ok: false, error: "rate_limited" };
+  const project = await db.project.findFirst({ where: { id: projectId, userId: user.id }, include: { assets: true } });
+  if (!project) return { ok: false, error: "not_found" };
+  if (project.status === "GENERATING") return { ok: false, error: "busy" };
+  const latest = await db.projectVersion.findFirst({ where: { projectId }, orderBy: { number: "desc" }, select: { scenes: true } });
+  const name = format(t.app.dashboard.copyName, { name: project.name }).slice(0, 60);
+  const copy = await db.project.create({
+    data: {
+      userId: user.id,
+      name,
+      appName: project.appName,
+      videoType: project.videoType,
+      locale: project.locale,
+      // Sans version (brouillon, génération échouée) : la copie repart en brouillon
+      status: latest ? "READY" : "DRAFT",
+      format: project.format,
+      duration: project.duration,
+      styleId: project.styleId,
+      colors: project.colors ?? [],
+      musicTrackId: project.musicTrackId,
+      brief: project.brief,
+      websiteUrl: project.websiteUrl,
+      assets: { create: project.assets.map((a) => ({ type: a.type, url: a.url, fileName: a.fileName, mimeType: a.mimeType, sizeBytes: a.sizeBytes, position: a.position })) },
+      ...(latest && { versions: { create: { number: 1, scenes: latest.scenes as Prisma.InputJsonValue, label: format(t.app.dashboard.copyVersion, { name: project.name }) } } }),
+    },
+    select: { id: true, name: true },
+  });
+  refresh();
+  return { ok: true, ...copy };
 }
 
 export async function deleteProject(projectId: string) {

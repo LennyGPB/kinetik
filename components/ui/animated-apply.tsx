@@ -5,9 +5,14 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 
 import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+
+/** Attente d'une action longue (ex. traduction) : le bouton recule et revient se cogner au bout du rail, en boucle (s) */
+const KNOCK = 0.85;
+/** Recul (px) avant chaque nouveau coup */
+const KNOCK_BACK = 26;
 
 /** Glissade du bouton (s) et courbe partagées par le bouton et sa traînée */
 const SLIDE = 0.38;
@@ -121,6 +126,29 @@ function Trail({ width }: { width: number }) {
   );
 }
 
+/** Petit flash et onde à chaque coup du bouton contre le bout du rail, calés sur KNOCK. */
+function Knock({ left }: { left: number }) {
+  const loop = { duration: KNOCK, repeat: Infinity, ease: "easeOut" } as const;
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0">
+      <motion.span
+        className="absolute top-1/2 size-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70 blur-sm"
+        style={{ left }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: [0, 0, 1.3, 1.6], opacity: [0, 0, 0.8, 0] }}
+        transition={{ ...loop, times: [0, 0.97, 0.985, 1] }}
+      />
+      <motion.span
+        className="absolute top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent"
+        style={{ left }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: [0.3, 0.3, 2.4], opacity: [0, 1, 0] }}
+        transition={{ ...loop, times: [0, 0.01, 0.45] }}
+      />
+    </div>
+  );
+}
+
 /** Shared confirmation rail: only commits once the button reaches its destination. */
 export function AnimatedApply({ disabled, onApply, onCancel, onBegin, onApplyingChange, submit = false, label, icon }: {
   disabled?: boolean;
@@ -141,14 +169,26 @@ export function AnimatedApply({ disabled, onApply, onCancel, onBegin, onApplying
   const [travel, setTravel] = useState<number | null>(null);
   const [trailWidth, setTrailWidth] = useState(0);
   const [buttonWidth, setButtonWidth] = useState(0);
+  // Action lancée mais pas encore terminée (promesse en cours) : le bouton « frappe » au bout du rail
+  const [waiting, setWaiting] = useState(false);
   const applying = travel !== null;
   const reduceMotion = useReducedMotion();
+  // Le libellé peut s'allonger pendant l'action (« Traduction en cours… ») : le bouton reste calé contre le bout du rail
+  useEffect(() => {
+    if (!applying || !button.current || !track.current) return;
+    const fit = () => setTravel(Math.max(0, (track.current?.clientWidth ?? 0) - (button.current?.offsetWidth ?? 0) - 12));
+    const observer = new ResizeObserver(fit);
+    observer.observe(button.current);
+    return () => observer.disconnect();
+  }, [applying]);
   const commit = () => {
     if (committed.current) return;
     committed.current = true;
     const result = onApply();
+    if (result) setWaiting(true);
     if (result) void result.finally(() => {
       committed.current = false;
+      setWaiting(false);
       setTravel(null);
       setTrailWidth(0);
       onApplyingChange?.(false);
@@ -157,8 +197,21 @@ export function AnimatedApply({ disabled, onApply, onCancel, onBegin, onApplying
   return (
     <div ref={track} className="relative flex min-h-12 items-center justify-between overflow-hidden rounded-full border border-line bg-bg p-1.5">
       {applying && !reduceMotion && <Trail width={trailWidth} />}
-      {applying && !reduceMotion && <Speed travel={travel} buttonWidth={buttonWidth} />}
-      <motion.div ref={button} className="relative z-10 inline-flex" initial={false} animate={{ x: travel ?? 0, scaleX: applying ? [1, 1.1, 1] : 1, y: applying ? [0, -1, 1, -1.5, 1.5, -1, 0] : 0, rotate: applying ? [0, -0.5, 0.5, -0.7, 0.7, -0.3, 0] : 0 }} transition={{ duration: SLIDE, ease: EASE, y: { duration: SLIDE, ease: "linear" }, rotate: { duration: SLIDE, ease: "linear" } }} onAnimationComplete={() => { if (applying) setTimeout(commit, reduceMotion ? 0 : IMPACT_PAUSE_MS); }}>
+      {applying && !waiting && !reduceMotion && <Speed travel={travel} buttonWidth={buttonWidth} />}
+      {waiting && travel !== null && !reduceMotion && <Knock left={travel + 6 + buttonWidth} />}
+      <motion.div
+        ref={button}
+        className="relative z-10 inline-flex origin-right"
+        initial={false}
+        animate={waiting && travel !== null && !reduceMotion
+          // Recule doucement, puis revient vite se cogner (écrasé un instant contre le bout)
+          ? { x: [travel, travel - KNOCK_BACK, travel], scaleX: [1, 1, 1, 0.92, 1], y: 0, rotate: [0, 0, -0.6, 0.6, 0] }
+          : { x: travel ?? 0, scaleX: applying ? [1, 1.1, 1] : 1, y: applying ? [0, -1, 1, -1.5, 1.5, -1, 0] : 0, rotate: applying ? [0, -0.5, 0.5, -0.7, 0.7, -0.3, 0] : 0 }}
+        transition={waiting
+          ? { duration: KNOCK, repeat: Infinity, x: { duration: KNOCK, repeat: Infinity, times: [0, 0.6, 1], ease: ["easeOut", "easeIn"] }, scaleX: { duration: KNOCK, repeat: Infinity, times: [0, 0.6, 0.98, 0.99, 1] }, rotate: { duration: KNOCK, repeat: Infinity, times: [0, 0.97, 0.98, 0.99, 1] } }
+          : { duration: SLIDE, ease: EASE, y: { duration: SLIDE, ease: "linear" }, rotate: { duration: SLIDE, ease: "linear" } }}
+        onAnimationComplete={() => { if (applying && !waiting) setTimeout(commit, reduceMotion ? 0 : IMPACT_PAUSE_MS); }}
+      >
         <button type={submit ? "submit" : "button"} disabled={disabled || applying} onClick={(event) => {
           event.preventDefault();
           if (disabled || applying || committed.current) return;

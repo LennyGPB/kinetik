@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { LogoMark } from "@/components/brand/logo";
 import { RevealGroup, RevealItem } from "@/components/motion/reveal";
 
+import { SCENE_COLORS } from "@/config/scene-colors";
 import { cn } from "@/lib/utils";
 import { Section, SectionHeading } from "./section-heading";
 
@@ -110,14 +111,15 @@ function BeatSync() {
         </div>
       </div>
       <div className="mt-4 flex gap-1.5">
-        {[
-          ["Intro", "w-[18%]", "from-violet-500 to-fuchsia-500"],
-          ["Logo", "w-[19%]", "from-indigo-500 to-violet-500"],
-          ["Feature", "w-[19%]", "from-fuchsia-500 to-pink-500"],
-          ["Screens", "w-[19%]", "from-sky-500 to-indigo-500"],
-          ["CTA", "flex-1", "from-violet-600 to-purple-400"],
-        ].map(([name, w, g]) => (
-          <div key={name} className={cn("h-9 rounded-lg bg-gradient-to-r px-2 py-1.5 text-[11px] font-medium text-white", w, g)}>
+        {/* Mêmes couleurs que la frise de l'éditeur (config/scene-colors.ts) */}
+        {([
+          ["Intro", "w-[18%]", "intro"],
+          ["Logo", "w-[19%]", "logo"],
+          ["Feature", "w-[19%]", "feature"],
+          ["Screens", "w-[19%]", "screens"],
+          ["CTA", "flex-1", "cta"],
+        ] as const).map(([name, w, kind]) => (
+          <div key={name} className={cn("h-9 rounded-lg px-2 py-1.5 text-[11px] font-semibold", w, SCENE_COLORS[kind].bg, SCENE_COLORS[kind].text)}>
             {name}
           </div>
         ))}

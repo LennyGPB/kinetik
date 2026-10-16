@@ -185,42 +185,54 @@ export function FeaturedPacks({ mode = "app" }: { mode?: Mode }) {
         const recommended = pack.badge === "Populaire";
         const perCredit = pack.price / pack.credits;
         const saving = Math.round((1 - perCredit / basePrice) * 100);
-        const buy = recommended ? "primary" : "outline";
+        const buy = recommended ? "secondary" : "outline";
         return (
           <div
             key={pack.id}
             className={cn(
-              "relative flex flex-col gap-5 rounded-2xl border p-5 sm:p-6",
-              // Mobile : le pack recommandé en premier ; desktop : à sa place (au centre)
-              recommended ? "order-first border-accent bg-accent-soft sm:order-none" : "border-line bg-bg-subtle",
+              "relative flex flex-col gap-5 rounded-2xl p-5 sm:p-6",
+              // Mobile : le pack recommandé en premier ; desktop : à sa place (au centre). Même rendu que l'abonnement mis en avant
+              recommended
+                ? "isolate order-first bg-[linear-gradient(155deg,#9061f9_0%,#7c3aed_40%,#4c1d95_100%)] text-white shadow-[0_0_0_1px_rgb(196_181_253/0.6),0_30px_90px_-20px_rgb(139_92_246/0.8),0_0_70px_-10px_rgb(168_85_247/0.55)] sm:order-none"
+                : "border border-line bg-bg-subtle",
             )}
           >
-            {pack.badge && (
-              <span className={cn("absolute top-4 right-4 rounded-full px-2.5 py-0.5 text-[11px] font-semibold", recommended ? "bg-accent text-accent-fg" : "border border-line-strong text-muted")}>
-                {pack.badge === "Populaire" ? t.landing.pricing.popular : pack.badge}
+            {recommended && (
+              <span aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-2xl ring-1 ring-white/25 ring-inset">
+                <span className="absolute -top-28 left-1/2 h-60 w-[130%] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(255_255_255/0.22),transparent)]" />
+                <span className="absolute inset-0 animate-sweep bg-[linear-gradient(105deg,transparent_35%,rgb(255_255_255/0.2)_50%,transparent_65%)] [animation-duration:4.5s] motion-reduce:hidden" />
               </span>
+            )}
+            {pack.badge && (
+              recommended ? (
+                <span className="absolute -top-3 left-5 inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-violet-700 shadow-[0_6px_24px_-4px_rgb(167_139_250/0.9)] sm:left-6">
+                  <Sparkles className="size-3" /> {p.popular}
+                </span>
+              ) : (
+                <span className="absolute top-4 right-4 rounded-full border border-line-strong px-2.5 py-0.5 text-[11px] font-semibold text-muted">{pack.badge}</span>
+              )
             )}
             <div>
               <p className="flex items-baseline gap-1.5">
                 <span className="text-4xl font-semibold tracking-tight tabular-nums">{formatNumber(pack.credits, t.locale)}</span>
-                <span className="text-sm text-muted">{t.common.credits}</span>
+                <span className={cn("text-sm", recommended ? "text-white/75" : "text-muted")}>{t.common.credits}</span>
               </p>
-              <p className="mt-1 text-sm text-muted">{format(p.packVideos, { count: Math.floor(pack.credits / CREDIT_COSTS.generation) })}</p>
+              <p className={cn("mt-1 text-sm", recommended ? "text-white/85" : "text-muted")}>{format(p.packVideos, { count: Math.floor(pack.credits / CREDIT_COSTS.generation) })}</p>
             </div>
             <div className="mt-auto flex flex-col gap-3">
               <p className="flex items-baseline justify-between gap-2">
                 <span className="text-2xl font-semibold">{formatPrice(pack.price, t.locale)}</span>
-                <span className="text-xs text-subtle">
+                <span className={cn("text-xs", recommended ? "text-white/75" : "text-subtle")}>
                   {format(p.perCredit, { price: formatPrice(Math.round(perCredit * 1000) / 1000, t.locale) })}
-                  {saving > 0 && <span className="ml-1 font-medium text-success">· {format(p.saving, { percent: saving })}</span>}
+                  {saving > 0 && <span className={cn("ml-1 font-medium", recommended ? "text-white" : "text-success")}>· {format(p.saving, { percent: saving })}</span>}
                 </span>
               </p>
               {mode === "marketing" ? (
-                <Link href="/register" className={buttonVariants({ variant: buy, className: "w-full" })}>
+                <Link href="/register" className={buttonVariants({ variant: buy, className: cn("w-full", recommended && HIGHLIGHT_CTA) })}>
                   {p.buy}
                 </Link>
               ) : (
-                <Button variant={buy} className="w-full" loading={pending === pack.id} onClick={() => checkout({ kind: "pack", packId: pack.id })}>
+                <Button variant={buy} className={cn("w-full", recommended && HIGHLIGHT_CTA)} loading={pending === pack.id} onClick={() => checkout({ kind: "pack", packId: pack.id })}>
                   <Coins /> {p.buy}
                 </Button>
               )}

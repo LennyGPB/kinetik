@@ -6,7 +6,8 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { ArrowRight, Check, Play } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
-import { useCallback, useState } from "react";
+import { Player as RemotionPlayer } from "@remotion/player";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Player } from "@/components/editor/player";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,8 @@ import { STYLE_CATEGORIES, VIDEO_STYLES, type StyleCategory, type VideoStyle } f
 import { format } from "@/lib/i18n";
 import { demoVideoProps } from "@/lib/projects/demo-video";
 import { cn } from "@/lib/utils";
+import { KinetikVideo } from "@/remotion/video/KinetikVideo";
+import { DIMENSIONS, durationInFrames, FPS } from "@/remotion/props";
 
 type Filter = StyleCategory | "all";
 
@@ -34,6 +37,12 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
   const [open, setOpen] = useState<VideoStyle | null>(null);
   const [videoFormat, setVideoFormat] = useState<VideoFormatId>("LANDSCAPE");
   const closePreview = useCallback(() => setOpen(null), []);
+  // Survol : la démo démarre après un court délai (pas de lecteur lancé pour un simple passage de souris)
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const startHover = (id: string) => { clearTimeout(hoverTimer.current); hoverTimer.current = setTimeout(() => setPlayingId(id), 350); };
+  const endHover = () => { clearTimeout(hoverTimer.current); setPlayingId(null); };
+  useEffect(() => () => clearTimeout(hoverTimer.current), []);
   const styles = filter === "all" ? VIDEO_STYLES : VIDEO_STYLES.filter((s) => s.category === filter);
 
   return (
@@ -64,26 +73,45 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
             >
               <button
                 type="button"
-                onClick={() => setOpen(style)}
+                onClick={() => { endHover(); setOpen(style); }}
+                onMouseEnter={() => startHover(style.id)}
+                onMouseLeave={endHover}
                 aria-label={format(t.copy["e0e8865ec0d0"], { p0: style.name, p1: selectedId === style.id ? t.copy["5bc7b547e31e"] : "" })}
-                className={cn("group block w-full cursor-pointer overflow-hidden rounded-3xl border bg-surface text-left transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]", selectedId === style.id ? "border-accent ring-1 ring-accent" : "border-line hover:border-line-strong")}
+                // Halo et contour au survol : couleur d'accent du template
+                style={{ "--glow": style.palette[2] } as CSSProperties}
+                className={cn(
+                  "group relative block w-full cursor-pointer overflow-hidden rounded-[1.75rem] border bg-surface p-2 text-left transition-[border-color,box-shadow,transform] duration-500 ease-[var(--ease-out-expo)] hover:-translate-y-1.5 hover:shadow-[0_28px_60px_-24px_var(--glow)]",
+                  selectedId === style.id ? "border-accent ring-1 ring-accent" : "border-line hover:border-[color:var(--glow)]",
+                )}
               >
-                <div className="relative overflow-hidden">
+                {/* Vignette encadrée : posée dans la carte avec sa marge et ses propres arrondis */}
+                <div className="relative overflow-hidden rounded-[1.25rem]">
                   <div className="transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-105">
                     <VideoPlaceholder ratio="4:5" palette={style.palette} templateId={style.id} scene={style.recipe.background} label={style.name.split(" ")[0]} />
                   </div>
-                  <span className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover:bg-black/25">
-                    <span className="grid size-12 scale-75 place-items-center rounded-full bg-white text-black opacity-0 shadow-xl transition-all duration-300 group-hover:scale-100 group-hover:opacity-100">
-                      <Play className="size-5 translate-x-px" />
-                    </span>
+                  {playingId === style.id && <HoverDemo style={style} locale={t.locale} />}
+                  {/* Reflet verre en haut de la vignette */}
+                  <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-white/10 to-transparent" />
+                  {/* Liseré du cadre, au-dessus de la vignette et de la démo */}
+                  <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-white/10 ring-inset" />
+                  <span className={cn("absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-black shadow-xl transition-all duration-300", playingId === style.id ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100")}>
+                    <Play className="size-3.5 fill-current" /> {tt.preview}
                   </span>
                   <Badge tone="glass" className="absolute top-3 left-3">
                     {t.styleCategories[style.category]}
                   </Badge>
                   {selectedId === style.id && <span className="absolute top-3 right-3 grid size-7 place-items-center rounded-full bg-accent text-accent-fg"><Check className="size-4" aria-hidden /></span>}
                 </div>
-                <div className="p-4">
-                  <p className="font-display text-lg font-semibold">{style.name}</p>
+                <div className="px-2.5 pt-3.5 pb-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate font-display text-lg font-semibold">{style.name}</p>
+                    {/* Palette du template */}
+                    <span className="flex shrink-0 -space-x-1.5" aria-hidden>
+                      {style.palette.map((color, index) => (
+                        <span key={index} className="size-4 rounded-full ring-2 ring-surface" style={{ background: color }} />
+                      ))}
+                    </span>
+                  </div>
                   <p className="mt-1 line-clamp-2 text-[13px] text-muted">{t.styles[style.id as keyof typeof t.styles]}</p>
                 </div>
               </button>
@@ -123,5 +151,31 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
         )}
       </Dialog>
     </div>
+  );
+}
+
+/** Démo réelle du template, jouée dans la vignette au survol (carré recadré pour couvrir le 4:5). */
+function HoverDemo({ style, locale }: { style: VideoStyle; locale: "fr" | "en" }) {
+  const props = demoVideoProps(style, "SQUARE", locale);
+  const { width, height } = DIMENSIONS.SQUARE;
+  return (
+    <motion.div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden bg-black" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }}>
+      <div className="absolute inset-y-0 left-1/2 aspect-square h-full -translate-x-1/2">
+        <RemotionPlayer
+          component={KinetikVideo}
+          inputProps={props}
+          compositionWidth={width}
+          compositionHeight={height}
+          durationInFrames={durationInFrames(props.graph)}
+          fps={FPS}
+          autoPlay
+          loop
+          controls={false}
+          clickToPlay={false}
+          initiallyMuted
+          style={{ width: "100%", height: "100%" }}
+        />
+      </div>
+    </motion.div>
   );
 }

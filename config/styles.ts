@@ -68,6 +68,8 @@ const CATALOG: Omit<VideoStyle, "recipe">[] = [
   { id: "hyperspace", name: "Hyperspace", category: "tech", palette: ["#03030b", "#7c5cff", "#00e5ff"], ratio: "9:16" },
   { id: "creator", name: "Creator", category: "bold", palette: ["#14141f", "#ff5e3a", "#ffd23f"], ratio: "9:16" },
   { id: "riso", name: "Riso", category: "typo", palette: ["#f7f3ea", "#ff48b0", "#0078bf"], ratio: "4:5" },
+  { id: "summit", name: "Summit", category: "business", palette: ["#0c0e13", "#f2f4f8", "#4f8cff"], ratio: "16:9" },
+  { id: "aurora", name: "Aurore", category: "tech", palette: ["#06131b", "#5cd4b4", "#8e88e8"], ratio: "9:16" },
 ];
 
 export const VIDEO_STYLES: VideoStyle[] = CATALOG.map((style) => ({ ...style, recipe: getRecipe(style.id) }));

@@ -18,7 +18,8 @@ const pill = "flex h-6 items-center gap-1 rounded-full px-2 font-mono text-[11px
  * Formats de la vidéo, posés sur la vidéo à côté du temps : les 3 formats sont toujours proposés.
  * Un format déjà décliné s'ouvre ; un format manquant est créé (gratuit) puis ouvert. La version courte apparaît si elle existe.
  */
-export function VariantSwitcher({ variants, currentId, canCreate }: { variants: ProjectVariant[]; currentId: string; canCreate: boolean }) {
+/** `column` : pile verticale hors de la vidéo (mobile, aperçu étroit en 9:16 ou 1:1), aux couleurs de l'interface. */
+export function VariantSwitcher({ variants, currentId, canCreate, column = false }: { variants: ProjectVariant[]; currentId: string; canCreate: boolean; column?: boolean }) {
   const t = useDictionary();
   const v = t.app.variants;
   const router = useRouter();
@@ -49,16 +50,16 @@ export function VariantSwitcher({ variants, currentId, canCreate }: { variants: 
         href={`/project/${variant.id}`}
         aria-current={current ? "page" : undefined}
         title={v.kinds[kind].title}
-        className={cn(pill, current ? "bg-white text-black" : "text-white/80 hover:bg-white/15 hover:text-white")}
+        className={cn(pill, column && "size-7 justify-center px-0 [&_svg]:size-3.5", current ? (column ? "bg-fg text-bg" : "bg-white text-black") : (column ? "text-muted hover:bg-surface-2 hover:text-fg" : "text-white/80 hover:bg-white/15 hover:text-white"))}
       >
         <Icon className="size-3" aria-hidden />
-        {variant.short ? v.shortSuffix : VIDEO_FORMATS[variant.format].ratio}
+        <span className={cn(column && "sr-only")}>{variant.short ? v.shortSuffix : VIDEO_FORMATS[variant.format].ratio}</span>
       </Link>
     );
   };
 
   return (
-    <nav aria-label={v.switcher} className="flex items-center gap-0.5 rounded-full bg-black/45 p-0.5 backdrop-blur">
+    <nav aria-label={v.switcher} className={column ? "flex flex-col gap-0.5 rounded-xl border border-line bg-surface p-0.5" : "flex items-center gap-0.5 rounded-full bg-black/45 p-0.5 backdrop-blur"}>
       {FORMAT_IDS.map((format) => {
         const existing = byFormat.get(format);
         if (existing) return link(existing);
@@ -70,11 +71,11 @@ export function VariantSwitcher({ variants, currentId, canCreate }: { variants: 
             disabled={!canCreate || pending}
             onClick={() => create(format)}
             title={`${v.createOne} · ${v.kinds[format].title}`}
-            className={cn(pill, "border border-dashed border-white/25 text-white/55 hover:border-white/50 hover:text-white disabled:opacity-40")}
+            className={cn(pill, column ? "size-7 justify-center border border-dashed border-line-strong px-0 text-muted [&_svg]:size-3.5 hover:text-fg disabled:opacity-40" : "border border-dashed border-white/25 text-white/55 hover:border-white/50 hover:text-white disabled:opacity-40")}
           >
-            {pending ? <Loader2 className="size-3 animate-spin" aria-hidden /> : <Plus className="size-3" aria-hidden />}
-            <Icon className="size-3" aria-hidden />
-            {VIDEO_FORMATS[format].ratio}
+            {pending ? <Loader2 className="size-3 animate-spin" aria-hidden /> : !column && <Plus className="size-3" aria-hidden />}
+            {!(column && pending) && <Icon className="size-3" aria-hidden />}
+            <span className={cn(column && "sr-only")}>{VIDEO_FORMATS[format].ratio}</span>
           </button>
         );
       })}

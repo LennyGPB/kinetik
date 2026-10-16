@@ -17,6 +17,9 @@ import type { PricingPlan } from "@/config/pricing";
 import { format as interpolate } from "@/lib/i18n";
 import { getRenderStatuses, startExports } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
+import { Player } from "@remotion/player";
+import { DIMENSIONS, durationInFrames, FPS, type VideoProps } from "@/remotion/props";
+import { KinetikVideo } from "@/remotion/video/KinetikVideo";
 
 /** Un rendu par format exporté. */
 type Job = { format: VideoFormatId; renderId: string; status: "rendering" | "done" | "failed"; progress: number; url: string | null };
@@ -32,6 +35,7 @@ export function ExportDialog({
   balance,
   onBalance,
   exported,
+  videoProps,
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,6 +47,8 @@ export function ExportDialog({
   onBalance: (balance: number) => void;
   /** Le projet a déjà été exporté : ré-export à moitié prix */
   exported: boolean;
+  /** Vidéo telle qu'elle sera exportée (aperçu à côté de la modale) */
+  videoProps: VideoProps;
 }) {
   const t = useDictionary();
 
@@ -54,7 +60,13 @@ export function ExportDialog({
   const [phase, setPhase] = useState<Phase>({ kind: "config" });
   const [starting, setStarting] = useState(false);
   const toast = useToast();
-  const toggleFormat = (id: VideoFormatId) => setFormats((list) => (list.includes(id) ? (list.length > 1 ? list.filter((f) => f !== id) : list) : FORMAT_IDS.filter((f) => f === id || list.includes(f))));
+  // Format montré dans l'aperçu : le dernier ajouté, tant qu'il reste sélectionné
+  const [previewFormat, setPreviewFormat] = useState<VideoFormatId>(defaultFormat);
+  const shown = formats.includes(previewFormat) ? previewFormat : formats[0];
+  const toggleFormat = (id: VideoFormatId) => {
+    if (!formats.includes(id)) setPreviewFormat(id);
+    setFormats((list) => (list.includes(id) ? (list.length > 1 ? list.filter((f) => f !== id) : list) : FORMAT_IDS.filter((f) => f === id || list.includes(f))));
+  };
 
   // Le premier export lancé ici fait aussi passer les suivants à moitié prix ; plusieurs formats = exports successifs
   const [exportedNow, setExportedNow] = useState(false);
@@ -134,7 +146,7 @@ export function ExportDialog({
   }
 
   return (
-    <Dialog open={open} onClose={close} title={x.title}>
+    <Dialog open={open} onClose={close} title={x.title} aside={<ExportPreview videoProps={videoProps} format={shown} uhd={quality === "UHD"} />}>
       <AnimatePresence mode="wait" initial={false}>
         {phase.kind === "config" && (
           <motion.div key="config" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
@@ -158,14 +170,19 @@ export function ExportDialog({
                       type="button"
                       aria-pressed={selected}
                       onClick={() => toggleFormat(id)}
+                      onMouseEnter={() => selected && setPreviewFormat(id)}
                       className={cn(
-                        "relative rounded-xl border-2 px-3 py-3 text-center transition-colors",
+                        "group relative flex flex-col items-center gap-2 rounded-xl border-2 px-2 pt-3 pb-2.5 text-center transition-colors",
                         selected ? "border-accent bg-accent-soft" : "border-line hover:border-line-strong",
                       )}
                     >
                       {selected && <Check className="absolute top-1.5 right-1.5 size-3.5 text-accent-text" aria-hidden />}
-                      <span className="block font-mono text-sm font-semibold">{VIDEO_FORMATS[id].ratio}</span>
-                      <span className="block text-[11px] text-muted">{VIDEO_FORMATS[id].resolution}</span>
+                      <FormatSchema format={id} selected={selected} />
+                      <span>
+                        <span className="block font-mono text-sm font-semibold">{VIDEO_FORMATS[id].ratio}</span>
+                        <span className="block text-[11px] leading-tight text-muted">{t.app.variants.kinds[id].hint}</span>
+                        <span className="mt-0.5 block font-mono text-[10px] text-subtle">{resolution(id, quality === "UHD")}</span>
+                      </span>
                     </button>
                   );
                 })}
@@ -307,5 +324,68 @@ export function ExportDialog({
         )}
       </AnimatePresence>
     </Dialog>
+  );
+}
+
+/** Résolution réelle du fichier : la 4K est la composition 1080p rendue à l'échelle 2. */
+function resolution(format: VideoFormatId, uhd: boolean) {
+  const { width, height } = DIMENSIONS[format];
+  const k = uhd ? 2 : 1;
+  return `${width * k} × ${height * k}`;
+}
+
+/** Schéma d'un format : l'écran à ses proportions, avec un titre et un bouton lecture, dans une boîte commune. */
+function FormatSchema({ format, selected }: { format: VideoFormatId; selected: boolean }) {
+  const { width, height } = DIMENSIONS[format];
+  const box = 44;
+  const k = box / Math.max(width, height);
+  const w = width * k;
+  const h = height * k;
+  const x = (box - w) / 2;
+  const y = (box - h) / 2;
+  const cx = box / 2;
+  const cy = box / 2;
+  return (
+    <svg viewBox={`0 0 ${box} ${box}`} className={cn("size-11 transition-colors", selected ? "text-accent-text" : "text-subtle group-hover:text-muted")} aria-hidden>
+      <rect x={x + 0.75} y={y + 0.75} width={w - 1.5} height={h - 1.5} rx={3} fill="currentColor" fillOpacity={0.12} stroke="currentColor" strokeWidth={1.5} />
+      {/* Titre de la vidéo et bouton lecture, centrés dans l'écran */}
+      <rect x={cx - Math.min(w, h) * 0.3} y={cy - 7} width={Math.min(w, h) * 0.6} height={2.2} rx={1.1} fill="currentColor" fillOpacity={0.7} />
+      <path d={`M${cx - 2.5} ${cy - 1.5} L${cx + 3.5} ${cy + 2} L${cx - 2.5} ${cy + 5.5} Z`} fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Aperçu de la vidéo dans le format choisi, posé à côté de la modale. */
+function ExportPreview({ videoProps, format, uhd }: { videoProps: VideoProps; format: VideoFormatId; uhd: boolean }) {
+  const { width, height } = DIMENSIONS[format];
+  // Même encombrement visuel quel que soit le format : la plus grande taille qui tient dans 420 × 560
+  const scale = Math.min(420 / width, 560 / height);
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <motion.div
+        layout
+        transition={{ type: "spring", stiffness: 260, damping: 30 }}
+        className="overflow-hidden rounded-2xl shadow-[0_30px_80px_-20px_rgb(0_0_0/0.75),0_0_0_1px_rgb(255_255_255/0.08)]"
+        style={{ width: width * scale, height: height * scale }}
+      >
+        <Player
+          key={format}
+          component={KinetikVideo}
+          inputProps={{ ...videoProps, format }}
+          durationInFrames={Math.max(1, durationInFrames(videoProps.graph))}
+          compositionWidth={width}
+          compositionHeight={height}
+          fps={FPS}
+          autoPlay
+          loop
+          initiallyMuted
+          acknowledgeRemotionLicense
+          style={{ width: "100%", height: "100%" }}
+        />
+      </motion.div>
+      <span className="rounded-full bg-black/50 px-3 py-1 font-mono text-xs text-white/80 backdrop-blur">
+        {VIDEO_FORMATS[format].ratio} · {resolution(format, uhd)}
+      </span>
+    </div>
   );
 }

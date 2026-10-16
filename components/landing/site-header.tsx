@@ -6,7 +6,7 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { ArrowRight } from "lucide-react";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
 import Link from "@/lib/i18n/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { Logo } from "@/components/brand/logo";
 import { LanguageToggle } from "@/components/ui/language-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -22,7 +22,7 @@ export function SiteHeader() {
   { href: "#how", label: t.nav.how },
   { href: "#features", label: t.nav.features },
   { href: "#pricing", label: t.nav.pricing },
-  { href: "#faq", label: t.nav.faq },
+  { href: "/support", label: t.nav.support },
 ];
 
   const [scrolled, setScrolled] = useState(false);
@@ -66,9 +66,9 @@ export function SiteHeader() {
           <ul className="flex items-center gap-1">
             {NAV.map((item) => (
               <li key={item.href}>
-                <a href={item.href} className="rounded-full px-3.5 py-2 text-sm text-muted transition-colors hover:bg-surface-2 hover:text-fg">
+                <NavLink href={item.href} className="rounded-full px-3.5 py-2 text-sm text-muted transition-colors hover:bg-surface-2 hover:text-fg">
                   {item.label}
-                </a>
+                </NavLink>
               </li>
             ))}
           </ul>
@@ -127,14 +127,14 @@ export function SiteHeader() {
                     key={item.href}
                     variants={{ hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 30 } } }}
                   >
-                    <a
+                    <NavLink
                       href={item.href}
                       onClick={() => setOpen(false)}
                       className="group flex items-center justify-between border-b border-line py-4 font-display text-3xl font-semibold tracking-tight"
                     >
                       {item.label}
                       <ArrowRight className="size-5 -translate-x-2 text-accent-text opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
-                    </a>
+                    </NavLink>
                   </motion.li>
                 ))}
               </ul>
@@ -155,4 +155,9 @@ export function SiteHeader() {
       </AnimatePresence>
     </header>
   );
+}
+
+/** Ancres de la landing en lien simple ; pages (« /support ») via le Link localisé. */
+function NavLink({ href, ...props }: ComponentProps<"a"> & { href: string }) {
+  return href.startsWith("/") ? <Link href={href} {...props} /> : <a href={href} {...props} />;
 }

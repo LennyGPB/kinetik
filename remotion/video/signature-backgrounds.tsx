@@ -45,13 +45,30 @@ export function SignatureBackground({ kind, palette, time = 0, pulse = 0 }: {
     </div>
   );
 
-  if (kind === "swiss-rules") return (
-    <div style={fill}>
-      <div style={{ position: "absolute", right: "5%", top: "12%", bottom: "12%", width: 1, background: tint(main, 16) }} />
-      <div style={{ position: "absolute", right: "5%", top: "12%", width: "3%", height: "2%", background: accent }} />
-      <div style={{ position: "absolute", left: "7%", right: "12%", top: "2%", height: 1, background: tint(main, 16) }} />
-    </div>
-  );
+  // Style international : grille 12 colonnes qui se trace, grand cercle au trait avec arc rouge en rotation,
+  // segment rouge qui balaie le filet du haut, repère qui descend le filet de droite. Tout reste au trait (lisibilité de l'affiche).
+  if (kind === "swiss-rules") {
+    const ease = (v: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, v)), 3);
+    const loop = (speed: number) => (time * speed) % 1;
+    return (
+      <div style={{ ...fill, containerType: "size" }}>
+        {Array.from({ length: 11 }, (_, i) => (
+          <div key={i} style={{ position: "absolute", left: `${7 + i * 8}%`, top: 0, bottom: 0, width: 1, background: tint(main, 6), transformOrigin: "top", transform: `scaleY(${ease((time - i * 0.05) / 0.9)})` }} />
+        ))}
+        <div style={{ position: "absolute", right: "-14cqmin", top: "50%", width: "78cqmin", aspectRatio: "1", transform: `translateY(-50%) scale(${0.9 + 0.1 * ease(time / 1.4)})`, opacity: ease(time / 1.2) }}>
+          <svg viewBox="0 0 100 100" style={{ width: "100%", height: "100%", overflow: "visible" }} aria-hidden>
+            <circle cx="50" cy="50" r="49" fill="none" stroke={main} strokeOpacity=".14" strokeWidth=".25" />
+            <circle cx="50" cy="50" r="36" fill="none" stroke={main} strokeOpacity=".09" strokeWidth=".25" strokeDasharray=".8 1.6" />
+            <circle cx="50" cy="50" r="49" fill="none" stroke={accent} strokeWidth=".9" pathLength="100" strokeDasharray="14 86" transform={`rotate(${time * 24 - 90} 50 50)`} />
+          </svg>
+        </div>
+        <div style={{ position: "absolute", right: "5%", top: "12%", bottom: "12%", width: 1, background: tint(main, 16) }} />
+        <div style={{ position: "absolute", right: "calc(5% - 0.6cqmin)", top: `calc(12% + ${loop(0.07) * 72}%)`, width: "1.3cqmin", height: "4%", background: accent }} />
+        <div style={{ position: "absolute", left: "7%", right: "12%", top: "2%", height: 1, background: tint(main, 16) }} />
+        <div style={{ position: "absolute", top: "calc(2% - 1px)", height: 3, width: "14%", left: `${7 + loop(0.05) * 67}%`, background: accent }} />
+      </div>
+    );
+  }
 
   if (kind === "corporate-panels") return (
     <div style={fill}>
@@ -93,9 +110,15 @@ export function SignatureBackground({ kind, palette, time = 0, pulse = 0 }: {
     </div>
   );
 
+  // Plateau photo : cyclo, deux boîtes à lumière qui respirent, halo au sol (socle), reflet qui balaie la scène
   if (kind === "studio-stage") return (
     <div style={fill}>
       <div style={{ ...fill, background: `linear-gradient(115deg, ${tint(accent, 6)}, transparent 45%, ${tint(main, 8)})` }} />
+      {[{ left: "4%", phase: 0 }, { right: "4%", phase: 1.7 }].map(({ phase, ...side }, i) => (
+        <div key={`softbox-${i}`} style={{ position: "absolute", ...side, top: "4%", width: "20%", height: "28%", borderRadius: "1.2em", background: "linear-gradient(180deg, rgb(255 255 255 / .75), rgb(255 255 255 / .35))", boxShadow: "0 0 6em 2em rgb(255 255 255 / .45)", border: `1px solid ${tint(main, 10)}`, opacity: 0.55 + Math.sin(time * 0.5 + phase) * 0.15 }} />
+      ))}
+      <div style={{ position: "absolute", left: "20%", right: "20%", bottom: "10%", height: "14%", borderRadius: "50%", background: `radial-gradient(closest-side, ${tint(main, 16)}, transparent)` }} />
+      <div style={{ position: "absolute", top: "-30%", bottom: "-30%", width: "18%", left: `${-30 + ((time * 0.09) % 1) * 160}%`, transform: "skewX(-18deg)", background: "linear-gradient(90deg, transparent, rgb(255 255 255 / .28), transparent)" }} />
       <div style={{ position: "absolute", right: "-8%", top: "-15%", width: "25%", height: "140%", background: `linear-gradient(90deg, ${tint(main, 3)}, ${tint(main, 14)})`, transform: `skewX(-12deg) translateX(${Math.sin(time * 0.22) * 2}%)`, borderLeft: `1px solid ${tint(main, 14)}` }} />
       <div style={{ position: "absolute", left: "-10%", right: "-10%", bottom: "-16%", height: "30%", borderRadius: "50% 50% 0 0", background: `linear-gradient(${tint(main, 8)}, ${tint(main, 2)})`, borderTop: `1px solid ${tint(main, 12)}` }} />
       <div style={{ position: "absolute", left: "7%", top: "7%", width: "5%", height: "0.25%", background: accent }} />

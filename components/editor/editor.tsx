@@ -491,6 +491,7 @@ export function Editor({
         balance={balance}
         onBalance={setBalance}
         exported={project.exported}
+        videoProps={buildVideoProps(project, (latest ?? current).graph, plan.watermark)}
       />
     </div>
   );

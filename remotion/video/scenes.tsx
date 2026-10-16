@@ -1,5 +1,5 @@
 import { PreviewTarget } from "./movable-text";
-import { MovableText } from "./movable-text";
+import { MovableText, useTextFade } from "./movable-text";
 import type { ReactNode } from "react";
 import { AbsoluteFill, Easing, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Scene } from "../../lib/projects/scenes";
@@ -10,11 +10,12 @@ import { PresentationScene } from "./presentation-scenes";
 import { ScreensScene } from "./screens";
 import { Subtitle, TextLayout } from "./composition";
 import { formatStat, parseStat } from "./stat";
+import { HeadlinesScene } from "./headlines";
 import { AnimatedTitle, useTitlePaint } from "./titles";
 import { isLight, useBeat, textColorOn, useBodyFont, useIsPortrait, useRecipe, useTitleFont, useUnit } from "./theme";
 
 /**
- * Les 7 types de scènes du SceneGraph (intro, logo, feature, screens, cta, stat, quote).
+ * Les 8 types de scènes du SceneGraph (intro, logo, feature, screens, cta, stat, quote, headlines).
  * Les scènes de texte passent par <TextLayout> : leur silhouette vient de la composition de la recette (composition.tsx).
  * Une scène ne connaît que son contenu : son style vient de la recette (useRecipe) et des briques.
  */
@@ -121,10 +122,11 @@ function FeatureScene({ scene, props }: SceneProps) {
   const font = useBodyFont();
   // En affiche, le nom de l'app est déjà dans l'en-tête
   const poster = useRecipe().composition === "poster";
+  const kickerFade = useTextFade("kicker");
   if (scene.presentation === "spotlight" || scene.presentation === "card") return <PresentationScene scene={scene} props={props} logo={<LogoTile props={props} size={u * 18} />} />;
   // Surtitre : nom de l'app par défaut, texte choisi dans l'éditeur, ou masqué ("")
   const text = scene.kicker ?? props.appName;
-  const kicker = text ? <span style={{ fontFamily: font, fontWeight: 600, fontSize: u * 2.6, letterSpacing: "0.2em", textTransform: "uppercase", color: scene.textColors?.kicker ?? props.palette[2] }}>{text}</span> : undefined;
+  const kicker = text ? <span style={{ fontFamily: font, fontWeight: 600, fontSize: u * 2.6, letterSpacing: "0.2em", textTransform: "uppercase", color: scene.textColors?.kicker ?? props.palette[2], opacity: kickerFade }}>{text}</span> : undefined;
   return <TextLayout scene={scene} props={props} titleSize={8.5} kicker={poster ? undefined : kicker} rule subtitle={scene.subtitle} subtitleDelay={16} />;
 }
 
@@ -144,7 +146,9 @@ function CtaScene({ scene, props }: SceneProps) {
 
   if (scene.presentation === "end-card" || scene.presentation === "browser") return <PresentationScene scene={scene} props={props} logo={<LogoTile props={props} size={u * 15} />} />;
 
-  const button_ = (
+  // Texte choisi dans l'éditeur, sinon le site, sinon le nom de l'app ; "" = pas de bouton
+  const badge = scene.badge ?? host ?? props.appName;
+  const button_ = badge && (
     <div
       style={{
         marginTop: recipe.composition === "poster" ? 0 : u * 1.5,
@@ -163,7 +167,7 @@ function CtaScene({ scene, props }: SceneProps) {
         transformOrigin: recipe.composition === "center" ? "50% 50%" : "0% 50%",
       }}
     >
-      {host ?? props.appName}
+      {badge}
     </div>
   );
   return (
@@ -174,7 +178,7 @@ function CtaScene({ scene, props }: SceneProps) {
       header={props.graph.logoEmphasis ? <LogoTile props={props} size={u * 16} /> : undefined}
       subtitle={subtitle}
       subtitleDelay={10}
-      footer={button_}
+      footer={button_ || undefined}
     />
   );
 }
@@ -251,4 +255,5 @@ export const SCENES: Record<Scene["kind"], (p: SceneProps) => ReactNode> = {
   cta: CtaScene,
   stat: StatScene,
   quote: QuoteScene,
+  headlines: HeadlinesScene,
 };

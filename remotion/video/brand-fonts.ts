@@ -1,7 +1,10 @@
+import * as Anton from "@remotion/google-fonts/Anton";
 import * as BricolageGrotesque from "@remotion/google-fonts/BricolageGrotesque";
 import * as DMSans from "@remotion/google-fonts/DMSans";
 import * as Geist from "@remotion/google-fonts/Geist";
+import * as InstrumentSerif from "@remotion/google-fonts/InstrumentSerif";
 import * as Inter from "@remotion/google-fonts/Inter";
+import * as JetBrainsMono from "@remotion/google-fonts/JetBrainsMono";
 import * as Manrope from "@remotion/google-fonts/Manrope";
 import * as Outfit from "@remotion/google-fonts/Outfit";
 import * as PlayfairDisplay from "@remotion/google-fonts/PlayfairDisplay";
@@ -36,6 +39,9 @@ const MODULES: Record<BrandFont, FontModule> = {
   "Playfair Display": PlayfairDisplay as unknown as FontModule,
   Syne: Syne as unknown as FontModule,
   Outfit: Outfit as unknown as FontModule,
+  Anton: Anton as unknown as FontModule,
+  "Instrument Serif": InstrumentSerif as unknown as FontModule,
+  "JetBrains Mono": JetBrainsMono as unknown as FontModule,
 };
 
 export type LoadedBrandFont = { fontFamily: string; /** Graisse la plus forte disponible (titres) */ bold: number; /** Graisse « semi-bold » pour les boutons */ medium: number };

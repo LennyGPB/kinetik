@@ -25,7 +25,9 @@ export function PresentationScene({ scene, props, logo }: { scene: Scene; props:
   const subtitle = scene.subtitle && <MovableText target="subtitle"><p style={{ margin: 0, fontFamily: body, fontSize: u * 3.1, lineHeight: 1.4, color, opacity: p * 0.75 }}>{scene.subtitle}</p></MovableText>;
   const src = props.screenUrls[0];
   const host = props.websiteUrl?.replace(/^https?:\/\//, "").replace(/\/$/, "") ?? props.appName;
-  const cta = <div style={{ fontFamily: body, fontSize: u * 3.3, fontWeight: 600, maxWidth: "100%", overflowWrap: "anywhere", background: accent, color: textColorOn(accent), borderRadius: u * 1.4, padding: `${u * 1.8}px ${u * 3.5}px`, opacity: p, transform: `translateY(${(1 - eased) * u * 3}px)` }}>{host}</div>;
+  // Bouton des scènes cta : texte choisi dans l'éditeur ("" = masqué)
+  const label = scene.kind === "cta" && scene.badge !== undefined ? scene.badge : host;
+  const cta = label && <div style={{ fontFamily: body, fontSize: u * 3.3, fontWeight: 600, maxWidth: "100%", overflowWrap: "anywhere", background: accent, color: textColorOn(accent), borderRadius: u * 1.4, padding: `${u * 1.8}px ${u * 3.5}px`, opacity: p, transform: `translateY(${(1 - eased) * u * 3}px)` }}>{label}</div>;
 
   if (scene.kind === "intro" && scene.presentation === "editorial") {
     return (

@@ -28,7 +28,7 @@ export function SiteFooter() {
     links: [
       { label: f.links.about, href: "#" },
       { label: f.links.blog, href: "#" },
-      { label: f.links.contact, href: "#" },
+      { label: f.links.contact, href: "/support" },
     ],
   },
   {

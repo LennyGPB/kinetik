@@ -17,7 +17,7 @@ export const legalConfig = {
   mediator: null as { name: string; url: string; address: string } | null,
   host: { name: "Vercel Inc.", address: "440 N Barranca Ave #4133, Covina, CA 91723, USA", url: "https://vercel.com" },
   /** Date de dernière mise à jour des documents (AAAA-MM-JJ) */
-  updatedAt: "2026-10-14",
+  updatedAt: "2026-10-15",
 } as const;
 
 export const LEGAL_PLACEHOLDER = { fr: "[à compléter]", en: "[to be completed]" } as const;

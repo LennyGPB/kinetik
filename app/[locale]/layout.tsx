@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Anton, Bricolage_Grotesque, Geist_Mono, Instrument_Serif, Poppins, Unbounded } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider, themeScript } from "@/components/theme/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { siteConfig } from "@/config/site";
@@ -65,6 +66,8 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[lo
           <Toaster>{children}</Toaster>
         </ThemeProvider>
         </NextIntlClientProvider>
+        {/* Vercel Web Analytics : mesure d'audience sans cookie (voir politique cookies) */}
+        <Analytics />
       </body>
     </html>
   );

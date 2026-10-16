@@ -249,6 +249,7 @@ export function legalFr(d: LegalData): Record<LegalSlug, LegalDoc> {
               "Sécuriser le service et prévenir les abus (limitation du nombre de requêtes par adresse IP, détection des emails jetables et des robots, comptes multiples) : intérêt légitime.",
               "Vous envoyer les emails liés à votre compte et à vos achats (confirmation, rappel de renouvellement, changement des Conditions) : exécution du contrat et obligation légale.",
               "Répondre à vos demandes : intérêt légitime.",
+              "Mesurer l'audience du site de façon agrégée (pages vues, pays, type d'appareil), sans cookie : intérêt légitime.",
               "Présenter certaines vidéos à titre d'exemple (voir les [conditions générales](/terms), article 9) : intérêt légitime, avec possibilité de vous y opposer à tout moment.",
             ] },
             "Si nous envoyons un jour des emails promotionnels, ce sera avec votre accord, ou pour des offres similaires à celles que vous avez achetées, avec un lien de désinscription dans chaque email.",
@@ -259,7 +260,7 @@ export function legalFr(d: LegalData): Record<LegalSlug, LegalDoc> {
           blocks: [
             "Vos données sont accessibles uniquement à l'Éditeur et aux prestataires techniques qui l'aident à fournir le service, chacun pour sa mission :",
             { list: [
-              "Vercel (États-Unis) : hébergement du site et de l'application.",
+              "Vercel (États-Unis) : hébergement du site et de l'application, et mesure d'audience sans cookie (Vercel Web Analytics).",
               "Neon (base de données hébergée à Londres, Royaume-Uni) : comptes, projets, historique des crédits.",
               "Cloudflare (stockage R2) : fichiers importés, captures et médias.",
               "Amazon Web Services (Francfort, Allemagne) : rendu des vidéos exportées.",
@@ -333,6 +334,12 @@ export function legalFr(d: LegalData): Record<LegalSlug, LegalDoc> {
               "KINETIK_LOCALE : mémorise la langue choisie. Durée : 1 an.",
               "Préférence de thème (clair ou sombre) : enregistrée dans le stockage local de votre navigateur, jamais transmise à nos serveurs.",
             ] },
+          ],
+        },
+        {
+          title: "Mesure d'audience",
+          blocks: [
+            "Nous utilisons Vercel Web Analytics pour connaître la fréquentation du site (pages vues, pays, type d'appareil et de navigateur). Cet outil ne dépose aucun cookie et ne lit rien sur votre appareil : chaque visiteur est compté à l'aide d'une empreinte technique renouvelée chaque jour, qui ne permet ni de vous identifier ni de vous suivre d'un site à l'autre. Les résultats sont uniquement statistiques.",
           ],
         },
         {
