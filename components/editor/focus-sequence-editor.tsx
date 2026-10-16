@@ -8,12 +8,14 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { MAX_FOCUS_STEPS, type ScreenFocus } from "@/lib/projects/scenes";
 import { FocusEditor } from "./focus-editor";
 
-export function FocusSequenceEditor({ screens, sceneScreens, value, sceneTitle, duration, disabled, onApply, onCancel }: {
+export function FocusSequenceEditor({ screens, sceneScreens, value, sceneTitle, titleColor, duration, disabled, onApply, onCancel }: {
   screens: { url: string; ratio: number | null }[];
   /** Screens montrés par la scène : le premier est présélectionné pour un nouveau cadrage. */
   sceneScreens: string[];
   value: ScreenFocus[];
   sceneTitle: string;
+  /** Couleur actuelle du titre de la scène, proposée par défaut pour chaque cadrage */
+  titleColor: string | null;
   duration: number;
   disabled: boolean;
   onApply: (focuses: ScreenFocus[]) => void;
@@ -38,6 +40,9 @@ export function FocusSequenceEditor({ screens, sceneScreens, value, sceneTitle, 
     defaultSrc={sceneScreens[0]}
     value={steps[editing] ?? null}
     sceneTitle={sceneTitle}
+    // Les cadrages se partagent la scène à parts égales (un nouveau cadrage en ajoute un)
+    stepDuration={duration / Math.max(steps.length, editing + 1)}
+    defaultColor={titleColor}
     disabled={disabled}
     // Annuler revient à la liste des cadrages (ou ferme tout si elle n'existait pas encore) ; la croix ferme tout, sans rien appliquer
     onCancel={() => (steps.length ? setEditing(null) : onCancel())}

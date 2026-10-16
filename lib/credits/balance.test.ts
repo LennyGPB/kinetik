@@ -59,7 +59,8 @@ test("offer invariants and export thresholds stay consistent", () => {
   assert.ok(CREDIT_COSTS.edit < CREDIT_COSTS.generation);
   assert.equal(getExportCost({ duration: 30, quality: "HD" }), 5);
   assert.equal(getExportCost({ duration: 30.5, quality: "HD" }), 10);
-  assert.equal(getExportCost({ duration: 15, quality: "UHD" }), 10);
+  assert.equal(getExportCost({ duration: 15, quality: "SD" }), 5);
+  assert.equal(getExportCost({ duration: 45, quality: "SD" }), 10);
   for (const plan of PLANS.filter((plan) => plan.id !== "FREE")) {
     assert.ok(Number.isInteger(plan.credits) && plan.credits > 0);
     assert.ok(plan.yearlyPrice < plan.monthlyPrice && plan.yearlyPrice > 0);

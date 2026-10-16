@@ -1,4 +1,4 @@
-import { MovableText, PreviewTarget } from "./movable-text";
+import { FramingColor, MovableText, PreviewTarget, useEndFade } from "./movable-text";
 import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill, Img, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { ScreensLayout } from "../../config/recipes";
@@ -49,12 +49,15 @@ export function ScreensScene({ scene, props }: Props) {
     const total = Math.max(1, Math.round(scene.duration * fps));
     const start = (index: number) => Math.round(index * total / focuses.length);
     // Titre propre à chaque cadrage (sinon celui de la scène) ; les cadrages consécutifs au même texte partagent un seul titre
-    const titles: { text: string; from: number; to: number }[] = [];
+    // Un cadrage dont le texte disparaît avant sa fin garde son propre titre (la disparition se cale sur ce cadrage)
+    const titles: { text: string; from: number; to: number; end?: number; color?: string }[] = [];
     focuses.forEach((focus, index) => {
       const text = focus.title?.trim() || scene.title;
+      const end = focus.titleEnd !== undefined && focus.titleEnd < 1 ? focus.titleEnd : undefined;
+      const color = focus.titleColor;
       const last = titles.at(-1);
-      if (last?.text === text) last.to = start(index + 1);
-      else titles.push({ text, from: start(index), to: start(index + 1) });
+      if (last?.text === text && last.color === color && last.end === undefined && end === undefined) last.to = start(index + 1);
+      else titles.push({ text, from: start(index), to: start(index + 1), end, color });
     });
     return <>{focuses.map((focus, index) => {
       const from = start(index);
@@ -65,7 +68,7 @@ export function ScreensScene({ scene, props }: Props) {
         <FramingStep scene={scene} props={props} focus={focus} previous={focuses[index - 1]} ratio={ratio} frames={length} multiple={focuses.length > 1} />
       </Sequence>;
     })}{focuses.length > 1 && titles.map((title, index) => <Sequence key={`title-${index}`} from={title.from} durationInFrames={Math.max(1, title.to - title.from)}>
-      <FramingTitle text={title.text} props={props} />
+      <FramingColor scene={scene} color={title.color}><FramingTitle text={title.text} props={props} end={title.end} /></FramingColor>
     </Sequence>)}</>;
   }
   // Mise en page choisie par l'utilisateur pour cette scène, sinon celle du template
@@ -91,9 +94,10 @@ function FramingStep({ scene, props, focus, previous, ratio, frames, multiple }:
 }
 
 /** The title spans every consecutive framing step sharing its text, while each step keeps its own local clock. */
-function FramingTitle({ text, props }: { text: string; props: VideoProps }) {
+function FramingTitle({ text, props, end }: { text: string; props: VideoProps; end?: number }) {
   const u = useUnit();
-  return <div style={{ position: "absolute", top: u * 6, left: u * 8, right: u * 8 }}>
+  const opacity = useEndFade(end);
+  return <div style={{ position: "absolute", top: u * 6, left: u * 8, right: u * 8, opacity }}>
     <AnimatedTitle text={text} size={u * 6.5} color={textColorOn(props.palette[0])} palette={props.palette} energy={props.graph.energy} />
   </div>;
 }

@@ -7,7 +7,7 @@ import { signProposal, verifyProposal, type EditProposal } from "./edit-proposal
 import { OverlaySchema, normalizeOverlays } from "./overlays";
 import { refresh } from "next/cache";
 import { localizedRedirect } from "@/lib/i18n/redirect";
-import { CREDIT_COSTS, getExportCost, type ExportQuality } from "@/config/credits";
+import { CREDIT_COSTS, EXPORT_QUALITIES, getExportCost, type ExportQuality } from "@/config/credits";
 import { FORMAT_IDS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import { getTrack } from "@/config/music";
 import { getPlan } from "@/config/pricing";
@@ -698,13 +698,13 @@ const types = t.app.credits.types;
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "unauthorized" };
   if (await overLimit("export", user.id)) return { ok: false, error: "rate_limited" };
-  if (!FORMAT_IDS.includes(options.format) || !["HD", "UHD"].includes(options.quality)) return { ok: false, error: "invalid" };
+  if (!FORMAT_IDS.includes(options.format) || !EXPORT_QUALITIES.includes(options.quality)) return { ok: false, error: "invalid" };
 
   const project = await ownedProject(user.id, projectId);
   if (!project) return { ok: false, error: "not_found" };
 
   const plan = getPlan(user.plan);
-  if (options.quality === "UHD" && plan.maxQuality !== "UHD") return { ok: false, error: "invalid" };
+  if (options.quality === "HD" && plan.maxQuality !== "HD") return { ok: false, error: "invalid" };
 
   const latest = await db.projectVersion.findFirst({ where: { projectId }, orderBy: { number: "desc" }, select: { id: true, scenes: true } });
   if (!latest) return { ok: false, error: "busy" };
@@ -751,7 +751,7 @@ const types = t.app.credits.types;
     if (!source) throw new Error("Projet introuvable");
     // Le format d'export peut différer de celui du projet : la composition s'adapte
     const props = { ...buildVideoProps(source, graph, plan.watermark), format: options.format };
-    const lambda = await startLambdaRender({ props, userId: user.id, uhd: options.quality === "UHD", fileName: exportFileName(project.appName, VIDEO_FORMATS[options.format].ratio), batch: Math.min(FORMAT_IDS.length, Math.max(1, Math.floor(Number(batch)) || 1)) });
+    const lambda = await startLambdaRender({ props, userId: user.id, quality: options.quality, fileName: exportFileName(project.appName, VIDEO_FORMATS[options.format].ratio), batch: Math.min(FORMAT_IDS.length, Math.max(1, Math.floor(Number(batch)) || 1)) });
     await db.render.update({ where: { id: render.id }, data: { lambdaRenderId: lambda.renderId, bucketName: lambda.bucketName } });
   } catch (error) {
     console.error("[export]", error);

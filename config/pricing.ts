@@ -18,14 +18,15 @@ export type PricingPlan = {
   /** Crédits par mois (abonnement) ou crédits de départ (gratuit) */
   credits: number;
   watermark: boolean;
-  maxQuality: "HD" | "UHD";
+  /** SD = 720p · HD = 1080p */
+  maxQuality: "SD" | "HD";
   highlighted?: boolean;
 };
 
 export const PLANS: PricingPlan[] = [
-  { id: "FREE", name: "Free", monthlyPrice: 0, yearlyPrice: 0, credits: SIGNUP_BONUS_CREDITS, watermark: true, maxQuality: "HD" },
-  { id: "STARTER", name: "Starter", monthlyPrice: 29, yearlyPrice: 23, credits: 200, watermark: false, maxQuality: "HD" },
-  { id: "PRO", name: "Pro", monthlyPrice: 79, yearlyPrice: 63, credits: 600, watermark: false, maxQuality: "UHD", highlighted: true },
+  { id: "FREE", name: "Free", monthlyPrice: 0, yearlyPrice: 0, credits: SIGNUP_BONUS_CREDITS, watermark: true, maxQuality: "SD" },
+  { id: "STARTER", name: "Starter", monthlyPrice: 29, yearlyPrice: 23, credits: 200, watermark: false, maxQuality: "SD" },
+  { id: "PRO", name: "Pro", monthlyPrice: 79, yearlyPrice: 63, credits: 600, watermark: false, maxQuality: "HD", highlighted: true },
 ];
 
 export type CreditPack = {

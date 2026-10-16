@@ -199,7 +199,7 @@ Transitions (chaque style n'en autorise que certaines) :
 - shutter : deux volets s’ouvrent, minimal et franc ; iris : ouverture circulaire et mise au point ; prism : lamelles diagonales colorées ; fold : feuille pliée ; track : bandes horizontales comme un passage express. Utiliser uniquement les transitions autorisées par le template.
 
 Réglages de mise en scène (null = choix du style, à garder tant que l'utilisateur ne demande rien) :
-- titleAnimation (toute la vidéo) : words = mot par mot · letters = lettre par lettre · fade = fondu doux · mask = un bloc de couleur dévoile le texte · glitch = effet glitch · typewriter = machine à écrire · flicker = néon qui s'allume
+- titleAnimation (toute la vidéo) : words = mot par mot · letters = lettre par lettre · fade = fondu doux · mask = un bloc de couleur dévoile le texte · glitch = effet glitch · typewriter = machine à écrire · flicker = néon qui s'allume · flip = impact 3D, chaque mot s'écrase à l'écran
 - layout (par scène screens) : row = alignés · hero = un seul écran en grand · split = typo géante derrière · fan = en éventail · tilt = perspective 3D · stack = empilés sur le beat · carousel = défilement continu · bento = écran + tuiles de graphiques
 - screenCount (par scène screens) : nombre d'écrans montrés, de 1 à 3
 - presentation (par scène) : intro = classic (template), editorial (affiche éditoriale), split (texte et capture) ; feature = classic, spotlight (bénéfice en lumière), card (carte graphique) ; cta = classic, end-card (signature avec logo), browser (fenêtre web avec capture ou logo). Conserve les identifiants id des scènes existantes et leurs mises en scène lors des autres modifications.

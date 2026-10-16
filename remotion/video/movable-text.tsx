@@ -35,6 +35,21 @@ export function useTextFade(target: "title" | "subtitle" | "kicker") {
   return interpolate(clock.frame, [at - fade, at], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 }
 
+/** Opacité d'un titre qui disparaît à `end` (fraction de la Sequence en cours) : court fondu jusqu'à ce moment. */
+export function useEndFade(end?: number) {
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+  if (end === undefined || end >= 1) return 1;
+  const at = end * durationInFrames;
+  return interpolate(frame, [at - Math.min(8, at * 0.5), at], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+}
+
+/** Titre d'un cadrage en couleur propre : la scène vue par ses textes porte cette couleur de titre (sinon celle de la scène). */
+export function FramingColor({ scene, color, children }: { scene: Scene; color?: string; children: ReactNode }) {
+  if (!color) return children;
+  return <TextSceneContext value={{ ...scene, textColors: { ...scene.textColors, title: color } }}>{children}</TextSceneContext>;
+}
+
 /** Inactive in exported videos; direct selection is available only in the editor. */
 export function PreviewTarget({ target, children }: { target: "screens" | "logo"; children: ReactNode }) {
   const scene = useContext(TextSceneContext);

@@ -256,6 +256,59 @@ const ANIMATIONS: Record<TitleAnimation, (ctx: AnimationContext) => ReactNode> =
       </Line>
     );
   },
+
+  // Impact 3D : chaque mot tombe de très près de la caméra, basculé et flou, en accélérant, puis s'écrase à plat
+  // (écrasement, secousse, onde de choc et éclair) et garde un relief épais. Un impact par mot, enchaînés.
+  flip: (ctx) => {
+    const fall = ctx.energy === "high" ? 5 : 7;
+    const gap = ctx.energy === "high" ? 3 : 4;
+    // Relief : couches décalées d'une teinte sombre de la couleur principale (sans objet sur un texte en dégradé « chrome »)
+    const extrude = (depth: number) => ctx.paint.backgroundClip ? undefined : Array.from({ length: 8 }, (_, i) => `${(i + 1) * 0.01 * depth}em ${(i + 1) * 0.014 * depth}em 0 color-mix(in oklab, ${ctx.main}, black ${30 + i * 6}%)`).join(", ");
+    return (
+      <div style={{ perspective: `${ctx.size * 6}px` }}>
+        <Line ctx={ctx}>
+          {words(ctx.text).map((word, i) => {
+            const local = ctx.frame - i * gap;
+            if (local < 0) return <span key={i} style={{ ...ctx.paint, opacity: 0 }}>{word}</span>;
+            // Chute qui accélère jusqu'à l'impact
+            const p = interpolate(local, [0, fall], [0, 1], { extrapolateRight: "clamp", easing: Easing.in(Easing.cubic) });
+            const after = local - fall;
+            // Écrasement à l'impact, qui revient en ressort
+            const squash = after < 0 ? 0 : 1 - spring({ frame: after, fps: ctx.fps, config: { damping: 10, stiffness: 420 } });
+            const shake = after < 0 ? 0 : Math.sin(after * 2.6) * Math.max(0, 1 - after / 7) * ctx.size * 0.05;
+            const shock = after < 0 ? 0 : interpolate(after, [0, 10], [0, 1], { extrapolateRight: "clamp" });
+            const q = 1 - p;
+            return (
+              <span key={i} style={{ position: "relative", display: "inline-block" }}>
+                {shock > 0 && shock < 1 && (
+                  <>
+                    {/* Éclair derrière le mot */}
+                    <span aria-hidden style={{ position: "absolute", inset: "-0.35em -0.25em", borderRadius: "50%", background: `radial-gradient(closest-side, color-mix(in oklab, ${ctx.accent}, white 30%), transparent)`, opacity: (1 - shock) * 0.7, transform: `scale(${0.6 + shock * 0.9})` }} />
+                    {/* Onde de choc au sol */}
+                    <span aria-hidden style={{ position: "absolute", left: "50%", bottom: "-0.08em", width: "100%", height: "0.22em", marginLeft: "-50%", borderRadius: "50%", border: `${Math.max(2, ctx.size * 0.03)}px solid ${ctx.accent}`, opacity: 1 - shock, transform: `scale(${0.4 + shock * 1.6}, ${0.4 + shock * 0.8})` }} />
+                  </>
+                )}
+                <span
+                  style={{
+                    position: "relative",
+                    display: "inline-block",
+                    ...ctx.paint,
+                    textShadow: [extrude(1 + q * 3), ctx.paint.textShadow].filter(Boolean).join(", ") || undefined,
+                    opacity: Math.min(1, p * 4),
+                    filter: q > 0.02 ? `blur(${q * ctx.size * 0.06}px)` : undefined,
+                    transformOrigin: "50% 100%",
+                    transform: `translate(${shake}px, ${shake * 0.5}px) rotateX(${q * 65}deg) rotateZ(${q * -10}deg) scale(${(1 + q * 2.6) * (1 + squash * 0.12)}, ${(1 + q * 2.6) * (1 - squash * 0.2)})`,
+                  }}
+                >
+                  {word}
+                </span>
+              </span>
+            );
+          })}
+        </Line>
+      </div>
+    );
+  },
 };
 
 /** Style de texte (couleur + habillage) pour les textes animés hors <AnimatedTitle> (ex. nom de l'app sur la scène logo). */

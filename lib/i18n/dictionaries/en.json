@@ -541,18 +541,18 @@
       "planFeatures": {
         "FREE": [
           "All features",
-          "1080p export",
+          "720p export",
           "Kinetik watermark"
         ],
         "STARTER": [
           "Full editor access",
-          "1080p export without a watermark",
+          "720p export without a watermark",
           "Unlimited brand kit",
           "Full music library"
         ],
         "PRO": [
           "Full editor access",
-          "4K export without a watermark",
+          "1080p export without a watermark",
           "Priority rendering",
           "Early access to new styles"
         ]
@@ -560,8 +560,8 @@
       "costs": {
         "generation": "Video generation",
         "edit": "Chat edit",
-        "exportShort": "1080p export ≤ 30 s",
-        "exportLong": "Export > 30 s or 4K"
+        "exportShort": "Export ≤ 30 s",
+        "exportLong": "Export > 30 s"
       }
     },
     "faq": {
@@ -590,7 +590,7 @@
         },
         {
           "q": "Which formats can I export?",
-          "a": "MP4 in 16:9, 9:16 and 1:1 at 1080p. 4K is available on the Pro plan."
+          "a": "MP4 in 16:9, 9:16 and 1:1 at 720p. 1080p is available on the Pro plan."
         }
       ]
     },
@@ -951,8 +951,8 @@
         },
         "hint": "Drag a scene to move it, or its right edge to change its duration.",
         "selected": "Selected scene",
-        "shorter": "Shorten by 0.5 s",
-        "longer": "Extend by 0.5 s",
+        "shorter": "Shorten by 0.1 s",
+        "longer": "Extend by 0.1 s",
         "moveLeft": "Move earlier",
         "moveRight": "Move later",
         "remove": "Delete scene",
@@ -1106,7 +1106,8 @@
         "mask": "Block reveal",
         "glitch": "Glitch",
         "typewriter": "Typewriter",
-        "flicker": "Neon flicker"
+        "flicker": "Neon flicker",
+        "flip": "3D impact"
       },
       "screensLayouts": {
         "row": "Aligned",
@@ -1127,9 +1128,9 @@
         "doneMany": "Your videos are ready!",
         "partialFailed": "One of the renders failed",
         "quality": "Quality",
+        "sd": "720p",
         "hd": "1080p",
-        "uhd": "4K",
-        "uhdLocked": "Pro plan",
+        "hdLocked": "Pro plan",
         "watermark": "Free plan: a Kinetik watermark will be added.",
         "cost": "Export cost",
         "reexport": "Re-export −50%",

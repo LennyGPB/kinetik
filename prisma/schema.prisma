@@ -239,8 +239,9 @@ enum RenderStatus {
 }
 
 enum RenderQuality {
+  SD // 720p
   HD // 1080p
-  UHD // 4K
+  UHD // 4K (plus proposé, conservé pour les anciens rendus)
 }
 
 model Render {

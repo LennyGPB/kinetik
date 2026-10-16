@@ -93,9 +93,10 @@ export type Typography = "display" | "sans" | "serif" | "condensed" | "mono";
  * words : mot par mot depuis un masque · letters : lettre par lettre avec rebond · fade : fondu + flou doux
  * mask : un bloc de couleur balaie puis dévoile le texte · glitch : séparation RGB qui se stabilise
  * typewriter : machine à écrire avec curseur · flicker : tube néon qui s'allume en grésillant
+ * flip : chaque mot tombe en 3D depuis la caméra et s'écrase (secousse, onde de choc), avec du relief
  * La valeur de la recette est celle par défaut ; l'utilisateur peut la changer pour toute la vidéo (SceneGraph.titleAnimation).
  */
-export const TITLE_ANIMATIONS = ["words", "letters", "fade", "mask", "glitch", "typewriter", "flicker"] as const;
+export const TITLE_ANIMATIONS = ["words", "letters", "fade", "mask", "glitch", "typewriter", "flicker", "flip"] as const;
 export type TitleAnimation = (typeof TITLE_ANIMATIONS)[number];
 
 /** Habillage des titres — remotion/video/titles.tsx. none : couleur pleine · glow : halo lumineux · chrome : dégradé métallisé. */

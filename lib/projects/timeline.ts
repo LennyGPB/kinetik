@@ -38,7 +38,7 @@ export const SCENE_MIN_SECONDS = 1;
 export const SCENE_MAX_SECONDS = 20;
 export const VIDEO_MAX_SECONDS = 90;
 /** Pas des boutons − / + et du redimensionnement */
-export const DURATION_STEP = 0.5;
+export const DURATION_STEP = 0.1;
 /** Une vidéo garde au moins 2 scènes, et au plus 12. */
 export const MIN_SCENES = 2;
 export const MAX_SCENES = 12;
@@ -137,7 +137,9 @@ function isFocus(f: unknown): f is ScreenFocus {
       FOCUS_MODES.includes(v.mode as ScreenFocus["mode"]) &&
       (v.animation === undefined || FOCUS_ANIMATIONS.includes(v.animation)) &&
       (v.label === undefined || (typeof v.label === "string" && v.label.length <= 40)) &&
-      (v.title === undefined || (typeof v.title === "string" && v.title.length <= TITLE_MAX)),
+      (v.title === undefined || (typeof v.title === "string" && v.title.length <= TITLE_MAX)) &&
+      (v.titleEnd === undefined || (typeof v.titleEnd === "number" && Number.isFinite(v.titleEnd) && v.titleEnd >= 0 && v.titleEnd <= 1)) &&
+      (v.titleColor === undefined || (typeof v.titleColor === "string" && HEX_COLOR.test(v.titleColor))),
   );
 }
 
@@ -147,7 +149,7 @@ function clampFocus(f: ScreenFocus): ScreenFocus {
   const h = Math.min(1, Math.max(0.05, f.h));
   const label = f.label?.trim().slice(0, 40);
   const title = f.title?.trim().slice(0, TITLE_MAX);
-  return { src: f.src, mode: f.mode, w, h, x: Math.min(1 - w, Math.max(0, f.x)), y: Math.min(1 - h, Math.max(0, f.y)), ...(f.mode === "popout" && f.animation && { animation: f.animation }), ...(label && f.mode === "popout" && { label }), ...(title && { title }) };
+  return { src: f.src, mode: f.mode, w, h, x: Math.min(1 - w, Math.max(0, f.x)), y: Math.min(1 - h, Math.max(0, f.y)), ...(f.mode === "popout" && f.animation && { animation: f.animation }), ...(label && f.mode === "popout" && { label }), ...(title && { title }), ...(f.titleEnd !== undefined && f.titleEnd < 1 && { titleEnd: Math.round(Math.max(TEXT_END_MIN, f.titleEnd) * 1000) / 1000 }), ...(f.titleColor && { titleColor: f.titleColor.toLowerCase() }) };
 }
 
 /** Applique une modification ; renvoie le graph inchangé si elle est impossible (scène introuvable, limites…). */

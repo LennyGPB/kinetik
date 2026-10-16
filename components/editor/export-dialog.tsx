@@ -56,7 +56,8 @@ export function ExportDialog({
 
   // Un ou plusieurs formats, dans l'ordre d'affichage
   const [formats, setFormats] = useState<VideoFormatId[]>([defaultFormat]);
-  const [quality, setQuality] = useState<ExportQuality>("HD");
+  // Par défaut, la meilleure qualité du plan
+  const [quality, setQuality] = useState<ExportQuality>(plan.maxQuality);
   const [phase, setPhase] = useState<Phase>({ kind: "config" });
   const [starting, setStarting] = useState(false);
   const toast = useToast();
@@ -146,7 +147,7 @@ export function ExportDialog({
   }
 
   return (
-    <Dialog open={open} onClose={close} title={x.title} aside={<ExportPreview videoProps={videoProps} format={shown} uhd={quality === "UHD"} />}>
+    <Dialog open={open} onClose={close} title={x.title} aside={<ExportPreview videoProps={videoProps} format={shown} quality={quality} />}>
       <AnimatePresence mode="wait" initial={false}>
         {phase.kind === "config" && (
           <motion.div key="config" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
@@ -181,7 +182,7 @@ export function ExportDialog({
                       <span>
                         <span className="block font-mono text-sm font-semibold">{VIDEO_FORMATS[id].ratio}</span>
                         <span className="block text-[11px] leading-tight text-muted">{t.app.variants.kinds[id].hint}</span>
-                        <span className="mt-0.5 block font-mono text-[10px] text-subtle">{resolution(id, quality === "UHD")}</span>
+                        <span className="mt-0.5 block font-mono text-[10px] text-subtle">{resolution(id, quality)}</span>
                       </span>
                     </button>
                   );
@@ -197,16 +198,16 @@ export function ExportDialog({
                 onChange={setQuality}
                 className="w-full [&>button]:flex-1"
                 options={[
-                  { value: "HD", label: x.hd },
+                  { value: "SD", label: x.sd },
                   {
-                    value: "UHD",
-                    disabled: plan.maxQuality !== "UHD",
+                    value: "HD",
+                    disabled: plan.maxQuality !== "HD",
                     label: (
                       <span className="inline-flex items-center gap-1.5">
-                        {x.uhd}
-                        {plan.maxQuality !== "UHD" && (
+                        {x.hd}
+                        {plan.maxQuality !== "HD" && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] text-subtle">
-                            <Lock className="size-3" /> {x.uhdLocked}
+                            <Lock className="size-3" /> {x.hdLocked}
                           </span>
                         )}
                       </span>
@@ -273,7 +274,7 @@ export function ExportDialog({
             </div>
             <div>
               <p className="font-semibold">{x.rendering}</p>
-              <p className="mt-1 text-sm text-muted">{quality === "HD" ? x.hd : x.uhd}</p>
+              <p className="mt-1 text-sm text-muted">{quality === "HD" ? x.hd : x.sd}</p>
             </div>
             {/* Une barre par format */}
             <ul className="flex w-full flex-col gap-2.5">
@@ -327,11 +328,11 @@ export function ExportDialog({
   );
 }
 
-/** Résolution réelle du fichier : la 4K est la composition 1080p rendue à l'échelle 2. */
-function resolution(format: VideoFormatId, uhd: boolean) {
+/** Résolution réelle du fichier : la 720p est la composition 1080p rendue à l'échelle 2/3. */
+function resolution(format: VideoFormatId, quality: ExportQuality) {
   const { width, height } = DIMENSIONS[format];
-  const k = uhd ? 2 : 1;
-  return `${width * k} × ${height * k}`;
+  const k = quality === "SD" ? 2 / 3 : 1;
+  return `${Math.round(width * k)} × ${Math.round(height * k)}`;
 }
 
 /** Schéma d'un format : l'écran à ses proportions, avec un titre et un bouton lecture, dans une boîte commune. */
@@ -356,7 +357,7 @@ function FormatSchema({ format, selected }: { format: VideoFormatId; selected: b
 }
 
 /** Aperçu de la vidéo dans le format choisi, posé à côté de la modale. */
-function ExportPreview({ videoProps, format, uhd }: { videoProps: VideoProps; format: VideoFormatId; uhd: boolean }) {
+function ExportPreview({ videoProps, format, quality }: { videoProps: VideoProps; format: VideoFormatId; quality: ExportQuality }) {
   const { width, height } = DIMENSIONS[format];
   // Même encombrement visuel quel que soit le format : la plus grande taille qui tient dans 420 × 560
   const scale = Math.min(420 / width, 560 / height);
@@ -384,7 +385,7 @@ function ExportPreview({ videoProps, format, uhd }: { videoProps: VideoProps; fo
         />
       </motion.div>
       <span className="rounded-full bg-black/50 px-3 py-1 font-mono text-xs text-white/80 backdrop-blur">
-        {VIDEO_FORMATS[format].ratio} · {resolution(format, uhd)}
+        {VIDEO_FORMATS[format].ratio} · {resolution(format, quality)}
       </span>
     </div>
   );

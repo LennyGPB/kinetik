@@ -3,6 +3,7 @@ import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/c
 import { getRenderProgress, presignUrl, renderMediaOnLambda, type AwsRegion } from "@remotion/lambda/client";
 import { isOwnUpload, mimeFromKey, storage } from "@/lib/storage";
 import { durationInFrames, type VideoProps } from "@/remotion/props";
+import type { ExportQuality } from "@/config/credits";
 
 /**
  * Rendu vidéo MP4 via Remotion Lambda (AWS).
@@ -90,7 +91,7 @@ export async function inlineAssets(props: VideoProps, userId: string): Promise<V
   };
 }
 
-export async function startLambdaRender({ props, uhd, fileName, userId, batch = 1 }: { props: VideoProps; uhd: boolean; fileName: string; userId: string; batch?: number }) {
+export async function startLambdaRender({ props, quality, fileName, userId, batch = 1 }: { props: VideoProps; quality: ExportQuality; fileName: string; userId: string; batch?: number }) {
   if (!functionName || !serveUrl) throw new Error("Remotion Lambda n'est pas configuré");
   const { renderId, bucketName } = await renderMediaOnLambda({
     region,
@@ -101,8 +102,8 @@ export async function startLambdaRender({ props, uhd, fileName, userId, batch = 
     codec: "h264",
     imageFormat: "jpeg",
     jpegQuality: 90,
-    // 4K = composition 1080p rendue à l'échelle 2
-    scale: uhd ? 2 : 1,
+    // La composition est en 1080p ; la 720p est la même vidéo rendue à l'échelle 2/3 (1280 × 720, dimensions paires)
+    scale: quality === "SD" ? 2 / 3 : 1,
     privacy: "private",
     maxRetries: 1,
     // Découpe la vidéo en morceaux rendus en parallèle, dans la part du quota AWS de ce rendu (Remotion impose 4 images minimum par morceau)

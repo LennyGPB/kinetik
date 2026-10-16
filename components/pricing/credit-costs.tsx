@@ -20,7 +20,7 @@ function CostGraphic({ kind }: { kind: string }) {
       ) : (
         <span className="relative flex h-6 w-8 -rotate-6 items-end rounded-sm border border-fg/40 px-1 pb-0.5 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:-translate-y-0.5 motion-safe:group-hover:rotate-0">
           <span className="absolute top-1 left-1 h-px w-2 bg-accent-text" />
-          <span className="font-mono text-[9px] leading-none">{kind === "4k" ? "4K" : "MP4"}</span>
+          <span className="font-mono text-[9px] leading-none">{kind === "long" ? "30s+" : "MP4"}</span>
         </span>
       )}
     </span>
@@ -40,7 +40,7 @@ export function CreditCosts({ className, reveal = false }: { className?: string;
   { graphic: "type", label: c.generation, cost: CREDIT_COSTS.generation },
   { graphic: "chat", label: c.edit, cost: CREDIT_COSTS.edit },
   { graphic: "mp4", label: c.exportShort, cost: CREDIT_COSTS.export.short },
-  { graphic: "4k", label: c.exportLong, cost: CREDIT_COSTS.export.long },
+  { graphic: "long", label: c.exportLong, cost: CREDIT_COSTS.export.long },
 ];
 
   return (

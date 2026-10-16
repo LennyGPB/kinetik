@@ -32,7 +32,6 @@ import {
   BADGE_MAX,
   TEXT_SCALE_MAX,
   TEXT_SCALE_MIN,
-  TEXT_END_MIN,
   type TimelineEdit,
 } from "@/lib/projects/timeline";
 import { cn, formatTime } from "@/lib/utils";
@@ -41,6 +40,8 @@ import { KinetikVideo } from "@/remotion/video/KinetikVideo";
 import { headlineDefaults } from "@/remotion/video/headlines";
 import { sceneTimeline } from "@/remotion/video/transitions";
 import { FocusSequenceEditor } from "./focus-sequence-editor";
+import { TextEndBar } from "./text-end-bar";
+import { TextColorPicker } from "./text-color-picker";
 import { VariantSwitcher } from "./variant-switcher";
 import type { ProjectVariant } from "@/lib/projects/types";
 import { ScreensPicker } from "./screens-picker";
@@ -720,6 +721,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           value={sceneFocuses(selected)}
           sceneScreens={sceneScreens(graph.scenes, selected, videoProps.screenUrls, 3)}
           sceneTitle={selected.title}
+          titleColor={selected.textColors?.title ?? defaultColors[`${selected.id}:title`] ?? null}
           duration={selected.duration}
           disabled={!editable}
           onCancel={closeFocus}
@@ -918,72 +920,6 @@ function TextForm({ scene, defaultColors, headlineColors, badgeAuto, kicker: kic
       <AnimatedApply submit disabled={disabled || (isHeadlines ? filled.length < HEADLINES_MIN : !title.trim())} onApplyingChange={setApplying} onBegin={() => { pending.current = change(); }} onApply={() => onApply(pending.current)} onCancel={onCancel} />
     </form>
     </Dialog>
-  );
-}
-
-/**
- * Durée d'affichage d'un texte dans sa scène : barre pleine = visible jusqu'à la fin ;
- * on la raccourcit pour faire disparaître le texte avant la scène suivante.
- */
-function TextEndBar({ value, duration, disabled, onChange }: { value: number; duration: number; disabled: boolean; onChange: (end: number) => void }) {
-  const t = useDictionary();
-  const tl = t.app.editor.timeline;
-  const full = value >= 1;
-  const percent = Math.round(value * 100);
-  return (
-    <div className={cn("flex flex-col gap-1.5", disabled && "pointer-events-none opacity-50")}>
-      <div className="relative h-2 rounded-full bg-surface-2">
-        <div className="absolute inset-y-0 left-0 rounded-full bg-accent transition-[width] duration-100" style={{ width: `${percent}%` }} />
-        <div className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-accent bg-white shadow" style={{ left: `${percent}%` }} />
-        <input
-          type="range"
-          aria-label={tl.textEndLabel}
-          min={TEXT_END_MIN * 100}
-          max={100}
-          step={1}
-          value={percent}
-          disabled={disabled}
-          onChange={(ev) => onChange(Number(ev.target.value) / 100)}
-          className="absolute -inset-y-2 inset-x-0 w-full cursor-pointer opacity-0"
-        />
-      </div>
-      <span className="flex justify-between text-[11px] text-subtle tabular-nums">
-        <span>{full ? tl.textEndFull : format(tl.textEndAt, { time: formatSeconds(duration * value, t.locale) })}</span>
-        {!full && <button type="button" onClick={() => onChange(1)} className="text-muted hover:text-fg">{tl.textEndReset}</button>}
-      </span>
-    </div>
-  );
-}
-
-/**
- * Pastille de couleur d'un texte (sélecteur natif). Sans couleur choisie, elle montre la couleur actuelle du template
- * (`fallback`, relevée dans l'aperçu) : rien n'est enregistré tant qu'on ne la change pas.
- */
-function TextColorPicker({ value, fallback, disabled, onChange }: { value: string | null; fallback: string | null; disabled: boolean; onChange: (color: string | null) => void }) {
-  const tl = useDictionary().app.editor.timeline;
-  const shown = value ?? fallback ?? "#ffffff";
-  return (
-    <span className="flex shrink-0 items-center gap-1">
-      <span
-        title={tl.textColor}
-        className={cn("relative size-10 cursor-pointer overflow-hidden rounded-xl border border-line-strong shadow-[inset_0_0_0_1px_rgb(0_0_0/0.15)]", disabled && "pointer-events-none opacity-50")}
-        style={{ background: shown }}
-      >
-        <input
-          type="color"
-          aria-label={tl.textColor}
-          disabled={disabled}
-          value={shown}
-          onChange={(ev) => onChange(ev.target.value.toLowerCase())}
-          className="absolute inset-0 size-full cursor-pointer opacity-0"
-        />
-      </span>
-      {value && (
-        <button type="button" disabled={disabled} title={tl.textColorReset} aria-label={tl.textColorReset} onClick={() => onChange(null)} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg">
-          <X className="size-3.5" />
-        </button>
-      )}
-    </span>
   );
 }
 

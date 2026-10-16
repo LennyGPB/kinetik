@@ -1,10 +1,11 @@
-import { PreviewTarget } from "./movable-text";
+import { FramingColor, PreviewTarget, useEndFade } from "./movable-text";
 import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill, Easing, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Scene, ScreenFocus } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
 import { BrowserFrame, browserBarHeight, frameForRatio, PhoneFrame, phoneBezel } from "./devices";
 import { AnimatedTitle } from "./titles";
+
 import { isLight, textColorOn, useBodyFont, useIsPortrait, useUnit } from "./theme";
 
 /**
@@ -56,6 +57,7 @@ export function FocusLayout({ scene, props, focus, src, ratio, stepFrames, hold 
   const region: Rect = { x: focus.x * box.screen.w, y: focus.y * box.screen.h, w: focus.w * box.screen.w, h: focus.h * box.screen.h };
   const regionOnVideo: Rect = { x: left + box.screen.x + region.x, y: top + box.screen.y + region.y, w: region.w, h: region.h };
 
+  const titleFade = useEndFade(focus.titleEnd);
   const content = <ScreenContent src={src} region={region} screen={box.screen} mark={(hold ? 1 : mark) * (1 - act * (popout ? 1 : 0.7))} accent={accent} dim={popout ? act : 0} />;
 
   // Zoom caméra : l'appareil grandit autour de la zone, qui vient se centrer et remplir l'image
@@ -88,8 +90,8 @@ export function FocusLayout({ scene, props, focus, src, ratio, stepFrames, hold 
       {popout && act > 0 && <Cutout src={src} region={region} screen={box.screen} from={regionOnVideo} progress={act} animation={focus.animation} accent={accent} label={focus.label} props={props} />}
       {/* Titre par-dessus : en zoom, l'appareil agrandi passe derrière (fondu du fond pour la lisibilité) */}
       {!popout && <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: titleSpace * 1.3, opacity: act, background: `linear-gradient(${props.palette[0]} 35%, transparent)` }} />}
-      {!stepFrames && <div style={{ position: "absolute", top: u * 6, left: u * 8, right: u * 8, filter: popout ? undefined : `drop-shadow(0 ${u * 0.4}px ${u * 1.6}px rgb(0 0 0 / ${0.6 * act}))` }}>
-        <AnimatedTitle text={focus.title?.trim() || scene.title} size={u * 6.5} color={textColorOn(props.palette[0])} palette={props.palette} energy={props.graph.energy} />
+      {!stepFrames && <div style={{ position: "absolute", top: u * 6, left: u * 8, right: u * 8, opacity: titleFade, filter: popout ? undefined : `drop-shadow(0 ${u * 0.4}px ${u * 1.6}px rgb(0 0 0 / ${0.6 * act}))` }}>
+        <FramingColor scene={scene} color={focus.titleColor}><AnimatedTitle text={focus.title?.trim() || scene.title} size={u * 6.5} color={textColorOn(props.palette[0])} palette={props.palette} energy={props.graph.energy} /></FramingColor>
       </div>}
     </AbsoluteFill>
   );

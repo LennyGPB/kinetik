@@ -18,7 +18,7 @@ export function legalData(locale: Locale) {
     updated: new Intl.DateTimeFormat(intlLocale[locale], { dateStyle: "long", timeZone: "UTC" }).format(new Date(legalConfig.updatedAt)),
     signupCredits: SIGNUP_BONUS_CREDITS,
     paidPlans: PLANS.filter((p) => p.monthlyPrice > 0).map((p) => ({
-      name: p.name, credits: p.credits, quality: p.maxQuality === "UHD" ? "4K" : "1080p",
+      name: p.name, credits: p.credits, quality: p.maxQuality === "HD" ? "1080p" : "720p",
       monthly: price(p.monthlyPrice), yearly: price(p.yearlyPrice * 12), yearlyPerMonth: price(p.yearlyPrice),
     })),
     packs: CREDIT_PACKS.map((p) => ({ credits: p.credits, price: price(p.price) })),

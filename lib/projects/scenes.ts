@@ -133,6 +133,10 @@ export type ScreenFocus = {
   label?: string;
   /** Titre affiché pendant ce cadrage, à la place de celui de la scène (facultatif) */
   title?: string;
+  /** Moment où le titre de ce cadrage disparaît, en fraction de la durée du cadrage (absent = jusqu'à la fin) */
+  titleEnd?: number;
+  /** Couleur du titre de ce cadrage (#rrggbb ; absent = celle de la scène) */
+  titleColor?: string;
 };
 
 /** Réglages de la musique (absents = valeurs par défaut). */

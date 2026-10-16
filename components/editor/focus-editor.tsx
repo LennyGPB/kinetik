@@ -11,6 +11,8 @@ import { Segmented } from "@/components/ui/segmented";
 
 import { FOCUS_ANIMATIONS, FOCUS_MODES, type ScreenFocus } from "@/lib/projects/scenes";
 import { TITLE_MAX } from "@/lib/projects/timeline";
+import { TextEndBar } from "./text-end-bar";
+import { TextColorPicker } from "./text-color-picker";
 import { cn } from "@/lib/utils";
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -30,6 +32,8 @@ export function FocusEditor({
   value,
   defaultSrc,
   sceneTitle,
+  stepDuration,
+  defaultColor,
   disabled,
   onApply,
   onCancel,
@@ -39,6 +43,10 @@ export function FocusEditor({
   value: ScreenFocus | null;
   defaultSrc?: string;
   sceneTitle: string;
+  /** Durée de ce cadrage (s), pour régler quand son texte disparaît */
+  stepDuration: number;
+  /** Couleur actuelle du titre de la scène (relevée dans l'aperçu), montrée tant qu'aucune n'est choisie */
+  defaultColor: string | null;
   disabled: boolean;
   onApply: (focus: ScreenFocus | null) => void;
   onCancel: () => void;
@@ -55,6 +63,8 @@ export function FocusEditor({
   const [mode, setMode] = useState<ScreenFocus["mode"]>(value?.mode ?? "popout");
   const [label, setLabel] = useState(value?.label ?? "");
   const [title, setTitle] = useState(value?.title ?? "");
+  const [titleEnd, setTitleEnd] = useState(value?.titleEnd ?? 1);
+  const [titleColor, setTitleColor] = useState<string | null>(value?.titleColor ?? null);
   const [animation, setAnimation] = useState<NonNullable<ScreenFocus["animation"]>>(value?.animation ?? "lift");
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -187,8 +197,12 @@ export function FocusEditor({
             )}
             <div className="h-px bg-line" aria-hidden />
             <Field input label={tl.focusStepTitle} hint={tl.focusStepTitleHint}>
-              <input value={title} disabled={locked} maxLength={TITLE_MAX} placeholder={sceneTitle} onChange={(ev) => setTitle(ev.target.value)} className={INPUT} />
+              <span className="flex items-center gap-2">
+                <input value={title} disabled={locked} maxLength={TITLE_MAX} placeholder={sceneTitle} onChange={(ev) => setTitle(ev.target.value)} className={INPUT} />
+                <TextColorPicker value={titleColor} fallback={defaultColor} disabled={locked} onChange={setTitleColor} />
+              </span>
             </Field>
+            <TextEndBar value={titleEnd} duration={stepDuration} disabled={locked} onChange={setTitleEnd} />
             {mode === "popout" && (
               <Field input label={tl.focusLabel}>
                 <input value={label} disabled={locked} maxLength={40} placeholder={tl.focusLabelPlaceholder} onChange={(ev) => setLabel(ev.target.value)} className={INPUT} />
@@ -207,7 +221,7 @@ export function FocusEditor({
       <AnimatedApply
         disabled={locked || (!valid && !removing)}
         onApplyingChange={setApplying}
-        onBegin={() => { pendingFocus.current = removing ? null : { src: src!, ...rect!, mode, ...(mode === "popout" ? { animation } : {}), ...(mode === "popout" && label.trim() ? { label: label.trim() } : {}), ...(title.trim() ? { title: title.trim() } : {}) }; }}
+        onBegin={() => { pendingFocus.current = removing ? null : { src: src!, ...rect!, mode, ...(mode === "popout" ? { animation } : {}), ...(mode === "popout" && label.trim() ? { label: label.trim() } : {}), ...(title.trim() ? { title: title.trim() } : {}), ...(titleEnd < 1 ? { titleEnd } : {}), ...(titleColor ? { titleColor } : {}) }; }}
         onApply={() => onApply(pendingFocus.current)}
         onCancel={onCancel}
       />

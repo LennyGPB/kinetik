@@ -12,11 +12,11 @@ export const CREDIT_COSTS = {
   /** Restaurer une ancienne version */
   restore: 0,
   export: {
-    /** Durée max (s) pour le tarif réduit en 1080p */
+    /** Durée max (s) pour le tarif réduit */
     shortMaxSeconds: 30,
-    /** Export ≤ 30 s en 1080p */
+    /** Export ≤ 30 s (720p ou 1080p) */
     short: 5,
-    /** Export > 30 s ou en 4K */
+    /** Export > 30 s */
     long: 10,
   },
 } as const;
@@ -24,14 +24,16 @@ export const CREDIT_COSTS = {
 /** Crédits offerts à l'inscription (plan gratuit, n'expirent pas) */
 export const SIGNUP_BONUS_CREDITS = 30;
 
-export type ExportQuality = "HD" | "UHD";
+/** SD = 720p (Free, Starter) · HD = 1080p (Pro) */
+export type ExportQuality = "SD" | "HD";
+export const EXPORT_QUALITIES: ExportQuality[] = ["SD", "HD"];
 
 /**
  * Coût d'un export. `reexport` : le projet a déjà été exporté (rendu réussi ou en cours) → moitié prix, arrondi au supérieur.
  * Une déclinaison (autre format, version courte) est un projet à part : son premier export est plein tarif.
  */
-export function getExportCost({ duration, quality, reexport = false }: { duration: number; quality: ExportQuality; reexport?: boolean }) {
+export function getExportCost({ duration, reexport = false }: { duration: number; quality?: ExportQuality; reexport?: boolean }) {
   const { shortMaxSeconds, short, long } = CREDIT_COSTS.export;
-  const full = quality === "HD" && duration <= shortMaxSeconds ? short : long;
+  const full = duration <= shortMaxSeconds ? short : long;
   return reexport ? Math.ceil(full / 2) : full;
 }
