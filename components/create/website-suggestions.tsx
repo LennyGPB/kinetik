@@ -1,5 +1,7 @@
 "use client";
 
+import { purpleButtonStyle } from "@/components/ui/button";
+
 
 import { format } from "@/lib/i18n";
 
@@ -92,7 +94,7 @@ export function WebsiteSuggestions({ analysis, retry, screens, onScreens }: {
               <span className="font-mono text-xs text-muted">{previewIndex + 1} / {analysis.files.length}</span>
               <button type="button" aria-label={t.copy["dd375560b0f4"]} disabled={previewIndex >= analysis.files.length - 1} onClick={() => setPreviewUrl(analysis.files[previewIndex + 1].url)} className="grid size-10 cursor-pointer place-items-center rounded-lg border border-line-strong bg-black text-white hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"><ChevronRight className="size-4" /></button>
             </div>
-            <button type="button" aria-pressed={previewSelected} disabled={!previewSelected && screens.length >= 8} onClick={() => onScreens(previewSelected ? screens.filter((file) => file.url !== preview.url) : [...screens, preview])} className={cn("flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40", previewSelected ? "border-accent bg-accent text-accent-fg" : "border-line-strong bg-black text-white hover:border-accent hover:bg-accent")}>
+            <button type="button" aria-pressed={previewSelected} disabled={!previewSelected && screens.length >= 8} onClick={() => onScreens(previewSelected ? screens.filter((file) => file.url !== preview.url) : [...screens, preview])} className={cn("flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40", previewSelected ? purpleButtonStyle : "border-line-strong bg-black text-white hover:border-accent hover:bg-accent")}>
               {previewSelected && <Check className="size-4" aria-hidden />}{previewSelected ? t.copy["9cc75a37d7ea"] : t.copy["b6ef413dd1af"]}
             </button>
           </div>

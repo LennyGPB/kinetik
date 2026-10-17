@@ -6,8 +6,7 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { Check } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "@/lib/i18n/navigation";
-import { Player as RemotionPlayer, type PlayerRef } from "@remotion/player";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { Player } from "@/components/editor/player";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +18,7 @@ import { STYLE_CATEGORIES, VIDEO_STYLES, type StyleCategory, type VideoStyle } f
 import { format } from "@/lib/i18n";
 import { demoVideoProps } from "@/lib/projects/demo-video";
 import { cn } from "@/lib/utils";
-import { KinetikVideo } from "@/remotion/video/KinetikVideo";
-import { DIMENSIONS, durationInFrames, FPS } from "@/remotion/props";
+import { TemplateHoverPreview } from "@/components/media/template-hover-preview";
 import { PostTemplateGallery } from "@/components/posts/post-template-gallery";
 import { postCopy } from "@/lib/posts/copy";
 
@@ -86,7 +84,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
                 className={cn("relative block aspect-[2/3] w-full cursor-pointer overflow-hidden rounded-2xl text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent", selectedId === style.id && "ring-2 ring-accent")}
               >
                 <VideoPlaceholder ratio="fill" palette={style.palette} templateId={style.id} scene={style.recipe.background} label={style.name.split(" ")[0]} />
-                {playingId === style.id && <HoverDemo style={style} locale={t.locale} />}
+                {playingId === style.id && <TemplateHoverPreview style={style} locale={t.locale} />}
                 {selectedId === style.id && <span className="absolute top-3 right-3 grid size-7 place-items-center rounded-full bg-accent text-accent-fg"><Check className="size-4" aria-hidden /></span>}
               </button>
             </motion.li>
@@ -128,37 +126,6 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
         )}
       </Dialog>
       </>}
-    </div>
-  );
-}
-
-/** One active, muted player; explicit dimensions keep its square viewport measurable. */
-function HoverDemo({ style, locale }: { style: VideoStyle; locale: "fr" | "en" }) {
-  const props = useMemo(() => demoVideoProps(style, "SQUARE", locale), [style, locale]);
-  const playerRef = useRef<PlayerRef>(null);
-  useLayoutEffect(() => {
-    playerRef.current?.play();
-  }, []);
-  const { width, height } = DIMENSIONS.SQUARE;
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
-      <div className="absolute inset-y-0 left-1/2 h-full w-[150%] -translate-x-1/2">
-        <RemotionPlayer
-          ref={playerRef}
-          component={KinetikVideo}
-          inputProps={props}
-          compositionWidth={width}
-          compositionHeight={height}
-          durationInFrames={durationInFrames(props.graph)}
-          fps={FPS}
-          autoPlay
-          loop
-          controls={false}
-          clickToPlay={false}
-          initiallyMuted
-          style={{ width: "100%", height: "100%" }}
-        />
-      </div>
     </div>
   );
 }

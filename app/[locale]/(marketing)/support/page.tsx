@@ -6,6 +6,8 @@ import { SupportForm } from "@/components/support/support-form";
 import { legalConfig } from "@/config/legal";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { getServerDictionary } from "@/lib/i18n/server";
+import { SiteHeader } from "@/components/landing/site-header";
+import { SiteFooter } from "@/components/landing/site-footer";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -22,6 +24,9 @@ export default function SupportPage() {
   const s = t.support;
 
   return (
+    <>
+    <SiteHeader homeLinks />
+    <main className="px-4 pt-28 pb-24 sm:px-6 sm:pt-32">
     <div className="mx-auto grid w-full max-w-5xl gap-10 lg:grid-cols-[1fr_1.5fr] lg:gap-16">
       <header className="flex flex-col gap-6">
         <div>
@@ -51,5 +56,8 @@ export default function SupportPage() {
       </header>
       <SupportForm />
     </div>
+    </main>
+    <SiteFooter />
+    </>
   );
 }

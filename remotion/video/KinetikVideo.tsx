@@ -3,6 +3,7 @@ import { overlayApplies } from "../../lib/projects/overlays";
 import { OverlayLayer } from "./overlays";
 import { AbsoluteFill, Audio, Img, getRemotionEnvironment, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { EditorialBackdrop } from "./editorial-backdrop";
+import { GraphicBackdrop } from "./graphic-backdrop";
 import { beatGrid } from "../../lib/projects/scenes";
 import { sceneSettings } from "../../lib/projects/scene-settings";
 import { durationInFrames, type VideoProps } from "../props";
@@ -21,7 +22,7 @@ import { SceneShell, sceneTimeline } from "./transitions";
  */
 export function KinetikVideo(input: VideoProps) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width, height } = useVideoConfig();
   const u = useUnit();
   const props = withUserSettings(input);
   const { graph, recipe, palette } = props;
@@ -41,7 +42,7 @@ export function KinetikVideo(input: VideoProps) {
     <RecipeContext value={recipe}>
       <BeatContext value={{ bpm: graph.bpm, phaseFrames }}>
         <AbsoluteFill style={{ backgroundColor: palette[0], overflow: "hidden" }}>
-          {recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={activePalette}
+          {recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={activePalette} time={frame / fps} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={activePalette}
             progress={activeScene ? Math.max(0, Math.min(1, (frame - activeScene.from) / activeScene.duration)) : 0}
             renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} />
             : <Background kind={recipe.background} palette={activePalette} energy={graph.energy} />}

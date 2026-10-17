@@ -51,3 +51,7 @@ next-env.d.ts
 
 # rendus Remotion locaux
 /out
+
+# ressources locales
+/RESSOURCES/
+/ressources/

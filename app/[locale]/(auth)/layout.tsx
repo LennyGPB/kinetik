@@ -25,7 +25,7 @@ export default function AuthLayout({ children }: LayoutProps<"/[locale]">) {
         </main>
       </div>
 
-      <aside className="relative hidden p-3 lg:block" aria-hidden>
+      <aside className="relative hidden h-dvh min-h-0 p-3 lg:sticky lg:top-0 lg:block" aria-hidden>
         <div className="relative h-full overflow-hidden rounded-[2rem] bg-[#07070c]">
           {/* Tous les templates en mur défilant, légèrement incliné ; fondus haut/bas pour la lisibilité de la citation */}
           <TemplatesWall className="absolute -inset-x-6 -inset-y-24 rotate-[-4deg] opacity-90" />

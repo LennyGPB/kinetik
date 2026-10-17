@@ -22,6 +22,7 @@ export function Dialog({
   children,
   className,
   aside,
+  headerAction,
 }: {
   open: boolean;
   onClose: () => void;
@@ -31,6 +32,7 @@ export function Dialog({
   className?: string;
   /** Contenu posé à côté de la modale, hors de son fond (grands écrans uniquement), ex. un aperçu */
   aside?: ReactNode;
+  headerAction?: ReactNode;
 }) {
   const t = useDictionary();
 
@@ -110,7 +112,8 @@ export function Dialog({
             >
               <X className="size-4" />
             </button>
-            <h2 id={titleId} className="pr-8 text-xl font-semibold">
+            {headerAction && <div className="absolute top-4 right-14">{headerAction}</div>}
+            <h2 id={titleId} className={cn("text-xl font-semibold", headerAction ? "pr-20" : "pr-8")}>
               {title}
             </h2>
             {description && <p className="mt-1.5 text-sm text-muted">{description}</p>}

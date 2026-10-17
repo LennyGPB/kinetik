@@ -239,7 +239,7 @@ export function ExportDialog({
               )}
             </div>
 
-            <Button size="lg" onClick={start} loading={starting} disabled={!canAfford} className="w-full">
+            <Button variant="purple" size="lg" onClick={start} loading={starting} disabled={!canAfford} className="w-full">
               {formats.length > 1 ? interpolate(x.startMany, { count: formats.length }) : x.start}
             </Button>
             {!canAfford && <p className="-mt-3 text-center text-sm text-danger">{t.app.editor.insufficient}</p>}

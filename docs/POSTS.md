@@ -12,7 +12,7 @@ Les projets `kind = POST` partagent les comptes, les assets, les versions, les l
 - Collection professionnelle : `Swiss` (grille et accent vert), `Ledger` (colonnes éditoriales), `Frame` (captures sur bleu nuit), `Outline` (ligne continue) et `Continuum` (courbe panoramique). Les deux derniers sont liés.
 - Collection photo : `Portrait` (photo plein cadre et serif italique), `Team Board` (six portraits avec noms/rôles), `Nomad` (panneau dépoli), `District` (photo monochrome et carrousel contrasté) et `Manifest` (affiche rouge/noir/crème). Les photos sont remplaçables et disposent de réglages de cadrage. Les photos de démonstration sont réservées aux aperçus.
 - Collection campagne : `Afterhours`, `Daybook`, `Muse`, `Ritual`, `Dune`, `Still`, `Diptych`, `Ember`, `Chromatic` et `Atelier`. Photos remplaçables, compositions distinctes, mélange de serif et de sans serif ; `Ritual`, `Dune` et `Chromatic` possèdent un élément continu entre les pages.
-- `Signal` et `Studio` sont retirés du catalogue et des créations. Leur rendu reste disponible pour éditer/exporter les projets existants et restaurer leurs anciennes versions. Le catalogue compte 33 templates actifs.
+- `Signal` et `Studio` sont retirés du catalogue et des créations. Leur rendu reste disponible pour éditer/exporter les projets existants et restaurer leurs anciennes versions. Le catalogue compte 43 templates actifs.
 - Formats : carré 1080 × 1080, feed 1080 × 1350 et story 1080 × 1920.
 
 ## Crédits
@@ -49,3 +49,5 @@ Les tests vérifient les prix et arrondis, la validation, les accès, les double
 - Galerie : miniatures seules, aperçu immédiat au survol ou au focus clavier, détails au clic. Les posts font défiler leurs pages et les vidéos sont muettes. La préférence de réduction des animations désactive la lecture automatique.
 
 - Verve, Aura, Contact, Sienna et Tidal : cinq compositions photo. Sienna et Tidal proposent un carrousel lié.
+
+- Ligne, Vellum, Edition, Ascend, Persona, Chroma, Canopy, Sculpt, Tempo and Verso add ten editable photographic layouts. Ligne, Chroma and Verso include cross-page graphics.

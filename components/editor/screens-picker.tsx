@@ -1,5 +1,7 @@
 "use client";
 
+import { purpleButtonStyle } from "@/components/ui/button";
+
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
@@ -79,7 +81,7 @@ export function ScreensPicker({
           type="button"
           disabled={disabled || !picked.length}
           onClick={() => onApply(picked)}
-          className="h-10 rounded-xl bg-accent-gradient px-4 text-sm font-semibold text-white transition-opacity disabled:opacity-40"
+          className={cn("h-10 rounded-xl px-4 text-sm transition-[opacity,box-shadow] disabled:opacity-40", purpleButtonStyle)}
         >
           {tl.apply}
         </button>

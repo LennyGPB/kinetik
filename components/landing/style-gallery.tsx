@@ -1,5 +1,7 @@
 "use client";
 
+import { purpleButtonStyle } from "@/components/ui/button";
+
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
@@ -8,6 +10,7 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
 import { useState } from "react";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
+import { TemplateHoverPreview } from "@/components/media/template-hover-preview";
 import { Badge } from "@/components/ui/badge";
 import { STYLE_CATEGORIES, VIDEO_STYLES, type StyleCategory } from "@/config/styles";
 
@@ -16,13 +19,19 @@ import { Section, SectionHeading } from "./section-heading";
 
 type Filter = StyleCategory | "all";
 const PREVIEW_COUNT = 6;
+// Interleave categories with a stable order across server rendering and hydration.
+const CATEGORY_GROUPS = STYLE_CATEGORIES.map((category) => VIDEO_STYLES.filter((style) => style.category === category));
+const MIXED_STYLES = Array.from({ length: Math.max(...CATEGORY_GROUPS.map((group) => group.length)) }, (_, index) =>
+  CATEGORY_GROUPS.flatMap((group) => group[index] ? [group[index]] : []),
+).flat();
 
 export function StyleGallery() {
   const t = useDictionary();
 
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState(false);
-  const styles = filter === "all" ? VIDEO_STYLES : VIDEO_STYLES.filter((s) => s.category === filter);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const styles = filter === "all" ? MIXED_STYLES : VIDEO_STYLES.filter((s) => s.category === filter);
   const visibleStyles = expanded ? styles : styles.slice(0, PREVIEW_COUNT);
 
   return (
@@ -53,6 +62,7 @@ export function StyleGallery() {
                 onClick={() => {
                   setFilter(cat);
                   setExpanded(false);
+                  setPlayingId(null);
                 }}
                 className={cn(
                   "relative rounded-full border px-4 py-2 text-sm font-medium transition-colors",
@@ -62,7 +72,7 @@ export function StyleGallery() {
                 {active && (
                   <motion.span
                     layoutId="gallery-filter"
-                    className="absolute inset-0 rounded-full bg-accent-gradient shadow-[0_6px_20px_-6px_var(--accent-glow)]"
+                    className={cn("absolute inset-0 rounded-full", purpleButtonStyle)}
                     transition={{ type: "spring", stiffness: 500, damping: 36 }}
                   />
                 )}
@@ -97,14 +107,19 @@ export function StyleGallery() {
             >
               <Link
                 href={`/register?style=${style.id}`}
+                onMouseEnter={() => setPlayingId(style.id)}
+                onMouseLeave={() => setPlayingId(null)}
+                onFocus={() => setPlayingId(style.id)}
+                onBlur={() => setPlayingId(null)}
                 className="group relative block overflow-hidden rounded-2xl border border-line bg-surface transition-[border-color,box-shadow] duration-300 hover:border-accent/40 hover:shadow-[0_20px_50px_-20px_var(--accent-glow)] sm:rounded-3xl"
               >
-                <div className="overflow-hidden">
+                <div className="relative overflow-hidden">
                   <div className="transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.06]">
                     <VideoPlaceholder ratio={style.ratio} palette={style.palette} templateId={style.id} scene={style.recipe.background} label={style.name.split(" ")[0]} src={style.previewSrc} />
                   </div>
+                  {playingId === style.id && <TemplateHoverPreview key={style.id} style={style} locale={t.locale} format={style.ratio === "9:16" ? "PORTRAIT" : style.ratio === "16:9" ? "LANDSCAPE" : "SQUARE"} frameRatio={Number(style.ratio.split(":")[0]) / Number(style.ratio.split(":")[1])} />}
                 </div>
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 pt-12 sm:p-4 sm:pt-16">
+                <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 pt-12 sm:p-4 sm:pt-16">
                   <div className="flex items-end justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate font-display text-base font-semibold text-white sm:text-lg">{style.name}</p>
@@ -116,7 +131,7 @@ export function StyleGallery() {
                     </span>
                   </div>
                 </div>
-                <Badge tone="glass" className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3">
+                <Badge tone="glass" className="absolute top-2.5 left-2.5 z-20 sm:top-3 sm:left-3">
                   {t.styleCategories[style.category]}
                 </Badge>
               </Link>
@@ -130,7 +145,7 @@ export function StyleGallery() {
             type="button"
             aria-expanded={expanded}
             aria-controls="style-gallery-grid"
-            onClick={() => setExpanded((value) => !value)}
+            onClick={() => { setPlayingId(null); setExpanded((value) => !value); }}
             className="px-3 py-2 text-sm text-muted underline-offset-4 transition-colors hover:text-fg hover:underline"
           >
             {expanded ? t.copy["e7bd64d3ec4d"] : t.copy["be55c61d5ebf"]}

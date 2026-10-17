@@ -26,6 +26,21 @@ export type VideoStyle = {
 export const STYLE_CATEGORIES: StyleCategory[] = ["editorial", "tech", "minimal", "typo", "bold", "fun", "business"];
 
 const CATALOG: Omit<VideoStyle, "recipe">[] = [
+  { id: "anvil", name: "Anvil", category: "bold", palette: ["#E9E1D2", "#191C1C", "#D74625"], ratio: "9:16" },
+  { id: "tessera", name: "Tessera", category: "typo", palette: ["#D7C9EC", "#251E32", "#664498"], ratio: "9:16" },
+  { id: "suture", name: "Suture", category: "bold", palette: ["#0B0D0D", "#F6EEE2", "#EF624C"], ratio: "9:16" },
+  { id: "ratchet", name: "Ratchet", category: "bold", palette: ["#F0E7D6", "#242626", "#D65B35"], ratio: "9:16" },
+  { id: "interlock", name: "Interlock", category: "tech", palette: ["#192C7A", "#FFF1DD", "#87D7C5"], ratio: "9:16" },
+  {"id":"column","name":"Column","category":"editorial","palette":["#242722","#FFF2DF","#C3B18C"],"ratio":"9:16"},
+  {"id":"aspect","name":"Aspect","category":"editorial","palette":["#1F292D","#FFF0E0","#DBA684"],"ratio":"9:16"},
+  {"id":"patina","name":"Patina","category":"editorial","palette":["#40342A","#FFF0D8","#DA9D68"],"ratio":"9:16"},
+  {"id":"interval","name":"Interval","category":"editorial","palette":["#202328","#FFF1DD","#D57650"],"ratio":"9:16"},
+  {"id":"memento","name":"Memento","category":"editorial","palette":["#292C28","#FAF0DA","#BFA880"],"ratio":"9:16"},
+  {"id":"torque","name":"Torque","category":"typo","palette":["#EEE8D9","#171717","#DE4224"],"ratio":"9:16"},
+  {"id":"cadence","name":"Cadence","category":"bold","palette":["#C8E84B","#182213","#374D25"],"ratio":"9:16"},
+  {"id":"vector-beat","name":"Vector Beat","category":"bold","palette":["#182FB0","#FFF2DF","#FFB757"],"ratio":"9:16"},
+  {"id":"blackout","name":"Blackout","category":"bold","palette":["#050505","#F7F4EB","#CBF544"],"ratio":"9:16"},
+  {"id":"voltage","name":"Voltage","category":"tech","palette":["#080808","#F8F1E6","#FF6B28"],"ratio":"9:16"},
   { id: "cadran", name: "Cadran", category: "editorial", palette: ["#242724", "#FBF0DF", "#CDBFA3"], ratio: "9:16" },
   { id: "passage", name: "Passage", category: "editorial", palette: ["#171B1E", "#FFF0DD", "#DA6944"], ratio: "9:16" },
   { id: "reverie", name: "Rêverie", category: "editorial", palette: ["#23302D", "#F9EEDD", "#E6AF91"], ratio: "9:16" },

@@ -1,6 +1,7 @@
 // ⚠️ Fichier aussi bundlé par Remotion : imports RELATIFS uniquement.
 import type { Transition } from "../lib/projects/scenes";
 import type { EditorialTreatment } from "./editorial-motion";
+import type { GraphicMotionKind } from "./graphic-motion";
 
 /**
  * RECETTES DES TEMPLATES — source unique de vérité du rendu d'un template.
@@ -154,6 +155,8 @@ export type Camera = (typeof CAMERAS)[number];
 export type Energy = "calm" | "balanced" | "high";
 
 export type Recipe = {
+  graphicTreatment?: GraphicMotionKind;
+  editorialLayout?: "column" | "aspect" | "patina" | "interval" | "memento";
   photoTreatment?: EditorialTreatment;
   typography: Typography;
   titleAnimation: TitleAnimation;
@@ -207,6 +210,36 @@ export const DEFAULT_RECIPE: Recipe = {
 };
 
 export const RECIPES: Record<string, Recipe> = {
+  anvil: {
+    ...BASE, graphicTreatment: "anvil", background: "clean", typography: "condensed", titleAnimation: "mask", composition: "center", camera: "still", screens: "hero", accent: "solid", energy: "high", beatPulse: true, transitions: ["shutter", "cut"], effects: [],
+    direction: "An industrial press: heavy upper and lower clamp jaws approach the open center, stop short of the title and release on the beat. Warm paper, ink and vermilion. Massive centered 1 to 3 word headlines; preserve the central reading window.",
+  },
+  tessera: {
+    ...BASE, graphicTreatment: "tessera", background: "clean", typography: "sans", titleAnimation: "words", composition: "left", camera: "still", screens: "bento", accent: "solid", energy: "balanced", beatPulse: false, transitions: ["mosaic", "fold", "cut"], effects: [],
+    direction: "Four proportionally square lavender tiles with quarter-circle inlays settle into a clean two-by-two composition. Left-aligned headline below. Mosaic transitions disperse square tiles in a staggered rotation; no elongated diamonds or triangular spikes.",
+  },
+  suture: {
+    ...BASE, graphicTreatment: "suture", background: "clean", typography: "serif", titleAnimation: "letters", composition: "left", camera: "still", screens: "stack", logo: "soft", accent: "solid", energy: "balanced", beatPulse: false, transitions: ["fade", "curtain"], effects: [],
+    direction: "Black editorial poster with a vermilion thread drawing through oversized stitch points at the edges. Asymmetric ivory serif headline, wide black breathing room, a clear connection motif. No waveform or starfield.",
+  },
+  ratchet: {
+    ...BASE, graphicTreatment: "ratchet", background: "clean", typography: "condensed", titleAnimation: "mask", composition: "left", camera: "still", screens: "carousel", accent: "solid", energy: "high", beatPulse: true, transitions: ["rotary", "track", "cut"], effects: [],
+    direction: "A perfectly circular precision cog with an orange hub turns in eased discrete steps on warm ivory. Condensed flat headlines below in portrait, beside the cog in square and landscape. Use rotary shutter transitions and occasional express cuts. No stretched gear or extruded titles.",
+  },
+  interlock: {
+    ...BASE, graphicTreatment: "interlock", background: "clean", typography: "display", titleAnimation: "words", composition: "center", camera: "still", screens: "hero", accent: "solid", energy: "balanced", beatPulse: false, transitions: ["track", "shutter"], effects: [],
+    direction: "Cobalt poster with two thick open angular brackets sliding into alignment from opposing corners. Mint and ivory pieces lock without covering the central headline. Short 1 to 4 word phrases with a confident pause after each reveal.",
+  },
+  "column": { ...BASE, editorialLayout: "column", "photoTreatment":"newsprint","typography":"serif","titleAnimation":"mask","composition":"center","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["fold","fade"],"effects":[],"direction":"Asymmetric magazine cover: title in the top-left column, a large photograph below, a small monochrome inset top-right and a dividing rule. Preserve the editorial grid, do not center the title." },
+  "aspect": { ...BASE, editorialLayout: "aspect", "photoTreatment":"offset","typography":"serif","titleAnimation":"words","composition":"left","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["slide","fade"],"effects":[],"direction":"A diagonal-cut portrait above a bottom-left serif headline. The diagonal aperture expands slowly. Keep copy to 2 to 4 words; leave the upper portrait clear." },
+  "patina": { ...BASE, editorialLayout: "patina", "photoTreatment":"duotone","typography":"serif","titleAnimation":"fade","composition":"center","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["fade","fade"],"effects":[],"direction":"Duotone landscape in the upper 60 percent, solid bronze title block below and an outer vertical rule. Serif headlines sit low; no full-frame landscape behind centered text." },
+  "interval": { ...BASE, editorialLayout: "interval", "photoTreatment":"shutters","typography":"condensed","titleAnimation":"letters","composition":"center","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["shutter","fade"],"effects":[],"direction":"Three offset photographic fragments arranged as alternating steps. Condensed text left-aligned across the middle, clipped photo reveals synchronized with scene changes." },
+  "memento": { ...BASE, editorialLayout: "memento", "photoTreatment":"inlay","typography":"serif","titleAnimation":"mask","composition":"center","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["iris","fade"],"effects":[],"direction":"A tilted photographic print with an ivory border in the upper half, a large serif caption below and a fine footer rule. Printed keepsake rather than a full-frame portrait." },
+  "torque": { ...BASE, graphicTreatment: "torque", "background":"clean","typography":"condensed","titleAnimation":"flip","composition":"poster","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["curtain","cut"],"effects":[],"direction":"Tilted industrial poster: title and thick perimeter rails rotate -12 degrees. Slanted black notches slide against vermilion rails. Short 1 to 3 word headlines; no repeating wall of words." },
+  "cadence": { ...BASE, graphicTreatment: "cadence", "background":"clean","typography":"sans","titleAnimation":"words","composition":"center","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["cut","cut"],"effects":[],"direction":"Mechanical metronome: a pendulum swings above the headline while six weighted columns bounce independently along the lower edge. Lime and ink, measured beat-driven motion; no full-screen block grid." },
+  "vector-beat": { ...BASE, graphicTreatment: "vector-beat", "background":"clean","typography":"display","titleAnimation":"letters","composition":"left","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["track","cut"],"effects":[],"direction":"Directional arrow poster: outlined chevrons traverse the upper third, a broad amber return arrow crosses the lower edge and the headline sits in the open central lane. No diagonal stripe wallpaper." },
+  "blackout": { ...BASE, graphicTreatment: "blackout", "background":"clean","typography":"condensed","titleAnimation":"mask","composition":"center","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["shutter","cut"],"effects":[],"direction":"Black optical instrument: a partially occluded lime ellipse above a centered white title, two precision reticles below and one advancing baseline. Preserve empty black space; no pulse-edge frame." },
+  "voltage": { ...BASE, graphicTreatment: "voltage", "background":"clean","typography":"condensed","titleAnimation":"typewriter","composition":"poster","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["glitch","cut"],"effects":["vignette"],"direction":"Black signal poster: a live orange waveform above a left-aligned white headline, sparse orange brackets and a barcode-like lower register. No starfield or space imagery." },
   cadran: {
     ...BASE, photoTreatment: "gallery", typography: "serif", titleAnimation: "mask", composition: "center", camera: "still",
     background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["iris", "fade"], effects: [],

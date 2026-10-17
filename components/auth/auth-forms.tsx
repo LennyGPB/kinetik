@@ -193,11 +193,11 @@ export function RegisterForm() {
             showStrength
           />
         </Field>
-        <Button type="submit" size="lg" loading={pending} className="mt-2 w-full">
+        <Button type="submit" variant="purple" size="lg" loading={pending} className="mt-2 w-full">
           {a.registerCta}
           {!pending && <ArrowRight />}
         </Button>
-        <p className="text-center text-xs text-subtle"><RichText text={a.terms} /></p>
+        <p className="text-center text-[11px] leading-relaxed text-subtle"><RichText text={a.terms} /></p>
       </form>
       <p className="text-center text-sm text-muted">
         {a.hasAccount}{" "}

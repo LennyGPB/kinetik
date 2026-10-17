@@ -262,7 +262,7 @@ export function Editor({
         </Button>
       )}
       {project.status === "READY" && (
-        <Button disabled={restoring || Boolean(proposal)} onClick={() => setExportOpen(true)} size="md" aria-label={e.export} className="h-9 shrink-0 px-3 sm:px-5">
+        <Button variant="purple" disabled={restoring || Boolean(proposal)} onClick={() => setExportOpen(true)} size="md" aria-label={e.export} className="h-9 shrink-0 px-3 sm:px-5">
           <Download /> <span className="hidden sm:inline">{e.export}</span>
         </Button>
       )}

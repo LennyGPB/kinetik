@@ -414,7 +414,22 @@
     "passage": "A traveling urban photo ribbon, condensed titles and a coral edge.",
     "reverie": "A moving color window gently reveals a monochrome photograph.",
     "duplex": "Two offset photo panels, central headlines and magazine transitions.",
-    "terracotta": "Monochrome portraits, moving terracotta panels and cream mastheads."
+    "terracotta": "Monochrome portraits, moving terracotta panels and cream mastheads.",
+    "column": "Asymmetric magazine cover with an upper headline, large photograph and side inset.",
+    "aspect": "Diagonal-cut portrait and a serif signature at the bottom.",
+    "patina": "Duotone landscape above a bronze caption block.",
+    "interval": "Stepped photo fragments and a revealed condensed headline.",
+    "memento": "A tilted ivory-bordered photo print and oversized serif caption.",
+    "torque": "A tilted poster, notched rails and type under tension.",
+    "cadence": "A graphic metronome and weighted columns keeping time.",
+    "vector-beat": "Directional arrows, an amber return arrow and a central headline lane.",
+    "blackout": "Lime eclipse, fine reticles and black space around white type.",
+    "voltage": "Orange oscillogram, graphic register and typewriter headlines on black.",
+    "anvil": "Industrial press jaws, massive type and vermilion on warm paper.",
+    "tessera": "Square lavender tiles, rounded inlays and a staggered mosaic transition.",
+    "suture": "A coral thread connects stitch points on a black poster with ivory serif type.",
+    "ratchet": "A circular cog on ivory, orange accents and rotary shutter transitions.",
+    "interlock": "Angular pieces lock together on cobalt, mint and ivory."
   },
   "landing": {
     "hero": {
@@ -1045,7 +1060,9 @@
           "iris": "Iris",
           "prism": "Facets",
           "fold": "Folded page",
-          "track": "Express passage"
+          "track": "Express passage",
+          "mosaic": "Mosaic",
+          "rotary": "Rotary shutter"
         },
         "recommended": "Recommended by the template",
         "others": "Others",

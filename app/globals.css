@@ -372,6 +372,28 @@
   to { transform: translateX(-50%); }
 }
 
+@keyframes hero-title-vibration {
+  0%, 32%, 100% { transform: translate(0, 0) rotate(0); }
+  4%, 12% { transform: translate(-6px, 1.5px) rotate(-0.5deg); }
+  8%, 16% { transform: translate(6px, -1.5px) rotate(0.5deg); }
+  20% { transform: translate(-4px, 1px) rotate(-0.3deg); }
+  24% { transform: translate(4px, -1px) rotate(0.3deg); }
+  28% { transform: translate(-2px, 0) rotate(0); }
+}
+
+.hero-title-vibration {
+  animation: hero-title-vibration 1.8s linear 1.1s infinite;
+}
+
+@keyframes auth-wall-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, -50%, 0); }
+}
+
+.auth-template-track {
+  animation: auth-wall-scroll var(--auth-wall-duration, 100s) linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -381,6 +403,17 @@
   }
 
   /* Keep the explicitly requested platform ticker active. */
+  .hero-title-vibration {
+    animation-duration: 1.8s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  /* Explicitly requested scrolling artwork on the authentication pages. */
+  .auth-template-track {
+    animation-duration: var(--auth-wall-duration, 100s) !important;
+    animation-iteration-count: infinite !important;
+  }
+
   .platform-marquee-track {
     animation-duration: 20s !important;
     animation-iteration-count: infinite !important;

@@ -14,14 +14,14 @@ import { buttonVariants } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 
-export function SiteHeader() {
+export function SiteHeader({ homeLinks = false }: { homeLinks?: boolean }) {
   const t = useDictionary();
 
   const NAV = [
-  { href: "#styles", label: t.nav.styles },
-  { href: "#how", label: t.nav.how },
-  { href: "#features", label: t.nav.features },
-  { href: "#pricing", label: t.nav.pricing },
+  { href: `${homeLinks ? "/" : ""}#styles`, label: t.nav.styles },
+  { href: `${homeLinks ? "/" : ""}#how`, label: t.nav.how },
+  { href: `${homeLinks ? "/" : ""}#features`, label: t.nav.features },
+  { href: `${homeLinks ? "/" : ""}#pricing`, label: t.nav.pricing },
   { href: "/support", label: t.nav.support },
 ];
 
@@ -78,7 +78,7 @@ export function SiteHeader() {
           <Link href="/login" className={buttonVariants({ variant: "ghost", size: "sm", className: "hidden sm:inline-flex" })}>
             {t.common.login}
           </Link>
-          <Link href="/register" className={buttonVariants({ size: "sm", className: "hidden sm:inline-flex" })}>
+          <Link href="/register" className={buttonVariants({ variant: "purple", size: "sm", className: "hidden sm:inline-flex" })}>
             {t.common.getStarted}
           </Link>
           <button
@@ -145,7 +145,7 @@ export function SiteHeader() {
                 <Link href="/login" className={buttonVariants({ variant: "outline", size: "lg" })}>
                   {t.common.login}
                 </Link>
-                <Link href="/register" className={buttonVariants({ size: "lg" })}>
+                <Link href="/register" className={buttonVariants({ variant: "purple", size: "lg" })}>
                   {t.common.getStarted}
                 </Link>
               </motion.div>

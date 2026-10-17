@@ -327,10 +327,22 @@ La lecture est mise en pause à l’ouverture. Après validation, le bouton parc
 
 ## Editorial motion collection
 
-Dispatch, Maison, Oblique, Solstice and Archive extend the photographic Instagram art direction into motion. The catalogue now contains 59 motion templates. Each has its own recipe, transitions, typography and photo treatment. The backdrop uses imported project images; demo photos are injected only by the gallery demo. With no imported image the palette remains as a fallback. Existing text, logo, screen, overlay and timeline controls remain available.
+Dispatch, Maison, Oblique, Solstice and Archive extend the photographic Instagram art direction into motion. The catalogue now contains 74 motion templates. Each has its own recipe, transitions, typography and photo treatment. The backdrop uses imported project images; demo photos are injected only by the gallery demo. With no imported image the palette remains as a fallback. Existing text, logo, screen, overlay and timeline controls remain available.
 
 Run `node --import tsx scripts/review-editorial-motion.ts` to render the five templates at multiple frames and all three video ratios. As with other engine changes, deploy the Remotion site using `npm run video:deploy` before production Lambda exports use these recipes.
 
 Silhouette, Bulletin, Montage, Fervor and Horizon add five further photographic treatments: widening portrait aperture, split masthead, alternating photo strips, diffuse warm light and panoramic landscape framing. Preview only these styles with `node --import tsx scripts/review-editorial-motion.ts silhouette bulletin montage fervor horizon`. Imported images and the existing shared credit pricing are unchanged.
 
 Cadran, Passage, Reverie, Duplex and Terracotta complete the editorial collection with aligning gallery frames, a traveling photo ribbon, moving color windows, offset photo panels and a rust campaign panel. Each treatment uses project images and shared timeline controls.
+
+Column, Aspect, Patina, Interval and Memento extend the photographic editorial collection. Torque, Cadence, Vector Beat, Blackout and Voltage add kinetic graphic recipes; Blackout and Voltage have black backgrounds. Mobile scene settings expose fonts directly, place effect selection after presentation, put the chat action below duration and offer deletion through a red header trash icon.
+
+## Distinct motion revision
+
+The last ten motion styles now have dedicated art direction. Torque, Cadence, Vector Beat, Blackout and Voltage use `config/graphic-motion.ts` and the authored, frame-driven `graphic-backdrop.tsx`, rather than the type wall, block grid, stripes, pulse-edge or starfield backgrounds. Their text silhouettes are selected through `Recipe.graphicTreatment`. Column, Aspect, Patina, Interval and Memento have bespoke photo geometry and `Recipe.editorialLayout` text placement. Gallery thumbnails share the backdrop geometry. Existing style IDs, scene text controls, logo slots and export settings remain compatible.
+
+Run `node --import tsx scripts/review-editorial-motion.ts column aspect patina interval memento torque cadence vector-beat blackout voltage --endings` to compare intro and closing frames and render all three ratios.
+
+Anvil, Tessera, Suture, Ratchet and Interlock add five authored graphic styles: industrial press jaws, rotating mosaic, drawn thread, ticking cog and opposing interlocking brackets. Each uses a distinct backdrop and title placement.
+
+Tessera and Ratchet now use independent square SVG viewports sized with container units, keeping tiles square and the cog circular in every ratio. Ratchet uses ivory, ink and orange with flat masked titles. New `mosaic` and `rotary` transitions are registered in the scene schema, renderer, editor labels and AI guidance. Review with `node --import tsx scripts/review-editorial-motion.ts tessera ratchet --transitions`.

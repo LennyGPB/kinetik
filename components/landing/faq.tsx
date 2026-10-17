@@ -1,5 +1,7 @@
 "use client";
 
+import { purpleButtonStyle } from "@/components/ui/button";
+
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
@@ -43,7 +45,7 @@ export function Faq() {
                       transition={{ type: "spring", stiffness: 400, damping: 26 }}
                       className={cn(
                         "grid size-8 shrink-0 place-items-center rounded-full border transition-colors",
-                        isOpen ? "border-accent bg-accent text-white" : "border-line-strong text-muted group-hover:border-accent/50",
+                        isOpen ? purpleButtonStyle : "border-line-strong text-muted group-hover:border-accent/50",
                       )}
                     >
                       <Plus className="size-4" />

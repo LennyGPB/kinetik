@@ -1,5 +1,10 @@
 /** Shared photographic art direction for thumbnails and rendered motion. */
 export const EDITORIAL_MOTION = {
+  column: {"treatment":"newsprint","photo":"/post-demos/interior.jpg","headline":"A fresh perspective."},
+  aspect: {"treatment":"offset","photo":"/post-demos/portrait-4.jpg","headline":"Make your point of view."},
+  patina: {"treatment":"duotone","photo":"/post-demos/desert.jpg","headline":"Beauty in the details."},
+  interval: {"treatment":"shutters","photo":"/post-demos/city.jpg","headline":"BETWEEN TWO MOMENTS."},
+  memento: {"treatment":"inlay","photo":"/post-demos/portrait-2.jpg","headline":"A lasting impression."},
   cadran: { treatment: "gallery", photo: "/post-demos/portrait-2.jpg", headline: "Frame your vision." },
   passage: { treatment: "ribbon", photo: "/post-demos/city.jpg", headline: "KEEP MOVING FORWARD." },
   reverie: { treatment: "color-window", photo: "/post-demos/flowers.jpg", headline: "A little unexpected." },

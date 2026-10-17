@@ -1,5 +1,7 @@
 "use client";
 
+import { purpleButtonStyle } from "@/components/ui/button";
+
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
@@ -92,7 +94,8 @@ export function QuickSettings({
                 onChange={(value) => apply({ kind: "titleAnimation", value: scene ? value : value === recipe.titleAnimation ? null : value })}
               />
             </Row>
-            <li><details><summary className="cursor-pointer px-2 py-2 text-xs text-muted">{t.copy["1473558a0745"]}</summary><ul><Row
+            <FontDisclosure label={t.copy["1473558a0745"]}><Row
+              staticOnMobile
               icon={<WholeWord />}
               label={s.rowFonts}
               value={!current.fonts ? s.fontsTemplate : sameFonts(current.fonts, brandFonts) ? s.fontsBrandShort : `${current.fonts.heading} / ${current.fonts.body}`}
@@ -116,7 +119,7 @@ export function QuickSettings({
                 onChange={(fonts) => onApply({ kind: "fonts", value: fonts })}
               />
             </Row>
-            </ul></details></li>
+            </FontDisclosure>
           </Group>}
 
           {(current.hasLogo || logoOnly) && (
@@ -208,7 +211,7 @@ export function QuickSettings({
         aria-expanded={open ?? undefined}
         aria-controls={id}
         title={s.hint}
-        className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-accent px-3 py-3 text-left text-sm font-semibold text-accent-fg transition-[filter,box-shadow] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg max-lg:min-h-12 max-lg:gap-2 max-lg:rounded-2xl max-lg:border max-lg:border-line max-lg:bg-surface max-lg:py-0 max-lg:text-fg max-lg:hover:brightness-100"
+        className={cn(purpleButtonStyle, "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-[filter,box-shadow] max-lg:min-h-12 max-lg:gap-2 max-lg:rounded-2xl max-lg:border-line max-lg:bg-none max-lg:bg-surface max-lg:py-0 max-lg:text-fg max-lg:shadow-none max-lg:hover:border-line max-lg:hover:shadow-none")}
       >
         <SlidersHorizontal className="size-4 shrink-0 max-lg:text-accent-text" />
         <span className="min-w-0 flex-1">
@@ -275,6 +278,7 @@ function Row({
   disabled,
   onToggle,
   children,
+  staticOnMobile = false,
 }: {
   icon: ReactNode;
   label: string;
@@ -285,6 +289,7 @@ function Row({
   disabled?: boolean;
   onToggle: () => void;
   children: ReactNode;
+  staticOnMobile?: boolean;
 }) {
   const t = useDictionary();
 
@@ -299,7 +304,7 @@ function Row({
         disabled={disabled}
         aria-expanded={open}
         aria-controls={id}
-        className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-colors hover:bg-surface disabled:opacity-50", open && "bg-surface")}
+        className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-colors hover:bg-surface disabled:opacity-50", staticOnMobile && "max-lg:hidden", open && "bg-surface")}
       >
         <span className="text-muted [&_svg]:size-4">{icon}</span>
         <span className="shrink-0 font-medium whitespace-nowrap">{label}</span>
@@ -310,13 +315,19 @@ function Row({
         </span>
         <ChevronRight className={cn("size-4 shrink-0 text-subtle transition-transform", open && "rotate-90")} />
       </button>
-      {open && (
-        <div id={id} className="px-2 pt-1 pb-2">
+      {staticOnMobile && <p className="px-2 pt-4 pb-2 text-sm font-medium lg:hidden">{label}</p>}
+      {(open || staticOnMobile) && (
+        <div id={id} className={cn("px-2 pt-1 pb-2", staticOnMobile && !open && "lg:hidden")}>
           {children}
         </div>
       )}
     </li>
   );
+}
+
+function FontDisclosure({ label, children }: { label: string; children: ReactNode }) {
+  const { locale } = useDictionary();
+  return <li><div className="lg:hidden"><p className="px-2 pt-4 text-xs text-muted">{locale === "fr" ? "Polices de toute la vidéo" : "Fonts for the whole video"}</p><ul>{children}</ul></div><details className="hidden lg:block"><summary className="cursor-pointer px-2 py-2 text-xs text-muted">{label}</summary><ul>{children}</ul></details></li>;
 }
 
 function sameFonts(a: { heading: string; body: string } | null, b: { heading: string; body: string } | null) {
@@ -328,14 +339,18 @@ function sameFonts(a: { heading: string; body: string } | null, b: { heading: st
  * Chaque pastille est écrite dans sa police ; le choix reste ouvert pour régler les deux à la suite.
  */
 function FontBank({ value, disabled, onChange }: { value: { heading: BrandFont; body: BrandFont }; disabled?: boolean; onChange: (fonts: { heading: BrandFont; body: BrandFont }) => void }) {
-  const s = useDictionary().app.editor.settings;
+  const t = useDictionary();
+  const s = t.app.editor.settings;
+  const [expanded, setExpanded] = useState(false);
+  const id = useId();
   const href = googleFontsHref([...BRAND_FONTS]);
   const section = (target: "heading" | "body", label: string) => (
     <div className="flex flex-col gap-1.5">
       <span className="text-[11px] font-semibold tracking-[0.1em] text-subtle uppercase">{label}</span>
-      <div className="grid grid-cols-2 gap-1.5">
+      <div id={`${id}-${target}`} className="grid grid-cols-2 gap-1.5">
         {BRAND_FONTS.map((font) => {
           const selected = value[target] === font;
+          const featured = [...new Set([value[target], ...BRAND_FONTS])].slice(0, 4).includes(font);
           return (
             <button
               key={font}
@@ -346,6 +361,7 @@ function FontBank({ value, disabled, onChange }: { value: { heading: BrandFont; 
               style={{ fontFamily: `"${font}", sans-serif` }}
               className={cn(
                 "min-w-0 truncate rounded-lg border px-2.5 py-2 text-left text-[14px] transition-colors disabled:opacity-40",
+                !expanded && !featured && "hidden lg:block",
                 target === "heading" && "font-bold",
                 selected ? "border-accent bg-accent-soft text-fg" : "border-line text-muted hover:border-line-strong hover:text-fg",
               )}
@@ -362,6 +378,10 @@ function FontBank({ value, disabled, onChange }: { value: { heading: BrandFont; 
       {href && <link rel="stylesheet" href={href} />}
       {section("heading", s.fontsHeading)}
       {section("body", s.fontsBody)}
+      <button type="button" aria-expanded={expanded} aria-controls={`${id}-heading ${id}-body`} onClick={() => setExpanded((shown) => !shown)} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-3 text-sm font-medium text-accent-text hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-accent lg:hidden">
+        {t.locale === "fr" ? expanded ? "Voir moins de polices" : "Voir toutes les polices" : expanded ? "Show fewer fonts" : "View all fonts"}
+        <ChevronDown aria-hidden className={cn("size-4 transition-transform motion-reduce:transition-none", expanded && "rotate-180")} />
+      </button>
     </div>
   );
 }

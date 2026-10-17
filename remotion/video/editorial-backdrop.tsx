@@ -9,6 +9,36 @@ export function EditorialBackdrop({ treatment, palette, progress = 0, renderPhot
   const [bg, , accent] = palette;
   const full: CSSProperties = { position: "absolute", inset: 0, overflow: "hidden" };
   const photo = (extra: CSSProperties = {}) => renderPhoto({ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${1.04 + progress * 0.045}) translateX(${-progress * 1.2}%)`, ...extra });
+  if (["newsprint", "offset", "duotone", "shutters", "inlay"].includes(treatment)) {
+    return <div style={{ ...full, background: bg }}>
+      {treatment === "newsprint" && <>
+        <div style={{ ...full, inset: "43% 34% 5% 6%", transform: `translateY(${-progress * 2}%)` }}>{photo({ opacity: 0.7 })}</div>
+        <div style={{ ...full, inset: "8% 6% 65% 74%" }}>{photo({ opacity: 0.7, objectPosition: "75% center", filter: "grayscale(1)" })}</div>
+        <div style={{ position: "absolute", top: "8%", bottom: "5%", left: "70%", width: 1, background: accent, opacity: 0.5 }} />
+        <div style={{ position: "absolute", left: "6%", top: "39%", width: `${30 + progress * 32}%`, height: 2, background: accent }} />
+      </>}
+      {treatment === "offset" && <>
+        <div style={{ ...full, inset: "7% 7% 30% 19%", clipPath: `polygon(0 0,100% 0,100% 72%,${64 + progress * 12}% 100%,0 100%)` }}>{photo({ opacity: 0.65 })}</div>
+        <div style={{ ...full, background: `linear-gradient(0deg,${bg} 12%,transparent 68%)` }} />
+        <div style={{ position: "absolute", left: "6%", top: "10%", width: "8%", height: `${17 + progress * 8}%`, background: accent }} />
+      </>}
+      {treatment === "duotone" && <>
+        <div style={{ ...full, inset: "0 0 38% 0" }}>{photo({ opacity: 0.8, filter: "sepia(0.8) contrast(1.1)", transform: `scale(${1.08 + progress * 0.06})` })}</div>
+        <div style={{ ...full, inset: "0 0 38% 0", background: accent, mixBlendMode: "color", opacity: 0.6 }} />
+        <div style={{ position: "absolute", right: "6%", top: "8%", bottom: "8%", width: 2, background: accent }} />
+        <div style={{ position: "absolute", left: "7%", top: "65%", width: `${20 + progress * 30}%`, height: 1, background: accent }} />
+      </>}
+      {treatment === "shutters" && <>
+        {[0, 1, 2].map((i) => <div key={i} style={{ ...full, top: `${7 + i * 30}%`, bottom: `${67 - i * 30}%`, left: `${i === 1 ? 6 : 36}%`, right: `${i === 1 ? 36 : 6}%`, clipPath: `inset(0 ${Math.max(0, 35 - progress * 70)}% 0 0)` }}>{photo({ opacity: 0.55, filter: "grayscale(1)", objectPosition: `center ${20 + i * 30}%` })}</div>)}
+        <div style={{ ...full, background: `linear-gradient(90deg,${bg}aa,transparent)` }} />
+      </>}
+      {treatment === "inlay" && <>
+        <div style={{ ...full, inset: "9% 9% 46% 25%", background: "#EAE1CE", padding: "3% 3% 9%", transform: `rotate(${-8 + progress * 3}deg)` }}>{photo({ opacity: 1 })}</div>
+        <div style={{ ...full, inset: "15% 16% 42% 19%", border: `1px solid ${accent}`, opacity: 0.45, transform: "rotate(4deg)", zIndex: -1 }} />
+        <div style={{ position: "absolute", left: "7%", bottom: "8%", width: `${20 + progress * 45}%`, height: 1, background: accent }} />
+      </>}
+    </div>;
+  }
   if (["gallery", "ribbon", "color-window", "double-spread", "rust-panel"].includes(treatment)) {
     return <div style={{ ...full, background: bg }}>
       {treatment === "gallery" && <>

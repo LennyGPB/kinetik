@@ -2,12 +2,13 @@ import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import type { AspectRatio } from "@/config/formats";
 import { VIDEO_STYLES } from "@/config/styles";
 import { cn } from "@/lib/utils";
+import type { CSSProperties } from "react";
 
 const COLUMNS = 3;
 // Ratios alternés : un mur en quinconce plutôt qu'une grille régulière
 const RATIOS: AspectRatio[] = ["4:5", "9:16", "1:1"];
 // Vitesse et sens propres à chaque colonne (celle du milieu descend)
-const TRACKS = ["[animation-duration:70s]", "[animation-duration:85s] [animation-direction:reverse]", "[animation-duration:60s]"];
+const TRACKS = [{ duration: "100s", direction: "normal", delay: "-8s" }, { duration: "125s", direction: "reverse", delay: "-25s" }, { duration: "110s", direction: "normal", delay: "-14s" }] as const;
 
 /**
  * Mur décoratif de tous les templates (page de connexion) : 3 colonnes qui défilent verticalement en boucle.
@@ -18,8 +19,8 @@ export function TemplatesWall({ className }: { className?: string }) {
   return (
     <div className={cn("pointer-events-none grid grid-cols-3 gap-3 select-none", className)} aria-hidden>
       {columns.map((styles, c) => (
-        <div key={c} className="overflow-hidden">
-          <div className={cn("animate-scroll-up will-change-transform motion-reduce:animate-none", TRACKS[c])}>
+        <div key={c} className="min-h-0 overflow-hidden">
+          <div className="auth-template-track will-change-transform" style={{ "--auth-wall-duration": TRACKS[c].duration, animationDirection: TRACKS[c].direction, animationDelay: TRACKS[c].delay } as CSSProperties}>
             {[0, 1].map((copy) => (
               <div key={copy} className="flex flex-col gap-3 pb-3">
                 {styles.map((style, i) => (

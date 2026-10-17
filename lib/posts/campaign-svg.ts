@@ -94,6 +94,37 @@ export function campaignPostArt(doc: PostDocument, index: number, tools: Campaig
       return `${label(page.kicker, 70, 100, 17, fg)}${heading(page.title, "italic", 70, h * 0.13, 940, h * 0.18, page.titleSize * 1.2)}
         ${photo(image, imageRatio, 0, h * 0.38, w, h * 0.38)}
         <g transform="translate(${-shift},0)"><path d="M 0 ${h * 0.81} Q ${total * 0.5} ${h * 0.71} ${total} ${h * 0.81}" fill="none" stroke="${accent}" stroke-width="3"/></g>${body(70, h * 0.87, 900, h * 0.07)}`;
+    case "ligne":
+      return `${label(page.kicker, 65, 90, 17, fg)}${heading(page.title, "serif", 65, h * 0.13, 950, h * 0.19, page.titleSize * 1.2)}
+        ${photo(image, imageRatio, 0, h * 0.4, w, h * 0.31)}<g transform="translate(${-shift},0)"><path d="M 0 ${h * 0.76} H ${total}" stroke="${accent}" stroke-width="2"/></g>${body(65, h * 0.83, 890, h * 0.08)}`;
+    case "vellum":
+      return `${photo(image, imageRatio, 80, h * 0.07, 920, h * 0.64)}<rect x="125" y="${h * 0.57}" width="830" height="${h * 0.29}" fill="${bg}"/>
+        ${heading(page.title, "serif", 165, h * 0.61, 750, h * 0.13, page.titleSize * 1.1, fg, true)}${body(540, h * 0.79, 680, h * 0.05, true)}${label(page.kicker, 540, h * 0.92, 17, fg, true)}`;
+    case "edition":
+      return `${photo(image, imageRatio, 0, h * 0.42, w, h * 0.58, true)}<rect width="${w}" height="${h * 0.44}" fill="${bg}"/>
+        ${label(page.kicker, 60, 85, 17, fg)}${heading(page.title.toUpperCase(), "condensed", 60, h * 0.12, 960, h * 0.24, page.titleSize * 1.8)}<rect x="60" y="${h * 0.78}" width="780" height="${h * 0.13}" fill="${bg}"/>${body(90, h * 0.82, 720, h * 0.07)}`;
+    case "ascend":
+      return `${photo(image, imageRatio, 520, 0, 560, h)}<rect width="520" height="${h}" fill="${bg}"/>${label(page.kicker, 60, 100, 16, fg, false, 400)}
+        ${heading(page.title, "serif", 60, h * 0.25, 425, h * 0.34, page.titleSize * 1.15)}${body(60, h * 0.73, 400, h * 0.14)}<path d="M 60 ${h * 0.64} H 470" stroke="${accent}"/>`;
+    case "persona":
+      return `${fullPhoto()}${shade}${heading(page.title, "italic", 65, h * 0.53, 950, h * 0.23, page.titleSize * 1.35, fg, true)}
+        ${label(page.kicker, 540, 100, 18, fg, true)}${body(540, h * 0.85, 800, h * 0.07, true)}<rect x="35" y="35" width="1010" height="${h - 70}" fill="none" stroke="${accent}" opacity="0.6"/>`;
+    case "chroma":
+      return `<defs><filter id="${id}chroma"><feGaussianBlur stdDeviation="35"/></filter><linearGradient id="${id}chroma-wave" gradientUnits="userSpaceOnUse" x1="0" x2="${total}" y1="0" y2="${h}"><stop stop-color="${accent}" stop-opacity="0.8"/><stop offset="0.5" stop-color="${bg}"/><stop offset="1" stop-color="${accent}" stop-opacity="0.3"/></linearGradient></defs><g filter="url(#${id}chroma)" opacity="0.3">${fullPhoto()}</g><g transform="translate(${-shift},0)"><rect width="${total}" height="${h}" fill="url(#${id}chroma-wave)"/></g>
+        ${label(page.kicker, 65, 100, 17, fg)}${heading(page.title, "serif", 65, h * 0.35, 950, h * 0.27, page.titleSize * 1.3)}${body(65, h * 0.81, 800, h * 0.09)}`;
+    case "canopy":
+      return `${photo(image, imageRatio, 170, h * 0.08, 740, h * 0.55)}<rect x="170" y="${h * 0.08}" width="740" height="${h * 0.55}" fill="${bg}" opacity="0.15"/>
+        ${heading(page.title, "serif", 70, h * 0.65, 940, h * 0.17, page.titleSize * 1.1, fg, true)}${body(540, h * 0.88, 800, h * 0.06, true)}<path d="M 100 ${h * 0.1} V ${h * 0.6} M 980 ${h * 0.1} V ${h * 0.6}" stroke="${accent}"/>`;
+    case "sculpt":
+      return `${label(page.kicker, 60, 85, 17, fg)}${heading(page.title.toUpperCase(), "condensed", 60, h * 0.12, 960, h * 0.16, page.titleSize * 1.3)}
+        ${photo(image, imageRatio, 60, h * 0.34, 960, h * 0.45)}<rect x="85" y="${h * 0.36}" width="910" height="${h * 0.41}" fill="none" stroke="${fg}" opacity="0.45"/>${body(60, h * 0.85, 900, h * 0.08)}`;
+    case "tempo":
+      return `<defs><clipPath id="${id}diagonal"><path d="M 0 0 H ${w} V ${h * 0.56} L 0 ${h * 0.42} Z"/></clipPath></defs><g clip-path="url(#${id}diagonal)">${photo(image, imageRatio, 0, 0, w, h * 0.56)}</g>
+        ${label(page.kicker, 60, h * 0.6, 17, fg)}${heading(page.title.toUpperCase(), "condensed", 60, h * 0.65, 960, h * 0.17, page.titleSize * 1.7)}${body(60, h * 0.88, 900, h * 0.07)}`;
+    case "verso":
+      return `${photo(image, imageRatio, 0, h * 0.08, 450, h * 0.32)}${photo(image, imageRatio, 630, h * 0.6, 450, h * 0.32)}
+        <g transform="translate(${-shift},0)"><path d="M 0 ${h * 0.5} H ${total}" stroke="${accent}" opacity="0.5"/></g><rect x="55" y="${h * 0.37}" width="970" height="${h * 0.27}" fill="${bg}"/>
+        ${heading(page.title, "serif", 80, h * 0.39, 920, h * 0.16, page.titleSize * 1.15, fg, true)}${body(540, h * 0.59, 780, h * 0.04, true)}${label(page.kicker, 60, h * 0.87, 16, fg, false, 500)}`;
     default: return null;
   }
 }

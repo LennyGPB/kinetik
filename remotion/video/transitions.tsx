@@ -15,6 +15,7 @@ import { CollectionTransitionCover, isCollectionTransition } from "./collection-
 type Energy = VideoProps["graph"]["energy"];
 
 type TransitionContext = {
+  aspectRatio: number;
   /** Progression de l'entrée (0 → 1) */
   inP: number;
   /** Progression de la sortie (0 → 1) */
@@ -40,6 +41,8 @@ type TransitionBrick = {
 const fast = (energy: Energy) => (energy === "high" ? 8 : 14);
 
 const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
+  mosaic: { enter: () => 25, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent, aspectRatio }) => <CollectionTransitionCover kind="mosaic" progress={inP} color={accent} aspectRatio={aspectRatio} /> },
+  rotary: { enter: () => 22, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent }) => <CollectionTransitionCover kind="rotary" progress={inP} color={accent} /> },
   shutter: { enter: () => 12, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent }) => <CollectionTransitionCover kind="shutter" progress={inP} color={accent} /> },
   iris: { enter: () => 18, fadeOut: false, style: ({ inP }) => ({ opacity: 1, transform: `scale(${1.08 - inP * 0.08})` }), overlay: ({ inP, accent }) => <CollectionTransitionCover kind="iris" progress={inP} color={accent} /> },
   prism: { enter: () => 16, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent }) => <CollectionTransitionCover kind="prism" progress={inP} color={accent} /> },
@@ -172,7 +175,7 @@ export function SceneShell({ transition, next, energy, accent, nextAccent = acce
   const nextBrick = next ? TRANSITION_BRICKS[next] : undefined;
   const fadesOut = nextBrick ? nextBrick.fadeOut : true;
   const outP = fadesOut ? interpolate(frame, [durationInFrames - exit, durationInFrames], [0, 1], clamp) : 0;
-  const c: TransitionContext = { inP, outP, frame, durationInFrames, accent, unit };
+  const c: TransitionContext = { inP, outP, frame, durationInFrames, accent, unit, aspectRatio: width / height };
   const baseOpacity = transition === "cut" || transition === "curtain" || transition === "glass" || transition === "glitch" || transition === "cube" ? 1 : inP;
   // Face sortante du cube : charnière sur le bord gauche, la face pivote et s'assombrit
   const cubeOut = next === "cube" ? interpolate(frame, [durationInFrames - CUBE_OUT, durationInFrames], [0, 1], { ...clamp, easing: Easing.in(Easing.cubic) }) : 0;
@@ -193,7 +196,7 @@ export function SceneShell({ transition, next, energy, accent, nextAccent = acce
       {brick.overlay?.(c)}
       {next === "curtain" && <CurtainCover frame={frame} durationInFrames={durationInFrames} accent={nextAccent} />}
       {glassIn > 0 && <GlassPane left={100 - glassIn * 115} accent={nextAccent} />}
-      {next && isCollectionTransition(next) && <CollectionTransitionCover kind={next} progress={1 - interpolate(frame, [durationInFrames - 10, durationInFrames - 1], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) })} color={nextAccent} />}
+      {next && isCollectionTransition(next) && <CollectionTransitionCover kind={next} progress={1 - interpolate(frame, [durationInFrames - 10, durationInFrames - 1], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) })} color={nextAccent} aspectRatio={width / height} />}
     </AbsoluteFill>
   );
 }

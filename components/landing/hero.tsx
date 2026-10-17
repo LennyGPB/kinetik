@@ -13,11 +13,12 @@ import { Button } from "@/components/ui/button";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-function AnimatedWords({ text, className, delay = 0 }: { text: string; className?: string; delay?: number }) {
+function AnimatedWords({ text, className, delay = 0, vibrateLastWord = false }: { text: string; className?: string; delay?: number; vibrateLastWord?: boolean }) {
+  const words = text.split(" ");
   return (
     <span className={className}>
-      {text.split(" ").map((word, i) => (
-        <span key={i} className="inline-block overflow-hidden pb-[0.08em] align-bottom">
+      {words.map((word, i) => (
+        <span key={i} className={`inline-block overflow-hidden pb-[0.08em] align-bottom${vibrateLastWord && i === words.length - 1 ? " hero-title-vibration" : ""}`}>
           <motion.span
             className="inline-block"
             initial={{ y: "105%" }}
@@ -65,7 +66,7 @@ export function Hero() {
 
         <h1 className="mt-6 font-display text-[clamp(2.6rem,9vw,6.5rem)] leading-[0.95] font-extrabold tracking-[-0.045em]">
           <AnimatedWords text={t.landing.hero.titleLine1} className="block" delay={0.1} />
-          <AnimatedWords text={t.landing.hero.titleLine2} className="block whitespace-nowrap font-heading text-[clamp(1rem,5.5vw,4.25rem)] font-extralight text-accent-text" delay={0.25} />
+          <AnimatedWords text={t.landing.hero.titleLine2} className="block whitespace-nowrap font-heading text-[clamp(1rem,5.5vw,4.25rem)] font-extralight text-accent-text" delay={0.25} vibrateLastWord />
         </h1>
 
         <motion.p
@@ -95,9 +96,9 @@ export function Hero() {
               placeholder={t.landing.hero.promptPlaceholder}
               maxLength={40}
               autoComplete="off"
-              className="h-12 min-w-0 flex-1 bg-transparent px-4 text-base text-fg outline-none placeholder:text-subtle focus-visible:outline-none"
+              className="h-14 min-h-14 w-full min-w-0 shrink-0 bg-transparent px-4 text-base text-fg outline-none placeholder:text-subtle focus-visible:outline-none sm:h-12 sm:min-h-12 sm:w-auto sm:flex-1"
             />
-            <Button type="submit" size="lg" className="w-full sm:w-auto">
+            <Button type="submit" variant="purple" size="lg" className="w-full sm:w-auto">
               {t.landing.hero.promptCta}
               <ArrowRight />
             </Button>

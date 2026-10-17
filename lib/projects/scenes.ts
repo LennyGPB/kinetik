@@ -15,7 +15,7 @@ export type SceneKind = "intro" | "logo" | "feature" | "screens" | "cta" | "stat
  * - glass : une plaque de verre dépoli passe sur l'écran, floute la fin de la scène et dévoile la suivante
  * - cube : les deux scènes sont les faces d'un cube qui tourne en 3D
  */
-export const TRANSITIONS = ["fade", "slide", "zoom", "glitch", "cut", "curtain", "glass", "cube", "shutter", "iris", "prism", "fold", "track"] as const;
+export const TRANSITIONS = ["fade", "slide", "zoom", "glitch", "cut", "curtain", "glass", "cube", "shutter", "iris", "prism", "fold", "track", "mosaic", "rotary"] as const;
 export type Transition = (typeof TRANSITIONS)[number];
 /** Présentation des screens : dans un téléphone, une fenêtre de navigateur, ou tels quels. */
 export type ScreenFrame = "phone" | "browser" | "none";

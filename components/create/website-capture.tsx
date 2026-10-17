@@ -7,7 +7,7 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 
 import { Check, Monitor, Smartphone } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, purpleButtonStyle } from "@/components/ui/button";
 import type { UploadedFile } from "@/lib/storage/client";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +69,7 @@ export function WebsiteCapture({ value, onChange, initialUrl = "", disabled = fa
         <div className="flex shrink-0 gap-1" role="group" aria-label={t.copy["7d85db79eeff"]}>
           {(["desktop", "mobile"] as const).map((item) => {
             const Icon = item === "desktop" ? Monitor : Smartphone;
-            return <button key={item} type="button" disabled={pending || disabled} aria-pressed={format === item} onClick={() => setFormat(item)} className={cn("flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50", format === item ? "border-accent bg-accent text-accent-fg" : "border-line-strong bg-black text-white hover:border-accent")}><Icon className="size-3.5" aria-hidden />{item === "desktop" ? "Desktop" : "Mobile"}</button>;
+            return <button key={item} type="button" disabled={pending || disabled} aria-pressed={format === item} onClick={() => setFormat(item)} className={cn("flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50", format === item ? purpleButtonStyle : "border-line-strong bg-black text-white hover:border-accent")}><Icon className="size-3.5" aria-hidden />{item === "desktop" ? "Desktop" : "Mobile"}</button>;
           })}
         </div>
         <Button loading={pending} disabled={disabled || !url.trim() || !remaining} onClick={capture} className="cursor-pointer rounded-lg">{pending ? "Capture…" : "Capturer"}</Button>

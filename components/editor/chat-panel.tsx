@@ -1,5 +1,7 @@
 "use client";
 
+import { purpleButtonStyle } from "@/components/ui/button";
+
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
@@ -161,7 +163,7 @@ export function ChatPanel({
             type="submit"
             disabled={!draft.trim() || thinking || disabled}
             aria-label={e.send}
-            className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-gradient text-white transition-[opacity,transform] active:scale-90 disabled:opacity-40"
+            className={cn("grid size-9 shrink-0 place-items-center rounded-xl transition-[opacity,transform,box-shadow] active:scale-90 disabled:opacity-40", purpleButtonStyle)}
           >
             <ArrowUp className="size-4" />
           </button>

@@ -9,9 +9,9 @@ import { PHOTO_DEMOS } from "./photo-svg";
 import demoRatios from "./demo-ratios.json";
 import { isCampaignPost, CAMPAIGN_POST_TEMPLATES } from "@/config/post-campaigns";
 
-test("campaign collection adds twenty distinct editable photo templates", () => {
-  assert.equal(CAMPAIGN_POST_TEMPLATES.length, 20);
-  assert.equal(new Set(CAMPAIGN_POST_TEMPLATES.map((template) => template.layout)).size, 20);
+test("campaign collection adds thirty distinct editable photo templates", () => {
+  assert.equal(CAMPAIGN_POST_TEMPLATES.length, 30);
+  assert.equal(new Set(CAMPAIGN_POST_TEMPLATES.map((template) => template.layout)).size, 30);
   for (const template of CAMPAIGN_POST_TEMPLATES) {
     assert.ok(POST_TEMPLATES.some((item) => item.id === template.id));
     const doc = applyPostTemplate(demoPost("post-portrait"), template.id, "fr", 1);

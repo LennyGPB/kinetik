@@ -196,7 +196,7 @@ Transitions (chaque style n'en autorise que certaines) :
 - curtain : un panneau de couleur balaie l'écran pour changer de scène (marque un nouveau chapitre)
 - glass : une plaque de verre dépoli passe sur l'écran, floute la fin de la scène puis dévoile la suivante (élégant, premium)
 - cube : les deux scènes sont les faces d'un cube qui tourne en 3D (ludique, dynamique)
-- shutter : deux volets s’ouvrent, minimal et franc ; iris : ouverture circulaire et mise au point ; prism : lamelles diagonales colorées ; fold : feuille pliée ; track : bandes horizontales comme un passage express. Utiliser uniquement les transitions autorisées par le template.
+- shutter : deux volets s’ouvrent, minimal et franc ; iris : ouverture circulaire et mise au point ; prism : lamelles diagonales colorées ; fold : feuille pliée ; track : bandes horizontales comme un passage express ; mosaic : tuiles carrées qui se replient en cascade ; rotary : volet circulaire rotatif. Utiliser uniquement les transitions autorisées par le template.
 
 Réglages de mise en scène (null = choix du style, à garder tant que l'utilisateur ne demande rien) :
 - titleAnimation (toute la vidéo) : words = mot par mot · letters = lettre par lettre · fade = fondu doux · mask = un bloc de couleur dévoile le texte · glitch = effet glitch · typewriter = machine à écrire · flicker = néon qui s'allume · flip = impact 3D, chaque mot s'écrase à l'écran

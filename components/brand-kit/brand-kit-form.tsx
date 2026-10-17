@@ -106,7 +106,7 @@ export function BrandKitForm({ initial }: { initial: BrandKitData | null }) {
         </Section>
 
         <div className="flex justify-end">
-          <Button size="lg" onClick={save} loading={pending} className="w-full sm:w-auto">
+          <Button variant="purple" size="lg" onClick={save} loading={pending} className="w-full sm:w-auto">
             {!pending && <Save />} {t.common.save}
           </Button>
         </div>

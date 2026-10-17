@@ -10,7 +10,7 @@ import { useRef, useState, useTransition, type ReactNode } from "react";
 import { TemplatesGallery } from "@/components/templates/templates-gallery";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, purpleButtonStyle } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
@@ -762,7 +762,7 @@ function MusicStep({ state, set }: { state: WizardState; set: <K extends keyof W
                       aria-label={`${isPlaying ? c.music.pause : c.music.play} ${track.title}`}
                       className={cn(
                         "grid size-11 shrink-0 place-items-center rounded-xl transition-colors",
-                        isPlaying ? "bg-accent text-white" : "bg-surface-2 text-fg hover:bg-surface-3",
+                        isPlaying ? purpleButtonStyle : "bg-surface-2 text-fg hover:bg-surface-3",
                       )}
                     >
                       {isPlaying ? <Pause className="size-4" /> : <Play className="size-4 translate-x-px" />}

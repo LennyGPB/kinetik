@@ -14,6 +14,17 @@ const base: SceneGraph = {
   ],
 };
 
+test("mosaic and rotary transitions validate and change only their target scene", () => {
+  for (const transition of ["mosaic", "rotary"] as const) {
+    const edit = { kind: "transition", sceneId: "feature-b", transition } as const;
+    assert.ok(isTimelineEdit(edit));
+    const result = applyTimelineEdit(base, edit);
+    assert.equal(result.scenes[1].transition, transition);
+    assert.strictEqual(result.scenes[0], base.scenes[0]);
+    assert.strictEqual(result.scenes[2], base.scenes[2]);
+  }
+});
+
 test("text positions validate, persist independently and reset to the template", () => {
   const change = { kind: "textPosition", sceneId: "feature-b", target: "title", offset: { x: 0.2, y: -0.1 } } as const;
   assert.ok(isTimelineEdit(change));
