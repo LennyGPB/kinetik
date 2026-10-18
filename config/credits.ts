@@ -3,6 +3,8 @@
  * Règle produit : une modification coûte toujours moins qu'une génération.
  */
 export const CREDIT_COSTS = {
+  /** Import réussi d’un enregistrement, avant accès à l’aperçu. */
+  recordingImport: 10,
   /** Premier jet d'une vidéo */
   generation: 10,
   /** Une modification demandée via le chat */

@@ -56,7 +56,7 @@ export async function readLocalFile(key: string) {
 
 export const storage: StorageDriver = {
   async put(file, folder) {
-    if (!/^[a-zA-Z0-9_-]+\/(image|audio)$/.test(folder)) throw new Error("invalid_folder");
+    if (!/^[a-zA-Z0-9_-]+\/(image|audio|video)$/.test(folder)) throw new Error("invalid_folder");
     const userId = folder.split("/")[0];
     // The upload UI sends multiple screenshots in parallel: queue them instead of rejecting them.
     const deadline = Date.now() + 15_000;
@@ -110,6 +110,7 @@ export const MIME_TYPES: Record<string, string> = {
   wav: "audio/wav",
   aac: "audio/aac",
   m4a: "audio/mp4",
+  mp4: "video/mp4",
 };
 
 export function mimeFromKey(key: string) {

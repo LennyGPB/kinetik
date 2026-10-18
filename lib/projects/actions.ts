@@ -122,6 +122,7 @@ const types = t.app.credits.types;
       brief: data.brief || null,
       websiteUrl: data.websiteUrl || null,
       assets: { create: assets },
+      ...(data.deviceMockup && { versions: { create: { number: 1, label: "Device selection", scenes: { schema: 1, energy: "balanced", logoEmphasis: false, musicTrackId: null, bpm: 120, scenes: [], deviceMockup: data.deviceMockup } } } }),
     },
     select: { id: true },
   });
@@ -196,10 +197,13 @@ const types = t.app.credits.types;
     let graph: SceneGraph;
     try {
       graph = await generateVideo(await projectContext(projectId), user.id, user.plan);
+      const initialVersion = await db.projectVersion.findUnique({ where: { projectId_number: { projectId, number: 1 } } });
+      const initialGraph = initialVersion ? parseSceneGraph(initialVersion.scenes) : null;
+      if (initialGraph?.deviceMockup) graph.deviceMockup = initialGraph.deviceMockup;
       const brandFonts = await getBrandFonts(user.id);
       if (brandFonts) graph = { ...graph, fonts: brandFonts };
       await db.$transaction([
-        db.projectVersion.create({ data: { projectId, number: 1, scenes: graph, label: project.locale === "en" ? "First draft" : "Premier jet" } }),
+        db.projectVersion.upsert({ where: { projectId_number: { projectId, number: 1 } }, create: { projectId, number: 1, scenes: graph, label: project.locale === "en" ? "First draft" : "Premier jet" }, update: { scenes: graph, label: project.locale === "en" ? "First draft" : "Premier jet" } }),
         db.chatMessage.create({ data: { projectId, role: "ASSISTANT", content: welcomeMessage(project.appName, project.locale === "en" ? "en" : "fr") } }),
         db.project.update({ where: { id: projectId }, data: { status: "READY" } }),
       ]);
@@ -416,11 +420,13 @@ export async function applyEditorSetting(projectId: string, setting: QuickSettin
   const t = await getServerDictionary();
   if (!isQuickSetting(setting)) return { ok: false, error: "invalid" } as const;
   if (sceneId !== undefined && (typeof sceneId !== "string" || sceneId.length > 64)) return { ok: false, error: "invalid" } as const;
-  return derivedVersion(projectId, (graph) => {
+  const result = await derivedVersion(projectId, (graph) => {
     const scene = sceneId ? graph.scenes.find((item) => item.id === sceneId) : null;
     if (sceneId && (!scene || (setting.kind === "logoLayout" && scene.kind !== "logo") || (["screensLayout", "screenCount"].includes(setting.kind) && scene.kind !== "screens"))) return null;
-    return { graph: applyQuickSetting(graph, setting, sceneId), label: (scene && setting.kind !== "fonts" ? t.locale === "en" ? "Scene · " : "Scène · " : "") + quickSettingLabel(setting, t.locale) };
+    return { graph: applyQuickSetting(graph, setting, sceneId), label: (scene && setting.kind !== "fonts" && setting.kind !== "deviceMockup" && setting.kind !== "logoMotion" ? t.locale === "en" ? "Scene · " : "Scène · " : "") + quickSettingLabel(setting, t.locale) };
   });
+  if (result.ok && setting.kind === "logoMotion") await db.project.update({ where: { id: projectId }, data: { styleId: setting.value } });
+  return result;
 }
 
 /** Free manual layer editing, restricted to the project's existing media. */

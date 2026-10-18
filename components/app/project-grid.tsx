@@ -1,4 +1,5 @@
 "use client";
+import { CreateContentButton } from "@/components/create/create-content-button";
 
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
@@ -58,7 +59,10 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
   };
   const toast = useToast();
 
-  const visible = useMemo(() => projects.filter((p) => (filter === "all" || p.status === filter) && (kind === "all" || (p.kind ?? "MOTION") === kind)), [filter, kind, projects]);
+  const visible = useMemo(() => projects.filter((p) => {
+    const contentKind = p.kind === "POST" ? "POST" : p.videoType === "screen-recording" ? "RECORDING" : "MOTION";
+    return (filter === "all" || p.status === filter) && (kind === "all" || contentKind === kind);
+  }), [filter, kind, projects]);
 
   if (projects.length === 0) return <EmptyState />;
 
@@ -80,7 +84,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
         </div>
       </div>
 
-      <div className="mt-5 overflow-x-auto"><Segmented label={c.newContent} value={kind} onChange={setKind} options={[{ value: "all", label: c.all }, { value: "MOTION", label: c.motion }, { value: "POST", label: c.posts }]} /></div>
+      <div className="mt-5 overflow-x-auto"><Segmented label={c.newContent} value={kind} onChange={setKind} options={[{ value: "all", label: c.all }, { value: "MOTION", label: c.motion }, { value: "RECORDING", label: t.locale === "fr" ? "Démos d’écran" : "Screen demos" }, { value: "POST", label: c.posts }]} /></div>
       {visible.length === 0 && <p className="py-12 text-center text-sm text-muted">{c.empty}</p>}
 
       <motion.ul layout className="mt-5 grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -189,9 +193,9 @@ function EmptyState() {
       </div>
       <h2 className="mt-5 text-xl font-semibold">{d.emptyTitle}</h2>
       <p className="mx-auto mt-2 max-w-sm text-muted">{d.emptyText}</p>
-      <Link href="/create" className={buttonVariants({ size: "lg", className: "mt-7" })}>
+      <CreateContentButton className={buttonVariants({ size: "lg", className: "mt-7" })}>
         <Plus /> {d.emptyCta}
-      </Link>
+      </CreateContentButton>
     </div>
   );
 }

@@ -356,6 +356,9 @@
     "editorial": "Editorial"
   },
   "styles": {
+    "contact": "A darkroom contact sheet, frames revealed one by one and a red grease-pencil selection.",
+    "folio": "An arched photo window, offset rose outline and serif type, like a book page.",
+    "lens": "A circular aperture, a turning focus ring and centered type.",
     "broadsheet": "A newspaper-inspired grid, sliding vermilion rules and monochrome photography.",
     "crosscut": "Opposing diagonal photo windows and a tilted editorial headline.",
     "offprint": "An offset photographic proof with gold registration lines and a lower caption.",
@@ -432,7 +435,14 @@
     "tessera": "Square lavender tiles, rounded inlays and a staggered mosaic transition.",
     "suture": "A coral thread connects stitch points on a black poster with ivory serif type.",
     "ratchet": "A circular cog on ivory, orange accents and rotary shutter transitions.",
-    "interlock": "Angular pieces lock together on cobalt, mint and ivory."
+    "interlock": "Angular pieces lock together on cobalt, mint and ivory.",
+    "lucent": "Dark tiles, luminous lightning and slowly shifting orange, violet and gold reflections.",
+    "bold-orbit": "A minimal black orbit, fine dots and a luminous pink pulse.",
+    "gold-rush": "Red and black poster, extruded gold type and a perspective rotation.",
+    "echo-frame": "Central photography on white, oversized black words and zoom echoes resolving into focus.",
+    "logo-neon-stack": "Text-only extruded lettering with neon colors and perspective rotation.",
+    "logo-slice": "A word splits into sliding bands and comes back together.",
+    "logo-liquid": "Soft lettering deforms, then returns to its original shape."
   },
   "landing": {
     "hero": {

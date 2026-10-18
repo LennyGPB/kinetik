@@ -4,6 +4,7 @@
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
 import { Check } from "lucide-react";
+import { getLogoMotion } from "@/config/logo-motion";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "@/lib/i18n/navigation";
 import { useCallback, useState } from "react";
@@ -43,7 +44,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const startHover = (id: string) => setPlayingId(id);
   const endHover = () => setPlayingId(null);
-  const styles = filter === "all" ? VIDEO_STYLES : VIDEO_STYLES.filter((s) => s.category === filter);
+  const styles = VIDEO_STYLES.filter((style) => !getLogoMotion(style.id) && (filter === "all" || style.category === filter));
 
   return (
     <div>

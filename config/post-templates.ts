@@ -1,4 +1,5 @@
 import { CAMPAIGN_POST_TEMPLATES, isCampaignPost } from "./post-campaigns";
+import { EDITORIAL_POST_TEMPLATES, isEditorialPost } from "./post-editorial-collection";
 
 export const POST_FORMATS = {
   FEED: { width: 1080, height: 1350, ratio: "4:5" },
@@ -8,6 +9,7 @@ export const POST_FORMATS = {
 export type PostFormat = keyof typeof POST_FORMATS;
 
 export const POST_TEMPLATES = [
+  ...EDITORIAL_POST_TEMPLATES,
   ...CAMPAIGN_POST_TEMPLATES,
   { id: "post-portrait", name: "Portrait", linked: false, layout: "portrait", palette: ["#B9BDC6", "#FFFFFF", "#E8E8DF"], description: { fr: "Photo plein cadre, titre serif et cadre fin. Pour présenter une équipe ou une marque.", en: "Full-bleed photography, a serif headline and a fine frame. Introduce a team or brand." } },
   { id: "post-team-board", name: "Team Board", linked: false, layout: "team-board", palette: ["#262626", "#F4F3ED", "#CBCBC4"], description: { fr: "Six portraits en cartes, avec noms et rôles modifiables. Vos visages, votre équipe.", en: "Six portrait cards with editable names and roles. Your faces, your team." } },
@@ -31,7 +33,7 @@ export const RETIRED_POST_TEMPLATES = [
 export type PostTemplateId = (typeof POST_TEMPLATES)[number]["id"] | (typeof RETIRED_POST_TEMPLATES)[number]["id"];
 export function getPostTemplate(id: string) { return POST_TEMPLATES.find((template) => template.id === id) ?? RETIRED_POST_TEMPLATES.find((template) => template.id === id); }
 export function isActivePostTemplate(id: string) { return POST_TEMPLATES.some((template) => template.id === id); }
-export function isPhotoTemplate(id: string) { return isCampaignPost(id) || ["post-portrait", "post-team-board", "post-nomad", "post-district", "post-manifest"].includes(id); }
+export function isPhotoTemplate(id: string) { return isEditorialPost(id) || isCampaignPost(id) || ["post-portrait", "post-team-board", "post-nomad", "post-district", "post-manifest"].includes(id); }
 
 export const POST_FILTERS = ["all", "kinetik", "photo", "typography", "linked"] as const;
 export type PostFilter = (typeof POST_FILTERS)[number];
@@ -39,6 +41,6 @@ export function matchesPostFilter(template: (typeof POST_TEMPLATES)[number], fil
   if (filter === "all") return true;
   if (filter === "kinetik") return template.id.startsWith("post-kinetik-");
   if (filter === "linked") return template.linked;
-  const typographic = ["post-kinetik-guide", "post-chromatic", "post-chroma", "post-ember", "post-manifest", "post-swiss", "post-ledger", "post-outline", "post-continuum", "post-orbit", "post-paper"];
+  const typographic = ["post-marker", "post-openform", "post-cobalt-case", "post-northstar", "post-kinetik-guide", "post-chromatic", "post-chroma", "post-ember", "post-manifest", "post-swiss", "post-ledger", "post-outline", "post-continuum", "post-orbit", "post-paper"];
   return filter === "typography" ? typographic.includes(template.id) : isPhotoTemplate(template.id) && !typographic.includes(template.id);
 }

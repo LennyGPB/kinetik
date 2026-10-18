@@ -26,6 +26,16 @@ export type VideoStyle = {
 export const STYLE_CATEGORIES: StyleCategory[] = ["editorial", "tech", "minimal", "typo", "bold", "fun", "business"];
 
 const CATALOG: Omit<VideoStyle, "recipe">[] = [
+  { id: "logo-neon-stack", name: "Sculpt", category: "typo", palette: ["#101014", "#F4F1FF", "#9784D9"], ratio: "1:1" },
+  { id: "logo-slice", name: "Slice", category: "typo", palette: ["#FAFAF7", "#111111", "#111111"], ratio: "1:1" },
+  { id: "logo-liquid", name: "Elastic", category: "typo", palette: ["#111111", "#FAFAF7", "#FAFAF7"], ratio: "1:1" },
+  { id: "lucent", name: "Lucent", category: "tech", palette: ["#100D10", "#FF7B36", "#B341EB"], ratio: "9:16" },
+  { id: "bold-orbit", name: "Bold Orbit", category: "minimal", palette: ["#030303", "#F8F8F5", "#FF79C8"], ratio: "9:16" },
+  { id: "gold-rush", name: "Gold Rush", category: "bold", palette: ["#100707", "#F5C45B", "#EB170D"], ratio: "9:16" },
+  { id: "echo-frame", name: "Echo Frame", category: "editorial", palette: ["#F5F5F2", "#101110", "#BCBDB6"], ratio: "4:5" },
+  { id: "contact", name: "Contact", category: "editorial", palette: ["#161616", "#F4F1EA", "#E8452C"], ratio: "9:16" },
+  { id: "folio", name: "Folio", category: "editorial", palette: ["#EDE4D6", "#2E2230", "#A8586E"], ratio: "9:16" },
+  { id: "lens", name: "Lens", category: "editorial", palette: ["#0F1B24", "#EEF3F1", "#8FD6C8"], ratio: "9:16" },
   { id: "broadsheet", name: "Broadsheet", category: "editorial", palette: ["#EEE6D9", "#222421", "#BE4328"], ratio: "9:16" },
   { id: "crosscut", name: "Crosscut", category: "editorial", palette: ["#16282B", "#F5ECDD", "#E68662"], ratio: "9:16" },
   { id: "offprint", name: "Offprint", category: "editorial", palette: ["#202023", "#FFF1DE", "#E5B962"], ratio: "9:16" },

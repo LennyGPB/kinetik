@@ -1,7 +1,7 @@
 export const UPLOAD_PREFIX = "/api/uploads/";
 
 export function isStorageKey(key: string): boolean {
-  return /^[A-Za-z0-9_-]+\/(image|audio)\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9]{1,8})?$/.test(key);
+  return /^[A-Za-z0-9_-]+\/(image|audio|video)\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9]{1,8})?$/.test(key);
 }
 
 export function uploadKey(url: string): string | null {

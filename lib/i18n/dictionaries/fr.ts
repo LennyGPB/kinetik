@@ -72,6 +72,16 @@ export const fr = {
   },
 
   styles: {
+    "logo-neon-stack": "Texte seul en relief, couleurs néon et rotation en perspective.",
+    "logo-slice": "Un mot se découpe en bandes, glisse et se recompose.",
+    "logo-liquid": "Lettrage souple qui se déforme puis reprend sa forme.",
+    lucent: "Tuiles sombres, éclairs lumineux et reflets orange, violet et or qui évoluent en douceur.",
+    "bold-orbit": "Orbite minimaliste sur fond noir, points fins et impulsion rose lumineuse.",
+    "gold-rush": "Affiche rouge et noire, typographie dorée extrudée et rotation en perspective.",
+    "echo-frame": "Photo centrale sur fond blanc, grands mots noirs et zooms en écho qui se défloutent.",
+    contact: "Planche contact de labo, vignettes révélées une à une et sélection au crayon gras rouge.",
+    folio: "Fenêtre photo en arche, contour rose décalé et titre serif, comme une page de livre.",
+    lens: "Ouverture circulaire, bague de mise au point qui tourne et titre centré.",
     broadsheet: "Grille de journal, filets vermillon coulissants et photographie monochrome.",
     crosscut: "Deux ouvertures photo diagonales et une accroche éditoriale inclinée.",
     offprint: "Épreuve photo décalée, repères dorés et grand titre en bas de page.",

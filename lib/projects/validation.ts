@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEVICE_MOCKUP_IDS } from "../../config/device-mockups";
 import { DURATIONS, FORMAT_IDS } from "@/config/formats";
 import { VIDEO_STYLES } from "@/config/styles";
 import { VIDEO_TYPE_IDS } from "@/config/video-types";
@@ -27,6 +28,7 @@ export const createProjectSchema = z
     websiteUrl: z.union([z.literal(""), z.url({ protocol: /^https?$/ })]).optional(),
     logo: uploadedFileSchema.nullable(),
     screens: z.array(uploadedFileSchema).max(8),
+    deviceMockup: z.enum(DEVICE_MOCKUP_IDS).optional(),
     colors: z.array(hex).min(1).max(MAX_PROJECT_COLORS),
     // Template obligatoire pour l'instant (les références perso arrivent plus tard)
     styleId: z.string().max(40),

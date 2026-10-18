@@ -17,7 +17,7 @@ export function withSharedMedia(props: VideoProps, token: string): VideoProps {
   return {
     ...props, logoUrl: authorize(props.logoUrl), backgroundUrl: authorize(props.backgroundUrl ?? null), musicSrc: authorize(props.musicSrc),
     screenUrls: props.screenUrls.map((url) => authorize(url)!),
-    graph: { ...props.graph, scenes: props.graph.scenes.map((scene) => ({
+    graph: { ...props.graph, ...(props.graph.recording && { recording: { ...props.graph.recording, src: authorize(props.graph.recording.src)! } }), scenes: props.graph.scenes.map((scene) => ({
       ...scene,
       ...(scene.focuses && { focuses: scene.focuses.map((f) => ({ ...f, src: authorize(f.src)! })) }),
       ...(scene.focus && { focus: { ...scene.focus, src: authorize(scene.focus.src)! } }),

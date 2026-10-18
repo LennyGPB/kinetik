@@ -354,7 +354,7 @@ export async function translateVideoText(graph: SceneGraph, language: Translatio
   catch (error) { throw new AiUnavailableError("Traduction incomplète ou trop longue", { cause: error }); }
 }
 
-type Kept = Pick<SceneGraph, "fonts" | "audio" | "styleId" | "colors" | "logoLayout" | "logoBackground">;
+type Kept = Pick<SceneGraph, "fonts" | "audio" | "styleId" | "colors" | "logoLayout" | "logoBackground" | "deviceMockup">;
 
 /** Zone de mise en avant : numéro de screen → URL, coordonnées bornées dans l'image. */
 function toFocus(focus: z.infer<typeof SceneOutput>["focus"], screenUrls: string[]): ScreenFocus | undefined {
@@ -653,7 +653,7 @@ ${recent ? `Échanges précédents :\n${recent}\n\n` : ""}Demande de l'utilisate
   if (!output.relevant) return { graph: null, reply: output.reply.trim().slice(0, 300), label: "" };
   const { output: video, touched } = applyEditPatch(graph, output, ctx, scoped);
   // Pas de logoLayout / logoBackground dans `kept` : ils viennent de `video`, qui peut les remettre au choix du template
-  const graphOut = normalize(video, null, graph.musicTrackId, getRecipe(ctx.styleId), ctx, { fonts: graph.fonts, audio: graph.audio, styleId: graph.styleId, colors: graph.colors });
+  const graphOut = normalize(video, null, graph.musicTrackId, getRecipe(ctx.styleId), ctx, { fonts: graph.fonts, audio: graph.audio, styleId: graph.styleId, colors: graph.colors, deviceMockup: graph.deviceMockup });
   if (video.overlays === null) graphOut.overlays = graph.overlays;
   graphOut.scenes = graphOut.scenes.map((scene) => {
     const previous = graph.scenes.find((item) => item.id === scene.id && item.kind === scene.kind);

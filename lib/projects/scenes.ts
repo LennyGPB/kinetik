@@ -154,6 +154,8 @@ export type AudioSettings = {
 export const MAX_SCREEN_COUNT = 3;
 
 export type SceneGraph = {
+  deviceMockup?: import("../../config/device-mockups").DeviceMockup;
+  recording?: import("../recordings/model").ScreenRecording;
   language?: "fr" | "en";
   overlays?: VideoOverlay[];
   schema: 1;

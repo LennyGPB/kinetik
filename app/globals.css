@@ -402,6 +402,12 @@
     scroll-behavior: auto !important;
   }
 
+  /* Explicitly requested, brief feedback on the content chooser. */
+  .create-choice-motion,
+  .create-choice-motion * {
+    transition-duration: 300ms !important;
+  }
+
   /* Keep the explicitly requested platform ticker active. */
   .hero-title-vibration {
     animation-duration: 1.8s !important;

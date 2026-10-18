@@ -1,6 +1,8 @@
 "use client";
 
 import { purpleButtonStyle } from "@/components/ui/button";
+import { DeviceMockupPicker } from "@/components/media/device-mockup-picker";
+import { LOGO_MOTIONS, type LogoMotionId } from "@/config/logo-motion";
 
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
@@ -67,7 +69,7 @@ export function QuickSettings({
     && !(scene && sceneFocuses(scene).length)
     && !scene?.screens?.length;
   const title = scene ? t.copy["419a7e80c9a5"] : s.title;
-  const modified = [current.titleAnimation, current.fonts, current.screensLayout, current.screenCount, current.logoLayout, current.logoBackground !== null].filter(Boolean).length;
+  const modified = [current.titleAnimation, current.fonts, current.screensLayout, current.screenCount, current.logoLayout, current.logoBackground !== null, graph.deviceMockup && graph.deviceMockup !== "none"].filter(Boolean).length;
 
   const apply = (setting: QuickSetting) => {
     onApply(setting);
@@ -78,7 +80,8 @@ export function QuickSettings({
 
   const groups = (
     <>
-          {!logoOnly && <Group initiallyOpen={Boolean(scene)} key={sceneId ?? "global"} label={s.groupText}>
+          {recipe.logoMotion && <div className="px-2 pb-3"><label htmlFor={`${id}-logo-animation`} className="mb-2 block text-sm font-medium">{t.locale === "fr" ? "Animation du texte" : "Text animation"}</label><select id={`${id}-logo-animation`} disabled={disabled} value={recipe.logoMotion} onChange={(event) => apply({ kind: "logoMotion", value: event.target.value as LogoMotionId })} className="h-11 w-full rounded-xl border border-line-strong bg-surface px-3 text-sm focus-visible:outline-2 focus-visible:outline-accent">{LOGO_MOTIONS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>}
+          {!logoOnly && !recipe.logoMotion && <Group initiallyOpen={Boolean(scene)} key={sceneId ?? "global"} label={s.groupText}>
             <Row
               icon={<Type />}
               label={s.rowAnimation}
@@ -163,6 +166,7 @@ export function QuickSettings({
           {/* Réglages des mockups : seulement si la vidéo a des scènes de mockups */}
           {!logoOnly && current.hasScreens && (
             <Group initiallyOpen={Boolean(scene)} key={`screens-${sceneId}`} label={s.groupMockups}>
+              {videoProps.screenUrls.length > 0 && <li className="p-3"><DeviceMockupPicker value={graph.deviceMockup} disabled={disabled} onChange={(value) => apply({ kind: "deviceMockup", value })} screenSrc={videoProps.screenUrls[0]} /><p className="mt-2 text-xs text-muted">{t.locale === "fr" ? "Appliqué à tous les screens de la vidéo." : "Applied to every screen in the video."}</p></li>}
               <Row
                 icon={<LayoutPanelTop />}
                 label={s.rowLayout}

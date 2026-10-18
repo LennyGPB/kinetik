@@ -5,8 +5,10 @@ import { outlineText, escapeSvg as esc } from "./outline-text";
 import demoRatios from "./demo-ratios.json";
 import { CAMPAIGN_DEMO_PHOTOS } from "@/config/post-campaigns";
 import { campaignPostArt } from "./campaign-svg";
+import { editorialPostArt } from "./editorial-svg";
+import { EDITORIAL_DEMO_PHOTOS } from "@/config/post-editorial-collection";
 
-export const PHOTO_DEMOS: Record<string, string> = { ...CAMPAIGN_DEMO_PHOTOS, "post-portrait": "/post-demos/team.jpg", "post-nomad": "/post-demos/lake.jpg", "post-district": "/post-demos/city.jpg", "post-manifest": "/post-demos/city.jpg" };
+export const PHOTO_DEMOS: Record<string, string> = { ...EDITORIAL_DEMO_PHOTOS, ...CAMPAIGN_DEMO_PHOTOS, "post-portrait": "/post-demos/team.jpg", "post-nomad": "/post-demos/lake.jpg", "post-district": "/post-demos/city.jpg", "post-manifest": "/post-demos/city.jpg" };
 const safe = (url: string | null | undefined, demo: boolean) => url && (/^\/api\/uploads\/[A-Za-z0-9_/.\-]+(?:\?share=[A-Za-z0-9_-]{16,64})?$/.test(url) || /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(url) || demo && /^\/post-demos\/(workspace|interior|desert|flowers|detail|team|lake|city|portrait-[1-6])\.jpg$/.test(url)) ? esc(url) : "";
 const label = (value: string, x: number, y: number, size: number, fill: string, center = false, width = 900, height = size * 2.6) => {
   const wrap = (size: number) => { const max = Math.max(1, Math.floor(width / (size * 0.6))); const rows: string[] = []; let row = "";
@@ -37,7 +39,8 @@ export function photoPostSvg(doc: PostDocument, index: number, media: PostRender
     return `<svg x="${x}" y="${y}" width="${pw}" height="${ph}" viewBox="0 0 ${pw} ${ph}" overflow="hidden"><image href="${url}" x="${ix}" y="${iy}" width="${iw}" height="${ih}" preserveAspectRatio="none"${mono ? ` filter="url(#${id}mono)"` : ""}/></svg>`;
   };
   const title = (x: number, y: number, tw: number, th: number, face: "condensed" | "serif" | "italic", size = page.titleSize, color = fg, center = page.align === "center") => outlineText(page.title, face, x + page.offsetX, y + page.offsetY, tw, th, size, color, center);
-  let art = campaignPostArt(doc, index, { id, image, imageRatio, photo, label });
+  const tools = { id, image, imageRatio, photo, label };
+  let art = editorialPostArt(doc, index, tools) ?? campaignPostArt(doc, index, tools);
   if (art !== null) {
     // Authored campaign composition; common logo, CTA and export watermark follow below.
   } else if (template.layout === "portrait") {

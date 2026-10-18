@@ -1,5 +1,7 @@
 import { FramingColor, MovableText, PreviewTarget, useEndFade } from "./movable-text";
 import type { CSSProperties, ReactNode } from "react";
+import { DeviceShell } from "../../components/media/device-shell";
+import { deviceSpec } from "../../config/device-mockups";
 import { AbsoluteFill, Img, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { ScreensLayout } from "../../config/recipes";
 import { MAX_SCREEN_COUNT, sceneFocuses, sceneScreens, type Scene, type ScreenFocus, type ScreenFrame } from "../../lib/projects/scenes";
@@ -109,7 +111,7 @@ function Device({ props, device, src, box, index, style }: { props: VideoProps; 
   const content = Array.isArray(src) ? <CyclingScreens srcs={src} /> : src ? <ScreenImage src={src} /> : <MockScreen palette={props.palette} variant={index} width={box.w} />;
   return (
     <div style={{ width: box.w, height: box.h, flexShrink: 0, ...style }}>
-      {device === "phone" ? (
+      {deviceSpec(props.graph.deviceMockup) ? <DeviceShell inVideo model={props.graph.deviceMockup!}>{content}</DeviceShell> : device === "phone" ? (
         <PhoneFrame width={box.w}>{content}</PhoneFrame>
       ) : device === "browser" ? (
         <BrowserFrame width={box.w} host={props.websiteUrl}>
@@ -177,7 +179,7 @@ function RowLayout({ scene, props }: Props) {
   const gap = u * 4;
   const availW = width - u * 14;
   const availH = height - u * 30;
-  const box = stacked ? fit(availW, (availH - gap * (n - 1)) / n, RATIO[device]) : fit((availW - gap * (n - 1)) / n, availH, RATIO[device]);
+  const box = stacked ? fit(availW, (availH - gap * (n - 1)) / n, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device])) : fit((availW - gap * (n - 1)) / n, availH, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device]));
 
   return (
     <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", flexDirection: "column", gap: u * 4 }}>
@@ -216,7 +218,7 @@ function HeroLayout({ scene, props }: Props) {
   const push = interpolate(frame, [0, durationInFrames], [1, 1.06]);
   const screens = pickScreens(props, scene, 3);
   const device = screensDevice(props, screens);
-  const box = portrait ? fit(width * 0.78, height * 0.58, RATIO[device]) : fit(width * 0.46, height * 0.76, RATIO[device]);
+  const box = portrait ? fit(width * 0.78, height * 0.58, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device])) : fit(width * 0.46, height * 0.76, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device]));
   const deviceEl = (
     <Device
       props={props}
@@ -256,7 +258,7 @@ function SplitLayout({ scene, props }: Props) {
   const p = useEnter(2, props.graph.energy === "high");
   const screens = pickScreens(props, scene, 3);
   const device = screensDevice(props, screens);
-  const box = fit(width * (portrait ? 0.62 : 0.34), height * 0.78, RATIO[device]);
+  const box = fit(width * (portrait ? 0.62 : 0.34), height * 0.78, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device]));
   const word = `${scene.title.toUpperCase()} · `;
   const textColor = props.palette[2];
   const font = useTitleFont();
@@ -309,7 +311,7 @@ function FanLayout({ scene, props }: Props) {
   const portrait = useIsPortrait();
   // En vertical l'éventail doit tenir dans une largeur étroite
   const spread = portrait ? 0.48 : 0.62;
-  const box = fit((width - u * 14) / (n === 1 ? 1 : portrait ? 2.6 : 2.1), height - u * 32, RATIO[device]);
+  const box = fit((width - u * 14) / (n === 1 ? 1 : portrait ? 2.6 : 2.1), height - u * 32, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device]));
   const order = n === 3 ? [0, 2, 1] : screens.map((_, i) => i); // le central est dessiné en dernier (au-dessus)
 
   return (
@@ -356,7 +358,7 @@ function TiltLayout({ scene, props }: Props) {
   const device = screensDevice(props, screens);
   const n = screens.length;
   const gap = u * 5;
-  const box = fit((width * 0.72 - gap * (n - 1)) / n, height - u * 46, RATIO[device]);
+  const box = fit((width * 0.72 - gap * (n - 1)) / n, height - u * 46, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device]));
   const rotY = interpolate(frame, [0, durationInFrames], [-22, -10]);
   const glow = props.recipe.titleEffect === "glow" ? `drop-shadow(0 0 ${u * 2}px ${props.palette[1]})` : undefined;
 
@@ -393,7 +395,7 @@ function StackLayout({ scene, props }: Props) {
   const screens = pickScreens(props, scene, 3);
   const device = screensDevice(props, screens);
   const n = screens.length;
-  const box = fit(width * 0.5, height - u * 34, RATIO[device]);
+  const box = fit(width * 0.5, height - u * 34, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device]));
   const beatInfo = useBeat();
   // Un appareil tombe tous les 2 temps
   const beat = Math.max(8, Math.round(beatInfo.beatFrames * 2));
@@ -444,7 +446,7 @@ function CarouselLayout({ scene, props }: Props) {
   const base = chosen.length ? chosen : props.screenUrls.length ? props.screenUrls.slice(0, screenCount(scene, props.screenUrls.length)) : Array.from({ length: screenCount(scene, 4) }, () => null);
   const device = screensDevice(props, base);
   const track = Array.from({ length: Math.max(6, base.length) }, (_, i) => base[i % base.length]);
-  const box = fit(width / (portrait ? 1.9 : 3.6), height - u * 32, RATIO[device]);
+  const box = fit(width / (portrait ? 1.9 : 3.6), height - u * 32, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device]));
   const gap = u * 4;
   const step = box.w + gap;
   const span = step * track.length;
@@ -492,7 +494,7 @@ function BentoLayout({ scene, props }: Props) {
   const gap = u * 3;
   const areaW = width - u * (portrait ? 10 : 16);
   const areaH = height - u * (portrait ? 36 : 30);
-  const deviceBox = portrait ? fit(areaW, areaH * 0.6, RATIO[device]) : fit(areaW * 0.5, areaH, RATIO[device]);
+  const deviceBox = portrait ? fit(areaW, areaH * 0.6, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device])) : fit(areaW * 0.5, areaH, (deviceSpec(props.graph.deviceMockup)?.ratio ?? RATIO[device]));
   const tile: Box = portrait ? { w: (areaW - gap) / 2, h: Math.min(areaH * 0.3, ((areaW - gap) / 2) * 0.75) } : { w: Math.min(areaW * 0.36, deviceBox.h * 0.95), h: (deviceBox.h - gap) / 2 };
   const light = luminance(props.palette[0]) > 0.6;
   const card: CSSProperties = {

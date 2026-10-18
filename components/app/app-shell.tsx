@@ -1,4 +1,5 @@
 "use client";
+import { CreateContentButton } from "@/components/create/create-content-button";
 
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
@@ -53,9 +54,9 @@ export function AppShell({
         </div>
         <div className="px-2 pt-2"><LanguageToggle /></div>
 
-        <Link href="/create" className={buttonVariants({ variant: "purple", className: "mt-5 w-full rounded-xl" })}>
+        <CreateContentButton className={buttonVariants({ variant: "purple", className: "mt-5 w-full rounded-xl" })}>
           <Plus /> {t.app.nav.create}
-        </Link>
+        </CreateContentButton>
 
         <nav aria-label={t.a11y.appNav} className="mt-6">
           <ul className="flex flex-col gap-0.5">
@@ -115,13 +116,12 @@ export function AppShell({
             if (!item) {
               return (
                 <li key="create" className="flex justify-center">
-                  <Link
-                    href="/create"
+                  <CreateContentButton
                     aria-label={t.app.nav.create}
                     className={buttonVariants({ variant: "purple", size: "icon", className: "size-12 -translate-y-3 rounded-2xl [&_svg]:size-6" })}
                   >
                     <Plus className="size-6" />
-                  </Link>
+                  </CreateContentButton>
                 </li>
               );
             }

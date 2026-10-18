@@ -5,6 +5,8 @@ import type { Scene } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
 import { MovableText } from "./movable-text";
 import { AnimatedTitle } from "./titles";
+import { ReferenceTextLayout } from "./reference-layout";
+import { LogoMotionLayout } from "./logo-motion-layout";
 import { isLight, textColorOn, useBodyFont, useIsPortrait, useRecipe, useTitleFont, useTitleScale, useUnit } from "./theme";
 
 /**
@@ -79,6 +81,8 @@ function longestWordEm(text: string, font: CSSProperties) {
 export function TextLayout(layout: TextLayoutProps) {
   const recipe = useRecipe();
   const composition: Composition = recipe.composition;
+  if (recipe.logoMotion) return <LogoMotionLayout {...layout} />;
+  if (recipe.referenceMotion) return <ReferenceTextLayout {...layout} />;
   if (recipe.graphicTreatment || recipe.editorialLayout) return <AuthoredLayout {...layout} />;
   const Layout = LAYOUTS[composition];
   return <Layout {...layout} />;
@@ -92,6 +96,9 @@ function AuthoredLayout(l: TextLayoutProps) {
   const kind = recipe.graphicTreatment ?? recipe.editorialLayout;
   const color = textColorOn(l.props.palette[0]);
   const positions: Record<string, CSSProperties> = {
+    contact: { top: "64%", left: "7%", right: "10%" },
+    folio: { top: "66%", left: "8%", right: "8%" },
+    lens: { top: "61%", left: "9%", right: "9%", textAlign: "center" },
     broadsheet: { top: "17%", left: "6%", right: "35%" },
     crosscut: { top: "39%", left: "8%", right: "10%", transform: "rotate(-5deg)" },
     offprint: { top: "65%", left: "7%", right: "10%" },
@@ -111,7 +118,7 @@ function AuthoredLayout(l: TextLayoutProps) {
     interval: { top: "39%", left: "7%", right: "12%" },
     memento: { top: "63%", left: "7%", right: "8%" },
   };
-  const centered = ["blackout", "cadence", "anvil", "interlock"].includes(kind ?? "");
+  const centered = ["blackout", "cadence", "anvil", "interlock", "lens"].includes(kind ?? "");
   const graphicScale = width >= height && ["anvil", "blackout"].includes(kind ?? "") ? 1.1 : 1.35;
   const titleSize = Math.min(u * l.titleSize * (recipe.graphicTreatment ? graphicScale : 0.95), width * (["column", "broadsheet"].includes(kind ?? "") ? 0.55 : kind === "ratchet" && width >= height ? 0.4 : 0.76) / Math.max(1, ...l.scene.title.split(/\s+/).map((word) => word.length * 0.62)));
   return <AbsoluteFill style={{ color }}>

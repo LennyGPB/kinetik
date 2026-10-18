@@ -2,6 +2,8 @@
 import type { Transition } from "../lib/projects/scenes";
 import type { EditorialTreatment } from "./editorial-motion";
 import type { GraphicMotionKind } from "./graphic-motion";
+import type { ReferenceMotionKind } from "./reference-motion";
+import type { LogoMotionId } from "./logo-motion";
 
 /**
  * RECETTES DES TEMPLATES — source unique de vérité du rendu d'un template.
@@ -155,8 +157,10 @@ export type Camera = (typeof CAMERAS)[number];
 export type Energy = "calm" | "balanced" | "high";
 
 export type Recipe = {
+  logoMotion?: LogoMotionId;
+  referenceMotion?: ReferenceMotionKind;
   graphicTreatment?: GraphicMotionKind;
-  editorialLayout?: "column" | "aspect" | "patina" | "interval" | "memento" | "broadsheet" | "crosscut" | "offprint";
+  editorialLayout?: "column" | "aspect" | "patina" | "interval" | "memento" | "broadsheet" | "crosscut" | "offprint" | "contact" | "folio" | "lens";
   photoTreatment?: EditorialTreatment;
   typography: Typography;
   titleAnimation: TitleAnimation;
@@ -210,6 +214,13 @@ export const DEFAULT_RECIPE: Recipe = {
 };
 
 export const RECIPES: Record<string, Recipe> = {
+  "logo-neon-stack": { ...BASE, logoMotion: "logo-neon-stack", background: "clean", typography: "condensed", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["cut", "fade"], effects: [], direction: "Text-only logo motion. Preserve the supplied name exactly, no added claims or subtitles. Neon extruded lettering rotates with cyan and pink reflections." },
+  "logo-slice": { ...BASE, logoMotion: "logo-slice", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["cut", "fade"], effects: [], direction: "Text-only wordmark. Preserve the supplied text. Horizontal word slices slide apart and reassemble, with a black/white color inversion. No added images or copy." },
+  "logo-liquid": { ...BASE, logoMotion: "logo-liquid", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["cut", "fade"], effects: [], direction: "Text-only elastic wordmark. Preserve the supplied name. Soft letters squeeze, merge and return to sharp readable type. No added images or copy." },
+  lucent: { ...BASE, referenceMotion: "lucent", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "bento", logo: "soft", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["mosaic", "fade"], effects: [], direction: "Dark abstract design gallery. Four square softly rounded glass tiles with molten orange/violet lightning, eclipse and prism silhouettes. A clear short white headline above the artwork; no full-screen text over the tiles. Use 2 to 5 words per title, measured transitions and slow luminous movement." },
+  "bold-orbit": { ...BASE, referenceMotion: "bold-orbit", background: "clean", typography: "sans", titleAnimation: "words", composition: "center", camera: "still", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["fade", "iris", "cut"], effects: [], direction: "Minimal black motion poster. Six small outlined dots orbit an empty center, one glowing pink dot passes the light to the next. A short confident white sentence below, generous empty space. 2 to 4 words per title. No busy decoration, no invented event details." },
+  "gold-rush": { ...BASE, referenceMotion: "gold-rush", background: "clean", typography: "condensed", titleAnimation: "flip", composition: "center", camera: "still", screens: "tilt", logo: "pop", logoLayout: "orbit", accent: "solid", beatPulse: false, energy: "high", transitions: ["cut", "curtain", "zoom"], effects: [], direction: "Red/black event-poster energy with oversized extruded metallic gold lettering rotating slowly in perspective. Keep titles extremely short, 1 to 3 words, so the 3D lettering dominates. Warm gold highlights, black sides, red light rising from below. Never invent dates, artists, venue or statistics." },
+  "echo-frame": { ...BASE, referenceMotion: "echo-frame", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["zoom", "shutter", "cut"], effects: [], direction: "White photographic motion poster. Large black words at top and bottom frame a clean rectangular central photo. On each scene, the image stretches into a soft vertical echo, then resolves sharply. Titles of 2 to 4 words split into top/bottom phrases; keep the central photograph clear and do not add fictitious claims." },
   anvil: {
     ...BASE, graphicTreatment: "anvil", background: "clean", typography: "condensed", titleAnimation: "mask", composition: "center", camera: "still", screens: "hero", accent: "solid", energy: "high", beatPulse: true, transitions: ["shutter", "cut"], effects: [],
     direction: "An industrial press: heavy upper and lower clamp jaws approach the open center, stop short of the title and release on the beat. Warm paper, ink and vermilion. Massive centered 1 to 3 word headlines; preserve the central reading window.",
@@ -286,6 +297,18 @@ export const RECIPES: Record<string, Recipe> = {
   offprint: {
     ...BASE, editorialLayout: "offprint", photoTreatment: "caption-card", typography: "sans", titleAnimation: "mask", composition: "left", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["shutter", "track"], effects: [],
     direction: "An upper photographic proof with offset gold outline and a bottom-left caption card with oversized sans type. The photo mask opens horizontally while caption rules extend. Short direct titles; no centered agency masthead.",
+  },
+  contact: {
+    ...BASE, editorialLayout: "contact", photoTreatment: "contact-sheet", typography: "condensed", titleAnimation: "words", composition: "left", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "high", transitions: ["mosaic", "cut"], effects: [],
+    direction: "Darkroom contact sheet: six crops of the same imported photo appear frame by frame in the upper half, and a red grease-pencil circle selects one. Condensed 2 to 4 word titles below. No film-strip ribbon or full-frame photo.",
+  },
+  folio: {
+    ...BASE, editorialLayout: "folio", photoTreatment: "arch-window", typography: "serif", titleAnimation: "mask", composition: "left", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "calm", transitions: ["fold", "fade"], effects: [],
+    direction: "A book-page composition: an arched photographic window rises from its base, with an offset rose outline and a fine folio rule. Elegant serif titles in the lower third. Quiet pacing; no masthead or split screen.",
+  },
+  lens: {
+    ...BASE, editorialLayout: "lens", photoTreatment: "lens-ring", typography: "sans", titleAnimation: "mask", composition: "center", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["iris", "fade"], effects: [],
+    direction: "A circular photographic aperture framed by a graduated focus ring that turns while a mint arc completes. Centered sans titles below the lens. Short direct titles; no rectangular photo panels.",
   },
   montage: {
     ...BASE, photoTreatment: "strips", typography: "condensed", titleAnimation: "words", composition: "center", camera: "still",

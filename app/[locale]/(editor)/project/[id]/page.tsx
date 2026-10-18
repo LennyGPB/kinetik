@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Suspense } from "react";
 import { Editor } from "@/components/editor/editor";
+import { RecordingEditor } from "@/components/recordings/recording-editor";
 import { getPlan } from "@/config/pricing";
 import { requireUser } from "@/lib/auth/dal";
 import { getCreditBalance } from "@/lib/credits/ledger";
@@ -32,6 +33,7 @@ async function EditorLoader({ params }: { params: PageProps<"/[locale]/project/[
   if (!project) notFound();
 
   const { watermark, maxQuality } = getPlan(user.plan);
+  if (project.versions.at(-1)?.graph.recording) return <RecordingEditor key={project.id} project={project} initialBalance={balance.total} plan={{ watermark, maxQuality }} />;
   // `key` : remonte l'éditeur quand la génération se termine (nouvelles versions côté serveur)
   return <Editor key={`${project.id}-${project.status}-${project.versions.length}`} project={project} initialBalance={balance.total} plan={{ watermark, maxQuality }} />;
 }

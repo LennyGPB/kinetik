@@ -1,3 +1,4 @@
+import { CreateContentButton } from "@/components/create/create-content-button";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { ArrowRight, Coins, Plus } from "lucide-react";
 import type { Metadata } from "next";
@@ -59,9 +60,9 @@ async function DashboardContent() {
             <p className="mt-3 max-w-md text-muted">{d.hero.text}</p>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <Link href="/create" className={buttonVariants({ size: "lg", variant: "purple" })}>
+            <CreateContentButton className={buttonVariants({ size: "lg", variant: "purple" })}>
               <Plus /> {d.newVideo} · {CREDIT_COSTS.generation} {t.common.credits}
-            </Link>
+            </CreateContentButton>
             <Link href="/create?kind=post" className={buttonVariants({ size: "lg", variant: "outline" })}>
               <Plus /> {postCopy(t.locale).create} · {getPostGenerationCost(1)} {postCopy(t.locale).credits}
             </Link>

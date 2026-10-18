@@ -1,4 +1,7 @@
 import "server-only";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { getR2Store } from "@/lib/storage/r2";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { MUSIC_LIBRARY } from "@/config/music";
@@ -69,6 +72,8 @@ export async function inlineAssets(props: VideoProps, userId: string): Promise<V
     if (!url?.startsWith("/api/uploads/")) return url;
     if (!isOwnUpload(userId, url)) throw new Error("unauthorized_media");
     const key = url.slice("/api/uploads/".length);
+    const r2 = getR2Store();
+    if (key.includes("/video/") && r2) return getSignedUrl(r2.client, new GetObjectCommand({ Bucket: r2.bucket, Key: key }), { expiresIn: 3600 });
     const data = await storage.get(key);
     return data ? `data:${mimeFromKey(key)};base64,${data.toString("base64")}` : null;
   };
@@ -85,6 +90,7 @@ export async function inlineAssets(props: VideoProps, userId: string): Promise<V
     screenRatios: kept.map((s) => s.ratio),
     graph: {
       ...props.graph,
+      ...(props.graph.recording && { recording: { ...props.graph.recording, src: byUrl.get(props.graph.recording.src) ?? await inline(props.graph.recording.src) ?? "" } }),
       scenes: await Promise.all(props.graph.scenes.map(async (scene) => {
         const focus = scene.focus ? byUrl.get(scene.focus.src) ?? await inline(scene.focus.src) : null;
         const focuses = scene.focuses ? await Promise.all(scene.focuses.map(async (f) => { const src = byUrl.get(f.src) ?? await inline(f.src); return src ? { ...f, src } : null; })) : null;

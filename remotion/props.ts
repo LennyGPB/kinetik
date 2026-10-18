@@ -49,6 +49,7 @@ export function absolutize(props: VideoProps, baseUrl: string): VideoProps {
   const abs = (url: string | null) => (url && url.startsWith("/") ? new URL(url, baseUrl).toString() : url);
   return {
     ...props,
+    graph: { ...props.graph, ...(props.graph.recording && { recording: { ...props.graph.recording, src: abs(props.graph.recording.src)! } }) },
     logoUrl: abs(props.logoUrl),
     backgroundUrl: abs(props.backgroundUrl ?? null),
     musicSrc: abs(props.musicSrc),

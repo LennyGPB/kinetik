@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { deviceSpec } from "../../config/device-mockups";
 import type { ScreenFrame } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
 import { bodyFont, displayFont, luminance } from "./theme";
@@ -23,6 +24,9 @@ export function frameForRatio(ratio: number | null | undefined): ScreenFrame | n
  * Formats mélangés, inconnus ou pas de screen → réglage de la vidéo (graph.screenFrame).
  */
 export function screensDevice(props: VideoProps, srcs: (string | null)[]): ScreenFrame {
+  if (props.graph.deviceMockup === "none") return "none";
+  const model = deviceSpec(props.graph.deviceMockup);
+  if (model) return model.kind === "phone" ? "phone" : "browser";
   const configured = props.graph.screenFrame ?? "none";
   const frames = new Set(srcs.map((src) => (src ? frameForRatio(props.screenRatios?.[props.screenUrls.indexOf(src)]) : null)));
   if (frames.size !== 1) return configured;

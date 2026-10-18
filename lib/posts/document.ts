@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getPostTemplate, isPhotoTemplate } from "@/config/post-templates";
 import { campaignDemo } from "./campaign-demo";
+import { editorialDemo } from "./editorial-demo";
 
 export const PostPageSchema = z.object({
   id: z.string().min(1).max(80),
@@ -54,6 +55,8 @@ export function applyPostTemplate(document: PostDocument, templateId: string, lo
 }
 
 export function demoPost(templateId: string, locale: "fr" | "en" = "fr"): PostDocument {
+  const editorial = editorialDemo(templateId, locale);
+  if (editorial) return editorial;
   const campaign = campaignDemo(templateId, locale);
   if (campaign) return campaign;
   const template = getPostTemplate(templateId)!;

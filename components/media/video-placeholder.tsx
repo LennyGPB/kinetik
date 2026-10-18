@@ -10,6 +10,10 @@ import { getEditorialMotion } from "../../config/editorial-motion";
 import { EditorialBackdrop } from "../../remotion/video/editorial-backdrop";
 import { getGraphicMotion } from "../../config/graphic-motion";
 import { GraphicBackdrop } from "../../remotion/video/graphic-backdrop";
+import { getReferenceMotion, type ReferenceMotionKind } from "../../config/reference-motion";
+import { ReferenceMotionThumbnail } from "./reference-motion-thumbnail";
+import { getLogoMotion } from "../../config/logo-motion";
+import { LogoWordArt } from "../../remotion/video/logo-word";
 
 export type VideoPlaceholderProps = {
   /** Ratio du cadre. "fill" = prend la taille du parent. */
@@ -61,7 +65,9 @@ export function VideoPlaceholder({
   const [bg, main, accent] = palette;
   const editorial = getEditorialMotion(templateId);
   const graphic = getGraphicMotion(templateId);
-  const editorialTop = editorial ? ({ "press-column": "17%", "diagonal-diptych": "39%", "caption-card": "65%", newsprint: "14%", offset: "65%", duotone: "70%", shutters: "39%", inlay: "63%" } as Record<string, string>)[editorial.treatment] : undefined;
+  const reference = getReferenceMotion(templateId);
+  const logoMotion = getLogoMotion(templateId);
+  const editorialTop = editorial ? ({ "contact-sheet": "63%", "arch-window": "66%", "lens-ring": "60%", "press-column": "17%", "diagonal-diptych": "39%", "caption-card": "65%", newsprint: "14%", offset: "65%", duotone: "70%", shutters: "39%", inlay: "63%" } as Record<string, string>)[editorial.treatment] : undefined;
   const style = { "--vp-bg": bg, "--vp-main": main, "--vp-accent": accent } as CSSProperties;
 
   return (
@@ -78,12 +84,12 @@ export function VideoPlaceholder({
         <video className="absolute inset-0 size-full object-cover" src={src} poster={poster} autoPlay muted loop playsInline />
       ) : (
         <div className="absolute inset-0" aria-hidden>
-          {graphic ? <div className="absolute inset-0 [container-type:size]">
+          {logoMotion ? <LogoWordArt template={logoMotion.id} text={label ?? logoMotion.sample} colors={palette} time={1.5} /> : reference ? <ReferenceMotionThumbnail kind={templateId as ReferenceMotionKind} palette={palette} aspectRatio={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} bare={bare} /> : graphic ? <div className="absolute inset-0 [container-type:size]">
             <GraphicBackdrop kind={graphic.kind} palette={palette} time={0.8} aspectRatio={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} />
             {!bare && <div className={cn("absolute inset-x-[9%] leading-none", ["anvil", "tessera", "suture", "ratchet", "interlock", "blackout"].includes(graphic.kind) ? "text-[13cqmin]" : "text-[15cqmin]", graphic.kind === "suture" ? "font-serif" : ["cadence", "vector-beat", "tessera", "interlock"].includes(graphic.kind) ? "font-video font-semibold" : "font-condensed")} style={{ color: main, top: ({ anvil: "41%", tessera: "49%", suture: "40%", ratchet: "54%", interlock: "42%", torque: "34%", voltage: "38%" } as Record<string, string>)[graphic.kind] ?? "44%", transform: graphic.kind === "torque" ? "rotate(-12deg)" : undefined }}>{graphic.headline}</div>}
           </div> : editorial ? <div className="absolute inset-0 [container-type:size]">
             <EditorialBackdrop treatment={editorial.treatment} palette={palette} progress={0.5} renderPhoto={(photoStyle) => <div style={{ ...photoStyle, backgroundImage: `url(${editorial.photo})`, backgroundSize: "cover", backgroundPosition: "center" }} />} />
-            {!bare && <div className="absolute inset-x-[9%]" style={{ color: main, top: editorialTop ?? "50%", transform: editorialTop ? undefined : "translateY(-50%)", right: ["newsprint", "press-column"].includes(editorial.treatment) ? "33%" : "9%" }}><span className={cn("block leading-[1.05]", editorialTop ? "text-[12cqmin]" : "text-[17cqmin]", ["press-column", "diagonal-diptych", "shutters", "band", "split", "masthead", "strips", "ribbon", "rust-panel"].includes(editorial.treatment) ? "font-condensed uppercase" : editorial.treatment === "caption-card" ? "font-video font-semibold" : "font-serif")}>{editorial.headline}</span><span className="mt-[7cqmin] block text-[4cqmin]">{label}</span></div>}
+            {!bare && <div className="absolute inset-x-[9%]" style={{ color: main, top: editorialTop ?? "50%", transform: editorialTop ? undefined : "translateY(-50%)", textAlign: editorial.treatment === "lens-ring" ? "center" : undefined, right: ["newsprint", "press-column"].includes(editorial.treatment) ? "33%" : "9%" }}><span className={cn("block leading-[1.05]", editorialTop ? "text-[12cqmin]" : "text-[17cqmin]", ["contact-sheet", "press-column", "diagonal-diptych", "shutters", "band", "split", "masthead", "strips", "ribbon", "rust-panel"].includes(editorial.treatment) ? "font-condensed uppercase" : ["caption-card", "lens-ring"].includes(editorial.treatment) ? "font-video font-semibold" : "font-serif")}>{editorial.headline}</span><span className="mt-[7cqmin] block text-[4cqmin]">{label}</span></div>}
           </div> : isCollectionTemplate(templateId) ? <CollectionThumbnail id={templateId} label={label} bare={bare} /> : !bare && (templateId === "pulse" || templateId === "studio" || templateId === "luxe" || templateId === "corporate" || templateId === "playful" || templateId === "blueprint" || templateId === "ocean")
             ? <TemplateThumbnail templateId={templateId} label={label} />
             : !bare && templateId && hasCatalogThumbnail(templateId)

@@ -1,5 +1,7 @@
 import { FramingColor, PreviewTarget, useEndFade } from "./movable-text";
 import type { CSSProperties, ReactNode } from "react";
+import { DeviceShell } from "../../components/media/device-shell";
+import { deviceGeometry, deviceSpec, type DeviceMockup } from "../../config/device-mockups";
 import { AbsoluteFill, Easing, Img, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Scene, ScreenFocus } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
@@ -33,7 +35,7 @@ export function FocusLayout({ scene, props, focus, src, ratio, stepFrames, hold 
   const { fps, width, height } = useVideoConfig();
   const portrait = useIsPortrait();
   // Cadre adapté au format du screen (capture d'ordinateur → navigateur, mobile → téléphone)
-  const device = frameForRatio(props.screenRatios?.[props.screenUrls.indexOf(src)]) ?? props.graph.screenFrame ?? "none";
+  const device = props.graph.deviceMockup === "none" ? "none" : frameForRatio(props.screenRatios?.[props.screenUrls.indexOf(src)]) ?? props.graph.screenFrame ?? "none";
   const popout = focus.mode === "popout";
   const accent = props.palette[2];
 
@@ -41,7 +43,8 @@ export function FocusLayout({ scene, props, focus, src, ratio, stepFrames, hold 
   const titleSpace = u * 22;
   const areaW = portrait ? width * 0.72 : width * (popout || stepFrames ? 0.4 : 0.5);
   const areaH = (height - titleSpace) * (portrait && (popout || stepFrames) ? 0.56 : 0.86);
-  const box = deviceBox(device, ratio, areaW, areaH);
+  const model = deviceSpec(props.graph.deviceMockup);
+  const box = model ? deviceGeometry(model.id, areaW, areaH, ratio) : deviceBox(device, ratio, areaW, areaH);
 
   const enter = stepFrames ? 1 : spring({ frame: frame - T.enter, fps, config: { damping: 18, stiffness: 110 } });
   const mark = interpolate(frame, [T.mark, T.mark + 10], [0, 1], clamp);
@@ -83,8 +86,8 @@ export function FocusLayout({ scene, props, focus, src, ratio, stepFrames, hold 
           filter: popout ? `brightness(${1 - act * 0.35})` : undefined,
         }}
       >
-        <Frame device={device} width={box.w} host={props.websiteUrl}>
-          {content}
+        <Frame device={device} width={box.w} host={props.websiteUrl} model={props.graph.deviceMockup}>
+          {model ? <div style={{ position: "absolute", left: box.screen.x - model.screen.x * box.w, top: box.screen.y - model.screen.y * box.h, width: box.screen.w, height: box.screen.h }}>{content}</div> : content}
         </Frame>
       </div>
       {popout && act > 0 && <Cutout src={src} region={region} screen={box.screen} from={regionOnVideo} progress={act} animation={focus.animation} accent={accent} label={focus.label} props={props} />}
@@ -114,8 +117,9 @@ function deviceBox(device: VideoProps["graph"]["screenFrame"], ratio: number, ma
   return { w, h: screen.h + c.extraH, screen };
 }
 
-function Frame({ device, width, host, children }: { device: VideoProps["graph"]["screenFrame"]; width: number; host: string | null; children: ReactNode }) {
+function Frame({ device, width, host, children, model }: { device: VideoProps["graph"]["screenFrame"]; width: number; host: string | null; children: ReactNode; model?: DeviceMockup }) {
   const u = useUnit();
+  if (deviceSpec(model)) return <DeviceShell inVideo model={model!}>{children}</DeviceShell>;
   if (device === "phone") return <PhoneFrame width={width}>{children}</PhoneFrame>;
   if (device === "browser") return <BrowserFrame width={width} host={host}>{children}</BrowserFrame>;
   return (

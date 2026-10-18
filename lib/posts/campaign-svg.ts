@@ -3,7 +3,7 @@ import { isCampaignPost } from "@/config/post-campaigns";
 import type { PostDocument } from "./document";
 import { outlineText, type OutlineFace } from "./outline-text";
 
-type CampaignTools = {
+export type CampaignTools = {
   id: string; image: string; imageRatio: number;
   photo: (url: string, ratio: number, x: number, y: number, width: number, height: number, mono?: boolean) => string;
   label: (value: string, x: number, y: number, size: number, fill: string, center?: boolean, width?: number, height?: number) => string;
@@ -25,11 +25,23 @@ export function campaignPostArt(doc: PostDocument, index: number, tools: Campaig
   const footerNotes = `<path d="M 76 ${h - 190} H 1004" stroke="${fg}" opacity="0.4"/>${label(page.kicker, 76, h - 146, 17, fg, false, 400)}`;
 
   switch (template.layout) {
-    case "kinetik-launch":
-      return `<defs><radialGradient id="${id}violet"><stop stop-color="${accent}" stop-opacity="0.55"/><stop offset="1" stop-color="${bg}" stop-opacity="0"/></radialGradient></defs><ellipse cx="850" cy="${h * 0.54}" rx="800" ry="${h * 0.6}" fill="url(#${id}violet)"/>
-        ${label(page.kicker, 70, 100, 18, accent)}${heading(page.title, "wide", 70, h * 0.17, 940, h * 0.28, page.titleSize * 1.05)}
-        ${body(70, h * 0.49, 850, h * 0.08)}<rect x="70" y="${h * 0.6}" width="940" height="${h * 0.27}" rx="24" fill="${accent}"/>
-        ${photo(image, imageRatio, 80, h * 0.6 + 10, 920, h * 0.27 - 20)}<path d="M 70 ${h * 0.93} H 1010" stroke="${accent}" opacity="0.5"/>`;
+    case "kinetik-launch": {
+      const headlineSize = page.titleSize * 1.14;
+      const estimatedRows = beginning ? Math.ceil(beginning.length / Math.max(1, Math.floor(940 / (headlineSize * .66)))) : 0;
+      const emphasisTop = h * .18 + Math.min(h * .18, estimatedRows * headlineSize * 1.13) + 16;
+      return `<defs><radialGradient id="${id}violet"><stop stop-color="${accent}" stop-opacity=".45"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient><clipPath id="${id}product"><rect x="90" y="${h * .61 + 34}" width="900" height="${h * .27 - 54}" rx="8"/></clipPath></defs>
+        <ellipse cx="${index % 2 ? 220 : 900}" cy="${h * .76}" rx="780" ry="${h * .41}" fill="url(#${id}violet)"/>
+        ${label(page.kicker, 70, 116, 19, accent, false, 790)}<path d="M 70 150 H 1010" stroke="${fg}" opacity=".18"/>
+        ${heading(beginning, "wide", 70, h * .18, 940, h * .18, page.titleSize * 1.14)}
+        ${heading(ending, "wide", 70, emphasisTop, 940, h * .12, headlineSize, accent)}
+        ${body(70, h * .535, 860, h * .05)}
+        <rect x="70" y="${h * .61}" width="940" height="${h * .27}" rx="20" fill="${bg}" stroke="${accent}" stroke-width="2"/>
+        <path d="M 90 ${h * .61 + 27} H 990" stroke="${fg}" opacity=".15"/>
+        ${[0, 1, 2].map((i) => `<circle cx="${98 + i * 15}" cy="${h * .61 + 14}" r="3" fill="${i === 0 ? accent : fg}" opacity="${i === 0 ? 1 : .3}"/>`).join("")}
+        <g clip-path="url(#${id}product)">${photo(image, imageRatio, 90, h * .61 + 34, 900, h * .27 - 54)}</g>
+        <path d="M 360 ${h * .90} H 720" stroke="${accent}" stroke-width="3"/>
+        <path d="M 940 ${h - 122} h 55 m -20 -20 20 20 -20 20" stroke="${fg}" stroke-width="2" fill="none"/>`;
+    }
     case "kinetik-guide":
       return `<defs><linearGradient id="${id}purple" x2="1" y2="1"><stop stop-color="${accent}"/><stop offset="1" stop-color="${bg}"/></linearGradient></defs>
         <rect x="70" y="90" width="120" height="66" rx="33" fill="${accent}"/>${label(String(index + 1).padStart(2, "0"), 130, 134, 24, bg, true, 90)}${label(page.kicker, 230, 130, 17, fg, false, 770)}

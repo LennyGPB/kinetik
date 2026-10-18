@@ -2,10 +2,11 @@ import anton from "./fonts/anton.json";
 import instrument from "./fonts/instrument.json";
 import italic from "./fonts/instrument-italic.json";
 import wide from "./fonts/wide.json";
+import outfit from "./fonts/outfit.json";
 
 type OutlineFont = { units: number; glyphs: Record<string, { advance: number; path: string }> };
-export type OutlineFace = "condensed" | "serif" | "italic" | "wide";
-const fonts: Record<OutlineFace, OutlineFont> = { condensed: anton, serif: instrument, italic, wide };
+export type OutlineFace = "condensed" | "serif" | "italic" | "wide" | "rounded";
+const fonts: Record<OutlineFace, OutlineFont> = { condensed: anton, serif: instrument, italic, wide, rounded: outfit };
 export const escapeSvg = (value: string) => value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[char]!);
 
 /** Bundled font outlines make the browser preview and Sharp export independent of installed fonts. */

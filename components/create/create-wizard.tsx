@@ -1,15 +1,20 @@
 "use client";
+import { DeviceMockupPicker } from "@/components/media/device-mockup-picker";
+import { DeviceShell } from "@/components/media/device-shell";
+import { deviceGeometry, deviceSpec } from "@/config/device-mockups";
+import type { DeviceMockup } from "@/config/device-mockups";
 
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { ArrowLeft, ArrowRight, Coins, Pause, Play, Plus, Sparkles, VolumeX } from "lucide-react";
+import { ArrowRight, Coins, Pause, Play, Plus, Sparkles, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
-import { useRef, useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { TemplatesGallery } from "@/components/templates/templates-gallery";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { Badge } from "@/components/ui/badge";
+import { AnimatedNavigation } from "./animated-navigation";
 import { Button, purpleButtonStyle } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
@@ -35,6 +40,7 @@ const STEPS = ["app", "assets", "colors", "style", "videoType", "format", "music
 type StepId = (typeof STEPS)[number];
 
 type WizardState = {
+  deviceMockup: DeviceMockup;
   appName: string;
   videoType: VideoTypeId;
   websiteUrl: string;
@@ -87,6 +93,7 @@ export function CreateWizard({
   const onUploading = (key: string, busy: boolean) => setUploads((current) => ({ ...current, [key]: busy }));
   const [state, setState] = useState<WizardState>({
     appName: initialAppName ?? "",
+    deviceMockup: "none",
     videoType: "presentation",
     websiteUrl: "",
     logo: [],
@@ -134,6 +141,7 @@ export function CreateWizard({
         websiteUrl: state.websiteUrl,
         logo: state.logo[0] ?? null,
         screens: state.screens,
+        deviceMockup: state.screens.length > 0 ? state.deviceMockup : "none",
         colors: state.colors,
         styleId: state.styleId ?? "",
         videoType: state.videoType,
@@ -250,7 +258,9 @@ export function CreateWizard({
             <p className="text-sm font-medium text-muted">{t.app.editor.preview}</p>
             <motion.div layout className="mx-auto w-full overflow-hidden rounded-3xl border border-line-strong bg-surface p-1.5 shadow-[var(--shadow-lift)]" style={{ maxWidth: state.format === "PORTRAIT" ? 240 : "100%" }}>
               {/* Étape « Type de vidéo » : exemple animé du montage choisi à la place de l'aperçu statique */}
-              {step === "videoType" ? (
+              {step === "assets" && state.screens[0] ? (
+                <ScreenDevicePreview model={state.deviceMockup} screen={state.screens[0]} ratio={VIDEO_FORMATS[state.format].ratio} background={visual.palette[0]} />
+              ) : step === "videoType" ? (
                 <VideoTypePreview
                   className="rounded-[1.25rem]"
                   type={state.videoType}
@@ -295,65 +305,18 @@ export function CreateWizard({
   );
 }
 
-function AnimatedNavigation({ first, onValidate, onContinue, onBack, children, disabledNext, pending }: {
-  first: boolean;
-  onValidate: () => boolean;
-  onContinue: () => void;
-  onBack: () => void;
-  children: ReactNode;
-  disabledNext: boolean;
-  pending: boolean;
-}) {
-  const t = useDictionary();
-
-  const track = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLDivElement>(null);
-  const [travel, setTravel] = useState<number | null>(null);
-  const [trailWidth, setTrailWidth] = useState(0);
-  function move(backward: boolean) {
-    if (!backward && !onValidate()) return;
-    if (!backward && !first) return onContinue();
-    const distance = Math.max(0, (track.current?.clientWidth ?? 0) - (button.current?.offsetWidth ?? 0));
-    if (distance < 1) return backward ? onBack() : onContinue();
-    setTrailWidth(distance + (button.current?.offsetWidth ?? 0) / 2);
-    setTravel(backward ? -distance : distance);
-  }
-  return (
-    <div ref={track} className={cn("relative flex min-h-12 w-full items-center overflow-hidden rounded-full", first ? "justify-start" : "justify-end")}>
-      {!first && <Button variant="ghost" disabled={pending || travel !== null} onClick={() => move(true)} className={cn("absolute left-0 z-20 cursor-pointer", travel !== null && "invisible")}><ArrowLeft /> {t.common.back}</Button>}
-      {travel !== null && (
-        <motion.div
-          aria-hidden
-          className={cn("pointer-events-none absolute inset-y-1 rounded-full bg-gradient-to-r from-transparent via-accent/25 to-accent/70", travel < 0 ? "right-0 -scale-x-100" : "left-0")}
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: trailWidth, opacity: [0, 0.9, 0.1] }}
-          transition={{ duration: 0.38, ease: [0.45, 0, 0.15, 1] }}
-        >
-          <span className="absolute inset-x-3 top-1/2 h-px bg-gradient-to-r from-transparent to-white/60" />
-          <span className="absolute inset-x-8 top-1/3 h-px bg-gradient-to-r from-transparent to-accent-text/60" />
-          <span className="absolute inset-x-6 bottom-1/3 h-px bg-gradient-to-r from-transparent to-accent-text/40" />
-        </motion.div>
-      )}
-      <motion.div
-        ref={button}
-        className="relative z-10 inline-flex"
-        initial={false}
-        animate={{
-          x: travel ?? 0,
-          scaleX: travel === null ? 1 : [1, 1.06, 1],
-          y: travel === null ? 0 : [0, -1, 1, -1.5, 1.5, -1, 0],
-          rotate: travel === null ? 0 : [0, -0.5, 0.5, -0.7, 0.7, -0.3, 0],
-        }}
-        transition={{ duration: 0.38, ease: [0.45, 0, 0.15, 1], y: { duration: 0.38, ease: "linear" }, rotate: { duration: 0.38, ease: "linear" } }}
-        onAnimationComplete={() => { if (travel !== null) { if (travel < 0) onBack(); else onContinue(); } }}
-      >
-        <Button size="lg" loading={pending} disabled={travel !== null || disabledNext} className="cursor-pointer disabled:opacity-100" onClick={() => move(false)}>
-          {children}
-        </Button>
-      </motion.div>
-    </div>
-  );
+function ScreenDevicePreview({ model, screen, ratio, background }: { model: DeviceMockup; screen: UploadedFile; ratio: string; background: string }) {
+  const fr = useDictionary().locale === "fr";
+  const [w, h] = ratio.split(":").map(Number);
+  const stageHeight = 100 * h / w;
+  const spec = deviceSpec(model);
+  const box = spec ? deviceGeometry(model, 80, stageHeight * 0.8, (screen.width ?? 16) / (screen.height ?? 9)) : null;
+  const capture = <div style={{ width: "100%", height: "100%", backgroundImage: `url(${JSON.stringify(screen.url)})`, backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat" }} />;
+  return <div role="img" aria-label={`${fr ? "Aperçu du premier screen" : "First screen preview"}${spec ? ` · ${spec.name}` : ""}`} className="relative grid w-full place-items-center overflow-hidden rounded-[1.25rem]" style={{ aspectRatio: `${w} / ${h}`, background }}>
+    {spec && box ? <div style={{ width: `${box.w}%`, aspectRatio: spec.ratio }}><DeviceShell model={model}>{capture}</DeviceShell></div> : <div className="absolute inset-[10%]">{capture}</div>}
+  </div>;
 }
+
 
 function StepHeading({ title, help }: { title: string; help?: string }) {
   return (
@@ -445,6 +408,7 @@ function StepContent({
               </p>
               <WebsiteSuggestions analysis={analysis} retry={retryAnalysis} screens={state.screens} onScreens={(v) => set("screens", v)} />
               <UploadZone onBusyChange={(busy) => onUploading("screens", busy)} label={c.assets.screens} value={state.screens} onChange={(v) => set("screens", v)} multiple max={8} reorderable hint={c.assets.screensHint} />
+              {state.screens.length > 0 && <div className="mt-5 border-t border-line pt-6"><DeviceMockupPicker value={state.deviceMockup} onChange={(model) => set("deviceMockup", model)} screenSrc={state.screens[0].url} /></div>}
             </div>
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium">{c.assets.logo}</p>

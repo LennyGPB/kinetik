@@ -1,14 +1,64 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { EditorialTreatment } from "../../config/editorial-motion";
 
+const CONTACT_CROPS = ["20% 30%", "50% 40%", "80% 30%", "30% 70%", "60% 60%", "85% 80%"];
+const CONTACT_PICKS = [1, 3, 5, 0, 4, 2];
+const ARCH_POSITIONS = [
+  { left: "50%", shift: "-50%", outline: 1, height: "50%", crop: "center", dot: "50%" },
+  { left: "8%", shift: "0%", outline: 1, height: "40%", crop: "30% 50%", dot: "88%" },
+  { left: "92%", shift: "-100%", outline: -1, height: "40%", crop: "70% 50%", dot: "12%" },
+];
+const LENS_SHOTS = [
+  { top: 10, size: 42, zoom: 1, focus: "center", turn: 0, spin: 1, mono: false, halo: false },
+  { top: 15, size: 30, zoom: 1.8, focus: "50% 32%", turn: 120, spin: -1, mono: true, halo: true },
+  { top: 11, size: 38, zoom: 1.35, focus: "30% 60%", turn: 240, spin: 1, mono: true, halo: false },
+];
+
 /** Frame-driven motion; the same geometry is used by the static gallery preview. */
-export function EditorialBackdrop({ treatment, palette, progress = 0, renderPhoto }: {
+export function EditorialBackdrop({ treatment, palette, progress = 0, scene = 0, renderPhoto }: {
   treatment: EditorialTreatment; palette: [string, string, string]; progress?: number;
+  /** Active scene index; Contact, Folio and Lens recompose their geometry on each scene. */
+  scene?: number;
   renderPhoto: (style: CSSProperties) => ReactNode;
 }) {
   const [bg, , accent] = palette;
   const full: CSSProperties = { position: "absolute", inset: 0, overflow: "hidden" };
   const photo = (extra: CSSProperties = {}) => renderPhoto({ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${1.04 + progress * 0.045}) translateX(${-progress * 1.2}%)`, ...extra });
+  const pick = CONTACT_PICKS[scene % CONTACT_PICKS.length];
+  const arch = ARCH_POSITIONS[scene % ARCH_POSITIONS.length];
+  const lens = LENS_SHOTS[scene % LENS_SHOTS.length];
+  if (["contact-sheet", "arch-window", "lens-ring"].includes(treatment)) return <div style={{ ...full, background: bg }}>
+    {treatment === "contact-sheet" && <>
+      <div style={{ position: "absolute", inset: "9% 7% 42% 7%", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(2, 1fr)", gap: "1.6%" }}>
+        {CONTACT_CROPS.map((_, i) => {
+          const position = CONTACT_CROPS[(i + scene * 2) % CONTACT_CROPS.length];
+          return <div key={i} style={{ position: "relative", overflow: "hidden", outline: `1px solid ${accent}33`, opacity: Math.max(0, Math.min(1, progress * 25 - i)) }}>
+            {photo({ filter: i === pick ? "none" : "grayscale(1)", opacity: i === pick ? 0.95 : 0.6, objectPosition: position, transformOrigin: position, transform: `scale(${(scene % 2 ? 2.4 : 1.9) + progress * 0.08})` })}
+          </div>;
+        })}
+      </div>
+      <div style={{ position: "absolute", left: `${[5, 34, 63][pick % 3]}%`, top: `${pick < 3 ? 7 : 31.5}%`, width: "32%", height: "27%", border: `3px solid ${accent}`, borderRadius: "50%", transform: `rotate(${scene % 2 ? 5 : -6}deg) scale(${Math.max(0, Math.min(1, progress * 6 - 0.6))})` }}/>
+      <div style={{ position: "absolute", left: "7%", top: "60%", width: `${18 + progress * 40}%`, height: 2, background: accent }}/>
+    </>}
+    {treatment === "arch-window" && <>
+      <div style={{ position: "absolute", top: "10%", left: arch.left, height: arch.height, aspectRatio: "3 / 4", border: `1px solid ${accent}`, borderRadius: "999px 999px 0 0", transform: `translate(calc(${arch.shift} + ${arch.outline * (2 + progress * 1.5)}%), -2.5%)` }}/>
+      <div style={{ position: "absolute", top: "9%", left: arch.left, height: arch.height, aspectRatio: "3 / 4", overflow: "hidden", borderRadius: "999px 999px 0 0", transform: `translateX(${arch.shift})`, clipPath: scene % 2 ? `inset(0 ${Math.max(0, 100 - progress * 320)}% 0 0)` : `inset(${Math.max(0, 100 - progress * 320)}% 0 0)` }}>{photo({ opacity: 0.92, objectPosition: arch.crop })}</div>
+      {arch.outline < 0 || arch.left !== "50%" ? <div style={{ position: "absolute", top: "33%", left: arch.outline < 0 ? "8%" : "auto", right: arch.outline < 0 ? "auto" : "8%", height: "17%", aspectRatio: "3 / 4", borderRadius: "999px 999px 0 0", background: accent, opacity: 0.85, transform: `translateY(${(1 - Math.min(1, progress * 3)) * 8}%)` }}/> : null}
+      <div style={{ position: "absolute", left: "8%", right: "8%", top: "62.5%", height: 1, background: accent, opacity: 0.55, transform: `scaleX(${Math.min(1, 0.3 + progress * 2)})`, transformOrigin: arch.outline < 0 ? "right" : "left" }}/>
+      <div style={{ position: "absolute", left: arch.dot, bottom: "6%", height: "0.7%", aspectRatio: "1", borderRadius: "50%", background: accent, transform: "translateX(-50%)" }}/>
+    </>}
+    {treatment === "lens-ring" && <>
+      {lens.halo && <div style={{ position: "absolute", top: `${lens.top - 8}%`, left: "50%", height: `${lens.size + 16}%`, aspectRatio: "1", borderRadius: "50%", background: accent, opacity: 0.14, transform: `translateX(-50%) scale(${0.85 + Math.min(1, progress * 3) * 0.15})` }}/>}
+      <div style={{ position: "absolute", top: `${lens.top - 4}%`, left: "50%", height: `${lens.size + 8}%`, aspectRatio: "1", transform: `translateX(-50%) rotate(${lens.turn + lens.spin * progress * 40}deg)` }}>
+        <svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden>
+          {Array.from({ length: 60 }, (_, i) => <path key={i} d={`M 100 ${i % 5 ? 4 : 1} V 9`} stroke={accent} strokeWidth={i % 5 ? 0.6 : 1.2} opacity={i % 5 ? 0.45 : 0.9} transform={`rotate(${i * 6} 100 100)`}/>)}
+          <circle cx="100" cy="100" r="93" fill="none" stroke={accent} strokeWidth="1.6" pathLength="100" strokeDasharray={`${Math.min(100, progress * 160)} 100`} transform="rotate(-90 100 100)"/>
+        </svg>
+      </div>
+      <div style={{ position: "absolute", top: `${lens.top}%`, left: "50%", height: `${lens.size}%`, aspectRatio: "1", overflow: "hidden", borderRadius: "50%", transform: `translateX(-50%) scale(${0.9 + Math.min(1, progress * 4) * 0.1})` }}>{photo({ opacity: 0.9, filter: lens.mono ? "grayscale(1) contrast(1.1)" : "none", objectPosition: lens.focus, transformOrigin: lens.focus, transform: `scale(${lens.zoom + progress * 0.06})` })}</div>
+      <div style={{ position: "absolute", left: "50%", top: "57.5%", width: `${8 + progress * 14}%`, height: 2, background: accent, transform: "translateX(-50%)" }}/>
+    </>}
+  </div>;
   if (["press-column", "diagonal-diptych", "caption-card"].includes(treatment)) return <div style={{ ...full, background: bg }}>
     {treatment === "press-column" && <>
       <div style={{ ...full, inset: "10% 6% 48% 72%", clipPath: `inset(${Math.max(0, 100 - progress * 500)}% 0 0)` }}>{photo({ filter: "grayscale(1)", opacity: 0.85 })}</div>

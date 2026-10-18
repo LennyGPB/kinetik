@@ -1,13 +1,14 @@
+import { LiveCreditBalance } from "./live-credit-balance";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { Coins, Plus } from "lucide-react";
 import Link from "@/lib/i18n/navigation";
 import { buttonVariants } from "@/components/ui/button";
-import { CREDIT_COSTS, getPostGenerationCost } from "@/config/credits";
+import { getPostGenerationCost } from "@/config/credits";
 import { getPlan } from "@/config/pricing";
 import { requireUser } from "@/lib/auth/dal";
 import { getCreditBalance } from "@/lib/credits/ledger";
 import { format } from "@/lib/i18n";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { UserMenu } from "./user-menu";
 
 /** Bloc compte de la sidebar (solde + menu utilisateur). Rendu sous <Suspense>. */
@@ -18,7 +19,6 @@ export async function SidebarAccount() {
   const balance = await getCreditBalance(user.id);
   const plan = getPlan(user.plan);
   // Ce que représente le solde : nombre de vidéos générables (hors modifs et export)
-  const videos = Math.floor(balance.total / CREDIT_COSTS.generation);
   const posts = Math.floor(balance.total / getPostGenerationCost(1));
 
   return (
@@ -35,11 +35,11 @@ export async function SidebarAccount() {
           </span>
         </div>
         <p className="relative mt-2 flex items-baseline gap-1.5">
-          <span className="text-3xl font-semibold tracking-tight tabular-nums">{formatNumber(balance.total, t.locale)}</span>
+          <LiveCreditBalance initialBalance={balance.total} />
           <span className="text-sm text-muted">{t.common.credits}</span>
         </p>
         <p className={cn("relative mt-0.5 text-xs", posts ? "text-subtle" : "font-medium text-accent-text")}>
-          {t.locale === "fr" ? `Génération : ≈ ${videos} vidéos ou ${posts} posts` : `Generation: ≈ ${videos} videos or ${posts} posts`}
+          <LiveCreditBalance initialBalance={balance.total} variant="estimate" />
         </p>
         <Link href="/credits" className={cn(buttonVariants({ variant: posts ? "soft" : "primary", size: "sm" }), "relative mt-3 w-full")}>
           <Plus /> {t.app.buyCredits}
@@ -51,20 +51,12 @@ export async function SidebarAccount() {
 }
 
 export async function MobileAccount() {
-  const t = await getServerDictionary();
 
   const user = await requireUser();
   const balance = await getCreditBalance(user.id);
   return (
     <>
-      <Link
-        href="/credits"
-        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-sm font-semibold"
-        aria-label={`${formatNumber(balance.total, t.locale)} ${t.common.credits}`}
-      >
-        <Coins className="size-4 text-accent-text" />
-        {formatNumber(balance.total, t.locale)}
-      </Link>
+      <LiveCreditBalance initialBalance={balance.total} variant="mobile" />
       <UserMenu name={user.name} email={user.email} admin={user.role === "ADMIN"} compact />
     </>
   );

@@ -1,9 +1,11 @@
 import { SceneClock, TextSceneContext } from "./movable-text";
+import { ScreenRecordingVideo } from "./screen-recording";
 import { overlayApplies } from "../../lib/projects/overlays";
 import { OverlayLayer } from "./overlays";
 import { AbsoluteFill, Audio, Img, getRemotionEnvironment, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { EditorialBackdrop } from "./editorial-backdrop";
 import { GraphicBackdrop } from "./graphic-backdrop";
+import { ReferenceBackdrop } from "./reference-motion";
 import { beatGrid } from "../../lib/projects/scenes";
 import { musicalClock } from "../../lib/audio/beat";
 import { sceneSettings } from "../../lib/projects/scene-settings";
@@ -22,6 +24,10 @@ import { SceneShell, sceneTimeline } from "./transitions";
  * Le rendu d'un template dépend de `props.recipe` (config/recipes.ts), sauf réglages choisis par l'utilisateur dans le SceneGraph.
  */
 export function KinetikVideo(input: VideoProps) {
+  return input.graph.recording ? <ScreenRecordingVideo props={input} /> : <MotionVideo input={input} />;
+}
+
+function MotionVideo({ input }: { input: VideoProps }) {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const u = useUnit();
@@ -43,7 +49,7 @@ export function KinetikVideo(input: VideoProps) {
     <RecipeContext value={recipe}>
       <BeatContext value={{ bpm: graph.bpm, phaseFrames }}>
         <AbsoluteFill style={{ backgroundColor: palette[0], overflow: "hidden" }}>
-          {recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={activePalette} beatPosition={musicalClock(frame, fps, graph.bpm, phaseFrames).position} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={activePalette}
+          {recipe.referenceMotion ? <ReferenceBackdrop kind={recipe.referenceMotion} palette={palette} time={(frame - (activeScene?.from ?? 0)) / fps} aspectRatio={width / height} renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} /> : recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={activePalette} beatPosition={musicalClock(frame, fps, graph.bpm, phaseFrames).position} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={activePalette} scene={activeIndex}
             progress={activeScene ? Math.max(0, Math.min(1, (frame - activeScene.from) / activeScene.duration)) : 0}
             renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} />
             : <Background kind={recipe.background} palette={activePalette} energy={graph.energy} />}
@@ -55,7 +61,7 @@ export function KinetikVideo(input: VideoProps) {
             const sceneRecipe = sceneGraph.titleAnimation ? { ...recipe, titleAnimation: sceneGraph.titleAnimation } : recipe;
             const localPalette = scenePalette(palette, colors, i);
             const nextPalette = scenePalette(palette, colors, i + 1);
-            const sceneProps = { ...props, palette: localPalette, recipe: sceneRecipe, graph: sceneGraph };
+            const sceneProps = { ...props, palette: recipe.logoMotion ? palette : localPalette, recipe: sceneRecipe, graph: sceneGraph };
             return (
               <Sequence key={scene.id} from={from} durationInFrames={duration} name={`${scene.kind} · ${scene.title}`}>
                 {/* Dans une Sequence, les images repartent de 0 : on décale la grille des temps d'autant */}

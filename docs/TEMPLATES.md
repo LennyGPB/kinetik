@@ -357,3 +357,7 @@ Tessera and Ratchet now use independent square SVG viewports sized with containe
 - Blackout / « Less Noise », Anvil, Tessera et Cadence utilisent des motifs
   redessinés ; les symboles et modules carrés gardent leurs proportions dans tous
   les formats. Les incrustations de Tessera restent découpées dans chaque tuile.
+- Motion : Contact (planche contact, sélection au crayon gras), Folio (fenêtre
+  en arche, page de livre) et Lens (ouverture circulaire, bague de mise au
+  point), avec images remplaçables. Revue :
+  `node --import tsx scripts/review-editorial-motion.ts contact folio lens --transitions`.
