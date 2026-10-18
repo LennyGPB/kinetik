@@ -96,7 +96,7 @@ export function CreateWizard({
     format: "LANDSCAPE",
     duration: 15,
     musicMode: "library",
-    musicTrackId: MUSIC_LIBRARY[0].id,
+    musicTrackId: MUSIC_LIBRARY[0]?.id ?? null,
     music: [],
     brief: "",
   });
@@ -727,10 +727,20 @@ function MusicStep({ state, set }: { state: WizardState; set: <K extends keyof W
   const c = t.app.create;
 
   const [playing, setPlaying] = useState<string | null>(null);
+  const toast = useToast();
 
   return (
     <Panel>
       <StepHeading title={c.music.heading} help={c.music.help} />
+      {state.musicMode === "library" && playing && (
+        <audio
+          key={playing}
+          src={getTrack(playing)?.src}
+          autoPlay
+          onEnded={() => setPlaying(null)}
+          onError={() => { setPlaying(null); toast({ title: t.common.error, tone: "error" }); }}
+        />
+      )}
       <Segmented
         label={c.music.heading}
         value={state.musicMode}
@@ -755,7 +765,6 @@ function MusicStep({ state, set }: { state: WizardState; set: <K extends keyof W
                       selected ? "border-accent shadow-[var(--shadow-glow)]" : "border-line hover:border-line-strong",
                     )}
                   >
-                    {/* Lecture simulée — branchée sur l'audio réel plus tard */}
                     <button
                       type="button"
                       onClick={() => setPlaying(isPlaying ? null : track.id)}
@@ -771,7 +780,7 @@ function MusicStep({ state, set }: { state: WizardState; set: <K extends keyof W
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold">{track.title}</span>
                         <span className="block truncate text-xs text-muted">
-                          {localizeText(track.mood, t)} · {format(c.music.bpm, { bpm: track.bpm })}
+                          {format(c.music.bpm, { bpm: track.bpm })}
                         </span>
                       </span>
                       <span className="hidden h-6 items-center gap-[3px] sm:flex" aria-hidden>

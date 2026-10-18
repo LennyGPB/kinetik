@@ -15,7 +15,7 @@ export function withSharedMedia(props: VideoProps, token: string): VideoProps {
   if (!isShareToken(token)) throw new Error("invalid_share_token");
   const authorize = (url: string | null) => url && uploadKey(url) ? `${url}?share=${encodeURIComponent(token)}` : url;
   return {
-    ...props, logoUrl: authorize(props.logoUrl), musicSrc: authorize(props.musicSrc),
+    ...props, logoUrl: authorize(props.logoUrl), backgroundUrl: authorize(props.backgroundUrl ?? null), musicSrc: authorize(props.musicSrc),
     screenUrls: props.screenUrls.map((url) => authorize(url)!),
     graph: { ...props.graph, scenes: props.graph.scenes.map((scene) => ({
       ...scene,

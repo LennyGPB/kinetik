@@ -356,6 +356,9 @@
     "editorial": "Editorial"
   },
   "styles": {
+    "broadsheet": "A newspaper-inspired grid, sliding vermilion rules and monochrome photography.",
+    "crosscut": "Opposing diagonal photo windows and a tilted editorial headline.",
+    "offprint": "An offset photographic proof with gold registration lines and a lower caption.",
     "monolith": "Black on white, generous space and bold shutters. Minimal, with impact.",
     "focus": "Dark minimalism, iris reveals and precise zooms on what matters.",
     "prism": "Coloured facets, geometric reflections and diagonal sweeps.",
@@ -423,7 +426,7 @@
     "torque": "A tilted poster, notched rails and type under tension.",
     "cadence": "A graphic metronome and weighted columns keeping time.",
     "vector-beat": "Directional arrows, an amber return arrow and a central headline lane.",
-    "blackout": "Lime eclipse, fine reticles and black space around white type.",
+    "blackout": "Circular lime orbit, undistorted crosshairs and black space around white type.",
     "voltage": "Orange oscillogram, graphic register and typewriter headlines on black.",
     "anvil": "Industrial press jaws, massive type and vermilion on warm paper.",
     "tessera": "Square lavender tiles, rounded inlays and a staggered mosaic transition.",

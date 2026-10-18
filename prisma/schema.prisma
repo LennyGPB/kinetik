@@ -219,6 +219,7 @@ model ChatMessage {
 enum AssetType {
   LOGO
   SCREEN
+  BACKGROUND
   REFERENCE
   MUSIC
 }

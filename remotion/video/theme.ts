@@ -1,4 +1,5 @@
 import { createContext, useContext, type CSSProperties } from "react";
+import { musicalClock } from "../../lib/audio/beat";
 import { useVideoConfig } from "remotion";
 import { DEFAULT_RECIPE, type Recipe } from "../../config/recipes";
 import { brandFont } from "./brand-fonts";
@@ -76,9 +77,7 @@ export const BeatContext = createContext({ bpm: 120, phaseFrames: 0 });
 
 /** Pulsation 0 → 1 à chaque temps (décroissance rapide), calée sur le BPM et sur le premier temps du morceau. */
 export function beatPulse(frame: number, fps: number, bpm: number, phaseFrames = 0) {
-  const beat = beatFrames(fps, bpm);
-  const position = ((((frame - phaseFrames) % beat) + beat) % beat) / beat;
-  return Math.pow(1 - position, 4);
+  return musicalClock(frame, fps, bpm, phaseFrames).pulse;
 }
 
 /** Pulsation et durée d'un temps pour le calque courant. */

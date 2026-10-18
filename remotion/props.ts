@@ -25,6 +25,7 @@ export type VideoProps = {
   recipe: Recipe;
   graph: SceneGraph;
   logoUrl: string | null;
+  backgroundUrl?: string | null;
   screenUrls: string[];
   /** Proportions (largeur / hauteur) de chaque screen, dans le même ordre ; null si inconnues. Sert à la mise en avant. */
   screenRatios?: (number | null)[];
@@ -49,6 +50,7 @@ export function absolutize(props: VideoProps, baseUrl: string): VideoProps {
   return {
     ...props,
     logoUrl: abs(props.logoUrl),
+    backgroundUrl: abs(props.backgroundUrl ?? null),
     musicSrc: abs(props.musicSrc),
     screenUrls: props.screenUrls.map((u) => abs(u) ?? u),
   };

@@ -446,6 +446,7 @@ export function Editor({
           open={mediaOpen}
           onClose={() => setMediaOpen(false)}
           project={project}
+          styleId={current.graph.styleId ?? project.styleId}
         />
       )}
       {latest && overlaysOpen && <OverlaysDialog project={project} graph={latest.graph} watermark={plan.watermark} onClose={() => setOverlaysOpen(false)} onVersion={(version) => { setFocusScene(null); setVersions((list) => [...list, version]); setSelected(version.number); }} />}

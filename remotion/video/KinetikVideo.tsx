@@ -5,6 +5,7 @@ import { AbsoluteFill, Audio, Img, getRemotionEnvironment, interpolate, Sequence
 import { EditorialBackdrop } from "./editorial-backdrop";
 import { GraphicBackdrop } from "./graphic-backdrop";
 import { beatGrid } from "../../lib/projects/scenes";
+import { musicalClock } from "../../lib/audio/beat";
 import { sceneSettings } from "../../lib/projects/scene-settings";
 import { durationInFrames, type VideoProps } from "../props";
 import { scenePalette } from "../palette";
@@ -35,14 +36,14 @@ export function KinetikVideo(input: VideoProps) {
   const activePalette = scenePalette(palette, colors, activeIndex);
   const activeScene = timeline[activeIndex];
   const photoUrls = props.screenUrls;
-  const photoUrl = activeScene?.scene.screens?.find((url) => photoUrls.includes(url)) ?? photoUrls[activeIndex % Math.max(1, photoUrls.length)];
+  const photoUrl = props.backgroundUrl ?? activeScene?.scene.screens?.find((url) => photoUrls.includes(url)) ?? photoUrls[activeIndex % Math.max(1, photoUrls.length)];
   const photoSrc = photoUrl?.startsWith("/post-demos/") && getRemotionEnvironment().isRendering ? staticFile(photoUrl.slice(1)) : photoUrl;
 
   return (
     <RecipeContext value={recipe}>
       <BeatContext value={{ bpm: graph.bpm, phaseFrames }}>
         <AbsoluteFill style={{ backgroundColor: palette[0], overflow: "hidden" }}>
-          {recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={activePalette} time={frame / fps} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={activePalette}
+          {recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={activePalette} beatPosition={musicalClock(frame, fps, graph.bpm, phaseFrames).position} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={activePalette}
             progress={activeScene ? Math.max(0, Math.min(1, (frame - activeScene.from) / activeScene.duration)) : 0}
             renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} />
             : <Background kind={recipe.background} palette={activePalette} energy={graph.energy} />}

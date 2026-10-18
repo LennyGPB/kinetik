@@ -50,6 +50,7 @@ export type EditorProject = {
   styleId: string | null;
   colors: string[];
   logoUrl: string | null;
+  backgroundUrl?: string | null;
   screenUrls: string[];
   /** Proportions (largeur / hauteur) de chaque screen, même ordre (null si inconnues) */
   screenRatios: (number | null)[];
@@ -59,7 +60,7 @@ export type EditorProject = {
   /** Polices du brand kit de l'utilisateur (null s'il n'en a pas configuré) */
   brandFonts: { heading: BrandFont; body: BrandFont } | null;
   /** Fichiers du projet, pour le gestionnaire de médias de l'éditeur */
-  media: { logo: UploadedFile | null; screens: UploadedFile[]; music: UploadedFile | null; musicTrackId: string | null };
+  media: { logo: UploadedFile | null; background?: UploadedFile | null; screens: UploadedFile[]; music: UploadedFile | null; musicTrackId: string | null };
   /** Jeton du lien de partage public, null si désactivé */
   shareToken: string | null;
   /** Le projet et ses déclinaisons (autres formats, version courte), l'original en premier ; un seul élément s'il n'y en a pas */

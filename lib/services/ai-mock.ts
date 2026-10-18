@@ -99,7 +99,8 @@ export async function generateVideo(input: GenerationInput): Promise<SceneGraph>
     logoEmphasis: false,
     screenFrame: "phone",
     musicTrackId: input.musicTrackId ?? null,
-    bpm: track.bpm,
+    bpm: track?.bpm ?? 120,
+    beatOffset: track?.beatOffset ?? 0,
     scenes: plan.map((scene, i) => ({ ...scene, duration: durations[i] })),
   };
 }
@@ -174,10 +175,12 @@ export async function applyEdit(graph: SceneGraph, message: string, assets?: { h
   }
 
   if (/musique|son|track|morceau/.test(text)) {
+    if (!MUSIC_LIBRARY.length) return { graph: next, label: "Musique", reply: "La bibliothèque musicale est vide." };
     const current = MUSIC_LIBRARY.findIndex((t) => t.id === next.musicTrackId);
     const track = MUSIC_LIBRARY[(current + 1) % MUSIC_LIBRARY.length];
     next.musicTrackId = track.id;
     next.bpm = track.bpm;
+    next.beatOffset = track.beatOffset;
     return { graph: next, label: `Musique : ${track.title}`, reply: `Nouvelle bande-son : « ${track.title} » (${track.bpm} BPM). J'ai recalé les animations sur le tempo.` };
   }
 

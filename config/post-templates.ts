@@ -32,3 +32,13 @@ export type PostTemplateId = (typeof POST_TEMPLATES)[number]["id"] | (typeof RET
 export function getPostTemplate(id: string) { return POST_TEMPLATES.find((template) => template.id === id) ?? RETIRED_POST_TEMPLATES.find((template) => template.id === id); }
 export function isActivePostTemplate(id: string) { return POST_TEMPLATES.some((template) => template.id === id); }
 export function isPhotoTemplate(id: string) { return isCampaignPost(id) || ["post-portrait", "post-team-board", "post-nomad", "post-district", "post-manifest"].includes(id); }
+
+export const POST_FILTERS = ["all", "kinetik", "photo", "typography", "linked"] as const;
+export type PostFilter = (typeof POST_FILTERS)[number];
+export function matchesPostFilter(template: (typeof POST_TEMPLATES)[number], filter: PostFilter) {
+  if (filter === "all") return true;
+  if (filter === "kinetik") return template.id.startsWith("post-kinetik-");
+  if (filter === "linked") return template.linked;
+  const typographic = ["post-kinetik-guide", "post-chromatic", "post-chroma", "post-ember", "post-manifest", "post-swiss", "post-ledger", "post-outline", "post-continuum", "post-orbit", "post-paper"];
+  return filter === "typography" ? typographic.includes(template.id) : isPhotoTemplate(template.id) && !typographic.includes(template.id);
+}

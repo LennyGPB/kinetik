@@ -1,5 +1,10 @@
 /** Photo-led campaign collection. Images are replaceable; each entry has its own composition. */
 export const CAMPAIGN_POST_TEMPLATES = [
+  { id: "post-kinetik-launch", name: "Kinetik Launch", linked: false, layout: "kinetik-launch", palette: ["#09070F", "#FAF9FF", "#9864FF"], description: { fr: "Une annonce produit Kinetik : noir, violet lumineux, titre franc et image encadrée.", en: "A Kinetik product announcement: black, luminous purple, bold type and framed imagery." } },
+  { id: "post-kinetik-guide", name: "Kinetik Guide", linked: true, layout: "kinetik-guide", palette: ["#0C0914", "#FAF9FF", "#A78BFA"], description: { fr: "Un carrousel Kinetik, avec étapes, accents violets et une ligne continue entre les pages.", en: "A Kinetik carousel with steps, purple accents and a continuous line across pages." } },
+  { id: "post-margin", name: "Margin", linked: false, layout: "margin", palette: ["#F0E9DD", "#252921", "#86513D"], description: { fr: "Une large marge, une photo verticale et un titre serif qui respire.", en: "A generous margin, a vertical photograph and airy serif typography." } },
+  { id: "post-placard", name: "Placard", linked: false, layout: "placard", palette: ["#27392F", "#F7EDDA", "#D9E6AB"], description: { fr: "Une affiche vert forêt : photographie en vignette et grande typographie crème.", en: "A forest-green poster with inset photography and oversized cream typography." } },
+  { id: "post-cutline", name: "Cutline", linked: true, layout: "cutline", palette: ["#F2EDE6", "#20232B", "#BD3F28"], description: { fr: "Une bande photo décentrée et un filet vermillon qui traverse le carrousel.", en: "An off-center photo strip and a vermilion rule spanning the carousel." } },
   { id: "post-afterhours", name: "Afterhours", linked: false, layout: "afterhours", palette: ["#131515", "#F8F7F2", "#D4D0C6"], description: { fr: "Photo sombre, titre massif centré et microtypographie de studio.", en: "Dark photography, a bold centered headline and studio microtypography." } },
   { id: "post-daybook", name: "Daybook", linked: false, layout: "daybook", palette: ["#46362A", "#FFF9E9", "#D4B68B"], description: { fr: "Une scène de travail chaleureuse, avec un grand titre serif en haut de page.", en: "A warm workspace scene with an oversized serif headline at the top." } },
   { id: "post-muse", name: "Muse", linked: false, layout: "muse", palette: ["#2C3A3C", "#FFF9F0", "#DCCBB8"], description: { fr: "Portrait immersif et duo de typographies pour une campagne mode ou créative.", en: "An immersive portrait and paired typefaces for a fashion or creative campaign." } },
@@ -33,6 +38,11 @@ export const CAMPAIGN_POST_TEMPLATES = [
 ] as const;
 
 export const CAMPAIGN_DEMO_PHOTOS: Record<string, string> = {
+  "post-kinetik-launch": "/post-demos/workspace.jpg",
+  "post-kinetik-guide": "/post-demos/detail.jpg",
+  "post-margin": "/post-demos/portrait-4.jpg",
+  "post-placard": "/post-demos/interior.jpg",
+  "post-cutline": "/post-demos/city.jpg",
   "post-ligne": "/post-demos/interior.jpg",
   "post-vellum": "/post-demos/portrait-4.jpg",
   "post-edition": "/post-demos/city.jpg",

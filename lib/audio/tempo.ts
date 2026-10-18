@@ -41,30 +41,36 @@ export async function detectTempo(file: Blob): Promise<Tempo | null> {
     source.start(0, start, length);
     const samples = (await offline.startRendering()).getChannelData(0);
 
-    const onsets = onsetStrength(samples);
-    const period = bestPeriod(onsets);
-    if (!period) return null;
-    let coarse = 60 / (period * HOP_SECONDS);
-    // Ramène dans une plage « dansante » (un morceau à 170 BPM se compte souvent à 85)
-    while (coarse < 80) coarse *= 2;
-    while (coarse > 165) coarse /= 2;
-
-    // Affinage : la grille (tempo + phase) qui tombe le mieux sur les attaques de tout l'extrait
-    const fits: { bpm: number; score: number }[] = [];
-    for (let candidate = coarse - 2; candidate <= coarse + 2; candidate += 0.05) fits.push({ bpm: candidate, score: bestPhase(onsets, 60 / candidate / HOP_SECONDS).score });
-    // Plusieurs tempos voisins collent « aussi bien » (tolérance d'une trame) : on prend le centre de cette plage
-    const top = Math.max(...fits.map((f) => f.score));
-    const near = fits.filter((f) => f.score >= top * 0.985);
-    const refined = near.reduce((sum, f) => sum + f.bpm, 0) / near.length;
-    const bpm = Math.abs(refined - Math.round(refined)) < 0.15 ? Math.round(refined) : Math.round(refined * 100) / 100;
-    const beatSeconds = 60 / bpm;
-    const phase = bestPhase(onsets, beatSeconds / HOP_SECONDS).phase * HOP_SECONDS;
-    // Position du premier temps dans le morceau entier (l'analyse commençait à `start`)
-    const beatOffset = Math.round(((((start + phase) % beatSeconds) + beatSeconds) % beatSeconds) * 1000) / 1000;
-    return { bpm, beatOffset };
+    return detectTempoFromSamples(samples, start);
   } catch {
     return null; // Format non décodable par le navigateur : la vidéo garde 120 BPM
   }
+}
+
+/** Analyze mono samples filtered at 220 Hz and resampled to 11025 Hz. */
+export function detectTempoFromSamples(samples: Float32Array, start = 0): Tempo | null {
+  if (samples.length < 6 * SAMPLE_RATE) return null;
+  const onsets = onsetStrength(samples);
+  const period = bestPeriod(onsets);
+  if (!period) return null;
+  let coarse = 60 / (period * HOP_SECONDS);
+  // Ramène dans une plage « dansante » (un morceau à 170 BPM se compte souvent à 85)
+  while (coarse < 80) coarse *= 2;
+  while (coarse > 165) coarse /= 2;
+
+  // Affinage : la grille (tempo + phase) qui tombe le mieux sur les attaques de tout l'extrait
+  const fits: { bpm: number; score: number }[] = [];
+  for (let candidate = coarse - 2; candidate <= coarse + 2; candidate += 0.05) fits.push({ bpm: candidate, score: bestPhase(onsets, 60 / candidate / HOP_SECONDS).score });
+  // Plusieurs tempos voisins collent « aussi bien » (tolérance d'une trame) : on prend le centre de cette plage
+  const top = Math.max(...fits.map((f) => f.score));
+  const near = fits.filter((f) => f.score >= top * 0.985);
+  const refined = near.reduce((sum, f) => sum + f.bpm, 0) / near.length;
+  const bpm = Math.abs(refined - Math.round(refined)) < 0.15 ? Math.round(refined) : Math.round(refined * 100) / 100;
+  const beatSeconds = 60 / bpm;
+  const phase = bestPhase(onsets, beatSeconds / HOP_SECONDS).phase * HOP_SECONDS;
+  // Position du premier temps dans le morceau entier (l'analyse commençait à `start`)
+  const beatOffset = Math.round(((((start + phase) % beatSeconds) + beatSeconds) % beatSeconds) * 1000) / 1000;
+  return { bpm, beatOffset };
 }
 
 /** Hausses d'énergie d'une trame à l'autre, moyenne locale retirée (les passages forts ne dominent pas). */

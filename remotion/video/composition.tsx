@@ -92,7 +92,10 @@ function AuthoredLayout(l: TextLayoutProps) {
   const kind = recipe.graphicTreatment ?? recipe.editorialLayout;
   const color = textColorOn(l.props.palette[0]);
   const positions: Record<string, CSSProperties> = {
-    anvil: { top: "41%", left: "12%", right: "12%", textAlign: "center" },
+    broadsheet: { top: "17%", left: "6%", right: "35%" },
+    crosscut: { top: "39%", left: "8%", right: "10%", transform: "rotate(-5deg)" },
+    offprint: { top: "65%", left: "7%", right: "10%" },
+    anvil: { top: width >= height ? "35%" : "41%", left: "12%", right: "12%", textAlign: "center" },
     tessera: { top: width >= height ? "50%" : "49%", left: "8%", right: "13%" },
     suture: { top: "40%", left: "12%", right: "12%" },
     ratchet: width >= height ? { top: "35%", left: "9%", right: "48%" } : { top: "54%", left: "9%", right: "11%" },
@@ -100,7 +103,7 @@ function AuthoredLayout(l: TextLayoutProps) {
     torque: { top: "34%", left: "8%", right: "8%", transform: "rotate(-12deg)" },
     cadence: { top: "42%", left: "9%", right: "9%" },
     "vector-beat": { top: "46%", left: "9%", right: "17%" },
-    blackout: { top: "44%", left: "9%", right: "9%", textAlign: "center" },
+    blackout: { top: width >= height ? "36%" : "44%", left: "9%", right: "9%", textAlign: "center" },
     voltage: { top: "38%", left: "11%", right: "11%" },
     column: { top: "14%", left: "6%", right: "33%" },
     aspect: { top: "65%", left: "7%", right: "7%" },
@@ -109,9 +112,10 @@ function AuthoredLayout(l: TextLayoutProps) {
     memento: { top: "63%", left: "7%", right: "8%" },
   };
   const centered = ["blackout", "cadence", "anvil", "interlock"].includes(kind ?? "");
-  const titleSize = Math.min(u * l.titleSize * (recipe.graphicTreatment ? 1.35 : 0.95), width * (kind === "column" ? 0.55 : kind === "ratchet" && width >= height ? 0.4 : 0.76) / Math.max(1, ...l.scene.title.split(/\s+/).map((word) => word.length * 0.62)));
+  const graphicScale = width >= height && ["anvil", "blackout"].includes(kind ?? "") ? 1.1 : 1.35;
+  const titleSize = Math.min(u * l.titleSize * (recipe.graphicTreatment ? graphicScale : 0.95), width * (["column", "broadsheet"].includes(kind ?? "") ? 0.55 : kind === "ratchet" && width >= height ? 0.4 : 0.76) / Math.max(1, ...l.scene.title.split(/\s+/).map((word) => word.length * 0.62)));
   return <AbsoluteFill style={{ color }}>
-    <div style={{ position: "absolute", top: "4%", left: "7%", right: "7%", display: "flex", justifyContent: "space-between", color: kind === "anvil" ? l.props.palette[0] : color, fontFamily: useBodyFont(), fontSize: u * 1.7, letterSpacing: "0.08em", opacity: 0.75 }}><span>{l.props.appName}</span><span>{kind?.toUpperCase()}</span></div>
+    <div style={{ position: "absolute", top: "4%", left: "7%", right: "7%", display: "flex", justifyContent: "space-between", color, fontFamily: useBodyFont(), fontSize: u * 1.7, letterSpacing: "0.08em", opacity: 0.75 }}><span>{l.props.appName}</span><span>{kind?.toUpperCase()}</span></div>
     <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: centered ? "center" : "flex-start", gap: u * 2.5, ...positions[kind!] }}>
       {l.header}{l.kicker}{titleNode(l, centered ? "center" : "left", titleSize, color)}
       {l.subtitle && <Subtitle text={l.subtitle} color={color} delay={l.subtitleDelay} size={3} />}

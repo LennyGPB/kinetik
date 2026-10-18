@@ -6,6 +6,11 @@ export function campaignDemo(templateId: string, locale: "fr" | "en"): PostDocum
   if (!template) return null;
   const fr = locale === "fr";
   const copy: Record<string, [string, string, string]> = fr ? {
+    "kinetik-launch": ["Ton contenu mérite de bouger.", "Tes idées prennent vie.", "Crée avec Kinetik."],
+    "kinetik-guide": ["Une idée. Trois étapes.", "Choisis ton mouvement.", "Publie à ton rythme."],
+    margin: ["Laisser place au regard.", "Le détail fait sens.", "Une présence qui reste."],
+    placard: ["LES IDÉES PRENNENT PLACE.", "UN REGARD SINGULIER.", "OSEZ FAIRE AUTREMENT."],
+    cutline: ["L'autre côté de l'image.", "Voir au-delà du cadre.", "La suite vous appartient."],
     ligne: ["Les lignes du quotidien.","Chaque image raconte une histoire.","Créons la suite ensemble."],
     vellum: ["Une présence essentielle.","Chaque image raconte une histoire.","Créons la suite ensemble."],
     edition: ["LES IDEES FONT LE RESTE.","Chaque image raconte une histoire.","Créons la suite ensemble."],
@@ -37,6 +42,11 @@ export function campaignDemo(templateId: string, locale: "fr" | "en"): PostDocum
     chromatic: ["La couleur donne le ton.", "Une nouvelle énergie créative.", "Votre signature prend forme."],
     atelier: ["L’art du détail.", "Une présence singulière.", "Des images qui durent."],
   } : {
+    "kinetik-launch": ["Your content deserves motion.", "Your ideas come alive.", "Create with Kinetik."],
+    "kinetik-guide": ["One idea. Three steps.", "Choose your movement.", "Publish at your pace."],
+    margin: ["Make room for perspective.", "Details have meaning.", "A lasting presence."],
+    placard: ["IDEAS TAKE THEIR PLACE.", "A DISTINCTIVE PERSPECTIVE.", "DARE TO DO IT DIFFERENTLY."],
+    cutline: ["The other side of the image.", "Look beyond the frame.", "The next chapter is yours."],
     ligne: ["Everyday lines.","Every image tells a story.","Create the next chapter together."],
     vellum: ["An essential présence.","Every image tells a story.","Create the next chapter together."],
     edition: ["IDEAS DO THE REST.","Every image tells a story.","Create the next chapter together."],
@@ -69,5 +79,5 @@ export function campaignDemo(templateId: string, locale: "fr" | "en"): PostDocum
     atelier: ["The art of detail.", "A distinctive présence.", "Images that last."],
   };
   return { type: "post", templateId, format: "FEED", colors: [...template.palette], linked: template.linked, font: ["daybook", "ritual", "dune", "atelier"].includes(template.layout) ? "serif" : "sans",
-    pages: copy[template.layout].map((title, i): PostPage => ({ id: `demo-${i + 1}`, title, kicker: fr ? "STUDIO / DIRECTION CRÉATIVE" : "STUDIO / CREATIVE DIRECTION", body: fr ? "Une vision claire, des images choisies et une histoire qui vous ressemble." : "A clear vision, carefully chosen imagery and a story that feels like you.", cta: i === 2 ? (fr ? "Créons la suite ensemble →" : "Create what’s next together →") : "", imageIndex: null, layout: "image", titleSize: template.layout === "ritual" ? 88 : 100, align: ["afterhours", "muse", "ritual", "dune"].includes(template.layout) ? "center" : "left", offsetX: 0, offsetY: 0, imageFit: "cover", imageX: 50, imageY: 50, imageZoom: 1, imageEffect: ["afterhours", "still", "diptych"].includes(template.layout) ? "grayscale" : "none", imageOverlay: template.layout === "afterhours" ? 0.55 : 0.35 })) };
+    pages: copy[template.layout].map((title, i): PostPage => ({ id: `demo-${i + 1}`, title, kicker: template.id.startsWith("post-kinetik-") ? "KINETIK / CONTENT IN MOTION" : fr ? "STUDIO / DIRECTION CRÉATIVE" : "STUDIO / CREATIVE DIRECTION", body: fr ? "Une vision claire, des images choisies et une histoire qui vous ressemble." : "A clear vision, carefully chosen imagery and a story that feels like you.", cta: i === 2 ? (fr ? "Créons la suite ensemble →" : "Create what’s next together →") : "", imageIndex: null, layout: "image", titleSize: template.layout === "ritual" ? 88 : 100, align: ["afterhours", "muse", "ritual", "dune"].includes(template.layout) ? "center" : "left", offsetX: 0, offsetY: 0, imageFit: "cover", imageX: 50, imageY: 50, imageZoom: 1, imageEffect: ["afterhours", "still", "diptych"].includes(template.layout) ? "grayscale" : "none", imageOverlay: template.layout === "afterhours" ? 0.55 : 0.35 })) };
 }

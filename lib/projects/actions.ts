@@ -537,12 +537,12 @@ export async function updateProjectMedia(projectId: string, input: ProjectMediaI
   if (!parsed.success) return { ok: false, error: "invalid" };
   const found = await editableProject(projectId);
   if (!found.ok) return { ok: false, error: found.error };
-  const { logo, screens } = parsed.data;
-  if (!ownsFiles(found.project.userId, [logo, ...screens])) return { ok: false, error: "invalid" };
+  const { logo, screens, background } = parsed.data;
+  if (!ownsFiles(found.project.userId, [logo, background, ...screens])) return { ok: false, error: "invalid" };
   await db.$transaction([
-    db.asset.deleteMany({ where: { projectId, type: { in: ["LOGO", "SCREEN"] } } }),
+    db.asset.deleteMany({ where: { projectId, type: { in: background === undefined ? ["LOGO", "SCREEN"] : ["LOGO", "SCREEN", "BACKGROUND"] } } }),
     db.asset.createMany({
-      data: [...(logo ? [{ ...assetData(logo), type: "LOGO" as const, projectId }] : []), ...screens.map((s, position) => ({ ...assetData(s), type: "SCREEN" as const, position, projectId }))],
+      data: [...(logo ? [{ ...assetData(logo), type: "LOGO" as const, projectId }] : []), ...(background ? [{ ...assetData(background), type: "BACKGROUND" as const, projectId }] : []), ...screens.map((s, position) => ({ ...assetData(s), type: "SCREEN" as const, position, projectId }))],
     }),
   ]);
   return { ok: true };
@@ -584,7 +584,8 @@ export async function updateProjectSound(projectId: string, input: ProjectSoundI
     bpm: track?.bpm ?? uploaded?.bpm ?? (data.music.mode === "none" ? graph.bpm : 120),
     audio: data.audio,
   };
-  if (uploaded?.beatOffset !== undefined) next.beatOffset = uploaded.beatOffset;
+  if (track) next.beatOffset = track.beatOffset;
+  else if (uploaded?.beatOffset !== undefined) next.beatOffset = uploaded.beatOffset;
   else delete next.beatOffset;
   // Réglages comparés avec leurs valeurs par défaut (absent = volume 1, pas de coupe, pas de fondu)
   const sound = (a: SceneGraph["audio"]) => JSON.stringify({ volume: a?.volume ?? 1, trimStart: a?.trimStart ?? 0, fadeIn: a?.fadeIn ?? false, fadeOut: a?.fadeOut ?? false });

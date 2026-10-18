@@ -45,6 +45,7 @@ export type CreateProjectInput = z.input<typeof createProjectSchema>;
 /** Médias d'un projet modifiés depuis l'éditeur (remplacent ceux du projet). */
 export const projectMediaSchema = z.object({
   logo: uploadedFileSchema.nullable(),
+  background: uploadedFileSchema.refine((file) => file.mimeType.startsWith("image/") && file.url.includes("/image/")).nullable().optional(),
   screens: z.array(uploadedFileSchema).max(8),
 });
 

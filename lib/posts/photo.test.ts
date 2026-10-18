@@ -2,16 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
-import { POST_TEMPLATES, POST_FORMATS, isPhotoTemplate } from "@/config/post-templates";
+import { POST_TEMPLATES, POST_FORMATS, isPhotoTemplate, POST_FILTERS, matchesPostFilter } from "@/config/post-templates";
 import { demoPost, PostDocumentSchema, remapPostImages, applyPostTemplate } from "./document";
 import { postSvg } from "./svg";
 import { PHOTO_DEMOS } from "./photo-svg";
 import demoRatios from "./demo-ratios.json";
 import { isCampaignPost, CAMPAIGN_POST_TEMPLATES } from "@/config/post-campaigns";
 
-test("campaign collection adds thirty distinct editable photo templates", () => {
-  assert.equal(CAMPAIGN_POST_TEMPLATES.length, 30);
-  assert.equal(new Set(CAMPAIGN_POST_TEMPLATES.map((template) => template.layout)).size, 30);
+test("Instagram filters include the two Kinetik styles and correctly count linked carousels", () => {
+  assert.equal(POST_TEMPLATES.filter((template) => matchesPostFilter(template, "kinetik")).length, 2);
+  assert.deepEqual(POST_TEMPLATES.filter((template) => matchesPostFilter(template, "linked")), POST_TEMPLATES.filter((template) => template.linked));
+  assert.equal(POST_TEMPLATES.filter((template) => matchesPostFilter(template, "all")).length, POST_TEMPLATES.length);
+  for (const filter of POST_FILTERS) assert.ok(POST_TEMPLATES.some((template) => matchesPostFilter(template, filter)));
+});
+
+test("campaign collection adds thirty-five distinct editable templates", () => {
+  assert.equal(CAMPAIGN_POST_TEMPLATES.length, 35);
+  assert.equal(new Set(CAMPAIGN_POST_TEMPLATES.map((template) => template.layout)).size, 35);
   for (const template of CAMPAIGN_POST_TEMPLATES) {
     assert.ok(POST_TEMPLATES.some((item) => item.id === template.id));
     const doc = applyPostTemplate(demoPost("post-portrait"), template.id, "fr", 1);

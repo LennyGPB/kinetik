@@ -72,6 +72,9 @@ export const fr = {
   },
 
   styles: {
+    broadsheet: "Grille de journal, filets vermillon coulissants et photographie monochrome.",
+    crosscut: "Deux ouvertures photo diagonales et une accroche éditoriale inclinée.",
+    offprint: "Épreuve photo décalée, repères dorés et grand titre en bas de page.",
     anvil: "Mâchoires de presse, titre massif et accents vermillon sur papier chaud.",
     tessera: "Tuiles carrées lavande, découpes arrondies et transition en mosaïque.",
     suture: "Fil corail qui relie des points de couture sur une affiche noire et serif ivoire.",
@@ -85,7 +88,7 @@ export const fr = {
     "torque": "Affiche inclinée, rails crantés et typographie sous tension.",
     "cadence": "Métronome graphique et colonnes pondérées qui battent le rythme.",
     "vector-beat": "Flèches directionnelles, contre-flèche ambre et titre en voie centrale.",
-    "blackout": "Éclipse citron vert, réticules fins et espace noir autour du titre blanc.",
+    "blackout": "Orbite circulaire citron vert, réticules sans déformation et espace noir autour du titre blanc.",
     "voltage": "Oscillogramme orange, registre graphique et frappe typographique sur noir.",
     cadran: "Portrait de galerie, cadres fins qui s’alignent et titres serif élégants.",
     passage: "Ruban photo urbain en travelling, titres condensés et bord corail.",

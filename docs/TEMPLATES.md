@@ -346,3 +346,14 @@ Run `node --import tsx scripts/review-editorial-motion.ts column aspect patina i
 Anvil, Tessera, Suture, Ratchet and Interlock add five authored graphic styles: industrial press jaws, rotating mosaic, drawn thread, ticking cog and opposing interlocking brackets. Each uses a distinct backdrop and title placement.
 
 Tessera and Ratchet now use independent square SVG viewports sized with container units, keeping tiles square and the cog circular in every ratio. Ratchet uses ivory, ink and orange with flat masked titles. New `mosaic` and `rotary` transitions are registered in the scene schema, renderer, editor labels and AI guidance. Review with `node --import tsx scripts/review-editorial-motion.ts tessera ratchet --transitions`.
+# Collection Instagram et motion — octobre 2026
+
+- Posts : Kinetik Launch (annonce noir/violet), Kinetik Guide (carrousel lié),
+  Margin (portrait et marge), Placard (affiche vert forêt), Cutline (bande photo liée).
+- La galerie Instagram compte les résultats et propose les filtres Tous, Kinetik,
+  Photo, Typographie et Carrousels liés.
+- Motion : Broadsheet (grille de journal), Crosscut (diptyque diagonal), Offprint
+  (épreuve photographique et légende), avec images remplaçables.
+- Blackout / « Less Noise », Anvil, Tessera et Cadence utilisent des motifs
+  redessinés ; les symboles et modules carrés gardent leurs proportions dans tous
+  les formats. Les incrustations de Tessera restent découpées dans chaque tuile.

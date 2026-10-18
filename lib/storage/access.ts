@@ -13,7 +13,7 @@ export async function canReadMedia(key: string, userId: string | null, shareToke
   // Recheck the live share token on every read, including audio Range requests.
   const project = await db.project.findFirst({
     where: { shareToken, userId: ownerId, status: "READY" },
-    select: { kind: true, assets: { where: { type: { in: ["LOGO", "SCREEN", "MUSIC"] } }, select: { url: true } }, versions: { orderBy: { number: "desc" }, take: 1, select: { scenes: true } } },
+    select: { kind: true, assets: { where: { type: { in: ["LOGO", "SCREEN", "MUSIC", "BACKGROUND"] } }, select: { url: true } }, versions: { orderBy: { number: "desc" }, take: 1, select: { scenes: true } } },
   });
   const version = project?.versions[0];
   if (!project || !version) return false;

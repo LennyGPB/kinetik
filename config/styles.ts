@@ -26,6 +26,9 @@ export type VideoStyle = {
 export const STYLE_CATEGORIES: StyleCategory[] = ["editorial", "tech", "minimal", "typo", "bold", "fun", "business"];
 
 const CATALOG: Omit<VideoStyle, "recipe">[] = [
+  { id: "broadsheet", name: "Broadsheet", category: "editorial", palette: ["#EEE6D9", "#222421", "#BE4328"], ratio: "9:16" },
+  { id: "crosscut", name: "Crosscut", category: "editorial", palette: ["#16282B", "#F5ECDD", "#E68662"], ratio: "9:16" },
+  { id: "offprint", name: "Offprint", category: "editorial", palette: ["#202023", "#FFF1DE", "#E5B962"], ratio: "9:16" },
   { id: "anvil", name: "Anvil", category: "bold", palette: ["#E9E1D2", "#191C1C", "#D74625"], ratio: "9:16" },
   { id: "tessera", name: "Tessera", category: "typo", palette: ["#D7C9EC", "#251E32", "#664498"], ratio: "9:16" },
   { id: "suture", name: "Suture", category: "bold", palette: ["#0B0D0D", "#F6EEE2", "#EF624C"], ratio: "9:16" },

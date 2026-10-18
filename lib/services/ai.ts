@@ -481,6 +481,7 @@ function normalize(output: z.infer<typeof GraphOutput>, targetDuration: number |
     screenFrame: output.screenFrame,
     musicTrackId: track?.id ?? null,
     bpm: track?.bpm ?? tempo?.bpm ?? 120,
+    beatOffset: track?.beatOffset ?? tempo?.beatOffset ?? 0,
     scenes: scenes.map<Scene>((s, i) => ({
       id: sceneIds[i],
       kind: s.kind,

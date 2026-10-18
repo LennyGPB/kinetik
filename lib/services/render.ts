@@ -1,4 +1,7 @@
 import "server-only";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { MUSIC_LIBRARY } from "@/config/music";
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
 import { getRenderProgress, presignUrl, renderMediaOnLambda, type AwsRegion } from "@remotion/lambda/client";
 import { isOwnUpload, mimeFromKey, storage } from "@/lib/storage";
@@ -58,13 +61,18 @@ export function isLambdaConfigured() {
  */
 export async function inlineAssets(props: VideoProps, userId: string): Promise<VideoProps> {
   const inline = async (url: string | null) => {
+    const track = MUSIC_LIBRARY.find((track) => track.src === url);
+    if (track) {
+      const data = await readFile(path.join(process.cwd(), "public", decodeURIComponent(track.src)));
+      return `data:audio/mp4;base64,${data.toString("base64")}`;
+    }
     if (!url?.startsWith("/api/uploads/")) return url;
     if (!isOwnUpload(userId, url)) throw new Error("unauthorized_media");
     const key = url.slice("/api/uploads/".length);
     const data = await storage.get(key);
     return data ? `data:${mimeFromKey(key)};base64,${data.toString("base64")}` : null;
   };
-  const [logoUrl, musicSrc, ...inlined] = await Promise.all([inline(props.logoUrl), inline(props.musicSrc), ...props.screenUrls.map(inline)]);
+  const [logoUrl, musicSrc, backgroundUrl, ...inlined] = await Promise.all([inline(props.logoUrl), inline(props.musicSrc), inline(props.backgroundUrl ?? null), ...props.screenUrls.map(inline)]);
   // On garde l'ordre des screens (les proportions et la mise en avant s'y réfèrent) en écartant ceux illisibles
   const kept = props.screenUrls.map((url, i) => ({ url, data: inlined[i], ratio: props.screenRatios?.[i] ?? null })).filter((s) => s.data);
   const byUrl = new Map(kept.map((s) => [s.url, s.data as string]));
@@ -72,6 +80,7 @@ export async function inlineAssets(props: VideoProps, userId: string): Promise<V
     ...props,
     logoUrl,
     musicSrc,
+    backgroundUrl,
     screenUrls: kept.map((s) => s.data as string),
     screenRatios: kept.map((s) => s.ratio),
     graph: {

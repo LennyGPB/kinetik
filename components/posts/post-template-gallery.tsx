@@ -3,7 +3,9 @@ import { memo, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
-import { POST_TEMPLATES } from "@/config/post-templates";
+import { POST_TEMPLATES, POST_FILTERS, matchesPostFilter, type PostFilter } from "@/config/post-templates";
+import { Segmented } from "@/components/ui/segmented";
+import { format } from "@/lib/i18n";
 import { demoPost } from "@/lib/posts/document";
 import { postCopy } from "@/lib/posts/copy";
 import { PostPreview } from "./post-preview";
@@ -12,13 +14,23 @@ import { buttonVariants } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
 export function PostTemplateGallery() {
-  const { locale } = useDictionary();
+  const t = useDictionary();
+  const { locale } = t;
   const c = postCopy(locale);
   const [open, setOpen] = useState<string | null>(null);
+  const [filter, setFilter] = useState<PostFilter>("all");
+  const templates = POST_TEMPLATES.filter((template) => matchesPostFilter(template, filter));
+  const labels = locale === "fr" ? { all: "Tous", kinetik: "Kinetik", photo: "Photo", typography: "Typographie", linked: "Carrousels liés" } : { all: "All", kinetik: "Kinetik", photo: "Photography", typography: "Typography", linked: "Linked carousels" };
   const template = POST_TEMPLATES.find((item) => item.id === open);
   return <>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="-mx-4 overflow-x-auto px-4 scrollbar-none sm:mx-0 sm:px-0">
+        <Segmented label={c.posts} size="sm" value={filter} onChange={setFilter} options={POST_FILTERS.map((value) => ({ value, label: labels[value] }))} />
+      </div>
+      <p className="shrink-0 text-sm text-subtle" aria-live="polite">{format(t.app.templates.count, { count: templates.length })}</p>
+    </div>
     <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
-      {POST_TEMPLATES.map((item) => <li key={item.id}>
+      {templates.map((item) => <li key={item.id}>
         <PostTemplateTile item={item} locale={locale} onOpen={setOpen} />
       </li>)}
     </ul>

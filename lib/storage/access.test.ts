@@ -11,6 +11,7 @@ import { demoPost } from "@/lib/posts/document";
 const token = "testsharetoken1234567890";
 const image = "/api/uploads/owner/image/screen.png";
 const oldImage = "/api/uploads/owner/image/previous.png";
+const background = "/api/uploads/owner/image/background.png";
 const graph: SceneGraph = {
   schema: 1, energy: "calm", logoEmphasis: false, musicTrackId: null, bpm: 120,
   scenes: [{ id: "screen", kind: "screens", title: "Screen", duration: 5, transition: "fade", screens: [image], focus: { src: oldImage, x: 0, y: 0, w: 0.5, h: 0.5, mode: "zoom" } }],
@@ -21,9 +22,11 @@ graph.scenes[0].focuses = [
 ];
 
 test("public player authorizes all media references without mutating saved props", () => {
-  const props = buildVideoProps({ appName: "Test", format: "LANDSCAPE", styleId: null, colors: [], logoUrl: image, screenUrls: [image], screenRatios: [1], websiteUrl: null, musicSrc: "/music/public.mp3" }, graph, false);
+  const props = buildVideoProps({ appName: "Test", format: "LANDSCAPE", styleId: null, colors: [], logoUrl: image, backgroundUrl: background, screenUrls: [image], screenRatios: [1], websiteUrl: null, musicSrc: "/music/public.mp3" }, graph, false);
   const shared = withSharedMedia(props, token);
   assert.equal(shared.logoUrl, `${image}?share=${token}`);
+  assert.equal(shared.backgroundUrl, `${background}?share=${token}`);
+  assert.equal(props.backgroundUrl, background);
   assert.equal(shared.screenUrls[0], shared.graph.scenes[0].screens?.[0]);
   assert.equal(shared.graph.scenes[0].focus?.src, `${oldImage}?share=${token}`);
   assert.deepEqual(shared.graph.scenes[0].focuses?.map((f) => f.src), [`${image}?share=${token}`, `${oldImage}?share=${token}`]);
@@ -48,7 +51,7 @@ test("media route enforces ownership, project-scoped sharing, revocation and pri
   };
   stub("../db", { db: { project: { findFirst: async ({ where }: { where: { shareToken: string; userId: string; status: string } }) => {
     if (!enabled || where.shareToken !== token || where.userId !== "owner" || where.status !== "READY") return null;
-    return { kind: post ? "POST" : "MOTION", assets: [{ url: image }], versions: [{ scenes: post ? demoPost("post-orbit") : graph }] };
+    return { kind: post ? "POST" : "MOTION", assets: [{ url: image }, ...(!post ? [{ url: background }] : [])], versions: [{ scenes: post ? demoPost("post-orbit") : graph }] };
   } } } });
   stub("../auth/dal", { getCurrentUser: async () => viewer ? { id: viewer } : null });
   stub("./index", { isOwnUpload: ownsUpload, mimeFromKey: () => "image/png", storage: { get: async () => { reads++; return Buffer.from("0123456789"); } } });
@@ -68,6 +71,7 @@ test("media route enforces ownership, project-scoped sharing, revocation and pri
     viewer = null;
     assert.equal((await read("owner/image/screen.png", `?share=${token}`)).status, 200);
     assert.equal((await read("owner/image/previous.png", `?share=${token}`)).status, 200);
+    assert.equal((await read("owner/image/background.png", `?share=${token}`)).status, 200);
     post = true;
     assert.equal((await read("owner/image/screen.png", `?share=${token}`)).status, 200);
     assert.equal((await read("owner/image/previous.png", `?share=${token}`)).status, 404);

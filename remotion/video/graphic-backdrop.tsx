@@ -1,9 +1,12 @@
 import type { GraphicMotionKind } from "../../config/graphic-motion";
 
 /** Authored graphics, shared by catalogue thumbnails and frame-driven renders. */
-export function GraphicBackdrop({ kind, palette, time = 0, aspectRatio = 9 / 16 }: { kind: GraphicMotionKind; palette: [string, string, string]; time?: number; aspectRatio?: number }) {
+export function GraphicBackdrop({ kind, palette, time: elapsed = 0, beatPosition, aspectRatio = 9 / 16 }: { kind: GraphicMotionKind; palette: [string, string, string]; time?: number; beatPosition?: number; aspectRatio?: number }) {
+  // Legacy artwork uses seconds at 120 BPM. Drive that clock from the actual beats.
+  const time = beatPosition === undefined ? elapsed : beatPosition / 2;
   const [bg, fg, accent] = palette;
   const phase = time * Math.PI;
+  if (["anvil", "cadence", "blackout", "tessera"].includes(kind)) return <RefinedGraphic kind={kind} palette={palette} time={time} aspectRatio={aspectRatio} />;
   if (kind === "tessera" || kind === "ratchet") return <PrecisionBackdrop kind={kind} palette={palette} time={time} aspectRatio={aspectRatio} />;
   return <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: bg }}>
     <svg viewBox="0 0 1000 1000" preserveAspectRatio="none" style={{ position: "absolute", width: "100%", height: "100%" }} aria-hidden>
@@ -59,11 +62,47 @@ export function GraphicBackdrop({ kind, palette, time = 0, aspectRatio = 9 / 16 
   </div>;
 }
 
+/** Independent square viewports keep symbols crisp in portrait, square and landscape. */
+function RefinedGraphic({ kind, palette: [bg, fg, accent], time, aspectRatio }: { kind: GraphicMotionKind; palette: [string, string, string]; time: number; aspectRatio: number }) {
+  const wide = aspectRatio >= 1;
+  const beat = time * 2;
+  const pulse = Math.pow(1 - (beat - Math.floor(beat)), 4);
+  return <div style={{ position: "absolute", inset: 0, background: bg, overflow: "hidden", containerType: "size" }}>
+    {kind === "blackout" && <>
+      <div style={{ position: "absolute", top: wide ? "8%" : "10%", left: wide ? "calc(50% - 13cqmin)" : "calc(50% - 15cqmin)", width: wide ? "26cqmin" : "30cqmin", height: wide ? "26cqmin" : "30cqmin" }}>
+        <svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden><circle cx="100" cy="100" r="85" fill="none" stroke={accent} strokeWidth="1.5"/><circle cx="100" cy="100" r="64" fill="none" stroke={fg} opacity="0.3"/><path d="M 15 100 H 185" stroke={accent} opacity="0.4"/><circle cx={100 + Math.cos(time * 1.3) * 85} cy={100 + Math.sin(time * 1.3) * 85} r="4" fill={accent}/></svg>
+      </div>
+      {["8%", "80%"].map((left, i) => <div key={left} style={{ position: "absolute", left, bottom: "16%", width: "12cqmin", height: "12cqmin" }}><svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden><circle cx="50" cy="50" r={36 + pulse * 5} fill="none" stroke={accent} strokeWidth="1"/><g transform={`rotate(${i ? -45 : 0} 50 50)`}><path d="M 30 50 H 70 M 50 30 V 70" fill="none" stroke={fg} strokeWidth="2"/></g></svg></div>)}
+      <div style={{ position: "absolute", left: "8%", right: "8%", bottom: "11%", height: 1, background: `${fg}55` }}><div style={{ height: 2, width: `${15 + (time * 18) % 85}%`, background: accent }}/></div>
+    </>}
+    {kind === "anvil" && <>
+      {[false, true].map((bottom) => <div key={String(bottom)} style={{ position: "absolute", left: "7%", right: "7%", ...(bottom ? { bottom: "9%" } : { top: "10%" }), height: "18%", transform: `translateY(${(bottom ? -1 : 1) * pulse * 1.4}cqmin)` }}>
+        <div style={{ position: "absolute", inset: 0, background: fg, clipPath: bottom ? "polygon(12% 0,88% 0,88% 20%,100% 20%,100% 100%,0 100%,0 20%,12% 20%)" : "polygon(0 0,100% 0,100% 80%,88% 80%,88% 100%,12% 100%,12% 80%,0 80%)" }}/>
+        <div style={{ position: "absolute", left: "15%", right: "15%", height: "0.8cqmin", background: accent, ...(bottom ? { top: "-12%" } : { bottom: "-12%" }) }}/>
+        <div style={{ position: "absolute", inset: "30% 13%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>{[0, 1, 2].map((i) => <span key={i} style={{ width: "4cqmin", height: "0.8cqmin", background: bg, opacity: 0.65 }}/>)}</div>
+      </div>)}
+      <div style={{ position: "absolute", left: "4%", top: "34%", bottom: "34%", width: 1, background: accent, opacity: 0.6 }}/><div style={{ position: "absolute", right: "4%", top: "34%", bottom: "34%", width: 1, background: accent, opacity: 0.6 }}/>
+    </>}
+    {kind === "cadence" && <>
+      <div style={{ position: "absolute", top: "8%", left: "calc(50% - 17cqmin)", width: "34cqmin", height: "34cqmin" }}><svg viewBox="0 0 240 240" width="100%" height="100%" aria-hidden><path d="M 32 190 A 100 100 0 0 1 208 190" fill="none" stroke={fg} strokeWidth="2" opacity="0.5"/>{Array.from({ length: 9 }, (_, i) => <path key={i} d="M 120 22 V 35" stroke={fg} strokeWidth="2" transform={`rotate(${-64 + i * 16} 120 120)`}/>)}<g transform={`rotate(${Math.cos(time * Math.PI * 2) * 46} 120 160)`}><path d="M 120 160 V 45" stroke={fg} strokeWidth="4"/><rect x="108" y="60" width="24" height="30" rx="3" fill={accent} stroke={fg} strokeWidth="2"/></g><circle cx="120" cy="160" r="10" fill={fg}/></svg></div>
+      <div style={{ position: "absolute", bottom: "8%", height: "15%", left: "8%", right: "8%", display: "flex", gap: "2cqmin", alignItems: "flex-end", borderBottom: `1px solid ${fg}` }}>{Array.from({ length: wide ? 12 : 8 }, (_, i) => <span key={i} style={{ flex: 1, height: `${25 + Math.pow(1 - ((beat - i / 8) - Math.floor(beat - i / 8)), 3) * 70}%`, background: i % 3 === 0 ? accent : fg }}/>)}</div>
+    </>}
+    {kind === "tessera" && <>
+      <div style={{ position: "absolute", right: "8%", top: "9%", width: wide ? "34cqmin" : "48cqmin", height: wide ? "34cqmin" : "48cqmin" }}><svg viewBox="0 0 400 400" width="100%" height="100%" aria-hidden>{[0, 1, 2, 3].map((i) => {
+        const step = Math.max(0, time * 0.5 - i * 0.25), fraction = step % 1;
+        const turn = (Math.floor(step) + 1 - Math.pow(1 - Math.min(1, fraction / 0.5), 4)) * 90;
+        return <g key={i} transform={`translate(${i % 2 * 200 + 100} ${Math.floor(i / 2) * 200 + 100})`}><rect x="-94" y="-94" width="188" height="188" rx="5" fill={i === 1 || i === 2 ? accent : fg}/><svg x="-94" y="-94" width="188" height="188" viewBox="-94 -94 188 188" overflow="hidden"><g transform={`rotate(${turn})`}><path d="M -86 -86 H 86 A 172 172 0 0 1 -86 86 Z" fill={bg} opacity="0.8"/><circle cx="43" cy="43" r="24" fill={bg}/></g></svg></g>;
+      })}</svg></div>
+      <div style={{ position: "absolute", bottom: "10%", left: "8%", right: "8%", borderTop: `1px solid ${accent}`, display: "flex", gap: "1cqmin", paddingTop: "2cqmin" }}>{Array.from({ length: 12 }, (_, i) => <span key={i} style={{ flex: 1, height: "1cqmin", background: i <= Math.floor(time * 2) % 12 ? fg : accent, opacity: i <= Math.floor(time * 2) % 12 ? 1 : 0.25 }}/>)}</div>
+    </>}
+  </div>;
+}
+
 /** Square SVG viewports keep circles and tiles undistorted at every video ratio. */
 function PrecisionBackdrop({ kind, palette: [bg, fg, accent], time, aspectRatio }: { kind: "tessera" | "ratchet"; palette: [string, string, string]; time: number; aspectRatio: number }) {
   const landscape = aspectRatio >= 1;
-  const step = time * 1.8;
-  const fraction = step % 1;
+  const step = time * 2;
+  const fraction = step - Math.floor(step);
   const settle = 1 - Math.pow(1 - Math.min(1, fraction / 0.45), 4);
   const rotation = (Math.floor(step) + settle) * 30;
   const cog = Array.from({ length: 64 }, (_, i) => {

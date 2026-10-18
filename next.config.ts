@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   serverExternalPackages: ["puppeteer-core", "@sparticuz/chromium"],
   outputFileTracingIncludes: {
+    "/*": ["./public/music/**/*"],
     "/api/capture": ["./node_modules/@sparticuz/chromium/bin/**/*"],
   },
   partialPrefetching: true,

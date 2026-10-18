@@ -25,6 +25,27 @@ export function campaignPostArt(doc: PostDocument, index: number, tools: Campaig
   const footerNotes = `<path d="M 76 ${h - 190} H 1004" stroke="${fg}" opacity="0.4"/>${label(page.kicker, 76, h - 146, 17, fg, false, 400)}`;
 
   switch (template.layout) {
+    case "kinetik-launch":
+      return `<defs><radialGradient id="${id}violet"><stop stop-color="${accent}" stop-opacity="0.55"/><stop offset="1" stop-color="${bg}" stop-opacity="0"/></radialGradient></defs><ellipse cx="850" cy="${h * 0.54}" rx="800" ry="${h * 0.6}" fill="url(#${id}violet)"/>
+        ${label(page.kicker, 70, 100, 18, accent)}${heading(page.title, "wide", 70, h * 0.17, 940, h * 0.28, page.titleSize * 1.05)}
+        ${body(70, h * 0.49, 850, h * 0.08)}<rect x="70" y="${h * 0.6}" width="940" height="${h * 0.27}" rx="24" fill="${accent}"/>
+        ${photo(image, imageRatio, 80, h * 0.6 + 10, 920, h * 0.27 - 20)}<path d="M 70 ${h * 0.93} H 1010" stroke="${accent}" opacity="0.5"/>`;
+    case "kinetik-guide":
+      return `<defs><linearGradient id="${id}purple" x2="1" y2="1"><stop stop-color="${accent}"/><stop offset="1" stop-color="${bg}"/></linearGradient></defs>
+        <rect x="70" y="90" width="120" height="66" rx="33" fill="${accent}"/>${label(String(index + 1).padStart(2, "0"), 130, 134, 24, bg, true, 90)}${label(page.kicker, 230, 130, 17, fg, false, 770)}
+        ${heading(page.title, "wide", 70, h * 0.25, 940, h * 0.3, page.titleSize * 1.12)}${body(70, h * 0.64, 650, h * 0.13)}${photo(image, imageRatio, 790, h * 0.6, 220, h * 0.15)}
+        <g transform="translate(${-shift},0)"><path d="M 0 ${h * 0.84} H ${total}" stroke="${accent}" stroke-width="3"/></g><circle cx="${w * 0.84}" cy="${h * 0.84}" r="34" fill="url(#${id}purple)" stroke="${accent}"/>
+        <path d="M 891 ${h * 0.84} h 30 m -12 -12 12 12 -12 12" stroke="${fg}" stroke-width="3" fill="none"/>`;
+    case "margin":
+      return `${photo(image, imageRatio, 400, h * 0.08, 610, h * 0.59)}${label(page.kicker, 70, 100, 17, accent, false, 290)}
+        <path d="M 340 ${h * 0.08} V ${h * 0.92}" stroke="${accent}" opacity="0.4"/>${heading(page.title, "serif", 70, h * 0.7, 940, h * 0.15, page.titleSize * 1.15)}${body(400, h * 0.9, 610, h * 0.065)}`;
+    case "placard":
+      return `${heading(page.title.toUpperCase(), "condensed", 65, h * 0.12, 950, h * 0.35, page.titleSize * 1.65)}${label(page.kicker, 65, 85, 17, accent)}
+        ${photo(image, imageRatio, 590, h * 0.59, 425, h * 0.28)}<path d="M 65 ${h * 0.55} H 1015" stroke="${accent}"/>${body(65, h * 0.66, 465, h * 0.18)}`;
+    case "cutline":
+      return `${label(page.kicker, 65, 92, 17, accent)}${photo(image, imageRatio, 0, h * 0.18, 760, h * 0.38, true)}
+        <g transform="translate(${-shift},0)"><path d="M 0 ${h * 0.61} H ${total}" stroke="${accent}" stroke-width="5"/></g><rect x="815" y="${h * 0.18}" width="200" height="${h * 0.38}" fill="${accent}"/>
+        ${heading(page.title, "serif", 65, h * 0.66, 950, h * 0.16, page.titleSize * 1.12)}${body(65, h * 0.89, 900, h * 0.07)}`;
     case "afterhours":
       return `${fullPhoto()}${shade}<rect width="${w}" height="${h}" fill="${bg}" opacity="0.24"/>
         ${label(page.kicker, 540, 118, 19, fg, true)}${heading(page.title.toUpperCase(), "wide", 80, h * 0.31, 920, h * 0.3, page.titleSize * 1.1, fg, true)}

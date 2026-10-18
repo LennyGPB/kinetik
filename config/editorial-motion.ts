@@ -1,5 +1,8 @@
 /** Shared photographic art direction for thumbnails and rendered motion. */
 export const EDITORIAL_MOTION = {
+  broadsheet: { treatment: "press-column", photo: "/post-demos/city.jpg", headline: "MAKE THE NEXT EDITION." },
+  crosscut: { treatment: "diagonal-diptych", photo: "/post-demos/workspace.jpg", headline: "A DIFFERENT ANGLE." },
+  offprint: { treatment: "caption-card", photo: "/post-demos/portrait-2.jpg", headline: "LEAVE YOUR MARK." },
   column: {"treatment":"newsprint","photo":"/post-demos/interior.jpg","headline":"A fresh perspective."},
   aspect: {"treatment":"offset","photo":"/post-demos/portrait-4.jpg","headline":"Make your point of view."},
   patina: {"treatment":"duotone","photo":"/post-demos/desert.jpg","headline":"Beauty in the details."},

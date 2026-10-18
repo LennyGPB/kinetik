@@ -14,7 +14,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { MUSIC_LIBRARY } from "@/config/music";
 import { detectTempo } from "@/lib/audio/tempo";
-import { format, localizeText } from "@/lib/i18n";
+import { format } from "@/lib/i18n";
 import { updateProjectSound } from "@/lib/projects/actions";
 import type { AudioSettings } from "@/lib/projects/scenes";
 import type { EditorProject, EditorVersion } from "@/lib/projects/types";
@@ -47,7 +47,7 @@ export function SoundDialog({
 
   const { media } = project;
   const [mode, setMode] = useState<MusicMode>(media.music ? "upload" : media.musicTrackId ? "library" : "none");
-  const [trackId, setTrackId] = useState(media.musicTrackId ?? MUSIC_LIBRARY[0].id);
+  const [trackId, setTrackId] = useState(media.musicTrackId ?? MUSIC_LIBRARY[0]?.id ?? "");
   const [music, setMusic] = useState<UploadedFile[]>(media.music ? [media.music] : []);
   const [detecting, setDetecting] = useState(false);
   const [volume, setVolume] = useState(audio?.volume ?? 1);
@@ -115,11 +115,11 @@ export function SoundDialog({
             >
               {MUSIC_LIBRARY.map((track) => (
                 <option key={track.id} value={track.id}>
-                  {track.title} · {localizeText(track.mood, t)} · {track.bpm}  {"BPM"}
+                  {track.title} · {track.bpm} BPM
                 </option>
               ))}
             </select>
-            <p className="text-xs text-subtle">{m.libraryNoAudio}</p>
+            <audio key={trackId} src={MUSIC_LIBRARY.find((track) => track.id === trackId)?.src} controls preload="none" className="h-10 w-full" />
           </div>
         )}
 
@@ -161,7 +161,7 @@ export function SoundDialog({
         )}
 
         </fieldset>
-        <AnimatedApply disabled={pending || detecting} onApply={save} onCancel={onClose} onApplyingChange={setApplying} />
+        <AnimatedApply disabled={pending || detecting || (mode === "library" && !trackId)} onApply={save} onCancel={onClose} onApplyingChange={setApplying} />
       </div>
     </Dialog>
   );

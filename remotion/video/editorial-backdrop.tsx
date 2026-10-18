@@ -9,6 +9,25 @@ export function EditorialBackdrop({ treatment, palette, progress = 0, renderPhot
   const [bg, , accent] = palette;
   const full: CSSProperties = { position: "absolute", inset: 0, overflow: "hidden" };
   const photo = (extra: CSSProperties = {}) => renderPhoto({ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${1.04 + progress * 0.045}) translateX(${-progress * 1.2}%)`, ...extra });
+  if (["press-column", "diagonal-diptych", "caption-card"].includes(treatment)) return <div style={{ ...full, background: bg }}>
+    {treatment === "press-column" && <>
+      <div style={{ ...full, inset: "10% 6% 48% 72%", clipPath: `inset(${Math.max(0, 100 - progress * 500)}% 0 0)` }}>{photo({ filter: "grayscale(1)", opacity: 0.85 })}</div>
+      <div style={{ ...full, inset: "66% 6% 8% 6%" }}>{photo({ filter: "grayscale(1)", opacity: 0.8, objectPosition: "center 70%" })}</div>
+      <div style={{ position: "absolute", left: "6%", top: "61%", width: `${30 + progress * 58}%`, height: "0.5%", background: accent }}/>
+      <div style={{ position: "absolute", top: "10%", left: "67%", bottom: "48%", width: 1, background: accent }}/>
+    </>}
+    {treatment === "diagonal-diptych" && <>
+      <div style={{ ...full, inset: "0 0 61% 20%", clipPath: "polygon(18% 0,100% 0,100% 78%,0 100%)", transform: `translateX(${(1 - Math.min(1, progress * 4)) * 12}%)` }}>{photo({ filter: "grayscale(1)", opacity: 0.7 })}</div>
+      <div style={{ ...full, inset: "70% 22% 0 0", clipPath: "polygon(0 18%,100% 0,82% 100%,0 100%)" }}>{photo({ opacity: 0.55, objectPosition: "70% 70%", transform: `scale(1.12) translateX(${progress * 4}%)` })}</div>
+      <div style={{ position: "absolute", right: "6%", top: "72%", height: "19%", width: "0.6%", background: accent, transform: "rotate(12deg)" }}/>
+    </>}
+    {treatment === "caption-card" && <>
+      <div style={{ ...full, inset: "9% 8% 43% 21%", clipPath: `inset(0 ${Math.max(0, 100 - progress * 400)}% 0 0)` }}>{photo({ filter: "grayscale(1)", opacity: 0.75 })}</div>
+      <div style={{ ...full, inset: "7% 6% 45% 23%", border: `1px solid ${accent}`, transform: `translateY(${progress * 2}%)` }}/>
+      <div style={{ position: "absolute", left: "7%", top: "61%", width: `${22 + progress * 30}%`, height: 2, background: accent }}/>
+      <div style={{ position: "absolute", right: "8%", bottom: "9%", width: "8%", height: "1%", background: accent }}/>
+    </>}
+  </div>;
   if (["newsprint", "offset", "duotone", "shutters", "inlay"].includes(treatment)) {
     return <div style={{ ...full, background: bg }}>
       {treatment === "newsprint" && <>

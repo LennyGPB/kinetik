@@ -27,6 +27,7 @@ async function projectMedia(assets: MediaAsset[]) {
   );
   return {
     logoUrl: assets.find((a) => a.type === "LOGO")?.url ?? null,
+    backgroundUrl: assets.find((a) => a.type === "BACKGROUND")?.url ?? null,
     screenUrls: screens.map((a) => a.url),
     screenRatios,
     musicSrc: assets.find((a) => a.type === "MUSIC")?.url ?? null,
@@ -84,7 +85,7 @@ export async function getEditorProject(userId: string, projectId: string): Promi
     include: {
       versions: { orderBy: { number: "asc" } },
       messages: { orderBy: { createdAt: "asc" } },
-      assets: { where: { type: { in: ["LOGO", "SCREEN", "MUSIC"] } }, orderBy: { position: "asc" } },
+      assets: { where: { type: { in: ["LOGO", "SCREEN", "MUSIC", "BACKGROUND"] } }, orderBy: { position: "asc" } },
     },
   });
   if (!project) return null;
@@ -105,6 +106,7 @@ export async function getEditorProject(userId: string, projectId: string): Promi
     brandFonts,
     media: {
       logo: toUploaded(project.assets.find((a) => a.type === "LOGO")),
+      background: toUploaded(project.assets.find((a) => a.type === "BACKGROUND")),
       screens: project.assets.filter((a) => a.type === "SCREEN").map((a) => toUploaded(a)!),
       music: toUploaded(project.assets.find((a) => a.type === "MUSIC")),
       musicTrackId: project.musicTrackId,
@@ -158,7 +160,7 @@ export type BrandKitData = NonNullable<Awaited<ReturnType<typeof getDefaultBrand
 export async function getVideoSource(projectId: string): Promise<VideoSource | null> {
   const project = await db.project.findUnique({
     where: { id: projectId },
-    include: { assets: { where: { type: { in: ["LOGO", "SCREEN", "MUSIC"] } }, orderBy: { position: "asc" }, select: { id: true, type: true, url: true, width: true, height: true } } },
+    include: { assets: { where: { type: { in: ["LOGO", "SCREEN", "MUSIC", "BACKGROUND"] } }, orderBy: { position: "asc" }, select: { id: true, type: true, url: true, width: true, height: true } } },
   });
   if (!project) return null;
   return {
@@ -180,7 +182,7 @@ export async function getSharedVideo(token: string) {
     include: {
       user: { select: { plan: true } },
       versions: { orderBy: { number: "desc" }, take: 1 },
-      assets: { where: { type: { in: ["LOGO", "SCREEN", "MUSIC"] } }, orderBy: { position: "asc" }, select: { id: true, type: true, url: true, width: true, height: true } },
+      assets: { where: { type: { in: ["LOGO", "SCREEN", "MUSIC", "BACKGROUND"] } }, orderBy: { position: "asc" }, select: { id: true, type: true, url: true, width: true, height: true } },
     },
   });
   const version = project?.versions[0];

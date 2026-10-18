@@ -156,7 +156,7 @@ export type Energy = "calm" | "balanced" | "high";
 
 export type Recipe = {
   graphicTreatment?: GraphicMotionKind;
-  editorialLayout?: "column" | "aspect" | "patina" | "interval" | "memento";
+  editorialLayout?: "column" | "aspect" | "patina" | "interval" | "memento" | "broadsheet" | "crosscut" | "offprint";
   photoTreatment?: EditorialTreatment;
   typography: Typography;
   titleAnimation: TitleAnimation;
@@ -236,9 +236,9 @@ export const RECIPES: Record<string, Recipe> = {
   "interval": { ...BASE, editorialLayout: "interval", "photoTreatment":"shutters","typography":"condensed","titleAnimation":"letters","composition":"center","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["shutter","fade"],"effects":[],"direction":"Three offset photographic fragments arranged as alternating steps. Condensed text left-aligned across the middle, clipped photo reveals synchronized with scene changes." },
   "memento": { ...BASE, editorialLayout: "memento", "photoTreatment":"inlay","typography":"serif","titleAnimation":"mask","composition":"center","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["iris","fade"],"effects":[],"direction":"A tilted photographic print with an ivory border in the upper half, a large serif caption below and a fine footer rule. Printed keepsake rather than a full-frame portrait." },
   "torque": { ...BASE, graphicTreatment: "torque", "background":"clean","typography":"condensed","titleAnimation":"flip","composition":"poster","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["curtain","cut"],"effects":[],"direction":"Tilted industrial poster: title and thick perimeter rails rotate -12 degrees. Slanted black notches slide against vermilion rails. Short 1 to 3 word headlines; no repeating wall of words." },
-  "cadence": { ...BASE, graphicTreatment: "cadence", "background":"clean","typography":"sans","titleAnimation":"words","composition":"center","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["cut","cut"],"effects":[],"direction":"Mechanical metronome: a pendulum swings above the headline while six weighted columns bounce independently along the lower edge. Lime and ink, measured beat-driven motion; no full-screen block grid." },
+  "cadence": { ...BASE, graphicTreatment: "cadence", "background":"clean","typography":"sans","titleAnimation":"words","composition":"center","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["track","shutter"],"effects":[],"direction":"Mechanical metronome: a calibrated metronome needle swings above the headline while proportionate columns bounce independently along the lower edge. Lime and ink, measured beat-driven motion; no full-screen block grid." },
   "vector-beat": { ...BASE, graphicTreatment: "vector-beat", "background":"clean","typography":"display","titleAnimation":"letters","composition":"left","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["track","cut"],"effects":[],"direction":"Directional arrow poster: outlined chevrons traverse the upper third, a broad amber return arrow crosses the lower edge and the headline sits in the open central lane. No diagonal stripe wallpaper." },
-  "blackout": { ...BASE, graphicTreatment: "blackout", "background":"clean","typography":"condensed","titleAnimation":"mask","composition":"center","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["shutter","cut"],"effects":[],"direction":"Black optical instrument: a partially occluded lime ellipse above a centered white title, two precision reticles below and one advancing baseline. Preserve empty black space; no pulse-edge frame." },
+  "blackout": { ...BASE, graphicTreatment: "blackout", "background":"clean","typography":"condensed","titleAnimation":"mask","composition":"center","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["shutter","cut"],"effects":[],"direction":"Black optical instrument: a circular lime orbit above a centered white title, two precision reticles below and one advancing baseline. Preserve empty black space; no pulse-edge frame." },
   "voltage": { ...BASE, graphicTreatment: "voltage", "background":"clean","typography":"condensed","titleAnimation":"typewriter","composition":"poster","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["glitch","cut"],"effects":["vignette"],"direction":"Black signal poster: a live orange waveform above a left-aligned white headline, sparse orange brackets and a barcode-like lower register. No starfield or space imagery." },
   cadran: {
     ...BASE, photoTreatment: "gallery", typography: "serif", titleAnimation: "mask", composition: "center", camera: "still",
@@ -274,6 +274,18 @@ export const RECIPES: Record<string, Recipe> = {
     ...BASE, photoTreatment: "masthead", typography: "condensed", titleAnimation: "mask", composition: "center", camera: "still",
     background: "clean", screens: "split", accent: "solid", beatPulse: false, energy: "high", transitions: ["track", "shutter"], effects: [],
     direction: "Moving agency bulletin: monochrome photo strips above and below a dark typographic masthead with vermilion rules. Oversized condensed titles of 2 to 4 words, precise fast reveals. No fabricated statistics.",
+  },
+  broadsheet: {
+    ...BASE, editorialLayout: "broadsheet", photoTreatment: "press-column", typography: "condensed", titleAnimation: "mask", composition: "left", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "high", transitions: ["track", "fold"], effects: [],
+    direction: "Newspaper cover with a top-left condensed headline, narrow side photograph, and a wide lower monochrome crop. Vermilion typesetting rules slide into place. Use 2 to 4 words and imported images. No fabricated statistics.",
+  },
+  crosscut: {
+    ...BASE, editorialLayout: "crosscut", photoTreatment: "diagonal-diptych", typography: "condensed", titleAnimation: "words", composition: "left", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["curtain", "slide"], effects: [],
+    direction: "Two diagonal photographic apertures in opposing corners, a slightly tilted central headline on deep teal, warm coral registration lines. Crop slides in opposite directions; 2 to 4 word titles. No full-height split or central masthead band.",
+  },
+  offprint: {
+    ...BASE, editorialLayout: "offprint", photoTreatment: "caption-card", typography: "sans", titleAnimation: "mask", composition: "left", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["shutter", "track"], effects: [],
+    direction: "An upper photographic proof with offset gold outline and a bottom-left caption card with oversized sans type. The photo mask opens horizontally while caption rules extend. Short direct titles; no centered agency masthead.",
   },
   montage: {
     ...BASE, photoTreatment: "strips", typography: "condensed", titleAnimation: "words", composition: "center", camera: "still",

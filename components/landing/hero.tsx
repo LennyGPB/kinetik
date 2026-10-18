@@ -36,6 +36,8 @@ function AnimatedWords({ text, className, delay = 0, vibrateLastWord = false }: 
 
 export function Hero() {
   const t = useDictionary();
+  const subtitle = t.landing.hero.subtitle;
+  const subtitleBreak = subtitle.indexOf(". ") + 1;
 
   const router = useRouter();
   const [appName, setAppName] = useState("");
@@ -66,7 +68,7 @@ export function Hero() {
 
         <h1 className="mt-6 font-display text-[clamp(2.6rem,9vw,6.5rem)] leading-[0.95] font-extrabold tracking-[-0.045em]">
           <AnimatedWords text={t.landing.hero.titleLine1} className="block" delay={0.1} />
-          <AnimatedWords text={t.landing.hero.titleLine2} className="block whitespace-nowrap font-heading text-[clamp(1rem,5.5vw,4.25rem)] font-extralight text-accent-text" delay={0.25} vibrateLastWord />
+          <AnimatedWords text={t.landing.hero.titleLine2} className="block whitespace-nowrap font-heading text-[clamp(1.25rem,6.2vw,2.5rem)] font-extralight text-accent-text sm:text-[clamp(1rem,5.5vw,4.25rem)]" delay={0.25} vibrateLastWord />
         </h1>
 
         <motion.p
@@ -75,7 +77,7 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: EASE, delay: 0.5 }}
         >
-          {t.landing.hero.subtitle}
+          {subtitleBreak > 0 ? <><span className="block sm:inline">{subtitle.slice(0, subtitleBreak)}</span>{" "}{subtitle.slice(subtitleBreak).trimStart()}</> : subtitle}
         </motion.p>
 
         <motion.form
