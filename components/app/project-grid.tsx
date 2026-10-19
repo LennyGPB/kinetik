@@ -23,6 +23,8 @@ import { formatDate } from "@/lib/utils";
 import { postCopy } from "@/lib/posts/copy";
 import { PostPreview } from "@/components/posts/post-preview";
 import { POST_FORMATS } from "@/config/post-templates";
+import { StorePreview } from "@/components/store/store-preview";
+import { storeCopy } from "@/lib/store/copy";
 
 type Filter = "all" | ProjectStatus;
 
@@ -60,7 +62,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
   const toast = useToast();
 
   const visible = useMemo(() => projects.filter((p) => {
-    const contentKind = p.kind === "POST" ? "POST" : p.videoType === "screen-recording" ? "RECORDING" : "MOTION";
+    const contentKind = p.kind === "POST" || p.kind === "STORE" ? p.kind : p.videoType === "screen-recording" ? "RECORDING" : "MOTION";
     return (filter === "all" || p.status === filter) && (kind === "all" || contentKind === kind);
   }), [filter, kind, projects]);
 
@@ -84,7 +86,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
         </div>
       </div>
 
-      <div className="mt-5 overflow-x-auto"><Segmented label={c.newContent} value={kind} onChange={setKind} options={[{ value: "all", label: c.all }, { value: "MOTION", label: c.motion }, { value: "RECORDING", label: t.locale === "fr" ? "Démos d’écran" : "Screen demos" }, { value: "POST", label: c.posts }]} /></div>
+      <div className="mt-5 overflow-x-auto"><Segmented label={c.newContent} value={kind} onChange={setKind} options={[{ value: "all", label: c.all }, { value: "MOTION", label: c.motion }, { value: "RECORDING", label: t.locale === "fr" ? "Démos d’écran" : "Screen demos" }, { value: "POST", label: c.posts }, { value: "STORE", label: storeCopy(t.locale).kind }]} /></div>
       {visible.length === 0 && <p className="py-12 text-center text-sm text-muted">{c.empty}</p>}
 
       <motion.ul layout className="mt-5 grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -104,7 +106,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
                 <Link href={`/project/${project.id}`} className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-accent">
                   <div className="relative aspect-video overflow-hidden rounded-2xl border border-line bg-surface transition-[border-color] duration-300 group-hover:border-line-strong">
                     <div className="absolute inset-0 transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.03]">
-                      {project.kind === "POST" && project.postDocument ? <div className="flex h-full items-center justify-center" style={{ background: project.postDocument.colors[0] }}><PostPreview document={project.postDocument} appName={project.appName} {...project.postMedia} className="h-full" /></div> : <VideoPlaceholder ratio="fill" palette={visual.palette} scene={visual.scene} label={project.appName} paused={project.status !== "READY"} />}
+                      {project.kind === "STORE" && project.storeDocument ? <div className="flex h-full items-center justify-center gap-2 pt-4" style={{ background: project.storeDocument.colors[0] }}>{project.storeDocument.pages.slice(0, 3).map((page, index) => <StorePreview key={page.id} document={project.storeDocument!} index={index} media={project.postMedia} className="h-[110%] shrink-0 self-start rounded-md shadow-[0_8px_24px_-12px_rgba(0,0,0,0.45)]" />)}</div> : project.kind === "POST" && project.postDocument ? <div className="flex h-full items-center justify-center" style={{ background: project.postDocument.colors[0] }}><PostPreview document={project.postDocument} appName={project.appName} {...project.postMedia} className="h-full" /></div> : <VideoPlaceholder ratio="fill" palette={visual.palette} scene={visual.scene} label={project.appName} paused={project.status !== "READY"} />}
                     </div>
                     {project.status === "GENERATING" && (
                       <div className="absolute inset-0 overflow-hidden bg-black/30">
@@ -122,7 +124,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
                     <div className="min-w-0">
                       <p className="truncate text-[15px] font-medium">{project.name}</p>
                       <p className="mt-0.5 text-[13px] text-subtle">
-                        {project.kind === "POST" ? `${c.posts} · ${project.postDocument?.pages.length ?? 1} ${c.pages.toLowerCase()} · ${project.postDocument ? POST_FORMATS[project.postDocument.format].ratio : ""}` : `${VIDEO_FORMATS[project.format].ratio} · ${project.duration} s`} · {formatDate(project.updatedAt, undefined, t.locale)}
+                        {project.kind === "STORE" ? `${storeCopy(t.locale).kind} · ${project.storeDocument?.pages.length ?? 0}` : project.kind === "POST" ? `${c.posts} · ${project.postDocument?.pages.length ?? 1} ${c.pages.toLowerCase()} · ${project.postDocument ? POST_FORMATS[project.postDocument.format].ratio : ""}` : `${VIDEO_FORMATS[project.format].ratio} · ${project.duration} s`} · {formatDate(project.updatedAt, undefined, t.locale)}
                       </p>
                     </div>
                   </div>

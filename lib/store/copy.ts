@@ -1,0 +1,33 @@
+export function storeCopy(locale: string) {
+  return locale === "fr" ? {
+    kind: "Captures store", short: "Store", create: "Créer mes captures store", intro: "Les images de ta fiche App Store et Google Play. Remplace les écrans, ajuste les textes : on exporte aux bonnes tailles pour chaque store.",
+    appName: "Nom de l’app", brief: "Que fait ton app ?", briefHint: "Pour qui, ce qu’elle permet, ce qui la distingue. L’IA écrit un titre court par capture, tout reste modifiable.", briefPlaceholder: "Une app de to-do pour les indépendants qui…",
+    style: "Style", colors: "Couleurs", logo: "Icône de l’app", screens: "Captures d’écran de ton app", screensHint: "Jusqu’à 8, au format portrait. Elles remplissent les téléphones dans l’ordre ; sans capture, on affiche des écrans d’exemple.",
+    generate: "Générer", generating: "Création de tes captures…", generationCost: "Génération", credits: "crédits", balance: "Solde", low: "Crédits insuffisants",
+    preview: "Aperçu", iphone: "iPhone", android: "Android", banner: "Bannière Play", page: "Capture", pages: "captures", add: "Ajouter une capture", duplicate: "Dupliquer", remove: "Supprimer", left: "Déplacer à gauche", right: "Déplacer à droite",
+    layout: "Mise en page", layouts: { hero: "Ouverture", device: "Un téléphone", duo: "Deux téléphones", features: "Liste d’atouts" }, title: "Titre", subtitle: "Sous-titre", items: "Atouts (un par ligne, 4 max)",
+    screen: "Écran du téléphone", screen2: "Écran du second téléphone", demoScreen: "Écran d’exemple", androidDifferent: "Captures différentes sur Android", androidHint: "Par défaut, Android reprend les écrans iPhone.", replaceScreen: "Remplacer cet écran",
+    bannerTitle: "Titre de la bannière", bannerSubtitle: "Accroche de la bannière", bannerHint: "Image 1024 × 500 obligatoire sur Google Play.",
+    design: "Design", media: "Médias", ai: "IA", export: "Exporter", font: "Typographie", uppercase: "Titres en capitales", name: "Nom du projet",
+    save: "Enregistrer", saving: "Enregistrement…", saved: "Enregistré", unsaved: "Modifications non enregistrées", savedFirst: "Enregistre tes modifications avant de continuer.", back: "Retour",
+    aiLabel: "Modifier les textes avec l’IA", aiHint: "Ex. : des titres plus courts, et parle des freelances.", versions: "Versions", restore: "Restaurer",
+    exportHint: "Un ZIP avec deux dossiers : iPhone (1320 × 2868, la taille 6,9\" demandée par Apple) et Android (1080 × 1920 + la bannière 1024 × 500). PNG sans transparence, prêts à importer.", exportCost: "Export", reexport: "Exports suivants à moitié prix, arrondis au supérieur.", download: "Télécharger le ZIP",
+    max: "8 captures maximum", free: "Édition manuelle gratuite", busy: "Une opération est déjà en cours. Réessaie dans un instant.", error: "L’opération a échoué. Réessaie.", invalid: "Vérifie les champs du formulaire.", conflict: "Une nouvelle version existe. Recharge la page avant de continuer.", exportFailed: "L’export a échoué. Les crédits ont été remboursés.", failed: "La génération a échoué et ses crédits ont été remboursés. Tu peux compléter ce brouillon avec l’éditeur gratuit.", limit: "La bibliothèque est limitée à 8 captures. Remplace-en une dans Médias.",
+    demo: "Écrans d’exemple : importe tes captures pour les voir dans les téléphones.", use: "Utiliser ce style",
+  } : {
+    kind: "Store screenshots", short: "Store", create: "Create my store screenshots", intro: "The images for your App Store and Google Play listing. Swap the screens, adjust the copy: we export at the right size for each store.",
+    appName: "App name", brief: "What does your app do?", briefHint: "Who it’s for, what it does, what sets it apart. AI writes a short caption per screenshot; everything stays editable.", briefPlaceholder: "A to-do app for freelancers that…",
+    style: "Style", colors: "Colours", logo: "App icon", screens: "Screenshots of your app", screensHint: "Up to 8, portrait. They fill the phones in order; without screenshots, sample screens are shown.",
+    generate: "Generate", generating: "Creating your screenshots…", generationCost: "Generation", credits: "credits", balance: "Balance", low: "Not enough credits",
+    preview: "Preview", iphone: "iPhone", android: "Android", banner: "Play banner", page: "Screenshot", pages: "screenshots", add: "Add a screenshot", duplicate: "Duplicate", remove: "Delete", left: "Move left", right: "Move right",
+    layout: "Layout", layouts: { hero: "Opener", device: "One phone", duo: "Two phones", features: "Feature list" }, title: "Title", subtitle: "Subtitle", items: "Features (one per line, max 4)",
+    screen: "Phone screen", screen2: "Second phone screen", demoScreen: "Sample screen", androidDifferent: "Different screenshots on Android", androidHint: "By default, Android reuses the iPhone screens.", replaceScreen: "Replace this screen",
+    bannerTitle: "Banner title", bannerSubtitle: "Banner tagline", bannerHint: "1024 × 500 image, required on Google Play.",
+    design: "Design", media: "Media", ai: "AI", export: "Export", font: "Typography", uppercase: "Uppercase titles", name: "Project name",
+    save: "Save", saving: "Saving…", saved: "Saved", unsaved: "Unsaved changes", savedFirst: "Save your changes before continuing.", back: "Back",
+    aiLabel: "Edit the copy with AI", aiHint: "E.g. shorter titles, and mention freelancers.", versions: "Versions", restore: "Restore",
+    exportHint: "A ZIP with two folders: iPhone (1320 × 2868, the 6.9\" size Apple requires) and Android (1080 × 1920 + the 1024 × 500 banner). Flat PNGs, ready to upload.", exportCost: "Export", reexport: "Subsequent exports are half price, rounded up.", download: "Download ZIP",
+    max: "8 screenshots maximum", free: "Free manual editing", busy: "An operation is already running. Try again in a moment.", error: "The operation failed. Try again.", invalid: "Check the form fields.", conflict: "A newer version exists. Reload the page before continuing.", exportFailed: "Export failed. Your credits were refunded.", failed: "Generation failed and its credits were refunded. You can finish this draft with the free editor.", limit: "The library is limited to 8 screenshots. Replace one in Media.",
+    demo: "Sample screens: upload your screenshots to see them in the phones.", use: "Use this style",
+  };
+}

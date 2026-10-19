@@ -49,7 +49,7 @@ async function VideosContent({ searchParams }: { searchParams: SearchParams }) {
                       <Link href={`/admin/users/${project.user.id}`} className="hover:text-fg hover:underline">
                         {project.user.email}
                       </Link>{" "}
-                      · {project.kind === "POST" ? "Instagram" : `${FORMAT[project.format]} · ${project.duration} s`} · {project._count.renders + project._count.postExports} exports · {formatDate(project.createdAt, undefined, t.locale)}
+                      · {project.kind === "POST" ? "Instagram" : project.kind === "STORE" ? "Store" : `${FORMAT[project.format]} · ${project.duration} s`} · {project._count.renders + project._count.postExports} exports · {formatDate(project.createdAt, undefined, t.locale)}
                     </p>
                   </div>
                   <DeleteProjectButton projectId={project.id} name={project.name} />

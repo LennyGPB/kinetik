@@ -1,12 +1,19 @@
 import React from "react";
 import { logoMotionState, type LogoMotionId } from "../../config/logo-motion";
 import { outlineText } from "../../lib/posts/outline-text";
+import { LogoGlyphArt, isGlyphMotion } from "./logo-word-glyphs";
 
 const pulse = (p: number, start: number, end: number) => p <= start || p >= end ? 0 : Math.sin((p - start) / (end - start) * Math.PI) ** 2;
 const ease = (v: number) => 1 - (1 - Math.max(0, Math.min(1, v))) ** 4;
 
+type WordArtProps = { template: LogoMotionId; text: string; colors: [string, string, string]; time?: number; duration?: number };
+
 /** Frame-driven vectors keep the picker, player and exported video in sync. */
-export function LogoWordArt({ template, text, colors, time = 0, duration = 6 }: { template: LogoMotionId; text: string; colors: [string, string, string]; time?: number; duration?: number }) {
+export function LogoWordArt({ template, ...props }: WordArtProps) {
+  return isGlyphMotion(template) ? <LogoGlyphArt template={template} {...props} /> : <WholeWordArt template={template} {...props} />;
+}
+
+function WholeWordArt({ template, text, colors, time = 0, duration = 6 }: WordArtProps) {
   const id = `word-${React.useId().replace(/[^\w-]/g, "")}`;
   const { progress: p, inverted } = logoMotionState(time, duration);
   const neon = template === "logo-neon-stack", sliced = template === "logo-slice";

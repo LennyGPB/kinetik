@@ -19,6 +19,13 @@ export const CREDIT_COSTS = {
     edit: 1,
     exportPerImage: 1,
   },
+  /** Captures App Store / Google Play : une page = une capture iPhone + une capture Android (bannière offerte). */
+  store: {
+    generationBase: 3,
+    generationPerPage: 1,
+    edit: 1,
+    exportPerPage: 1,
+  },
   export: {
     /** Durée max (s) pour le tarif réduit */
     shortMaxSeconds: 30,
@@ -40,6 +47,20 @@ export function getPostGenerationCost(count: number) {
 
 export function getPostExportCost(count: number, reexport = false) {
   const full = checkedPostCount(count) * CREDIT_COSTS.post.exportPerImage;
+  return reexport ? Math.ceil(full / 2) : full;
+}
+
+function checkedStorePages(count: number) {
+  if (!Number.isInteger(count) || count < 1 || count > 8) throw new Error("invalid_store_count");
+  return count;
+}
+
+export function getStoreGenerationCost(count: number) {
+  return CREDIT_COSTS.store.generationBase + checkedStorePages(count) * CREDIT_COSTS.store.generationPerPage;
+}
+
+export function getStoreExportCost(count: number, reexport = false) {
+  const full = checkedStorePages(count) * CREDIT_COSTS.store.exportPerPage;
   return reexport ? Math.ceil(full / 2) : full;
 }
 

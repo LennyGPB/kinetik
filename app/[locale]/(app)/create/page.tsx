@@ -5,6 +5,7 @@ import { PageSkeleton } from "@/components/app/page-skeleton";
 import { MotionCreateFlow } from "@/components/create/motion-create-flow";
 import { RecordingCreate } from "@/components/recordings/recording-create";
 import { PostForm } from "@/components/posts/post-form";
+import { StoreForm } from "@/components/store/store-form";
 import { requireUser } from "@/lib/auth/dal";
 import { getCreditBalance } from "@/lib/credits/ledger";
 
@@ -19,10 +20,10 @@ async function CreateContent({ searchParams }: { searchParams: PageProps<"/[loca
   const [params, balance, brandKit] = await Promise.all([searchParams, getCreditBalance(user.id), getDefaultBrandKit(user.id)]);
   const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
-  const kind = first(params.kind) === "recording" ? "recording" : first(params.kind) === "post" ? "post" : "motion";
+  const kind = first(params.kind) === "recording" ? "recording" : first(params.kind) === "post" ? "post" : first(params.kind) === "store" ? "store" : "motion";
   return (
     <div className="mx-auto max-w-6xl">
-    {kind === "recording" ? <RecordingCreate balance={balance.total} /> : kind === "post" ? <PostForm balance={balance.total} brandKit={brandKit} initialAppName={first(params.app)?.slice(0, 40)} initialStyleId={first(params.style)} /> :
+    {kind === "recording" ? <RecordingCreate balance={balance.total} /> : kind === "store" ? <StoreForm balance={balance.total} brandKit={brandKit} initialAppName={first(params.app)?.slice(0, 30)} initialStyleId={first(params.style)} /> : kind === "post" ? <PostForm balance={balance.total} brandKit={brandKit} initialAppName={first(params.app)?.slice(0, 40)} initialStyleId={first(params.style)} /> :
     <MotionCreateFlow
       balance={balance.total}
       brandKit={brandKit}

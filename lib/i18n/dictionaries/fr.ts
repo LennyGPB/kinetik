@@ -57,7 +57,6 @@ export const fr = {
     formats: "Formats",
     pricing: "Tarifs",
     support: "Support",
-    faq: "FAQ",
   },
 
   styleCategories: {
@@ -69,12 +68,25 @@ export const fr = {
     bold: "Bold",
     fun: "Fun",
     business: "Business",
+    logo: "Signature",
   },
 
   styles: {
     "logo-neon-stack": "Texte seul en relief, couleurs néon et rotation en perspective.",
     "logo-slice": "Un mot se découpe en bandes, glisse et se recompose.",
     "logo-liquid": "Lettrage souple qui se déforme puis reprend sa forme.",
+    "logo-rise": "Lettres qui surgissent d’un masque avec flou de mouvement, filet d’accent et vague.",
+    "logo-trace": "Contour dessiné au trait doré, remplissage puis reflet lumineux.",
+    "logo-wipe": "Révélation par bloc de couleur, puis passage d’une bande qui inverse le texte.",
+    "logo-focus": "Mise au point cinéma : lettres floues qui se resserrent, puis flare lumineux.",
+    "logo-flip": "Lettres qui basculent comme un tableau d’affichage à palettes.",
+    "logo-echo": "Mot répété en contours au-dessus et en dessous, qui s’ouvre et se replie.",
+    "logo-decode": "Lettres décodées une à une, façon terminal, avec curseur clignotant.",
+    "logo-drop": "Lettres qui tombent et rebondissent avec écrasement et ombres.",
+    "logo-mosaic": "Mot reconstruit pixel par pixel, avec éclats de couleur.",
+    "logo-coil": "Mot enroulé sur une roue qui se déroule puis se recourbe.",
+    "logo-impact": "Mot qui s’écrase avec secousse, onde de choc et lignes de vitesse.",
+    "logo-neon": "Enseigne néon qui grésille, s’allume et vacille.",
     lucent: "Tuiles sombres, éclairs lumineux et reflets orange, violet et or qui évoluent en douceur.",
     "bold-orbit": "Orbite minimaliste sur fond noir, points fins et impulsion rose lumineuse.",
     "gold-rush": "Affiche rouge et noire, typographie dorée extrudée et rotation en perspective.",
@@ -164,12 +176,18 @@ export const fr = {
   landing: {
     hero: {
       badge: "Nouveau · Sync musicale automatique",
-      titleLine1: "Ton app mérite",
-      titleLine2: "une vidéo qui bouge.",
+      titleLine1: "Ta marque mérite",
+      /** Second line of the headline, cycled with a vibrating swap. */
+      titleRotations: [
+        "une vidéo qui bouge.",
+        "une signature animée.",
+        "des posts qui captent.",
+        "des visuels App Store qui convertissent.",
+        "une démo montée pour toi.",
+      ],
       subtitle:
-        "Tes visuels, une vidéo. Ajuste par chat, exporte en MP4.",
-      promptPlaceholder: "Nom de ton app…",
-      promptCta: "Générer ma vidéo",
+        "Vidéos, signatures animées, posts et visuels App Store.",
+      promptCta: "Commencer gratuitement",
       secondaryCta: "Voir les styles",
       trust: "30 crédits offerts · Sans carte bancaire",
       previewLabel: "Aperçu généré par Kinetik",
@@ -298,36 +316,6 @@ export const fr = {
         exportShort: "Export ≤ 30 s",
         exportLong: "Export > 30 s",
       },
-    },
-    faq: {
-      eyebrow: "FAQ",
-      title: "Questions fréquentes",
-      items: [
-        {
-          q: "Combien de temps prend la génération d'une vidéo ?",
-          a: "Le premier jet est prêt en quelques minutes. Les modifications via le chat sont appliquées en quelques secondes.",
-        },
-        {
-          q: "Mon logo et mes screens seront-ils modifiés ?",
-          a: "Jamais. Kinetik anime tes assets (déplacement, zoom, masques) mais ne les déforme, ne les recadre et ne les régénère pas. Ta marque reste intacte.",
-        },
-        {
-          q: "Comment fonctionnent les crédits ?",
-          a: "Générer une vidéo coûte 10 crédits, chaque modification par chat 2 crédits, et l'export 5 ou 10 crédits selon la durée et la qualité (moitié prix pour un nouvel export de la même vidéo). Le montage dans l'éditeur est gratuit. Les crédits d'abonnement sont rechargés chaque mois et ceux non utilisés expirent à la fin du mois ; ceux des packs n'expirent jamais.",
-        },
-        {
-          q: "Puis-je utiliser ma propre musique ?",
-          a: "Oui. Upload ton fichier ou choisis dans notre bibliothèque libre de droits : Kinetik détecte le tempo et synchronise les animations.",
-        },
-        {
-          q: "Les vidéos m'appartiennent-elles ?",
-          a: "Oui, tu peux utiliser tes exports partout, y compris à des fins commerciales. Le plan gratuit ajoute simplement un filigrane.",
-        },
-        {
-          q: "Quels formats puis-je exporter ?",
-          a: "MP4 en 16:9, 9:16 et 1:1, en 720p. La 1080p est disponible avec le plan Pro.",
-        },
-      ],
     },
     finalCta: {
       title: "Ta prochaine vidéo de lancement est à 2 minutes.",
@@ -1015,8 +1003,6 @@ export const fr = {
     metaTitle: "Support",
     title: "Comment pouvons-nous t'aider ?",
     subtitle: "Une question, un bug, un souci de facturation ? Écris-nous, on te répond par email, en général sous 24 h.",
-    faqTitle: "Consulte la FAQ",
-    faqBody: "Les questions les plus fréquentes y ont déjà leur réponse.",
     emailTitle: "Tu préfères l'email ?",
     name: "Nom",
     namePlaceholder: "Léa Martin",

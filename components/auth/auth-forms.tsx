@@ -19,13 +19,13 @@ import type { AuthFormState } from "@/lib/auth/validation";
 import { OAuthButtons } from "./oauth-buttons";
 import { PasswordInput } from "./password-input";
 
-/** Après inscription depuis la landing (nom d'app / style choisi), on enchaîne sur /create. */
+/** Après inscription depuis la landing (type de contenu / style choisi), on enchaîne sur /create. */
 function useRedirectTarget() {
   const params = useSearchParams();
   const explicit = params.get("redirectTo");
   if (explicit) return explicit;
   const forward = new URLSearchParams();
-  for (const key of ["app", "style"]) {
+  for (const key of ["kind", "app", "style"]) {
     const value = params.get(key);
     if (value) forward.set(key, value);
   }

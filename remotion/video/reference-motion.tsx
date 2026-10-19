@@ -36,23 +36,36 @@ export function ReferenceBackdrop({ kind, palette: [bg, main, accent], time, asp
   </div>;
 }
 
+const mix = (a: string, b: string, k: number) => "#" + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - k) + parseInt(b.slice(i, i + 2), 16) * k).toString(16).padStart(2, "0")).join("");
+
 /** Vector letter outlines avoid browser-dependent background-clip/text and 3D text rasterization. */
 export function MetalTitle({ text, time, style }: { text: string; time: number; style?: CSSProperties }) {
   const instance = React.useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const { turn, settle } = referenceMotionTiming(time);
   const height = metalTitleHeight(text);
   const shape = outlineText(text.toUpperCase(), "condensed", 30, 10, 900, height - 65, 260, "currentColor", true).replace('<g fill="currentColor"', '<g');
-  const glyph = `metal-${instance}`, gold = `gold-${instance}`;
-  return <div style={{ position: "relative", width: style?.maxWidth ?? "100%", maxWidth: "100%", transform: `perspective(1100px) rotateX(${7 + Math.sin(time * .6) * 3}deg) rotateY(${turn * .65}deg) rotateZ(-5deg) scale(${.9 + settle * .1})` }}>
+  const glyph = `metal-${instance}`, gold = `gold-${instance}`, rim = `rim-${instance}`, spec = `spec-${instance}`, soft = `soft-${instance}`;
+  const tilt = 7 + Math.sin(time * .6) * 3, yaw = turn * .65;
+  // The extrusion follows the camera: turning one way reveals the opposite flank, tilting back shows more of the underside.
+  const depth = 40, layers = 34;
+  const dx = depth * (.42 - Math.sin(yaw * Math.PI / 180) * 1.3), dy = depth * (.72 + Math.sin(tilt * Math.PI / 180) * .9);
+  const sweep = ((Math.max(0, time) * .32) % 1.7 - .35) * 1000;
+  return <div style={{ position: "relative", width: style?.maxWidth ?? "100%", maxWidth: "100%", transform: `perspective(1100px) rotateX(${tilt}deg) rotateY(${yaw}deg) rotateZ(-5deg) scale(${.9 + settle * .1})` }}>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox={`0 0 1000 ${height}`} width="1000" height={height} role="img" aria-label={text} style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }}>
       <defs>
         <g id={glyph} dangerouslySetInnerHTML={{ __html: shape }} />
         <linearGradient id={gold} x1="0%" y1="0%" x2="100%" y2="100%" gradientTransform={`rotate(${turn} .5 .5)`}>
           <stop stopColor="#e2a944"/><stop offset=".18" stopColor="#fff4bd"/><stop offset=".3" stopColor="#d5a343"/><stop offset=".46" stopColor="#805319"/><stop offset=".63" stopColor="#f9d77b"/><stop offset=".79" stopColor="#fff5c7"/><stop offset="1" stopColor="#b37b20"/>
         </linearGradient>
+        <linearGradient id={rim} x1="0%" y1="0%" x2="30%" y2="100%"><stop stopColor="#fffbe6"/><stop offset=".45" stopColor="#f2c766"/><stop offset="1" stopColor="#6e4511"/></linearGradient>
+        <linearGradient id={spec} gradientUnits="userSpaceOnUse" x1={sweep - 140} y1="0" x2={sweep + 60} y2={height * .6}><stop stopColor="#ffffff" stopOpacity="0"/><stop offset=".5" stopColor="#ffffff" stopOpacity=".8"/><stop offset="1" stopColor="#ffffff" stopOpacity="0"/></linearGradient>
+        <filter id={soft} x="-10%" y="-20%" width="120%" height="140%"><feGaussianBlur stdDeviation="9"/></filter>
       </defs>
-      {Array.from({ length: 18 }, (_, i) => <use key={i} href={`#${glyph}`} aria-hidden="true" fill={i % 3 === 0 ? "#79541a" : "#30210b"} stroke="#8f641d" strokeWidth=".7" transform={`translate(${(18 - i) * 1.4} ${(18 - i) * 1.6})`} />)}
+      <use href={`#${glyph}`} aria-hidden="true" fill="#000000" opacity=".3" filter={`url(#${soft})`} transform={`translate(${dx * 1.25} ${dy * 1.3})`} />
+      {Array.from({ length: layers }, (_, i) => { const k = 1 - i / layers; const shade = mix("#1a0f04", "#9c6a1f", (1 - k) ** 1.6); return <use key={i} href={`#${glyph}`} aria-hidden="true" fill={shade} stroke={shade} strokeWidth="1.4" strokeLinejoin="round" transform={`translate(${(dx * k).toFixed(2)} ${(dy * k).toFixed(2)})`} />; })}
+      <use href={`#${glyph}`} aria-hidden="true" fill="none" stroke={`url(#${rim})`} strokeWidth="5" strokeLinejoin="round" />
       <use href={`#${glyph}`} fill={`url(#${gold})`} />
+      <use href={`#${glyph}`} aria-hidden="true" fill={`url(#${spec})`} />
     </svg>
   </div>;
 }

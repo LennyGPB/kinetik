@@ -1,6 +1,6 @@
-/** Small uncompressed ZIP writer; PNG/JPEG are already compressed. UTF-8 names, bounded to five images. */
-export function imageZip(files: { name: string; data: Buffer }[]) {
-  if (files.length < 1 || files.length > 5) throw new Error("invalid_archive");
+/** Small uncompressed ZIP writer; PNG/JPEG are already compressed. UTF-8 names ("folder/file.png" creates folders), bounded file count. */
+export function imageZip(files: { name: string; data: Buffer }[], max = 5) {
+  if (files.length < 1 || files.length > max) throw new Error("invalid_archive");
   const parts: Buffer[] = [];
   const directory: Buffer[] = [];
   let offset = 0;

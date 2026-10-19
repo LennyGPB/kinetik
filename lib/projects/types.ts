@@ -10,6 +10,7 @@ export type ProjectCard = {
   kind?: string;
   postDocument?: import("@/lib/posts/document").PostDocument;
   postMedia?: { logoUrl: string | null; screenUrls: string[]; screenRatios?: (number | null)[] };
+  storeDocument?: import("@/lib/store/document").StoreDocument;
   id: string;
   name: string;
   appName: string;

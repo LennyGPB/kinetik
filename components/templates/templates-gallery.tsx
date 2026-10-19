@@ -21,6 +21,8 @@ import { demoVideoProps } from "@/lib/projects/demo-video";
 import { cn } from "@/lib/utils";
 import { TemplateHoverPreview } from "@/components/media/template-hover-preview";
 import { PostTemplateGallery } from "@/components/posts/post-template-gallery";
+import { StoreTemplateGallery } from "@/components/store/store-template-gallery";
+import { storeCopy } from "@/lib/store/copy";
 import { postCopy } from "@/lib/posts/copy";
 
 type Filter = StyleCategory | "all";
@@ -37,21 +39,22 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
   const [applying, setApplying] = useState(false);
 
   const [filter, setFilter] = useState<Filter>("all");
-  const [kind, setKind] = useState<"motion" | "post">("motion");
+  const [kind, setKind] = useState<"motion" | "logo" | "post" | "store">("motion");
   const [open, setOpen] = useState<VideoStyle | null>(null);
   const [videoFormat, setVideoFormat] = useState<VideoFormatId>("LANDSCAPE");
   const closePreview = useCallback(() => { if (!applying) setOpen(null); }, [applying]);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const startHover = (id: string) => setPlayingId(id);
   const endHover = () => setPlayingId(null);
-  const styles = VIDEO_STYLES.filter((style) => !getLogoMotion(style.id) && (filter === "all" || style.category === filter));
+  // Logo motions have their own creation flow: they get their own tab, and are never offered while picking a style in the classic wizard.
+  const styles = VIDEO_STYLES.filter((style) => kind === "logo" ? Boolean(getLogoMotion(style.id)) : !getLogoMotion(style.id) && (filter === "all" || style.category === filter));
 
   return (
     <div>
-      {!onSelect && <div className="mb-6"><Segmented label={postCopy(t.locale).newContent} value={kind} onChange={(value) => { endHover(); setKind(value); }} options={[{ value: "motion", label: postCopy(t.locale).motion }, { value: "post", label: postCopy(t.locale).posts }]} /></div>}
-      {kind === "post" ? <PostTemplateGallery /> : <>
+      {!onSelect && <div className="mb-6"><Segmented label={postCopy(t.locale).newContent} value={kind} onChange={(value) => { endHover(); setKind(value); }} options={[{ value: "motion", label: postCopy(t.locale).motion }, { value: "logo", label: t.styleCategories.logo }, { value: "post", label: postCopy(t.locale).posts }, { value: "store", label: storeCopy(t.locale).kind }]} /></div>}
+      {kind === "store" ? <StoreTemplateGallery /> : kind === "post" ? <PostTemplateGallery /> : <>
       <div className={cn("flex flex-col gap-4", !compact && "sm:flex-row sm:items-center sm:justify-between")}>
-        <div className="-mx-4 overflow-x-auto px-4 scrollbar-none sm:mx-0 sm:px-0">
+        {kind === "logo" ? <span /> : <div className="-mx-4 overflow-x-auto px-4 scrollbar-none sm:mx-0 sm:px-0">
           <Segmented
             label={tt.title}
             size="sm"
@@ -59,7 +62,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
             onChange={(value) => { endHover(); setFilter(value); }}
             options={(["all", ...STYLE_CATEGORIES] as Filter[]).map((value) => ({ value, label: t.styleCategories[value] }))}
           />
-        </div>
+        </div>}
         <p className="text-sm text-subtle">{format(tt.count, { count: styles.length })}</p>
       </div>
 
@@ -84,7 +87,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
                 onBlur={endHover}
                 className={cn("relative block aspect-[2/3] w-full cursor-pointer overflow-hidden rounded-2xl text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent", selectedId === style.id && "ring-2 ring-accent")}
               >
-                <VideoPlaceholder ratio="fill" palette={style.palette} templateId={style.id} scene={style.recipe.background} label={style.name.split(" ")[0]} />
+                <VideoPlaceholder ratio="fill" palette={style.palette} templateId={style.id} scene={style.recipe.background} label={getLogoMotion(style.id) ? undefined : style.name.split(" ")[0]} />
                 {playingId === style.id && <TemplateHoverPreview style={style} locale={t.locale} />}
                 {selectedId === style.id && <span className="absolute top-3 right-3 grid size-7 place-items-center rounded-full bg-accent text-accent-fg"><Check className="size-4" aria-hidden /></span>}
               </button>
@@ -103,7 +106,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
         {open && (
           <div className="flex flex-col gap-5">
             <fieldset disabled={applying} className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
-              <div className="flex items-center gap-3"><Badge tone="accent">{t.styleCategories[open.category]}</Badge><span className="flex gap-1.5" aria-hidden>{open.palette.map((color, index) => <span key={index} className="size-4 rounded-full ring-1 ring-white/20" style={{ background: color }} />)}</span></div>
+              <div className="flex items-center gap-3"><Badge tone="accent">{t.styleCategories[getLogoMotion(open.id) ? "logo" : open.category]}</Badge><span className="flex gap-1.5" aria-hidden>{open.palette.map((color, index) => <span key={index} className="size-4 rounded-full ring-1 ring-white/20" style={{ background: color }} />)}</span></div>
               <Segmented
                 label={tt.format}
                 size="sm"

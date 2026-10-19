@@ -1,3 +1,4 @@
+import React from "react";
 import type { GraphicMotionKind } from "../../config/graphic-motion";
 
 /** Authored graphics, shared by catalogue thumbnails and frame-driven renders. */
@@ -75,14 +76,7 @@ function RefinedGraphic({ kind, palette: [bg, fg, accent], time, aspectRatio }: 
       {["8%", "80%"].map((left, i) => <div key={left} style={{ position: "absolute", left, bottom: "16%", width: "12cqmin", height: "12cqmin" }}><svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden><circle cx="50" cy="50" r={36 + pulse * 5} fill="none" stroke={accent} strokeWidth="1"/><g transform={`rotate(${i ? -45 : 0} 50 50)`}><path d="M 30 50 H 70 M 50 30 V 70" fill="none" stroke={fg} strokeWidth="2"/></g></svg></div>)}
       <div style={{ position: "absolute", left: "8%", right: "8%", bottom: "11%", height: 1, background: `${fg}55` }}><div style={{ height: 2, width: `${15 + (time * 18) % 85}%`, background: accent }}/></div>
     </>}
-    {kind === "anvil" && <>
-      {[false, true].map((bottom) => <div key={String(bottom)} style={{ position: "absolute", left: "7%", right: "7%", ...(bottom ? { bottom: "9%" } : { top: "10%" }), height: "18%", transform: `translateY(${(bottom ? -1 : 1) * pulse * 1.4}cqmin)` }}>
-        <div style={{ position: "absolute", inset: 0, background: fg, clipPath: bottom ? "polygon(12% 0,88% 0,88% 20%,100% 20%,100% 100%,0 100%,0 20%,12% 20%)" : "polygon(0 0,100% 0,100% 80%,88% 80%,88% 100%,12% 100%,12% 80%,0 80%)" }}/>
-        <div style={{ position: "absolute", left: "15%", right: "15%", height: "0.8cqmin", background: accent, ...(bottom ? { top: "-12%" } : { bottom: "-12%" }) }}/>
-        <div style={{ position: "absolute", inset: "30% 13%", display: "flex", justifyContent: "space-between", alignItems: "center" }}>{[0, 1, 2].map((i) => <span key={i} style={{ width: "4cqmin", height: "0.8cqmin", background: bg, opacity: 0.65 }}/>)}</div>
-      </div>)}
-      <div style={{ position: "absolute", left: "4%", top: "34%", bottom: "34%", width: 1, background: accent, opacity: 0.6 }}/><div style={{ position: "absolute", right: "4%", top: "34%", bottom: "34%", width: 1, background: accent, opacity: 0.6 }}/>
-    </>}
+    {kind === "anvil" && <AnvilPress palette={[bg, fg, accent]} time={time} aspectRatio={aspectRatio} />}
     {kind === "cadence" && <>
       <div style={{ position: "absolute", top: "8%", left: "calc(50% - 17cqmin)", width: "34cqmin", height: "34cqmin" }}><svg viewBox="0 0 240 240" width="100%" height="100%" aria-hidden><path d="M 32 190 A 100 100 0 0 1 208 190" fill="none" stroke={fg} strokeWidth="2" opacity="0.5"/>{Array.from({ length: 9 }, (_, i) => <path key={i} d="M 120 22 V 35" stroke={fg} strokeWidth="2" transform={`rotate(${-64 + i * 16} 120 120)`}/>)}<g transform={`rotate(${Math.cos(time * Math.PI * 2) * 46} 120 160)`}><path d="M 120 160 V 45" stroke={fg} strokeWidth="4"/><rect x="108" y="60" width="24" height="30" rx="3" fill={accent} stroke={fg} strokeWidth="2"/></g><circle cx="120" cy="160" r="10" fill={fg}/></svg></div>
       <div style={{ position: "absolute", bottom: "8%", height: "15%", left: "8%", right: "8%", display: "flex", gap: "2cqmin", alignItems: "flex-end", borderBottom: `1px solid ${fg}` }}>{Array.from({ length: wide ? 12 : 8 }, (_, i) => <span key={i} style={{ flex: 1, height: `${25 + Math.pow(1 - ((beat - i / 8) - Math.floor(beat - i / 8)), 3) * 70}%`, background: i % 3 === 0 ? accent : fg }}/>)}</div>
@@ -138,4 +132,49 @@ function PrecisionBackdrop({ kind, palette: [bg, fg, accent], time, aspectRatio 
       <div style={{ position: "absolute", left: "9%", bottom: "9%", display: "flex", gap: "1.6cqmin" }}>{Array.from({ length: 8 }, (_, i) => <span key={i} style={{ display: "block", width: "3cqmin", height: "1cqmin", background: i === Math.floor(step) % 8 ? fg : accent, opacity: i === Math.floor(step) % 8 ? 1 : 0.3 }} />)}</div>
     </>}
   </div>;
+}
+
+const easeInOut = (v: number) => (v = Math.max(0, Math.min(1, v))) < .5 ? 4 * v ** 3 : 1 - (-2 * v + 2) ** 3 / 2;
+const hash = (a: number, b = 0) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
+
+/**
+ * Anvil — a hydraulic press: heavy jaws on piston rods slam toward the reading window (accelerating),
+ * hit with a shake, sparks and a flash on the edge, then retract slowly. One press every two beats.
+ */
+function AnvilPress({ palette: [bg, fg, accent], time, aspectRatio }: { palette: [string, string, string]; time: number; aspectRatio: number }) {
+  const id = `anvil-${React.useId().replace(/[^w-]/g, "")}`;
+  const W = 1000, H = W / aspectRatio, wide = aspectRatio >= 1;
+  const intro = 1 - (1 - Math.min(1, Math.max(0, time) / .7)) ** 4;
+  const cycle = Math.max(0, time - .2), phase = cycle % 1, hitAt = .18;
+  const slam = phase < hitAt ? (phase / hitAt) ** 3 : phase < .3 ? 1 : 1 - easeInOut((phase - .3) / .7);
+  const since = phase - hitAt, impact = cycle >= hitAt && since >= 0 ? Math.exp(-since * 14) : 0;
+  const jawH = H * (wide ? .2 : .17), top = H * (wide ? .05 : .09), nose = jawH * .24, bodyH = jawH - nose;
+  const L = W * .07, R = W * .93, noseL = L + (R - L) * .12, noseR = R - (R - L) * .12;
+  const travel = H * .045 * slam, enter = (1 - intro) * (top + jawH + 60), shake = impact * H * .007 * Math.sin(time * 95);
+  const offset = top + travel - enter + shake, edge = offset + jawH;
+  const stripe = nose * .42, stripeY = bodyH + nose * .2;
+  const jaw = <>
+    {[.2, .8].map((x) => <g key={x}><rect x={W * x - 15} y={-H} width="30" height={H + 2} fill={fg} /><rect x={W * x - 8} y={-H} width="4" height={H} fill={bg} opacity=".25" /></g>)}
+    <path d={`M${L} 0H${R}V${bodyH}H${noseR}V${jawH}H${noseL}V${bodyH}H${L}Z`} fill={fg} />
+    <rect x={L} y={bodyH - nose * .22} width={noseL - L} height={nose * .22} fill={bg} opacity=".14" /><rect x={noseR} y={bodyH - nose * .22} width={R - noseR} height={nose * .22} fill={bg} opacity=".14" />
+    <rect x={noseL} y={jawH - nose * .26} width={noseR - noseL} height={nose * .26} fill={bg} opacity=".2" />
+    <g clipPath={`url(#${id}-hazard)`}>{Array.from({ length: Math.ceil((noseR - noseL) / 36) + 2 }, (_, k) => <path key={k} d={`M${noseL + k * 36 - stripe} ${stripeY + stripe}L${noseL + k * 36} ${stripeY}h18L${noseL + k * 36 + 18 - stripe} ${stripeY + stripe}Z`} fill={accent} />)}</g>
+    {Array.from({ length: 8 }, (_, k) => { const x = L + (R - L) * (k + .5) / 8; return <g key={k}><circle cx={x} cy={bodyH * .45} r={jawH * .055} fill={bg} opacity=".3" /><circle cx={x} cy={bodyH * .45} r={jawH * .022} fill={fg} /></g>; })}
+    <rect x={noseL} y={jawH - 3} width={noseR - noseL} height="6" fill={accent} opacity={impact} />
+  </>;
+  const sparks = cycle >= hitAt && since < .4 ? [-1, 1].flatMap((side) => [-1, 1].flatMap((vertical) => Array.from({ length: 7 }, (_, k) => {
+    const seed = Math.floor(cycle) * 31 + k + (side + 2) * 7 + (vertical + 2) * 3;
+    const angle = (hash(seed) - .5) * 1.1 + vertical * .3, speed = 260 + hash(seed, 1) * 320;
+    const ox = side < 0 ? noseL : noseR, oy = vertical < 0 ? edge : H - edge;
+    const dx = side * Math.cos(angle), dy = Math.sin(angle);
+    const x = ox + dx * speed * since, y = oy + dy * speed * since + 900 * since * since;
+    return <line key={`${side}${vertical}${k}`} x1={x - dx * speed * .04} y1={y - dy * speed * .04} x2={x} y2={y} stroke={k % 3 ? accent : fg} strokeWidth="3" strokeLinecap="round" opacity={1 - since / .4} />;
+  }))) : null;
+  return <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden>
+    <defs><clipPath id={`${id}-hazard`}><rect x={noseL + nose * .5} y={stripeY} width={noseR - noseL - nose} height={stripe} /></clipPath></defs>
+    <g transform={`translate(0 ${offset})`}>{jaw}</g>
+    <g transform={`translate(0 ${H - offset}) scale(1 -1)`}>{jaw}</g>
+    {sparks}
+    {[W * .04, W * .96].map((x) => <g key={x}><line x1={x} x2={x} y1={H * .34} y2={H * .66} stroke={accent} strokeWidth="2" opacity=".6" /><rect x={x - 7} y={H * .34 + H * .32 * slam * intro - 2} width="14" height="4" fill={accent} /></g>)}
+  </svg>;
 }

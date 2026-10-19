@@ -1,4 +1,3 @@
-import { Faq } from "@/components/landing/faq";
 import { Features } from "@/components/landing/features";
 import { FinalCta } from "@/components/landing/final-cta";
 import { Hero } from "@/components/landing/hero";
@@ -33,7 +32,6 @@ export default function LandingPage() {
         <HowItWorks />
         <Features />
         <Pricing />
-        <Faq />
         <FinalCta />
       </main>
       <SiteFooter />

@@ -90,7 +90,7 @@ export function quickSettingLabel(setting: QuickSetting, locale: Locale = "en") 
   const t = getDictionary(locale);
   const s = t.app.editor.settings;
 switch (setting.kind) {
-    case "logoMotion": return `Logo motion · ${getLogoMotion(setting.value)!.name}`;
+    case "logoMotion": return `Signature · ${getLogoMotion(setting.value)!.name}`;
     case "deviceMockup":
       return `${locale === "fr" ? "Appareil" : "Device"} · ${deviceSpec(setting.value)?.name ?? (locale === "fr" ? "Sans appareil" : "No device")}`;
     case "logoBackground":

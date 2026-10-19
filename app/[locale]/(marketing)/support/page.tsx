@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getLocale } from "next-intl/server";
-import { HelpCircle, Mail } from "lucide-react";
-import Link from "@/lib/i18n/navigation";
+import { Mail } from "lucide-react";
 import { SupportForm } from "@/components/support/support-form";
 import { legalConfig } from "@/config/legal";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
@@ -34,15 +33,6 @@ export default function SupportPage() {
           <p className="mt-3 text-[15px] leading-relaxed text-muted">{s.subtitle}</p>
         </div>
         <ul className="flex flex-col gap-3 text-sm">
-          <li>
-            <Link href="/#faq" className="group flex items-start gap-3 rounded-xl border border-line p-4 transition-colors hover:border-line-strong">
-              <HelpCircle className="mt-0.5 size-4 shrink-0 text-accent-text" />
-              <span>
-                <span className="font-medium text-fg">{s.faqTitle}</span>
-                <span className="mt-0.5 block text-muted">{s.faqBody}</span>
-              </span>
-            </Link>
-          </li>
           <li>
             <a href={`mailto:${legalConfig.contactEmail}`} className="flex items-start gap-3 rounded-xl border border-line p-4 transition-colors hover:border-line-strong">
               <Mail className="mt-0.5 size-4 shrink-0 text-accent-text" />

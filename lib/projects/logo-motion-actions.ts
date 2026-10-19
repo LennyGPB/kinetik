@@ -18,9 +18,9 @@ export async function createLogoMotion(input: LogoMotionInput): Promise<ActionRe
   if (existing) return existing.userId === user.id && existing.videoType === "logo-motion" && existing.status === "READY" ? { ok: true, id: data.requestId, balance: (await getCreditBalance(user.id)).total } : { ok: false, error: "invalid" };
   if (!(await limitKey("generation", user.id, LIMITS.generation.map((rule) => ({ ...rule, strict: true })))).ok) return { ok: false, error: "rate_limited" };
   try {
-    const balance = await spendCredits(user.id, { amount: CREDIT_COSTS.generation, type: "GENERATION", reference: data.requestId, description: `Logo motion · ${data.text.slice(0, 40)}` }, async (tx) => {
+    const balance = await spendCredits(user.id, { amount: CREDIT_COSTS.generation, type: "GENERATION", reference: data.requestId, description: `Signature · ${data.text.slice(0, 40)}` }, async (tx) => {
       await tx.project.create({ data: { id: data.requestId, userId: user.id, kind: "MOTION", videoType: "logo-motion", status: "READY", name: data.text.slice(0, 40), appName: data.text.slice(0, 40), locale: data.locale, format: data.format, duration: data.duration, styleId: data.templateId, colors: data.colors, musicTrackId: data.musicTrackId,
-        versions: { create: { number: 1, scenes: logoMotionGraph(data), label: data.locale === "fr" ? "Logo motion créé" : "Logo motion created" } } } });
+        versions: { create: { number: 1, scenes: logoMotionGraph(data), label: data.locale === "fr" ? "Signature créée" : "Signature created" } } } });
     });
     return { ok: true, id: data.requestId, balance: balance.total };
   } catch (error) {

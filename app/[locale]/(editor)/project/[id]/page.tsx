@@ -13,6 +13,8 @@ import { getEditorProject } from "@/lib/projects/queries";
 import { db } from "@/lib/db";
 import { getPostEditor } from "@/lib/posts/queries";
 import { PostEditor } from "@/components/posts/post-editor";
+import { getStoreEditor } from "@/lib/store/queries";
+import { StoreEditor } from "@/components/store/store-editor";
 
 export const maxDuration = 180;
 
@@ -23,6 +25,11 @@ async function EditorLoader({ params }: { params: PageProps<"/[locale]/project/[
   const user = await requireUser();
   const content = await db.project.findFirst({ where: { id, userId: user.id }, select: { kind: true } });
   if (!content) notFound();
+  if (content.kind === "STORE") {
+    const [store, balance] = await Promise.all([getStoreEditor(user.id, id), getCreditBalance(user.id)]);
+    if (!store || !store.versions.length) notFound();
+    return <StoreEditor key={store.id} project={store} initialBalance={balance.total} watermark={getPlan(user.plan).watermark} />;
+  }
   if (content.kind === "POST") {
     const post = await getPostEditor(user.id, id);
     const balance = await getCreditBalance(user.id);

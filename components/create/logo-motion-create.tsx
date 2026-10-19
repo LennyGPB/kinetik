@@ -49,13 +49,13 @@ export function LogoMotionCreate({ balance, initialAppName, initialStyleId }: { 
     const key = JSON.stringify(input);
     if (request.current?.key !== key) request.current = { key, id: crypto.randomUUID() };
     const result = await createLogoMotion({ ...input, requestId: request.current.id }).catch(() => null);
-    if (!result?.ok) { setError(result?.error === "insufficient_credits" ? fr ? "Tu n’as pas assez de crédits pour créer ce logo motion." : "You don’t have enough credits to create this logo motion." : result?.error === "rate_limited" ? t.app.editor.rateLimited : t.common.error); return; }
+    if (!result?.ok) { setError(result?.error === "insufficient_credits" ? fr ? "Tu n’as pas assez de crédits pour créer cette signature." : "You don’t have enough credits to create this signature." : result?.error === "rate_limited" ? t.app.editor.rateLimited : t.common.error); return; }
     publishCreditBalance(result.balance);
     router.push(`/project/${result.id}`);
     router.refresh();
   });
   return <div className="space-y-7">
-    <div><h1 className="text-2xl font-semibold sm:text-3xl">Logo motion</h1><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">{fr ? "Ton texte, sa signature animée. Change le mot : le mouvement s’adapte tout seul." : "Your text, its animated signature. Change the word and the motion adapts."}</p></div>
+    <div><h1 className="text-2xl font-semibold sm:text-3xl">Signature</h1><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">{fr ? "Ton nom ou ta marque, animé comme un générique. Change le mot : le mouvement s’adapte tout seul." : "Your name or brand, animated like a title sequence. Change the word and the motion adapts."}</p></div>
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
       <fieldset disabled={pending} className="min-w-0 space-y-7 disabled:opacity-60">
         <Field label={fr ? "Quel texte veux-tu animer ?" : "What text would you like to animate?"} htmlFor="logo-motion-text"><Input id="logo-motion-text" value={text} onChange={(event) => setText(event.target.value)} maxLength={48} placeholder={fr ? "Ton nom, ta marque, un mot…" : "Your name, your brand, a word…"} className="h-14 text-lg" /><div className="mt-2 flex justify-between gap-3 text-xs text-muted"><span>{fr ? "Un nom court donne le meilleur résultat." : "A short name gives the best result."}</span><span className="tabular-nums">{text.length}/48</span></div></Field>
@@ -68,7 +68,7 @@ export function LogoMotionCreate({ balance, initialAppName, initialStyleId }: { 
       <div className="min-w-0 space-y-4 lg:sticky lg:top-8"><div className="flex items-center justify-between gap-3 text-xs text-muted"><span>{fr ? "Aperçu en direct" : "Live preview"}</span><span>{template.name} · {duration} s</span></div><div className="mx-auto overflow-hidden rounded-2xl border border-line-strong bg-surface" style={{ maxWidth: format === "PORTRAIT" ? 320 : "100%" }}><Player key={`${templateId}-${duration}`} component={KinetikVideo} inputProps={props} compositionWidth={dimensions.width} compositionHeight={dimensions.height} durationInFrames={duration * FPS} fps={FPS} autoPlay={!reduce} loop controls initiallyMuted style={{ width: "100%", aspectRatio: `${dimensions.width}/${dimensions.height}` }} /></div>
         <p className="text-xs leading-relaxed text-muted">{fr ? "Après la création, tu pourras encore modifier le texte et exporter la vidéo." : "After creation, you can still edit the text and export the video."}</p>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <Button size="lg" variant="purple" className="w-full" loading={pending} disabled={!text.trim() || balance < CREDIT_COSTS.generation} onClick={create}><Sparkles />{fr ? "Créer mon logo motion" : "Create my logo motion"}<ArrowRight /></Button><p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-muted"><Coins className="size-3.5" />{CREDIT_COSTS.generation} {t.common.credits}<span>· {fr ? "Export facturé séparément" : "Export charged separately"}</span></p>
+        <Button size="lg" variant="purple" className="w-full" loading={pending} disabled={!text.trim() || balance < CREDIT_COSTS.generation} onClick={create}><Sparkles />{fr ? "Créer ma signature" : "Create my signature"}<ArrowRight /></Button><p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-muted"><Coins className="size-3.5" />{CREDIT_COSTS.generation} {t.common.credits}<span>· {fr ? "Export facturé séparément" : "Export charged separately"}</span></p>
         {balance < CREDIT_COSTS.generation && <p className="text-center text-xs text-danger">{fr ? "Crédits insuffisants pour la création." : "Not enough credits to create."}</p>}
       </div>
     </div>
