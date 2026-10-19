@@ -2,13 +2,10 @@
 export const EDITORIAL_MOTION = {
   contact: { treatment: "contact-sheet", photo: "/post-demos/team.jpg", headline: "PICK THE RIGHT FRAME." },
   folio: { treatment: "arch-window", photo: "/post-demos/interior.jpg", headline: "Open a new chapter." },
-  lens: { treatment: "lens-ring", photo: "/post-demos/portrait-4.jpg", headline: "Bring it into focus." },
   broadsheet: { treatment: "press-column", photo: "/post-demos/city.jpg", headline: "MAKE THE NEXT EDITION." },
   crosscut: { treatment: "diagonal-diptych", photo: "/post-demos/workspace.jpg", headline: "A DIFFERENT ANGLE." },
-  offprint: { treatment: "caption-card", photo: "/post-demos/portrait-2.jpg", headline: "LEAVE YOUR MARK." },
   column: {"treatment":"newsprint","photo":"/post-demos/interior.jpg","headline":"A fresh perspective."},
   aspect: {"treatment":"offset","photo":"/post-demos/portrait-4.jpg","headline":"Make your point of view."},
-  patina: {"treatment":"duotone","photo":"/post-demos/desert.jpg","headline":"Beauty in the details."},
   interval: {"treatment":"shutters","photo":"/post-demos/city.jpg","headline":"BETWEEN TWO MOMENTS."},
   memento: {"treatment":"inlay","photo":"/post-demos/portrait-2.jpg","headline":"A lasting impression."},
   cadran: { treatment: "gallery", photo: "/post-demos/portrait-2.jpg", headline: "Frame your vision." },
@@ -24,6 +21,8 @@ export const EDITORIAL_MOTION = {
   dispatch: { treatment: "band", photo: "/post-demos/city.jpg", headline: "MAKE SOME NOISE." },
   maison: { treatment: "portrait", photo: "/post-demos/portrait-4.jpg", headline: "A different perspective." },
   oblique: { treatment: "split", photo: "/post-demos/workspace.jpg", headline: "IDEAS IN MOTION." },
+  linea: { treatment: "linea", photo: "/post-demos/interior.jpg", headline: "Less, but better." },
+  slate: { treatment: "slate", photo: "/post-demos/lake.jpg", headline: "Quiet confidence." },
   solstice: { treatment: "warm", photo: "/post-demos/desert.jpg", headline: "Find your own horizon." },
   archive: { treatment: "frames", photo: "/post-demos/portrait-2.jpg", headline: "A story worth telling." },
 } as const;

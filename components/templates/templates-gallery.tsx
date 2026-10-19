@@ -72,11 +72,15 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
             <motion.li
               key={style.id}
               layout
+              // La carte survolée passe devant ses voisines (sa prévisu les recouvre en s’élargissant)
+              className={cn("relative", playingId === style.id && "z-20")}
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: "spring", stiffness: 400, damping: 34 }}
             >
+              {/* Le cadre porte la prévisu : elle déborde de la carte en s’élargissant (le bouton, lui, coupe ce qui dépasse) */}
+              <div className="relative">
               <button
                 type="button"
                 onClick={() => { endHover(); setOpen(style); }}
@@ -88,9 +92,12 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
                 className={cn("relative block aspect-[2/3] w-full cursor-pointer overflow-hidden rounded-2xl text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent", selectedId === style.id && "ring-2 ring-accent")}
               >
                 <VideoPlaceholder ratio="fill" palette={style.palette} templateId={style.id} scene={style.recipe.background} label={getLogoMotion(style.id) ? undefined : style.name.split(" ")[0]} />
-                {playingId === style.id && <TemplateHoverPreview style={style} locale={t.locale} />}
                 {selectedId === style.id && <span className="absolute top-3 right-3 grid size-7 place-items-center rounded-full bg-accent text-accent-fg"><Check className="size-4" aria-hidden /></span>}
               </button>
+              {playingId === style.id && <TemplateHoverPreview style={style} locale={t.locale} grow={1.3} />}
+              </div>
+              {/* Nom du template : les vignettes graphiques montrent un mot d’exemple, pas le nom */}
+              <p className="mt-2 truncate px-1 text-sm font-medium">{style.name}</p>
             </motion.li>
           ))}
         </AnimatePresence>

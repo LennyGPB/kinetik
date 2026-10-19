@@ -3,6 +3,7 @@ import { loadFont as loadBricolage } from "@remotion/google-fonts/BricolageGrote
 import { loadFont as loadInstrumentSerif } from "@remotion/google-fonts/InstrumentSerif";
 import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
 import { loadFont as loadJetBrainsMono } from "@remotion/google-fonts/JetBrainsMono";
+import { loadFont as loadUnbounded } from "@remotion/google-fonts/Unbounded";
 import type { CSSProperties } from "react";
 import type { Typography } from "../../config/recipes";
 
@@ -17,6 +18,8 @@ export const { fontFamily: bodyFont } = loadInter("normal", { weights: ["400", "
 export const { fontFamily: serifFont } = loadInstrumentSerif("normal", { weights: ["400"], ...latin });
 export const { fontFamily: condensedFont } = loadAnton("normal", { weights: ["400"], ...latin });
 export const { fontFamily: monoFont } = loadJetBrainsMono("normal", { weights: ["400", "700"], ...latin });
+/** Grotesque très large, réservée à Noise (template optic). */
+export const { fontFamily: wideFont } = loadUnbounded("normal", { weights: ["800"], ...latin });
 
 export type TypographySpec = {
   /** Style CSS des titres */

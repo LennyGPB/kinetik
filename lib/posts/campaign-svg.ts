@@ -1,7 +1,16 @@
 import { POST_FORMATS, getPostTemplate } from "@/config/post-templates";
 import { isCampaignPost } from "@/config/post-campaigns";
 import type { PostDocument } from "./document";
-import { outlineText, type OutlineFace } from "./outline-text";
+import { outlineGlyphs, outlineText, type OutlineFace } from "./outline-text";
+
+const NEON_GREEN = "#3DFF8F", HYPE_PINK = "#FF3D8B";
+/** Hex mix that falls back to the first colour when either value is not a plain hex. */
+const mixHex = (a: string, b: string, k: number) => /^#[0-9a-f]{6}$/i.test(a) && /^#[0-9a-f]{6}$/i.test(b) ? "#" + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - k) + parseInt(b.slice(i, i + 2), 16) * k).toString(16).padStart(2, "0")).join("") : a;
+/** Rendered size of outlined text, to fit a label box behind it. */
+const measure = (value: string, face: OutlineFace, width: number, height: number, size: number) => {
+  const { glyphs, size: fitted, rows } = outlineGlyphs(value, face, 0, 0, width, height, size);
+  return { width: glyphs.length ? Math.max(...glyphs.map((g) => g.box.x1)) : 0, height: rows * fitted * 1.13 };
+};
 
 export type CampaignTools = {
   id: string; image: string; imageRatio: number;
@@ -22,6 +31,11 @@ export function campaignPostArt(doc: PostDocument, index: number, tools: Campaig
   const heading = (value: string, face: OutlineFace, x: number, y: number, width: number, height: number, size: number, color = fg, center = page.align === "center") => outlineText(value, face, x + page.offsetX, y + page.offsetY, width, height, size, color, center);
   const body = (x: number, y: number, width: number, height: number, center = false) => label(page.body, x, y, 25, fg, center, width, height);
   const words = page.title.trim().split(/\s+/); const ending = words.splice(Math.max(0, words.length - 2)).join(" "); const beginning = words.join(" ");
+  /** Outlined (stroke-only) title; the stroke width is given in output pixels. */
+  const stroked = (value: string, face: OutlineFace, x: number, y: number, width: number, height: number, size: number, color: string, strokeWidth: number, center = false) => {
+    const scale = outlineGlyphs(value, face, x, y, width, height, size, center).glyphs[0]?.scale ?? 1;
+    return `<g stroke="${color}" stroke-width="${(strokeWidth / scale).toFixed(2)}" stroke-linejoin="round">${outlineText(value, face, x + page.offsetX, y + page.offsetY, width, height, size, "none", center)}</g>`;
+  };
   const footerNotes = `<path d="M 76 ${h - 190} H 1004" stroke="${fg}" opacity="0.4"/>${label(page.kicker, 76, h - 146, 17, fg, false, 400)}`;
 
   switch (template.layout) {
@@ -158,6 +172,93 @@ export function campaignPostArt(doc: PostDocument, index: number, tools: Campaig
       return `${photo(image, imageRatio, 0, h * 0.08, 450, h * 0.32)}${photo(image, imageRatio, 630, h * 0.6, 450, h * 0.32)}
         <g transform="translate(${-shift},0)"><path d="M 0 ${h * 0.5} H ${total}" stroke="${accent}" opacity="0.5"/></g><rect x="55" y="${h * 0.37}" width="970" height="${h * 0.27}" fill="${bg}"/>
         ${heading(page.title, "serif", 80, h * 0.39, 920, h * 0.16, page.titleSize * 1.15, fg, true)}${body(540, h * 0.59, 780, h * 0.04, true)}${label(page.kicker, 60, h * 0.87, 16, fg, false, 500)}`;
+    case "neon-night": {
+      // Club flyer: neon-tinted photo, outlined + solid title, a giant outlined word running down the right edge, neon bars.
+      const [first, ...rest] = page.title.toUpperCase().trim().split(/\s+/);
+      const giant = (rest.at(-1) ?? first ?? "").slice(0, 12);
+      const date = `${String(index + 1).padStart(2, "0")}.${String(doc.pages.length).padStart(2, "0")}`;
+      return `<defs><linearGradient id="${id}neon" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${accent}" stop-opacity=".62"/><stop offset=".5" stop-color="#6B2BFF" stop-opacity=".42"/><stop offset="1" stop-color="${NEON_GREEN}" stop-opacity=".5"/></linearGradient></defs>
+        ${photo(image, imageRatio, 0, 0, w, h, true)}<rect width="${w}" height="${h}" fill="url(#${id}neon)"/>${shade}
+        <g transform="translate(${w - 34} ${h * 0.05}) rotate(90)">${stroked(giant, "condensed", 0, 0, h * 0.86, 250, 280, fg, 3)}</g>
+        ${stroked(first ?? "", "condensed", 70, h * 0.05, 680, h * 0.1, page.titleSize * 1.7, fg, 3, false)}
+        ${heading(rest.join(" "), "condensed", 70, h * 0.15, 680, h * 0.2, page.titleSize * 1.7, fg, false)}
+        ${label(page.kicker.toUpperCase(), 72, h * 0.39, 22, fg, false, 420)}${body(72, h * 0.44, 420, h * 0.1)}
+        ${[[NEON_GREEN, 230], [accent, 180], ["#6B2BFF", 140], [NEON_GREEN, 90]].map(([color, width], i) => `<rect x="70" y="${h * 0.76 + i * 30}" width="${width}" height="14" fill="${color}"/>`).join("")}
+        ${heading(date, "condensed", 360, h * 0.75, 420, h * 0.12, 150, NEON_GREEN, true)}`;
+    }
+    case "warp": {
+      // Warped type: the title smears downward in red/cyan/accent copies through a displacement filter, over a blurred photo.
+      const y0 = h * 0.34, title = page.title.toUpperCase();
+      const copy = (fill: string, dx: number, dy: number, filter = "") => `<g transform="translate(${dx} ${dy})"${filter ? ` filter="url(#${id}${filter})"` : ""}>${heading(title, "wide", 50, y0, 980, h * 0.24, page.titleSize * 1.5, fill, true)}</g>`;
+      return `<defs>
+          <filter id="${id}warp" x="-10%" y="-30%" width="120%" height="200%"><feTurbulence type="fractalNoise" baseFrequency="0.0025 0.045" numOctaves="2" seed="${index + 3}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="70" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <filter id="${id}ripple" x="-10%" y="-30%" width="120%" height="200%"><feTurbulence type="fractalNoise" baseFrequency="0.002 0.03" numOctaves="1" seed="${index + 3}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="22" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <filter id="${id}melt" x="-10%" y="-20%" width="120%" height="220%"><feGaussianBlur stdDeviation="3 30"/></filter>
+          <filter id="${id}soft"><feGaussianBlur stdDeviation="46"/></filter>
+          <linearGradient id="${id}fade" x1="0" y1="0" x2="0" y2="1"><stop offset=".3" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <mask id="${id}drip"><rect x="0" y="${y0}" width="${w}" height="${h - y0}" fill="url(#${id}fade)"/></mask>
+        </defs>
+        <g filter="url(#${id}soft)" opacity=".38">${photo(image, imageRatio, -80, -80, w + 160, h + 160)}</g><rect width="${w}" height="${h}" fill="#000000" opacity=".45"/>
+        <g mask="url(#${id}drip)"><g transform="translate(0 ${y0}) scale(1 2.3) translate(0 ${-y0})" filter="url(#${id}melt)" opacity=".9">${copy("#FF2D55", -14, 0)}${copy(accent, 0, 0)}${copy("#00E5FF", 14, 0)}</g></g>
+        ${copy("#FF2D55", -10, 0, "warp")}${copy("#00E5FF", 10, 0, "warp")}${copy(fg, 0, 0, "ripple")}
+        <path d="M 0 ${h * 0.62} H ${w}" stroke="#FF2D55" stroke-width="2" opacity=".7"/>
+        ${label(page.kicker.toUpperCase(), 60, 90, 18, fg, false, 520)}${label(`VOL. ${String(index + 1).padStart(2, "0")}`, 900, 90, 18, fg, false, 140)}
+        <path d="M 60 112 H 1020" stroke="${fg}" opacity=".2"/>${body(60, h * 0.8, 620, h * 0.08)}`;
+    }
+    case "spray": {
+      // Purple grunge: faded giant words, pink spray clouds and speckle, a tilted B&W photo card with tape, two-tone condensed title.
+      const lighter = mixHex(bg, "#ffffff", 0.32), title = page.title.toUpperCase();
+      const speckle = Array.from({ length: 70 }, (_, k) => { const a = (k * 137.5) % 360 * Math.PI / 180, d = 60 + ((k * 53) % 100) * 2.4; return `<circle cx="${(830 + Math.cos(a) * d).toFixed(1)}" cy="${(h * 0.24 + Math.sin(a) * d * 0.6).toFixed(1)}" r="${(1.5 + (k % 5)).toFixed(1)}" fill="${accent}" opacity="${(0.3 + (k % 4) * 0.15).toFixed(2)}"/>`; }).join("");
+      const cx = 640, cy = h * 0.7;
+      return `<defs><radialGradient id="${id}spray"><stop stop-color="${accent}" stop-opacity=".8"/><stop offset=".55" stop-color="${accent}" stop-opacity=".25"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient><clipPath id="${id}card"><rect x="${cx - 330}" y="${cy - h * 0.16}" width="660" height="${h * 0.32}"/></clipPath></defs>
+        <g opacity=".16">${heading(title, "condensed", -30, h * 0.0, w + 60, h * 0.55, 320, lighter, true)}</g>
+        <ellipse cx="830" cy="${h * 0.24}" rx="330" ry="${h * 0.12}" fill="url(#${id}spray)"/>${speckle}
+        <rect x="0" y="${h * 0.035}" width="${w}" height="34" fill="#000000" opacity=".55"/>${label(`${page.kicker} · `.repeat(6).toUpperCase(), 16, h * 0.035 + 23, 15, fg, false, w * 2, 30)}
+        ${heading(beginning.toUpperCase(), "condensed", 60, h * 0.1, 960, h * 0.2, page.titleSize * 1.7, fg, false)}
+        ${heading(ending.toUpperCase(), "condensed", 60, h * 0.31, 960, h * 0.14, page.titleSize * 1.7, accent, false)}
+        <g transform="rotate(-4 ${cx} ${cy})"><rect x="${cx - 345}" y="${cy - h * 0.16 - 15}" width="690" height="${h * 0.32 + 30}" fill="#0E0B14"/><g clip-path="url(#${id}card)">${photo(image, imageRatio, cx - 330, cy - h * 0.16, 660, h * 0.32, true)}</g></g>
+        ${[[cx - 360, cy - h * 0.18, -18], [cx + 250, cy + h * 0.13, 14]].map(([x, y, r]) => `<rect x="${x}" y="${y}" width="150" height="44" fill="#E9E1D2" opacity=".75" transform="rotate(${r} ${x + 75} ${y + 22})"/>`).join("")}
+        <path d="M 120 ${h * 0.86} l 60 -28 m -60 28 l 26 -60" stroke="${accent}" stroke-width="10" stroke-linecap="round" fill="none"/>
+        <path d="M 980 ${h * 0.5} l 0 70 m -35 -35 h 70 m -50 -50 l 30 30 m 0 -30 l -30 30" stroke="${fg}" stroke-width="6" stroke-linecap="round"/>
+        ${body(60, h * 0.5, 300, h * 0.08)}`;
+    }
+    case "hype": {
+      // Agency post: black, condensed capitals, the punchline on a tilted lime label, a pink sticky note, marker squiggle, polaroid photo.
+      const top = page.title.toUpperCase().trim().split(/\s+/), punch = top.splice(Math.max(1, top.length - 2)).join(" "), lead = top.join(" ");
+      const size = page.titleSize * 1.6;
+      const leadBox = measure(lead, "condensed", 920, h * 0.3, size), punchBox = measure(punch, "condensed", 900, h * 0.15, size);
+      const py = h * 0.07 + leadBox.height + 26;
+      return `<rect width="${w}" height="${h}" fill="${bg}"/>
+        ${heading(lead, "condensed", 60, h * 0.07, 920, h * 0.3, size, fg, false)}
+        <g transform="rotate(-2.5 ${60 + punchBox.width / 2} ${py + punchBox.height / 2})"><rect x="44" y="${py - 14}" width="${punchBox.width + 34}" height="${punchBox.height + 26}" fill="${accent}"/>${heading(punch, "condensed", 60, py, 900, h * 0.15, size, bg, false)}</g>
+        <path d="M 640 ${h * 0.52} c 60 -50 120 40 180 -10 s 110 -40 160 10" stroke="${accent}" stroke-width="14" fill="none" stroke-linecap="round"/>
+        <g transform="rotate(2.5 300 ${h * 0.68})"><rect x="60" y="${h * 0.6}" width="470" height="${h * 0.15}" fill="${HYPE_PINK}"/>${label(page.body, 84, h * 0.6 + 44, 26, "#111111", false, 420, h * 0.12)}</g>
+        <g transform="rotate(5 800 ${h * 0.72})"><rect x="600" y="${h * 0.56}" width="400" height="${h * 0.32}" fill="#F4F1EA"/>${photo(image, imageRatio, 620, h * 0.56 + 20, 360, h * 0.32 - 80, true)}<rect x="740" y="${h * 0.54}" width="120" height="38" fill="${accent}" opacity=".85"/></g>
+        ${label(page.kicker.toUpperCase(), 60, h * 0.53, 17, fg, false, 540)}`;
+    }
+    case "chrome": {
+      // SMM agency: lavender light, clean geometric title in two tones, a chrome 3D star, duotone photo panel, glass chip and arrow button.
+      const petals = index % 2 ? 5 : 4, R = 220, sx = 300, sy = h * 0.68, rot = index * 0.6;
+      const star = Array.from({ length: 96 }, (_, k) => { const a = (k / 96) * Math.PI * 2, r = R * (0.62 + 0.38 * Math.cos(petals * a + rot) ** 2); return `${(sx + Math.cos(a) * r).toFixed(1)},${(sy + Math.sin(a) * r).toFixed(1)}`; }).join(" ");
+      const dark = mixHex(accent, "#000000", 0.55), pale = mixHex(accent, "#ffffff", 0.55);
+      return `<defs>
+          <radialGradient id="${id}room" cx=".7" cy=".3" r=".9"><stop stop-color="#ffffff"/><stop offset=".55" stop-color="${bg}"/><stop offset="1" stop-color="${mixHex(bg, accent, 0.25)}"/></radialGradient>
+          <radialGradient id="${id}chrome" cx=".38" cy=".32" r=".75"><stop stop-color="#ffffff"/><stop offset=".22" stop-color="${pale}"/><stop offset=".52" stop-color="${accent}"/><stop offset=".82" stop-color="${dark}"/><stop offset="1" stop-color="${pale}"/></radialGradient>
+          <filter id="${id}glow"><feGaussianBlur stdDeviation="14"/></filter>
+          <clipPath id="${id}panel"><rect x="560" y="${h * 0.36}" width="460" height="${h * 0.44}" rx="36"/></clipPath>
+        </defs>
+        <rect width="${w}" height="${h}" fill="url(#${id}room)"/>
+        ${label(page.kicker.toUpperCase(), 60, 92, 17, fg, false, 600)}<path d="M 60 112 H 1020" stroke="${fg}" opacity=".15"/>
+        ${heading(beginning, "rounded", 60, h * 0.1, 960, h * 0.14, page.titleSize * 1.12, fg, false)}${heading(ending, "rounded", 60, h * 0.1 + h * 0.13, 960, h * 0.1, page.titleSize * 1.12, accent, false)}
+        <g clip-path="url(#${id}panel)">${photo(image, imageRatio, 560, h * 0.36, 460, h * 0.44, true)}<rect x="560" y="${h * 0.36}" width="460" height="${h * 0.44}" fill="${accent}" opacity=".38"/></g>
+        <rect x="560" y="${h * 0.36}" width="460" height="${h * 0.44}" rx="36" fill="none" stroke="#ffffff" stroke-opacity=".6" stroke-width="2"/>
+        <polygon points="${star}" fill="${dark}" opacity=".35" filter="url(#${id}glow)" transform="translate(16 26)"/>
+        <polygon points="${star}" fill="url(#${id}chrome)" stroke="${pale}" stroke-width="3"/>
+        <ellipse cx="${sx - 70}" cy="${sy - 80}" rx="60" ry="26" fill="#ffffff" opacity=".7" filter="url(#${id}glow)" transform="rotate(-30 ${sx - 70} ${sy - 80})"/>
+        <rect x="500" y="${h * 0.68}" width="120" height="120" rx="30" fill="${accent}"/><path d="M 560 ${h * 0.68 + 88} c -40 -26 -40 -60 -14 -60 c 10 0 14 8 14 14 c 0 -6 4 -14 14 -14 c 26 0 26 34 -14 60z" fill="#ffffff"/>
+        ${body(60, h * 0.37, 440, h * 0.12)}
+        <circle cx="955" cy="${h * 0.87}" r="52" fill="${accent}"/><path d="M 930 ${h * 0.87} h 48 m -18 -18 18 18 -18 18" stroke="#ffffff" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+    }
     default: return null;
   }
 }

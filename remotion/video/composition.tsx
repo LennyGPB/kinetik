@@ -7,6 +7,15 @@ import { MovableText } from "./movable-text";
 import { AnimatedTitle } from "./titles";
 import { ReferenceTextLayout } from "./reference-layout";
 import { LogoMotionLayout } from "./logo-motion-layout";
+import { SmearLayout } from "./smear";
+import { NoiseLayout } from "./noise";
+import { EmberLayout } from "./ember";
+import { HaloLayout } from "./halo";
+import { VoidLayout } from "./void";
+import { MeltLayout } from "./melt";
+import { HoloLayout } from "./holo";
+import { LumenLayout } from "./lumen";
+import { GlossLayout } from "./gloss";
 import { isLight, textColorOn, useBodyFont, useIsPortrait, useRecipe, useTitleFont, useTitleScale, useUnit } from "./theme";
 
 /**
@@ -98,29 +107,39 @@ function AuthoredLayout(l: TextLayoutProps) {
   const positions: Record<string, CSSProperties> = {
     contact: { top: "64%", left: "7%", right: "10%" },
     folio: { top: "66%", left: "8%", right: "8%" },
-    lens: { top: "61%", left: "9%", right: "9%", textAlign: "center" },
     broadsheet: { top: "17%", left: "6%", right: "35%" },
     crosscut: { top: "39%", left: "8%", right: "10%", transform: "rotate(-5deg)" },
-    offprint: { top: "65%", left: "7%", right: "10%" },
     anvil: { top: width >= height ? "35%" : "41%", left: "12%", right: "12%", textAlign: "center" },
     tessera: { top: width >= height ? "50%" : "49%", left: "8%", right: "13%" },
     suture: { top: "40%", left: "12%", right: "12%" },
     ratchet: width >= height ? { top: "35%", left: "9%", right: "48%" } : { top: "54%", left: "9%", right: "11%" },
-    interlock: { top: "42%", left: "14%", right: "14%", textAlign: "center" },
-    torque: { top: "34%", left: "8%", right: "8%", transform: "rotate(-12deg)" },
+    // Même inclinaison que les rails du décor (moins inclinée en paysage, où la bande libre est plus basse)
+    torque: width > height * 1.2 ? { top: "34%", left: "8%", right: "8%", transform: "rotate(-7deg)" } : { top: "34%", left: "8%", right: "8%", transform: "rotate(-12deg)" },
+    linea: width > height * 1.2 ? { top: "34%", left: "7%", right: "56%" } : { top: "36%", left: "7%", right: "58%" },
+    slate: { top: "64%", left: "6%", right: "10%" },
     cadence: { top: "42%", left: "9%", right: "9%" },
-    "vector-beat": { top: "46%", left: "9%", right: "17%" },
+    flux: { top: width > height ? "50%" : "46%", left: "9%", right: "9%" },
+    // Square frames: the title sits higher so the bottom arrow keeps its own band (see VectorBeat in graphic-backdrop.tsx)
+    "vector-beat": { top: width / height > 0.85 && width / height < 1.3 ? "34%" : "46%", left: "9%", right: "17%" },
     blackout: { top: width >= height ? "36%" : "44%", left: "9%", right: "9%", textAlign: "center" },
     voltage: { top: "38%", left: "11%", right: "11%" },
     column: { top: "14%", left: "6%", right: "33%" },
     aspect: { top: "65%", left: "7%", right: "7%" },
-    patina: { top: "70%", left: "7%", right: "12%" },
     interval: { top: "39%", left: "7%", right: "12%" },
     memento: { top: "63%", left: "7%", right: "8%" },
   };
-  const centered = ["blackout", "cadence", "anvil", "interlock", "lens"].includes(kind ?? "");
+  if (kind === "sticker") return <SmearLayout {...l} />;
+  if (kind === "optic") return <NoiseLayout {...l} />;
+  if (kind === "flux") return <EmberLayout {...l} />;
+  if (kind === "lens") return <HaloLayout {...l} />;
+  if (kind === "carousel") return <VoidLayout {...l} />;
+  if (kind === "offprint") return <MeltLayout {...l} />;
+  if (kind === "patina") return <HoloLayout {...l} />;
+  if (kind === "interlock") return <LumenLayout {...l} />;
+  if (kind === "gloss") return <GlossLayout {...l} />;
+  const centered = ["blackout", "cadence", "anvil"].includes(kind ?? "");
   const graphicScale = width >= height && ["anvil", "blackout"].includes(kind ?? "") ? 1.1 : 1.35;
-  const titleSize = Math.min(u * l.titleSize * (recipe.graphicTreatment ? graphicScale : 0.95), width * (["column", "broadsheet"].includes(kind ?? "") ? 0.55 : kind === "ratchet" && width >= height ? 0.4 : 0.76) / Math.max(1, ...l.scene.title.split(/\s+/).map((word) => word.length * 0.62)));
+  const titleSize = Math.min(u * l.titleSize * (recipe.graphicTreatment ? graphicScale : 0.95), width * (["column", "broadsheet"].includes(kind ?? "") ? 0.55 : kind === "linea" ? 0.29 : kind === "ratchet" && width >= height ? 0.4 : 0.76) / Math.max(1, ...l.scene.title.split(/\s+/).map((word) => word.length * 0.62)));
   return <AbsoluteFill style={{ color }}>
     <div style={{ position: "absolute", top: "4%", left: "7%", right: "7%", display: "flex", justifyContent: "space-between", color, fontFamily: useBodyFont(), fontSize: u * 1.7, letterSpacing: "0.08em", opacity: 0.75 }}><span>{l.props.appName}</span><span>{kind?.toUpperCase()}</span></div>
     <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: centered ? "center" : "flex-start", gap: u * 2.5, ...positions[kind!] }}>

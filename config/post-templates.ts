@@ -41,6 +41,6 @@ export function matchesPostFilter(template: (typeof POST_TEMPLATES)[number], fil
   if (filter === "all") return true;
   if (filter === "kinetik") return template.id.startsWith("post-kinetik-");
   if (filter === "linked") return template.linked;
-  const typographic = ["post-marker", "post-openform", "post-cobalt-case", "post-northstar", "post-kinetik-guide", "post-chromatic", "post-chroma", "post-ember", "post-manifest", "post-swiss", "post-ledger", "post-outline", "post-continuum", "post-orbit", "post-paper"];
+  const typographic = ["post-warp", "post-marker", "post-openform", "post-cobalt-case", "post-northstar", "post-kinetik-guide", "post-chromatic", "post-chroma", "post-ember", "post-manifest", "post-swiss", "post-ledger", "post-outline", "post-continuum", "post-orbit", "post-paper"];
   return filter === "typography" ? typographic.includes(template.id) : isPhotoTemplate(template.id) && !typographic.includes(template.id);
 }

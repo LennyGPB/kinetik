@@ -16,7 +16,8 @@ import { CameraMove } from "./camera";
 import { Effects } from "./effects";
 import { SCENES } from "./scenes";
 import { BeatContext, bodyFont, luminance, RecipeContext, useUnit } from "./theme";
-import { SceneShell, sceneTimeline } from "./transitions";
+import { backdropMotion, SceneShell, sceneTimeline } from "./transitions";
+import { useId } from "react";
 
 /**
  * Composition principale. Ordre des calques, du fond vers l'avant :
@@ -44,15 +45,25 @@ function MotionVideo({ input }: { input: VideoProps }) {
   const photoUrls = props.screenUrls;
   const photoUrl = props.backgroundUrl ?? activeScene?.scene.screens?.find((url) => photoUrls.includes(url)) ?? photoUrls[activeIndex % Math.max(1, photoUrls.length)];
   const photoSrc = photoUrl?.startsWith("/post-demos/") && getRemotionEnvironment().isRendering ? staticFile(photoUrl.slice(1)) : photoUrl;
+  const backdropId = `bd${useId().replace(/[^\w-]/g, "")}`;
+
+  const backdrop = (pal: VideoProps["palette"]) => recipe.referenceMotion ? <ReferenceBackdrop kind={recipe.referenceMotion} palette={palette} time={(frame - (activeScene?.from ?? 0)) / fps} aspectRatio={width / height} renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} /> : recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={pal} beatPosition={musicalClock(frame, fps, graph.bpm, phaseFrames).position} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={pal} scene={activeIndex}
+    progress={activeScene ? Math.max(0, Math.min(1, (frame - activeScene.from) / activeScene.duration)) : 0}
+    renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} />
+    : <Background kind={recipe.background} palette={pal} energy={graph.energy} />;
+  // Couleurs de marque réparties par scène : les décors passent d'une palette à l'autre en fondu autour de la frontière,
+  // au lieu d'un saut visible (fonds animés et graphiques ; les fonds photo et « reference » suivent leur scène).
+  const blend = recipe.referenceMotion || recipe.photoTreatment ? undefined : paletteBlend(timeline, frame, (i) => scenePalette(palette, colors, i));
+  const backdropLayer = blend ? <>{backdrop(blend.from)}<AbsoluteFill style={{ opacity: blend.k }}>{backdrop(blend.to)}</AbsoluteFill></> : backdrop(activePalette);
+  // Transitions qui emportent tout le cadre (whip, ripple) : le fond bouge avec la scène
+  const backdropMove = backdropMotion(timeline, frame, (i) => sceneSettings(graph, timeline[i].scene).energy, u, backdropId, recipe.motion?.ease);
 
   return (
     <RecipeContext value={recipe}>
       <BeatContext value={{ bpm: graph.bpm, phaseFrames }}>
         <AbsoluteFill style={{ backgroundColor: palette[0], overflow: "hidden" }}>
-          {recipe.referenceMotion ? <ReferenceBackdrop kind={recipe.referenceMotion} palette={palette} time={(frame - (activeScene?.from ?? 0)) / fps} aspectRatio={width / height} renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} /> : recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={activePalette} beatPosition={musicalClock(frame, fps, graph.bpm, phaseFrames).position} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={activePalette} scene={activeIndex}
-            progress={activeScene ? Math.max(0, Math.min(1, (frame - activeScene.from) / activeScene.duration)) : 0}
-            renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} />
-            : <Background kind={recipe.background} palette={activePalette} energy={graph.energy} />}
+          {backdropMove.defs}
+          {backdropMove.style ? <AbsoluteFill style={backdropMove.style}>{backdropLayer}</AbsoluteFill> : backdropLayer}
           <Effects effects={recipe.effects} layer="under" palette={activePalette} />
 
           {timeline.map(({ scene, from, duration }, i) => {
@@ -67,7 +78,7 @@ function MotionVideo({ input }: { input: VideoProps }) {
                 {/* Dans une Sequence, les images repartent de 0 : on décale la grille des temps d'autant */}
                 <BeatContext value={{ bpm: graph.bpm, phaseFrames: phaseFrames - from }}>
                   <RecipeContext value={sceneRecipe}>
-                    <SceneShell transition={scene.transition} next={timeline[i + 1]?.scene.transition} energy={sceneGraph.energy} accent={curtainColor(localPalette)} nextAccent={curtainColor(nextPalette)}>
+                    <SceneShell transition={scene.transition} next={timeline[i + 1]?.scene.transition} energy={sceneGraph.energy} accent={curtainColor(localPalette)} nextAccent={curtainColor(nextPalette)} palette={localPalette} nextPalette={nextPalette} title={scene.title} nextTitle={timeline[i + 1]?.scene.title}>
                       <CameraMove index={i} energy={sceneGraph.energy}>
                         <TextSceneContext value={scene}><SceneClock><Scene scene={scene} props={sceneProps} /></SceneClock></TextSceneContext>
                       </CameraMove>
@@ -136,6 +147,21 @@ function withUserSettings(props: VideoProps): VideoProps {
   const { titleAnimation, fonts } = props.graph;
   if (!titleAnimation && !fonts) return props;
   return { ...props, recipe: { ...props.recipe, ...(titleAnimation && { titleAnimation }), ...(fonts && { brandFonts: fonts }) } };
+}
+
+/** Demi-largeur (images) du fondu de palette autour d'une frontière de scène. */
+const PALETTE_BLEND = 6;
+
+/** Palettes à fondre si l'image est près d'une frontière où les couleurs de scène changent ; sinon undefined. */
+function paletteBlend(timeline: { from: number }[], frame: number, paletteAt: (i: number) => VideoProps["palette"]) {
+  for (let i = 1; i < timeline.length; i++) {
+    const d = frame - timeline[i].from;
+    if (Math.abs(d) >= PALETTE_BLEND) continue;
+    const from = paletteAt(i - 1), to = paletteAt(i);
+    if (from.join() === to.join()) return undefined;
+    return { from, to, k: (d + PALETTE_BLEND) / (PALETTE_BLEND * 2) };
+  }
+  return undefined;
 }
 
 /** Couleur des rideaux de transition : celle des deux couleurs de marque qui ressort le plus sur le fond (un rideau sombre sur fond sombre passerait pour un écran noir). */

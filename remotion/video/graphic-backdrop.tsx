@@ -1,5 +1,14 @@
 import React from "react";
 import type { GraphicMotionKind } from "../../config/graphic-motion";
+import { LumenBackdrop } from "./lumen-art";
+import { SmearBackdrop } from "./smear-art";
+import { EmberBackdrop } from "./ember-art";
+import { NoiseBackdrop } from "./noise-art";
+import { HaloBackdrop } from "./halo-art";
+import { VoidBackdrop } from "./void-art";
+import { MeltBackdrop } from "./melt-art";
+import { HoloBackdrop } from "./holo-art";
+import { GlossBackdrop } from "./gloss-art";
 
 /** Authored graphics, shared by catalogue thumbnails and frame-driven renders. */
 export function GraphicBackdrop({ kind, palette, time: elapsed = 0, beatPosition, aspectRatio = 9 / 16 }: { kind: GraphicMotionKind; palette: [string, string, string]; time?: number; beatPosition?: number; aspectRatio?: number }) {
@@ -7,8 +16,21 @@ export function GraphicBackdrop({ kind, palette, time: elapsed = 0, beatPosition
   const time = beatPosition === undefined ? elapsed : beatPosition / 2;
   const [bg, fg, accent] = palette;
   const phase = time * Math.PI;
+  if (kind === "interlock") return <LumenBackdrop palette={palette} time={time} />;
+  if (kind === "sticker") return <SmearBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "vector-beat") return <VectorBeat palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "torque") return <TorqueBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "flux") return <EmberBackdrop palette={palette} time={time} />;
+  if (kind === "optic") return <NoiseBackdrop palette={palette} time={time} />;
+  if (kind === "lens") return <HaloBackdrop palette={palette} time={time} />;
+  if (kind === "carousel") return <VoidBackdrop palette={palette} time={time} />;
+  if (kind === "offprint") return <MeltBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "patina") return <HoloBackdrop palette={palette} time={time} />;
+  if (kind === "gloss") return <GlossBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "cadence") return <CadenceBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "tessera") return <TesseraBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
   if (["anvil", "cadence", "blackout", "tessera"].includes(kind)) return <RefinedGraphic kind={kind} palette={palette} time={time} aspectRatio={aspectRatio} />;
-  if (kind === "tessera" || kind === "ratchet") return <PrecisionBackdrop kind={kind} palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "ratchet") return <PrecisionBackdrop kind={kind} palette={palette} time={time} aspectRatio={aspectRatio} />;
   return <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: bg }}>
     <svg viewBox="0 0 1000 1000" preserveAspectRatio="none" style={{ position: "absolute", width: "100%", height: "100%" }} aria-hidden>
       {kind === "anvil" && <>
@@ -26,26 +48,6 @@ export function GraphicBackdrop({ kind, palette, time: elapsed = 0, beatPosition
         <path d="M -70 90 C 350 90 20 330 350 285 S 870 70 960 265" fill="none" stroke={accent} strokeWidth="5" pathLength="1" strokeDasharray="1" strokeDashoffset={1 - Math.min(1, time / 1.1)} />
         <path d="M 1030 940 C 640 940 940 710 580 780 S 180 900 65 740" fill="none" stroke={accent} strokeWidth="5" pathLength="1" strokeDasharray="1" strokeDashoffset={1 - Math.min(1, time / 1.4)} />
         {[[350, 285], [960, 265], [580, 780], [65, 740]].map(([x, y]) => <g key={`${x}-${y}`}><circle cx={x} cy={y} r="16" fill={bg} stroke={fg} strokeWidth="3" /><circle cx={x} cy={y} r="4" fill={accent} /></g>)}
-      </>}
-      {kind === "interlock" && <>
-        <path d="M 80 335 V 100 H 480 V 220 H 320" fill="none" stroke={accent} strokeWidth="55" transform={`translate(${-35 + Math.sin(phase * 0.6) * 25} 0)`} />
-        <path d="M 920 665 V 900 H 520 V 780 H 680" fill="none" stroke={fg} strokeWidth="55" transform={`translate(${35 - Math.sin(phase * 0.6) * 25} 0)`} />
-        <path d="M 520 100 H 600 M 400 900 H 480" stroke={fg} strokeWidth="3" opacity="0.5" />
-      </>}
-      {kind === "torque" && <g transform={`rotate(-12 500 500) translate(${Math.sin(phase) * 22} 0)`}>
-        <path d="M -300 180 H 1300 M -300 820 H 1300" stroke={fg} strokeWidth="100" />
-        <path d="M -300 290 H 1300 M -300 710 H 1300" stroke={accent} strokeWidth="18" />
-        {Array.from({ length: 12 }, (_, i) => <path key={i} d={`M ${i * 115 - 150} 145 l -50 70 M ${i * 115 - 150} 785 l -50 70`} stroke={bg} strokeWidth="13" />)}
-      </g>}
-      {kind === "cadence" && <>
-        <g transform={`translate(500 170) rotate(${Math.sin(phase * 0.6) * 32})`}>
-          <path d="M 0 -210 V 130" stroke={fg} strokeWidth="5" /><circle cy="155" r="74" fill={accent} /><circle cy="155" r="20" fill={bg} />
-        </g>
-        {[0, 1, 2, 3, 4, 5].map((i) => <path key={i} d={`M ${70 + i * 150} 1000 V ${840 - Math.sin(phase + i * 0.65) * 80}`} stroke={fg} strokeWidth="95" />)}
-      </>}
-      {kind === "vector-beat" && <>
-        {[0, 1, 2].map((i) => <g key={i} transform={`translate(${Math.sin(phase + i) * 45} ${i * 90})`}><path d="M -120 80 H 630 L 790 210 L 630 340 H -120" fill="none" stroke={i === 1 ? accent : fg} strokeWidth={i === 1 ? 40 : 5} opacity={i === 1 ? 1 : 0.5} /></g>)}
-        <path d={`M 1100 830 H ${320 + Math.sin(phase) * 30} l 125 -95 M ${320 + Math.sin(phase) * 30} 830 l 125 95`} fill="none" stroke={accent} strokeWidth="42" />
       </>}
       {kind === "blackout" && <>
         <ellipse cx={500 + Math.sin(phase * 0.4) * 90} cy="250" rx="230" ry="105" fill="none" stroke={accent} strokeWidth="2" />
@@ -77,18 +79,6 @@ function RefinedGraphic({ kind, palette: [bg, fg, accent], time, aspectRatio }: 
       <div style={{ position: "absolute", left: "8%", right: "8%", bottom: "11%", height: 1, background: `${fg}55` }}><div style={{ height: 2, width: `${15 + (time * 18) % 85}%`, background: accent }}/></div>
     </>}
     {kind === "anvil" && <AnvilPress palette={[bg, fg, accent]} time={time} aspectRatio={aspectRatio} />}
-    {kind === "cadence" && <>
-      <div style={{ position: "absolute", top: "8%", left: "calc(50% - 17cqmin)", width: "34cqmin", height: "34cqmin" }}><svg viewBox="0 0 240 240" width="100%" height="100%" aria-hidden><path d="M 32 190 A 100 100 0 0 1 208 190" fill="none" stroke={fg} strokeWidth="2" opacity="0.5"/>{Array.from({ length: 9 }, (_, i) => <path key={i} d="M 120 22 V 35" stroke={fg} strokeWidth="2" transform={`rotate(${-64 + i * 16} 120 120)`}/>)}<g transform={`rotate(${Math.cos(time * Math.PI * 2) * 46} 120 160)`}><path d="M 120 160 V 45" stroke={fg} strokeWidth="4"/><rect x="108" y="60" width="24" height="30" rx="3" fill={accent} stroke={fg} strokeWidth="2"/></g><circle cx="120" cy="160" r="10" fill={fg}/></svg></div>
-      <div style={{ position: "absolute", bottom: "8%", height: "15%", left: "8%", right: "8%", display: "flex", gap: "2cqmin", alignItems: "flex-end", borderBottom: `1px solid ${fg}` }}>{Array.from({ length: wide ? 12 : 8 }, (_, i) => <span key={i} style={{ flex: 1, height: `${25 + Math.pow(1 - ((beat - i / 8) - Math.floor(beat - i / 8)), 3) * 70}%`, background: i % 3 === 0 ? accent : fg }}/>)}</div>
-    </>}
-    {kind === "tessera" && <>
-      <div style={{ position: "absolute", right: "8%", top: "9%", width: wide ? "34cqmin" : "48cqmin", height: wide ? "34cqmin" : "48cqmin" }}><svg viewBox="0 0 400 400" width="100%" height="100%" aria-hidden>{[0, 1, 2, 3].map((i) => {
-        const step = Math.max(0, time * 0.5 - i * 0.25), fraction = step % 1;
-        const turn = (Math.floor(step) + 1 - Math.pow(1 - Math.min(1, fraction / 0.5), 4)) * 90;
-        return <g key={i} transform={`translate(${i % 2 * 200 + 100} ${Math.floor(i / 2) * 200 + 100})`}><rect x="-94" y="-94" width="188" height="188" rx="5" fill={i === 1 || i === 2 ? accent : fg}/><svg x="-94" y="-94" width="188" height="188" viewBox="-94 -94 188 188" overflow="hidden"><g transform={`rotate(${turn})`}><path d="M -86 -86 H 86 A 172 172 0 0 1 -86 86 Z" fill={bg} opacity="0.8"/><circle cx="43" cy="43" r="24" fill={bg}/></g></svg></g>;
-      })}</svg></div>
-      <div style={{ position: "absolute", bottom: "10%", left: "8%", right: "8%", borderTop: `1px solid ${accent}`, display: "flex", gap: "1cqmin", paddingTop: "2cqmin" }}>{Array.from({ length: 12 }, (_, i) => <span key={i} style={{ flex: 1, height: "1cqmin", background: i <= Math.floor(time * 2) % 12 ? fg : accent, opacity: i <= Math.floor(time * 2) % 12 ? 1 : 0.25 }}/>)}</div>
-    </>}
   </div>;
 }
 
@@ -177,4 +167,206 @@ function AnvilPress({ palette: [bg, fg, accent], time, aspectRatio }: { palette:
     {sparks}
     {[W * .04, W * .96].map((x) => <g key={x}><line x1={x} x2={x} y1={H * .34} y2={H * .66} stroke={accent} strokeWidth="2" opacity=".6" /><rect x={x - 7} y={H * .34 + H * .32 * slam * intro - 2} width="14" height="4" fill={accent} /></g>)}
   </svg>;
+}
+
+/**
+ * Vector Beat — a directional arrow poster driven by the beat, drawn at the frame's real proportions (no stretching):
+ * a stream of chevrons steps forward on every beat (the current one lights up in amber), a faster row below,
+ * dashed lane lines frame the open title lane, a circular arrow turns a quarter per beat in the free right column,
+ * and a broad amber arrow shoots in each bar with speed lines and an outlined ghost, holds, then exits right.
+ */
+function VectorBeat({ palette: [bg, fg, accent], time, aspectRatio }: { palette: [string, string, string]; time: number; aspectRatio: number }) {
+  // Sizes follow the smaller side so landscape frames stay as airy as portrait ones.
+  const W = 1000, H = W / aspectRatio, u = Math.min(W, H), beat = time * 2, whole = Math.floor(beat), frac = beat - whole;
+  const stepped = whole + easeInOut(Math.min(1, frac / 0.45));
+  const outExpo = (v: number) => (v = Math.max(0, Math.min(1, v))) === 1 ? 1 : 1 - 2 ** (-10 * v);
+  const inCubic = (v: number) => Math.max(0, Math.min(1, v)) ** 3;
+  const pulse = (1 - frac) ** 3;
+
+  // Chevron stream: steps half a spacing per beat; the chevron matching the beat in the bar is amber.
+  const s = u * 0.1, gap = u * 0.15, shift = (stepped * gap * 0.5) % gap, first = -2;
+  const chevrons = Array.from({ length: Math.ceil(W / gap) + 4 }, (_, i) => {
+    const k = first + i, x = k * gap + shift, absolute = k - Math.floor((stepped * 0.5)), lit = ((absolute % 4) + 4) % 4 === whole % 4;
+    return <path key={i} d={`M ${x - s / 2} ${H * 0.16 - s / 2} L ${x} ${H * 0.16} L ${x - s / 2} ${H * 0.16 + s / 2}`} fill="none" stroke={lit ? accent : fg} strokeWidth={lit ? u * 0.034 : u * 0.016} strokeLinejoin="miter" strokeLinecap="square" opacity={lit ? 1 : 0.55} />;
+  });
+  const small = s * 0.45, smallGap = gap * 0.5, smallShift = (stepped * smallGap) % smallGap;
+  const minis = Array.from({ length: Math.ceil(W / smallGap) + 3 }, (_, i) => {
+    const x = (i - 1) * smallGap + smallShift;
+    return <path key={i} d={`M ${x - small / 2} ${H * 0.265 - small / 2} L ${x} ${H * 0.265} L ${x - small / 2} ${H * 0.265 + small / 2}`} fill="none" stroke={fg} strokeWidth={u * 0.008} opacity="0.3" />;
+  });
+
+  // Big arrow: one pass per bar (4 beats) — shoots in, drifts, leaves.
+  const bar = (beat % 4) / 4, len = W * 0.84, thick = u * 0.07, ay = H - thick * 1.25 - u * 0.05;
+  const ax = bar < 0.18 ? -W * 1.05 + outExpo(bar / 0.18) * W * 1.13 : bar < 0.82 ? W * 0.08 + (bar - 0.18) * W * 0.06 : W * 0.118 + inCubic((bar - 0.82) / 0.18) * W * 1.1;
+  const speed = bar < 0.18 ? 1 - bar / 0.18 : bar > 0.82 ? (bar - 0.82) / 0.18 : 0;
+  const arrow = (x: number) => `M ${x} ${ay - thick / 2} H ${x + len - thick * 1.6} V ${ay - thick * 1.25} L ${x + len} ${ay} L ${x + len - thick * 1.6} ${ay + thick * 1.25} V ${ay + thick / 2} H ${x} Z`;
+
+  // Lane framing the title (composition: left 9%, right 17%, top 46%).
+  const squareish = aspectRatio > 0.85 && aspectRatio < 1.3;
+  const laneTop = H * (squareish ? 0.3 : 0.4), laneBottom = H * (squareish ? 0.72 : W > H ? 0.76 : 0.7), cx = W * 0.915, cy = (laneTop + laneBottom) / 2, r = u * 0.045, turn = (whole + easeInOut(Math.min(1, frac / 0.35))) * 90;
+  return <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: bg }}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", width: "100%", height: "100%" }} aria-hidden>
+      {Array.from({ length: 7 }, (_, i) => <path key={i} d={`M ${(i + 1) * W / 8} 0 V ${H}`} stroke={fg} strokeWidth="1.5" opacity="0.06" />)}
+      {chevrons}
+      {minis}
+      {[laneTop, laneBottom].map((y) => <g key={y} stroke={fg} strokeWidth="2.5" fill="none" opacity="0.4">
+        <path d={`M ${W * 0.06} ${y} H ${W * 0.8}`} strokeDasharray={`${u * 0.02} ${u * 0.014}`} strokeDashoffset={-stepped * u * 0.034} />
+        <path d={`M ${W * 0.8 - 14} ${y - 12} L ${W * 0.8} ${y} L ${W * 0.8 - 14} ${y + 12}`} />
+      </g>)}
+      <g transform={`rotate(${turn} ${cx} ${cy})`} fill="none" stroke={accent} strokeWidth={u * 0.012} strokeLinecap="round">
+        <path d={`M ${cx + r} ${cy} A ${r} ${r} 0 1 1 ${cx} ${cy - r}`} />
+        <path d={`M ${cx - r * 0.35} ${cy - r * 1.3} L ${cx} ${cy - r} L ${cx - r * 0.35} ${cy - r * 0.7}`} />
+      </g>
+      <circle cx={cx} cy={cy} r={r * (1.6 + pulse * 0.5)} fill="none" stroke={fg} strokeWidth="1.5" opacity={0.15 + pulse * 0.25} />
+      {[0, 1, 2, 3].map((i) => <rect key={i} x={W * 0.09 + i * u * 0.045} y={laneBottom + u * 0.03} width={u * 0.028} height={u * 0.028} fill={i <= whole % 4 ? accent : "none"} stroke={i <= whole % 4 ? accent : fg} strokeWidth="2" opacity={i <= whole % 4 ? 1 : 0.4} />)}
+      <path d={arrow(ax - W * 0.05)} fill="none" stroke={fg} strokeWidth="3" opacity={0.3 + speed * 0.3} transform={`translate(${-speed * W * 0.08} ${thick * 0.35})`} />
+      {speed > 0.05 && [-0.32, 0, 0.32].map((k) => <path key={k} d={`M ${ax - W * (0.08 + speed * 0.5)} ${ay + thick * k} H ${ax - W * 0.02}`} stroke={accent} strokeWidth={k ? 3 : 6} opacity={speed * 0.8} strokeLinecap="round" />)}
+      <path d={arrow(ax)} fill={accent} />
+      <path d={`M ${ax + thick * 0.5} ${ay} H ${ax + len - thick * 2.4}`} stroke={bg} strokeWidth="3" opacity="0.35" />
+    </svg>
+  </div>;
+}
+
+/**
+ * Cadence — a real metronome: trapezoid case with a lit window and graduated scale, a pendulum with a sliding weight
+ * that reaches its stop exactly on each beat (ripple + tick), four beat dots, and a rounded equaliser along the bottom
+ * whose peak caps fall back slowly like a VU meter. Drawn at the frame's real proportions; the centre stays free for the title.
+ */
+function CadenceBackdrop({ palette: [bg, fg, accent], time, aspectRatio }: { palette: [string, string, string]; time: number; aspectRatio: number }) {
+  const W = 1000, H = W / aspectRatio, u = Math.min(W, H), beat = time * 2, whole = Math.floor(beat), frac = beat - whole;
+  const wide = W > H, tick = (1 - frac) ** 4;
+  // Metronome: pivot near the bottom of the case, rod points up; full swing every two beats, extremes on the beat.
+  const mh = u * (wide ? 0.27 : 0.25), cx = W / 2, base = H * (wide ? 0.05 : 0.07) + mh, pivotY = base - mh * 0.16;
+  const angle = 30 * Math.cos(Math.PI * beat), rod = mh * 0.92, rad = (angle * Math.PI) / 180;
+  const tipX = cx + Math.sin(rad) * rod, tipY = pivotY - Math.cos(rad) * rod;
+  const topW = u * 0.1, botW = u * 0.3, caseTop = base - mh;
+  // A narrow slot in the solid case, where the rod and the scale show (reads as a metronome, not an empty frame).
+  const window = `M ${cx - topW * 0.22} ${caseTop + mh * 0.14} L ${cx + topW * 0.22} ${caseTop + mh * 0.14} L ${cx + botW * 0.2} ${base - mh * 0.1} L ${cx - botW * 0.2} ${base - mh * 0.1} Z`;
+  // Equaliser: level per column, with a peak cap computed from recent levels (deterministic "peak hold").
+  const cols = wide ? 22 : 12, eqTop = H * (wide ? 0.78 : 0.74), eqBottom = H * 0.95, colW = (W * 0.84) / cols;
+  const level = (i: number, b: number) => 0.18 + 0.82 * Math.abs(Math.sin(i * 1.27 + Math.floor(b) * 2.1)) * (1 - (b % 1)) ** 1.6 * (0.55 + 0.45 * Math.abs(Math.sin(i * 0.7 + b * 0.8)));
+  const peak = (i: number) => Math.max(...Array.from({ length: 8 }, (_, k) => level(i, beat - k * 0.08) - k * 0.035));
+  return <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: bg }}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", width: "100%", height: "100%" }} aria-hidden>
+      {[1, 2, 3].map((k) => { const r = u * 0.03 + frac * u * 0.09 * k; return <circle key={k} cx={tipX} cy={tipY} r={r} fill="none" stroke={fg} strokeWidth="2" opacity={tick * 0.5 / k} />; })}
+      <path d={`M ${cx - topW / 2} ${caseTop} L ${cx + topW / 2} ${caseTop} L ${cx + botW / 2} ${base} L ${cx - botW / 2} ${base} Z`} fill={fg} />
+      <rect x={cx - botW * 0.62} y={base} width={botW * 1.24} height={u * 0.022} rx={u * 0.008} fill={fg} />
+      <path d={window} fill={bg} opacity="0.92" />
+      {Array.from({ length: 11 }, (_, i) => { const a = ((-20 + i * 4) * Math.PI) / 180, r0 = rod * 0.5, r1 = rod * (i % 5 === 0 ? 0.42 : 0.46); return <path key={i} d={`M ${cx + Math.sin(a) * r0} ${pivotY - Math.cos(a) * r0} L ${cx + Math.sin(a) * r1} ${pivotY - Math.cos(a) * r1}`} stroke={accent} strokeWidth={i % 5 === 0 ? 3 : 1.5} />; })}
+      <path d={`M ${cx} ${pivotY} L ${tipX} ${tipY}`} stroke={fg} strokeWidth={u * 0.012} strokeLinecap="round" />
+      <g transform={`rotate(${angle} ${cx} ${pivotY})`}><rect x={cx - u * 0.028} y={pivotY - rod * 0.62} width={u * 0.056} height={u * 0.04} rx={u * 0.008} fill={accent} stroke={fg} strokeWidth="2" /></g>
+      <circle cx={cx} cy={pivotY} r={u * 0.016} fill={accent} stroke={fg} strokeWidth="2" />
+      {[0, 1, 2, 3].map((i) => <circle key={i} cx={cx - u * 0.066 + i * u * 0.044} cy={base + u * 0.06} r={u * 0.011} fill={i === whole % 4 ? fg : "none"} stroke={fg} strokeWidth="2" opacity={i === whole % 4 ? 1 : 0.45} />)}
+      {Array.from({ length: cols }, (_, i) => {
+        const x = W * 0.08 + i * colW + colW * 0.14, w = colW * 0.72, span = eqBottom - eqTop, hgt = span * level(i, beat), py = eqBottom - span * Math.min(1, peak(i));
+        return <g key={i}>
+          <rect x={x} y={eqBottom - hgt} width={w} height={hgt} rx={w / 2} fill={i % 4 === 0 ? accent : fg} />
+          <rect x={x} y={py - u * 0.012} width={w} height={u * 0.008} rx={u * 0.004} fill={fg} opacity="0.7" />
+        </g>;
+      })}
+      <path d={`M ${W * 0.08} ${eqBottom + u * 0.012} H ${W * 0.92}`} stroke={fg} strokeWidth="2" />
+    </svg>
+  </div>;
+}
+
+/**
+ * Tessera — a Bauhaus mosaic: a grid of tiles (quarter circles, half circles, dots) in ink, accent and lavender;
+ * on every beat one tile turns a quarter, in turn, with a flash outline. A strip of small tiles fills beat by beat at the bottom.
+ */
+function TesseraBackdrop({ palette: [bg, fg, accent], time, aspectRatio }: { palette: [string, string, string]; time: number; aspectRatio: number }) {
+  const uid = React.useId().replace(/[^\w-]/g, "");
+  const W = 1000, H = W / aspectRatio, beat = time * 2, whole = Math.floor(beat), frac = beat - whole;
+  const wide = W > H * 1.3, cols = wide ? 5 : 3, rows = 2;
+  const tile = Math.min((W * (wide ? 0.6 : 0.84)) / cols, (H * (wide ? 0.38 : 0.36)) / rows);
+  const x0 = W * 0.92 - cols * tile, y0 = H * 0.07, n = cols * rows, gap = tile * 0.04;
+  const light = mixColor(bg, "#ffffff", 0.45), fills = [fg, accent, light, accent, fg, light, light, fg, accent, fg];
+  const ease = (v: number) => easeInOut(Math.min(1, v / 0.45));
+  const tiles = Array.from({ length: n }, (_, k) => {
+    const c = k % cols, r = Math.floor(k / cols), x = x0 + c * tile, y = y0 + r * tile, s = tile - gap;
+    const turns = beat >= k ? Math.floor((beat - k) / n) + 1 : 0, active = whole % n === k;
+    const angle = 90 * ((active ? turns - 1 : turns) + (active ? ease(frac) : 0)) + (k % 4) * 90;
+    const base = fills[k % fills.length], ink = base === fg ? light : fg, mark = base === accent ? light : accent;
+    const v = (k * 7 + 3) % 5, h = s / 2;
+    const motif = v === 0 ? <path d={`M ${-h} ${-h} H ${h} A ${s} ${s} 0 0 1 ${-h} ${h} Z`} fill={ink} />
+      : v === 1 ? <><path d={`M ${-h} ${-h} A ${h} ${h} 0 0 0 ${-h} ${h} Z`} fill={ink} /><path d={`M ${h} ${-h} A ${h} ${h} 0 0 1 ${h} ${h} Z`} fill={mark} /></>
+      : v === 2 ? <><path d={`M ${-h} ${h} A ${s} ${s} 0 0 1 ${h} ${-h} V ${h} Z`} fill={ink} /><circle cx={-h * 0.45} cy={-h * 0.45} r={s * 0.12} fill={mark} /></>
+      : v === 3 ? <><circle r={h * 0.82} fill={ink} /><circle r={h * 0.3} fill={mark} /></>
+      : <><path d={`M ${-h} ${-h} H ${h} V 0 A ${h} ${h} 0 0 1 ${-h} 0 Z`} fill={ink} /><circle cx={h * 0.5} cy={h * 0.5} r={s * 0.1} fill={mark} /></>;
+    return <g key={k} transform={`translate(${x + tile / 2} ${y + tile / 2})`}>
+      <defs><clipPath id={`tess-${uid}-${k}`}><rect x={-h} y={-h} width={s} height={s} rx={s * 0.04} /></clipPath></defs>
+      <g clipPath={`url(#tess-${uid}-${k})`}><rect x={-h} y={-h} width={s} height={s} fill={base} /><g transform={`rotate(${angle})`}>{motif}</g></g>
+      {active && <rect x={-h - gap} y={-h - gap} width={s + gap * 2} height={s + gap * 2} rx={s * 0.06} fill="none" stroke={fg} strokeWidth="3" opacity={(1 - frac) ** 2} />}
+    </g>;
+  });
+  const strip = wide ? 16 : 10, cell = (W * 0.84) / strip, sy = H * 0.885, filled = whole % strip;
+  return <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: bg }}>
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", width: "100%", height: "100%" }} aria-hidden>
+      {tiles}
+      <path d={`M ${W * 0.08} ${sy - cell * 0.35} H ${W * 0.92}`} stroke={accent} strokeWidth="2" />
+      {Array.from({ length: strip }, (_, i) => {
+        const x = W * 0.08 + i * cell, s = cell * 0.62, on = i <= filled;
+        return <g key={i} transform={`translate(${x + cell / 2} ${sy + s / 2})`}>
+          <rect x={-s / 2} y={-s / 2} width={s} height={s} rx={s * 0.08} fill={on ? (i % 3 === 1 ? accent : fg) : "none"} stroke={on ? "none" : fg} strokeWidth="1.5" opacity={on ? 1 : 0.3} />
+          {on && <path d={`M ${-s / 2} ${-s / 2} H ${s / 2} A ${s} ${s} 0 0 1 ${-s / 2} ${s / 2} Z`} fill={light} opacity="0.85" transform={`rotate(${(i % 4) * 90})`} />}
+        </g>;
+      })}
+    </svg>
+  </div>;
+}
+
+const mixColor = (a: string, b: string, k: number) => /^#[0-9a-f]{6}$/i.test(a) && /^#[0-9a-f]{6}$/i.test(b) ? "#" + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - k) + parseInt(b.slice(i, i + 2), 16) * k).toString(16).padStart(2, "0")).join("") : a;
+
+/**
+ * Torque — une affiche industrielle sous tension : deux rails crantés inclinés défilent en sens opposés par poussées
+ * (chaque temps, le couple accélère puis relâche), bordés de filets vermillon ; des traits de vitesse partent à chaque poussée ;
+ * en portrait, un compte-tours monte vers la zone rouge sur le temps puis retombe. Dessiné aux proportions réelles du cadre,
+ * la bande du titre reste libre (rails plus bas d'inclinaison en paysage).
+ */
+function TorqueBackdrop({ palette: [bg, fg, accent], time, aspectRatio }: { palette: [string, string, string]; time: number; aspectRatio: number }) {
+  const W = 1000, H = W / aspectRatio, u = Math.min(W, H), wide = aspectRatio > 1.2;
+  const tilt = wide ? -7 : -12;
+  const beat = time * 2, whole = Math.floor(beat), frac = beat - whole;
+  const surge = whole + easeInOut(Math.min(1, frac / 0.5));
+  const push = Math.max(0, 1 - frac / 0.5) * (frac < 0.5 ? 1 : 0);
+  const railH = u * (wide ? 0.085 : 0.11), gap = u * 0.06;
+  const rails = [{ y: H * (wide ? 0.08 : 0.13), dir: 1 }, { y: H * (wide ? 0.92 : 0.87), dir: -1 }];
+  const rev = frac < 0.1 ? 0.18 + 0.74 * (frac / 0.1) : 0.18 + 0.74 * Math.exp(-(frac - 0.1) * 3.2);
+  const gauge = aspectRatio < 0.8;
+  const gx = W * 0.72, gy = H * 0.72, gr = u * 0.15;
+  const angle = (k: number) => ((135 + 270 * k) * Math.PI) / 180;
+  const arc = (from: number, to: number, r: number) => `M ${gx + Math.cos(angle(from)) * r} ${gy + Math.sin(angle(from)) * r} A ${r} ${r} 0 ${(to - from) * 270 > 180 ? 1 : 0} 1 ${gx + Math.cos(angle(to)) * r} ${gy + Math.sin(angle(to)) * r}`;
+  return <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: bg }}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ position: "absolute", width: "100%", height: "100%" }} aria-hidden>
+      <g transform={`rotate(${tilt} ${W / 2} ${H / 2})`}>
+        {rails.map(({ y, dir }) => {
+          const shift = ((surge * gap * 1.5 * dir) % gap + gap) % gap;
+          const inner = y + (dir > 0 ? 1 : -1) * (railH / 2 + u * 0.03);
+          return <g key={y}>
+            <rect x={-W * 0.4} y={y - railH / 2} width={W * 1.8} height={railH} fill={fg} />
+            {Array.from({ length: Math.ceil((W * 1.8) / gap) + 2 }, (_, i) => {
+              const x = -W * 0.4 + i * gap + shift - gap;
+              return <path key={i} d={`M ${x} ${y + railH * 0.32} l ${railH * 0.32} ${-railH * 0.64}`} stroke={bg} strokeWidth={u * 0.008} strokeLinecap="round" />;
+            })}
+            <path d={`M ${-W * 0.4} ${inner} H ${W * 1.4}`} stroke={accent} strokeWidth={u * 0.012} />
+            {push > 0.02 && [0.15, 0.45, 0.75].map((k, i) => {
+              const x = W * k + dir * push * u * 0.2;
+              return <path key={i} d={`M ${x} ${inner + (dir > 0 ? 1 : -1) * u * 0.03} h ${-dir * u * (0.08 + push * 0.12)}`} stroke={fg} strokeWidth={u * 0.006} strokeLinecap="round" opacity={push * 0.7} />;
+            })}
+          </g>;
+        })}
+      </g>
+      {gauge && <g>
+        <circle cx={gx} cy={gy} r={gr * 1.12} fill="none" stroke={fg} strokeWidth={u * 0.006} />
+        <path d={arc(0, 0.8, gr)} fill="none" stroke={fg} strokeOpacity=".25" strokeWidth={u * 0.012} />
+        <path d={arc(0.8, 1, gr)} fill="none" stroke={accent} strokeWidth={u * 0.022} />
+        {Array.from({ length: 11 }, (_, i) => {
+          const a = angle(i / 10), r0 = gr * (i % 5 === 0 ? 0.74 : 0.82);
+          return <path key={i} d={`M ${gx + Math.cos(a) * r0} ${gy + Math.sin(a) * r0} L ${gx + Math.cos(a) * gr * 0.92} ${gy + Math.sin(a) * gr * 0.92}`} stroke={i >= 8 ? accent : fg} strokeWidth={u * (i % 5 === 0 ? 0.008 : 0.004)} />;
+        })}
+        <path d={`M ${gx} ${gy} L ${gx + Math.cos(angle(rev)) * gr * 0.86} ${gy + Math.sin(angle(rev)) * gr * 0.86}`} stroke={accent} strokeWidth={u * 0.01} strokeLinecap="round" />
+        <circle cx={gx} cy={gy} r={u * 0.016} fill={fg} />
+        {rev > 0.8 && <circle cx={gx} cy={gy} r={gr * (1.2 + (rev - 0.8) * 1.5)} fill="none" stroke={accent} strokeWidth={u * 0.004} opacity={(rev - 0.8) * 4} />}
+      </g>}
+    </svg>
+  </div>;
 }

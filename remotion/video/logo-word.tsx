@@ -2,6 +2,7 @@ import React from "react";
 import { logoMotionState, type LogoMotionId } from "../../config/logo-motion";
 import { outlineText } from "../../lib/posts/outline-text";
 import { LogoGlyphArt, isGlyphMotion } from "./logo-word-glyphs";
+import { CollectionSignature, isCollectionSignature } from "./logo-word-collection";
 
 const pulse = (p: number, start: number, end: number) => p <= start || p >= end ? 0 : Math.sin((p - start) / (end - start) * Math.PI) ** 2;
 const ease = (v: number) => 1 - (1 - Math.max(0, Math.min(1, v))) ** 4;
@@ -10,6 +11,7 @@ type WordArtProps = { template: LogoMotionId; text: string; colors: [string, str
 
 /** Frame-driven vectors keep the picker, player and exported video in sync. */
 export function LogoWordArt({ template, ...props }: WordArtProps) {
+  if (isCollectionSignature(template)) return <CollectionSignature template={template} {...props} />;
   return isGlyphMotion(template) ? <LogoGlyphArt template={template} {...props} /> : <WholeWordArt template={template} {...props} />;
 }
 

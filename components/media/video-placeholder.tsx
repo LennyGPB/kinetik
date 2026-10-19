@@ -8,12 +8,22 @@ import { SignatureBackground } from "../../remotion/video/signature-backgrounds"
 import { CollectionThumbnail, isCollectionTemplate } from "./collection-thumbnail";
 import { getEditorialMotion } from "../../config/editorial-motion";
 import { EditorialBackdrop } from "../../remotion/video/editorial-backdrop";
+import { SmearTitle } from "../../remotion/video/smear-art";
+import { NoiseGrain, NoiseTitle } from "../../remotion/video/noise-art";
+import { EmberTitle } from "../../remotion/video/ember-art";
+import { HaloTitle } from "../../remotion/video/halo-art";
+import { ThornCrown, VoidTitle } from "../../remotion/video/void-art";
+import { MeltTitle } from "../../remotion/video/melt-art";
+import { HoloCapsule } from "../../remotion/video/holo-art";
+import { LumenTitle } from "../../remotion/video/lumen-art";
+import { GlossTitle } from "../../remotion/video/gloss-art";
 import { getGraphicMotion } from "../../config/graphic-motion";
 import { GraphicBackdrop } from "../../remotion/video/graphic-backdrop";
 import { getReferenceMotion, type ReferenceMotionKind } from "../../config/reference-motion";
 import { ReferenceMotionThumbnail } from "./reference-motion-thumbnail";
 import { getLogoMotion } from "../../config/logo-motion";
 import { LogoWordArt } from "../../remotion/video/logo-word";
+import { InspiredBackground, INSPIRED_BACKGROUNDS } from "../../remotion/video/inspired-backgrounds";
 
 export type VideoPlaceholderProps = {
   /** Ratio du cadre. "fill" = prend la taille du parent. */
@@ -67,7 +77,7 @@ export function VideoPlaceholder({
   const graphic = getGraphicMotion(templateId);
   const reference = getReferenceMotion(templateId);
   const logoMotion = getLogoMotion(templateId);
-  const editorialTop = editorial ? ({ "contact-sheet": "63%", "arch-window": "66%", "lens-ring": "60%", "press-column": "17%", "diagonal-diptych": "39%", "caption-card": "65%", newsprint: "14%", offset: "65%", duotone: "70%", shutters: "39%", inlay: "63%" } as Record<string, string>)[editorial.treatment] : undefined;
+  const editorialTop = editorial ? ({ "contact-sheet": "63%", "arch-window": "66%", "press-column": "17%", "diagonal-diptych": "39%", newsprint: "14%", offset: "65%", shutters: "39%", inlay: "63%", linea: "36%", slate: "64%" } as Record<string, string>)[editorial.treatment] : undefined;
   const style = { "--vp-bg": bg, "--vp-main": main, "--vp-accent": accent } as CSSProperties;
 
   return (
@@ -86,15 +96,29 @@ export function VideoPlaceholder({
         <div className="absolute inset-0" aria-hidden>
           {logoMotion ? <LogoWordArt template={logoMotion.id} text={label ?? logoMotion.sample} colors={palette} time={1.5} /> : reference ? <ReferenceMotionThumbnail kind={templateId as ReferenceMotionKind} palette={palette} aspectRatio={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} bare={bare} /> : graphic ? <div className="absolute inset-0 [container-type:size]">
             <GraphicBackdrop kind={graphic.kind} palette={palette} time={0.8} aspectRatio={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} />
-            {!bare && <div className={cn("absolute inset-x-[9%] leading-none", ["anvil", "tessera", "suture", "ratchet", "interlock", "blackout"].includes(graphic.kind) ? "text-[13cqmin]" : "text-[15cqmin]", graphic.kind === "suture" ? "font-serif" : ["cadence", "vector-beat", "tessera", "interlock"].includes(graphic.kind) ? "font-video font-semibold" : "font-condensed")} style={{ color: main, top: ({ anvil: "41%", tessera: "49%", suture: "40%", ratchet: "54%", interlock: "42%", torque: "34%", voltage: "38%" } as Record<string, string>)[graphic.kind] ?? "44%", transform: graphic.kind === "torque" ? "rotate(-12deg)" : undefined }}>{graphic.headline}</div>}
+            {!bare && graphic.kind === "sticker" && <div className="font-condensed absolute inset-x-[5%] top-1/2 -translate-y-1/2 text-[15cqmin]"><SmearTitle text={graphic.headline} time={0.9} palette={palette} /></div>}
+            {!bare && graphic.kind === "optic" && <><div className="font-heading absolute inset-x-[4%] top-[8%] bottom-[18%] flex items-center justify-center"><NoiseTitle text={graphic.headline} time={0.9} color={palette[1]} /></div><NoiseGrain seed={5} opacity={0.5} /></>}
+            {!bare && graphic.kind === "flux" && <div className="font-video absolute inset-x-[6%] top-1/2 -translate-y-1/2"><EmberTitle text={graphic.headline} time={0.9} palette={palette} /></div>}
+            {!bare && graphic.kind === "lens" && <><div className="font-video absolute inset-x-[5%] top-1/2 -translate-y-1/2"><HaloTitle text={graphic.headline} time={0.9} palette={palette} /></div><NoiseGrain seed={7} opacity={0.4} /></>}
+            {!bare && graphic.kind === "carousel" && <>
+              <ThornCrown time={0.9} layer="back" aspectRatio={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} palette={palette} />
+              <div className="font-video absolute inset-x-[6%] top-1/2 -translate-y-1/2"><VoidTitle text={graphic.headline} time={0.9} palette={palette} /></div>
+              <ThornCrown time={0.9} layer="front" aspectRatio={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} palette={palette} />
+              <NoiseGrain seed={4} opacity={0.35} />
+            </>}
+            {!bare && graphic.kind === "offprint" && <div className="font-heading absolute inset-x-[6%] top-[30%] text-[17cqmin]"><MeltTitle text={graphic.headline} time={2.4} palette={palette} /></div>}
+            {!bare && graphic.kind === "patina" && <div className="font-heading absolute" style={{ ...(ratio !== "fill" && Number(ratio.split(":")[1]) > Number(ratio.split(":")[0]) * 1.2 ? { left: "30%", right: "30%", top: "8%", bottom: "14%" } : { left: "14%", right: "14%", top: "20%", bottom: "26%" }) }}><HoloCapsule text={graphic.headline} time={0.9} palette={palette} vertical={ratio !== "fill" && Number(ratio.split(":")[1]) > Number(ratio.split(":")[0]) * 1.2} /></div>}
+            {!bare && graphic.kind === "interlock" && <div className="absolute inset-x-[6%] top-1/2 -translate-y-1/2"><LumenTitle text={graphic.headline} time={0.9} palette={palette} /></div>}
+            {!bare && graphic.kind === "gloss" && <div className="font-condensed absolute inset-x-[6%] bottom-[44%] text-[24cqmin]"><GlossTitle text={graphic.headline} palette={palette} /></div>}
+            {!bare && !["sticker", "optic", "flux", "lens", "carousel", "offprint", "patina", "interlock", "gloss"].includes(graphic.kind) && <div className={cn("absolute inset-x-[9%] leading-none", ["anvil", "tessera", "suture", "ratchet", "interlock", "blackout"].includes(graphic.kind) ? "text-[13cqmin]" : "text-[15cqmin]", graphic.kind === "suture" ? "font-serif" : ["cadence", "flux", "vector-beat", "tessera", "interlock"].includes(graphic.kind) ? "font-video font-semibold" : "font-condensed")} style={{ color: main, top: ({ anvil: "41%", tessera: "49%", suture: "40%", ratchet: "54%", interlock: "42%", torque: "34%", voltage: "38%" } as Record<string, string>)[graphic.kind] ?? "44%", transform: graphic.kind === "torque" ? "rotate(-12deg)" : undefined }}>{graphic.headline}</div>}
           </div> : editorial ? <div className="absolute inset-0 [container-type:size]">
             <EditorialBackdrop treatment={editorial.treatment} palette={palette} progress={0.5} renderPhoto={(photoStyle) => <div style={{ ...photoStyle, backgroundImage: `url(${editorial.photo})`, backgroundSize: "cover", backgroundPosition: "center" }} />} />
-            {!bare && <div className="absolute inset-x-[9%]" style={{ color: main, top: editorialTop ?? "50%", transform: editorialTop ? undefined : "translateY(-50%)", textAlign: editorial.treatment === "lens-ring" ? "center" : undefined, right: ["newsprint", "press-column"].includes(editorial.treatment) ? "33%" : "9%" }}><span className={cn("block leading-[1.05]", editorialTop ? "text-[12cqmin]" : "text-[17cqmin]", ["contact-sheet", "press-column", "diagonal-diptych", "shutters", "band", "split", "masthead", "strips", "ribbon", "rust-panel"].includes(editorial.treatment) ? "font-condensed uppercase" : ["caption-card", "lens-ring"].includes(editorial.treatment) ? "font-video font-semibold" : "font-serif")}>{editorial.headline}</span><span className="mt-[7cqmin] block text-[4cqmin]">{label}</span></div>}
+            {!bare && <div className="absolute inset-x-[9%]" style={{ color: main, top: editorialTop ?? "50%", transform: editorialTop ? undefined : "translateY(-50%)", right: ["newsprint", "press-column"].includes(editorial.treatment) ? "33%" : editorial.treatment === "linea" ? "58%" : "9%" }}><span className={cn("block leading-[1.05]", editorialTop ? "text-[12cqmin]" : "text-[17cqmin]", ["contact-sheet", "press-column", "diagonal-diptych", "shutters", "band", "split", "masthead", "strips", "ribbon", "rust-panel"].includes(editorial.treatment) ? "font-condensed uppercase" : ["linea"].includes(editorial.treatment) ? "font-video font-semibold" : "font-serif")}>{editorial.headline}</span><span className="mt-[7cqmin] block text-[4cqmin]">{label}</span></div>}
           </div> : isCollectionTemplate(templateId) ? <CollectionThumbnail id={templateId} label={label} bare={bare} /> : !bare && (templateId === "pulse" || templateId === "studio" || templateId === "luxe" || templateId === "corporate" || templateId === "playful" || templateId === "blueprint" || templateId === "ocean")
             ? <TemplateThumbnail templateId={templateId} label={label} />
             : !bare && templateId && hasCatalogThumbnail(templateId)
               ? <CatalogThumbnail templateId={templateId} />
-            : <Scene kind={scene} label={label} bare={bare} />}
+            : <Scene kind={scene} label={label} bare={bare} palette={palette} aspect={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} />}
           {/* Grain + vignette pour un rendu "vidéo" */}
           {!LIGHT_SCENES.includes(scene) && !SIGNATURE_SCENES.includes(scene) && <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_10%,transparent_55%,rgb(0_0_0/0.35))]" />}
           {!SIGNATURE_SCENES.includes(scene) && <div
@@ -110,7 +134,7 @@ export function VideoPlaceholder({
 
 /** Fonds clairs : pas de vignette sombre (elle salirait le blanc ou le papier). */
 const LIGHT_SCENES: SceneKind[] = ["clean", "paper", "chrome"];
-const SIGNATURE_SCENES: SceneKind[] = ["pulse-edge", "studio-stage", "gold-atelier", "corporate-panels", "swiss-rules", "playful-fluid", "blueprint-draft", "ocean-tide", "monolith", "focus", "prism", "papercut", "metro"];
+const SIGNATURE_SCENES: SceneKind[] = ["pulse-edge", "studio-stage", "gold-atelier", "corporate-panels", "swiss-rules", "playful-fluid", "blueprint-draft", "ocean-tide", "monolith", "focus", "prism", "papercut", "metro", ...INSPIRED_BACKGROUNDS];
 
 const NOISE =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
@@ -144,7 +168,7 @@ const STARS: [number, number][] = [[8, 0.2], [40, 1.1], [75, 0.6], [110, 1.5], [
 const PIXELS: [number, number, boolean][] = [[2, 1, false], [9, 2, true], [14, 1, false], [4, 6, false], [12, 7, true], [1, 11, true], [8, 12, false], [15, 10, false], [6, 3, false], [11, 13, true]];
 
 /** Une scène d'aperçu par fond animé (même vocabulaire que remotion/video/backgrounds.tsx, en CSS pur). */
-function Scene({ kind, label, bare }: { kind: SceneKind; label: string; bare?: boolean }) {
+function Scene({ kind, label, bare, palette, aspect }: { kind: SceneKind; label: string; bare?: boolean; palette: [string, string, string]; aspect: number }) {
 
   const TERMINAL_LINES = ["export async function ship(release) {", "  const build = await compile(release)", "  await deploy(build)", "}", "", "$ npm run deploy", "✓ build completed", "→ live in production", ""];
   const SPARKLE_PATH ="M50 0 C54 34 66 46 100 50 C66 54 54 66 50 100 C46 66 34 54 0 50 C34 46 46 34 50 0Z";
@@ -700,6 +724,26 @@ function Scene({ kind, label, bare }: { kind: SceneKind; label: string; bare?: b
           {!bare && <span className="absolute inset-0 grid place-items-center font-mono text-[clamp(1rem,12cqmin,4rem)] font-bold tracking-tight text-white">{label}</span>}
         </div>
       );
+
+    // Fonds inspirés : même composant que la vidéo, figé à 2 s
+    case "tile-ring":
+    case "neon-tunnel":
+    case "grunge":
+    case "optic":
+    case "burst-panels":
+    case "gradient-mosaic":
+    case "grain-wave":
+    case "neon-flow":
+    case "cosmic":
+    case "silk-ribbon":
+    case "wire-globe":
+    case "led-matrix":
+    case "marble":
+    case "circuit":
+      return <>
+        <InspiredBackground kind={kind} palette={palette} time={2} pulse={0.4} aspect={aspect} uid={`vp-${kind}-${palette.join("").replace(/#/g, "")}`} />
+        {!bare && <div className="absolute inset-0 grid place-items-center [container-type:size]"><span className="px-[8%] text-center font-display text-[13cqmin] font-extrabold leading-none tracking-tight" style={{ color: palette[1] === palette[0] ? palette[2] : palette[1] }}>{label}</span></div>}
+      </>;
 
     default: {
       // Erreur de typage ici = un fond de config/recipes.ts n'a pas encore d'aperçu

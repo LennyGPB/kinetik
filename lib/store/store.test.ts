@@ -3,7 +3,8 @@ import test from "node:test";
 import sharp from "sharp";
 import { STORE_LAYOUTS, STORE_SIZES, STORE_TEMPLATES } from "../../config/store-templates";
 import { getStoreExportCost, getStoreGenerationCost } from "../../config/credits";
-import { StoreDocumentSchema, demoStore, draftStore, newStorePage, pageScreens, remapStoreScreens } from "./document";
+import { StoreDocumentSchema, applyStoreTemplate, demoStore, draftStore, newStorePage, pageScreens, remapStoreScreens } from "./document";
+import { STORE_COLLECTION } from "../../config/store-collection";
 import { storeBannerSvg, storeSvg } from "./svg";
 import { imageZip } from "../posts/zip";
 
@@ -53,6 +54,25 @@ test("user text and unsafe image URLs never reach the SVG as markup", () => {
   const svg = storeSvg(doc, 1, "ios", { screenUrls: ['javascript:alert(1)'], logoUrl: "https://evil.example/x.png" });
   assert.ok(!svg.includes("<script") && !svg.includes("javascript:") && !svg.includes("evil.example"));
   assert.ok(storeSvg(doc, 1, "ios", { screenUrls: ["/api/uploads/u1/image/a.png"] }).includes('href="/api/uploads/u1/image/a.png"'));
+});
+
+test("new Store art directions preserve edited content and uploaded screens when applied", () => {
+  const original = demoStore("store-clean", "fr", "Mon app");
+  original.pages[1] = { ...original.pages[1], title: "Une fonction personnalisée", screen: 2, android: { screen: 3, screen2: null } };
+  assert.equal(STORE_COLLECTION.length, 10);
+  assert.equal(new Set(STORE_TEMPLATES.map(item => item.id)).size, STORE_TEMPLATES.length);
+  for (const template of STORE_COLLECTION) {
+    const doc = StoreDocumentSchema.parse(applyStoreTemplate(original, template.id));
+    assert.deepEqual(doc.pages, original.pages);
+    assert.deepEqual(doc.banner, original.banner);
+    const urls = [0, 1, 2, 3].map(i => `/api/uploads/u1/image/screen${i}.png`);
+    for (const platform of ["ios", "android"] as const) {
+      const svg = storeSvg(doc, 1, platform, { screenUrls: urls, uid: template.id });
+      assert.ok(svg.includes(urls[platform === "ios" ? 2 : 3]), template.name);
+      assert.ok(!/NaN|Infinity|undefined/.test(svg), template.name);
+      assert.equal(svg, storeSvg(doc, 1, platform, { screenUrls: urls, uid: template.id }));
+    }
+  }
 });
 
 test("credits and archive bounds", () => {

@@ -35,9 +35,19 @@ export const CAMPAIGN_POST_TEMPLATES = [
   {"id":"post-sculpt","name":"Sculpt","linked":false,"layout":"sculpt","palette":["#DAD2C5","#292822","#916548"],"description":{"fr":"Grande photo cadrée et titre de galerie.","en":"An oversized framed photo and gallery typography."}},
   {"id":"post-tempo","name":"Tempo","linked":false,"layout":"tempo","palette":["#C1462B","#FFF0DD","#2A2724"],"description":{"fr":"Photo en diagonale et titre condensé de campagne.","en":"Diagonal photography and condensed campaign headlines."}},
   {"id":"post-verso","name":"Verso","linked":true,"layout":"verso","palette":["#27282A","#F7EBDA","#CBAC88"],"description":{"fr":"Deux panneaux photo et ruban reliant les pages.","en":"Two photo panels and a ribbon connecting the pages."}},
+  { id: "post-neon-night", name: "Neon Night", linked: false, layout: "neon-night", palette: ["#14081F", "#FFFFFF", "#FF2E9A"], description: { fr: "Flyer de soirée : photo teintée néon rose et vert, mot géant en contour et barres lumineuses.", en: "A club flyer: neon pink-and-green tinted photo, a giant outlined word and glowing bars." } },
+  { id: "post-warp", name: "Warp", linked: false, layout: "warp", palette: ["#0B0B0D", "#FFFFFF", "#5B5BFF"], description: { fr: "Typographie qui fond et se déforme, dédoublée en rouge, cyan et bleu, sur fond noir.", en: "Melting, warping type split into red, cyan and blue on black." } },
+  { id: "post-spray", name: "Spray", linked: false, layout: "spray", palette: ["#2B1561", "#F4EEFF", "#FF4FB0"], description: { fr: "Grunge violet : spray rose, photo noir et blanc scotchée et titre condensé bicolore.", en: "Purple grunge: pink spray, a taped black-and-white photo and a two-tone condensed title." } },
+  { id: "post-hype", name: "Hype", linked: false, layout: "hype", palette: ["#0E0E0E", "#FFFFFF", "#C6FF3D"], description: { fr: "Post d’agence : capitales, punchline sur étiquette lime, post-it rose, gribouillis et polaroid.", en: "An agency post: capitals, a punchline on a lime label, a pink sticky note, scribbles and a polaroid." } },
+  { id: "post-chrome", name: "Chrome", linked: false, layout: "chrome", palette: ["#F1ECFF", "#14121C", "#7B4DFF"], description: { fr: "Lavande et violet : forme 3D chromée, photo en duotone, titre net et bouton flèche.", en: "Lavender and purple: a chrome 3D shape, duotone photo, crisp title and an arrow button." } },
 ] as const;
 
 export const CAMPAIGN_DEMO_PHOTOS: Record<string, string> = {
+  "post-neon-night": "/post-demos/portrait-6.jpg",
+  "post-warp": "/post-demos/city.jpg",
+  "post-spray": "/post-demos/portrait-4.jpg",
+  "post-hype": "/post-demos/portrait-3.jpg",
+  "post-chrome": "/post-demos/portrait-5.jpg",
   "post-kinetik-launch": "/post-demos/workspace.jpg",
   "post-kinetik-guide": "/post-demos/detail.jpg",
   "post-margin": "/post-demos/portrait-4.jpg",

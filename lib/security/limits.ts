@@ -31,6 +31,8 @@ export const LIMITS = {
   register: [{ limit: 5, windowMs: HOUR }, { limit: 15, windowMs: DAY }],
   /** Formulaire de support (message envoyé sur Telegram) */
   support: [{ limit: 3, windowMs: 10 * MIN }, { limit: 10, windowMs: DAY }],
+  /** Page Feedback du dashboard (idées, avis), par utilisateur ; envoyé sur Telegram */
+  feedback: [{ limit: 5, windowMs: 10 * MIN }, { limit: 20, windowMs: DAY }],
   /** Champs « mot de passe actuel » des paramètres (changer d'email / de mot de passe, supprimer le compte) */
   passwordCheck: [{ limit: 5, windowMs: 15 * MIN }],
   adminUnlock: { user: { limit: 5, windowMs: 15 * MIN }, ip: { limit: 10, windowMs: 15 * MIN } },

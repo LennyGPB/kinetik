@@ -4,7 +4,7 @@ import { CreateContentButton } from "@/components/create/create-content-button";
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { Coins, LayoutGrid, LayoutTemplate, Palette, Plus, Settings } from "lucide-react";
+import { Coins, LayoutGrid, LayoutTemplate, MessageSquareHeart, Palette, Plus, Settings } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
 import { usePathname } from "@/lib/i18n/navigation";
@@ -38,6 +38,7 @@ export function AppShell({
   { href: "/brand-kit", label: t.app.nav.brandKit, icon: Palette },
   { href: "/credits", label: t.app.nav.credits, icon: Coins },
   { href: "/settings", label: t.app.nav.settings, icon: Settings },
+  { href: "/feedback", label: t.app.nav.feedback, icon: MessageSquareHeart },
 ];
 
   const isActive = useIsActive();

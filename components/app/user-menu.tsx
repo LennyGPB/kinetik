@@ -3,7 +3,7 @@
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { ChevronsUpDown, Coins, LogOut, Settings, ShieldCheck } from "lucide-react";
+import { ChevronsUpDown, Coins, LogOut, MessageSquareHeart, Settings, ShieldCheck } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -92,6 +92,9 @@ export function UserMenu({ name, email, compact, admin }: { name: string; email:
             </Link>
             <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-fg">
               <Settings className="size-4" /> {t.app.nav.settings}
+            </Link>
+            <Link role="menuitem" href="/feedback" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-fg">
+              <MessageSquareHeart className="size-4" /> {t.app.nav.feedback}
             </Link>
             {/* Visible uniquement pour le rôle ADMIN ; l'espace demande ensuite le mot de passe admin */}
             {admin && (

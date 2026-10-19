@@ -7,6 +7,11 @@ export function campaignDemo(templateId: string, locale: "fr" | "en"): PostDocum
   const fr = locale === "fr";
   const copy: Record<string, [string, string, string]> = fr ? {
     "kinetik-launch": ["Ton contenu mérite de bouger.", "Tes idées prennent vie.", "Crée avec Kinetik."],
+    "neon-night": ["NIGHT PARTY", "LA NUIT T’APPARTIENT", "ON SE RETROUVE CE SOIR"],
+    "warp": ["DÉFORMER LA RÉALITÉ", "DES IDÉES EN MOUVEMENT", "SORTIR DU CADRE"],
+    "spray": ["MES SERVICES", "VIENS ME CONNAÎTRE", "ON CRÉE ENSEMBLE ?"],
+    "hype": ["POSTER N’EST PAS PERDRE SON TEMPS", "LE MARKETING N’EST PAS MAGIQUE", "PARLE JUSTE, PAS PLUS FORT"],
+    "chrome": ["Ta stratégie, enfin claire.", "Contenu vs résultat", "Prêt à grandir ?"],
     "kinetik-guide": ["Une idée. Trois étapes.", "Choisis ton mouvement.", "Publie à ton rythme."],
     margin: ["Laisser place au regard.", "Le détail fait sens.", "Une présence qui reste."],
     placard: ["LES IDÉES PRENNENT PLACE.", "UN REGARD SINGULIER.", "OSEZ FAIRE AUTREMENT."],
@@ -43,6 +48,11 @@ export function campaignDemo(templateId: string, locale: "fr" | "en"): PostDocum
     atelier: ["L’art du détail.", "Une présence singulière.", "Des images qui durent."],
   } : {
     "kinetik-launch": ["Your content deserves motion.", "Your ideas come alive.", "Create with Kinetik."],
+    "neon-night": ["NIGHT PARTY", "OWN THE NIGHT", "SEE YOU TONIGHT"],
+    "warp": ["BEND REALITY", "IDEAS IN MOTION", "BREAK THE FRAME"],
+    "spray": ["MY SERVICES", "COME SAY HI", "SHALL WE CREATE?"],
+    "hype": ["POSTING IS NOT WASTING TIME", "MARKETING IS NOT MAGIC", "SPEAK SMART, NOT LOUDER"],
+    "chrome": ["Your strategy, made clear.", "Content vs results", "Ready to grow?"],
     "kinetik-guide": ["One idea. Three steps.", "Choose your movement.", "Publish at your pace."],
     margin: ["Make room for perspective.", "Details have meaning.", "A lasting presence."],
     placard: ["IDEAS TAKE THEIR PLACE.", "A DISTINCTIVE PERSPECTIVE.", "DARE TO DO IT DIFFERENTLY."],

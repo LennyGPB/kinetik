@@ -1,10 +1,12 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useId, type CSSProperties, type ReactNode } from "react";
 import { AbsoluteFill, Easing, interpolate, random, useCurrentFrame, useVideoConfig } from "remotion";
 import { GlitchSlices } from "./glitch-fx";
 import type { Scene, Transition } from "../../lib/projects/scenes";
+import type { MotionEase, MotionExit } from "../../config/recipes";
 import type { VideoProps } from "../props";
-import { beatFrames } from "./theme";
+import { beatFrames, useRecipe } from "./theme";
 import { CollectionTransitionCover, isCollectionTransition } from "./collection-transitions";
+import { BurnCover, CapsuleCover, DripCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
 
 /**
  * BRIQUES « transitions » (scene.transition, choisie par Claude parmi recipe.transitions).
@@ -25,6 +27,12 @@ type TransitionContext = {
   accent: string;
   /** 1 % du plus petit côté, en px */
   unit: number;
+  width: number;
+  height: number;
+  /** Palette de la scène qui arrive */
+  palette: VideoProps["palette"];
+  /** Titre de la scène qui arrive */
+  title: string;
 };
 
 type TransitionBrick = {
@@ -36,9 +44,60 @@ type TransitionBrick = {
   style: (c: TransitionContext) => CSSProperties;
   /** Calque optionnel par-dessus la scène (flash, rideau…) */
   overlay?: (c: TransitionContext) => ReactNode;
+  /** La scène est pleinement opaque dès sa première image (la couverture ou le mouvement fait le travail). */
+  opaque?: boolean;
+  /** Habillage du contenu pendant l'entrée (filtre…) ; `id` sert aux filtres SVG. */
+  wrap?: (children: ReactNode, c: TransitionContext, id: string) => ReactNode;
+  /**
+   * Fin de la scène PRÉCÉDENTE quand cette transition suit : durée en images (`t` de 0 à 1),
+   * couverture qui arrive, style et habillage du contenu sortant.
+   */
+  exit?: {
+    frames: number;
+    cover?: (c: CoverContext) => ReactNode;
+    style?: (t: number, c: TransitionContext) => CSSProperties;
+    wrap?: (children: ReactNode, t: number, c: TransitionContext, id: string) => ReactNode;
+  };
+  /**
+   * Mouvement de tout le cadre (fond compris) autour de la frontière : `t` = progression de la sortie (out)
+   * ou de l'entrée (in). Appliqué par KinetikVideo au fond, via backdropMotion().
+   */
+  backdrop?: (s: { phase: "out" | "in"; t: number; unit: number; frame: number; id: string }) => { style: CSSProperties; defs?: ReactNode };
 };
 
 const fast = (energy: Energy) => (energy === "high" ? 8 : 14);
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+/** Couverture d'entrée : `p` = 1 − progression (la couverture découvre la scène). */
+const coverIn = (c: TransitionContext): CoverContext => ({ p: 1 - c.inP, phase: "in", frame: c.frame, width: c.width, height: c.height, unit: c.unit, color: c.accent, palette: c.palette, title: c.title });
+
+/** Courbe d'entrée propre au template (recipe.motion.ease) ; absente = ralenti cubique historique. */
+export function easeFor(ease: MotionEase | undefined): (t: number) => number {
+  switch (ease) {
+    case "expo": return Easing.out(Easing.exp);
+    case "quint": return Easing.out(Easing.poly(5));
+    case "back": return Easing.out(Easing.back(1.5));
+    case "steps": return (t) => ratchetSteps(t);
+    default: return Easing.out(Easing.cubic);
+  }
+}
+
+/** Sortie des éléments propre au template (recipe.motion.exit), en plus du fondu ; `p` = progression de la sortie. */
+function exitMotion(exit: MotionExit | undefined, p: number, unit: number): CSSProperties | undefined {
+  if (!exit || exit === "fade" || p <= 0) return undefined;
+  switch (exit) {
+    case "sink": return { transform: `translateY(${Easing.in(Easing.cubic)(p) * unit * 5}px)` };
+    case "rise": return { transform: `translateY(${-Easing.in(Easing.cubic)(p) * unit * 5}px)` };
+    case "shrink": return { transform: `scale(${1 - 0.08 * Easing.in(Easing.cubic)(p)})` };
+    case "slam": return { transform: `scale(${1 - 0.16 * p * p}) translateY(${p * p * unit * 2}px)` };
+    case "blur": return { filter: `blur(${p * unit * 1.4}px)`, transform: `scale(${1 + 0.03 * p})` };
+  }
+}
+
+/** Contenu de la scène avec un filtre SVG tant que `amount` > 0 (sinon, aucun filtre : le verre reste possible). */
+function filtered(children: ReactNode, id: string, amount: number, filter: (id: string) => ReactNode) {
+  if (amount <= 0.05) return children;
+  return <>{filter(id)}<AbsoluteFill style={{ filter: `url(#${id})` }}>{children}</AbsoluteFill></>;
+}
 
 const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
   mosaic: { enter: () => 25, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent, aspectRatio }) => <CollectionTransitionCover kind="mosaic" progress={inP} color={accent} aspectRatio={aspectRatio} /> },
@@ -94,6 +153,259 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     fadeOut: false,
     style: ({ inP }) => ({ opacity: 1, transform: `scale(${1.025 - 0.025 * inP})` }),
     overlay: ({ inP, accent }) => <GlassPane left={-15 - Easing.inOut(Easing.cubic)(inP) * 140} accent={accent} />,
+  },
+
+  // ───── Transitions thématiques (themed-transitions.tsx) : la couverture reprend le motif d'un thème ─────
+  // Presse (Anvil) : les mâchoires se referment en accélérant, frappent, puis se rouvrent ; la scène arrive avec un petit « punch »
+  press: {
+    enter: (energy) => (energy === "high" ? 14 : 18),
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP }) => ({ transform: `scale(${1.04 - 0.04 * clamp01(inP)})` }),
+    overlay: (c) => <PressCover {...coverIn(c)} />,
+    exit: { frames: 12, cover: (c) => <PressCover {...c} /> },
+  },
+  // Rouage (Ratchet) : ouverture dentée qui se ferme puis s'ouvre cran par cran
+  cog: {
+    enter: (energy) => (energy === "high" ? 16 : 20),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <CogCover {...coverIn(c)} />,
+    exit: { frames: 14, cover: (c) => <CogCover {...c} /> },
+  },
+  // Couture (Suture) : une aiguille ferme l'écran derrière elle, puis la couture s'ouvre
+  stitch: {
+    enter: (energy) => (energy === "high" ? 14 : 18),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <StitchCover {...coverIn(c)} />,
+    exit: { frames: 18, cover: (c) => <StitchCover {...c} /> },
+  },
+  // Emboîtement (Interlock) : deux pièces crantées s'emboîtent, puis se déverrouillent à la verticale
+  clasp: {
+    enter: (energy) => (energy === "high" ? 12 : 16),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <ClaspCover {...coverIn(c)} />,
+    exit: { frames: 12, cover: (c) => <ClaspCover {...c} /> },
+  },
+  // Pavage (Tessera) : tuiles Bauhaus qui pivotent en 3D en vague diagonale
+  tessellate: {
+    enter: (energy) => (energy === "high" ? 16 : 22),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <TessellateCover {...coverIn(c)} />,
+    exit: { frames: 14, cover: (c) => <TessellateCover {...c} /> },
+  },
+  // Filé (whip pan) : tout le cadre part en panoramique flou, la scène suivante arrive du côté opposé
+  whip: {
+    enter: (energy) => (energy === "high" ? 8 : 11),
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP }) => ({ transform: `translateX(${(1 - inP) * 45}%)` }),
+    wrap: (children, c, id) => filtered(children, id, (1 - c.inP) * c.unit * 4, (fid) => <MotionBlurFilter id={fid} amount={(1 - c.inP) * c.unit * 4} />),
+    overlay: ({ inP, frame, unit, accent }) => <WhipStreaks intensity={1 - inP} frame={frame} unit={unit} color={accent} />,
+    exit: {
+      frames: 7,
+      style: (t) => ({ transform: `translateX(${-t * t * 45}%)` }),
+      wrap: (children, t, c, id) => filtered(<>{children}<WhipStreaks intensity={t * t} frame={c.frame} unit={c.unit} color={c.accent} /></>, id, t * t * c.unit * 4, (fid) => <MotionBlurFilter id={fid} amount={t * t * c.unit * 4} />),
+    },
+    backdrop: ({ phase, t, unit, id }) => {
+      const s = phase === "out" ? t * t : 1 - t;
+      return { style: { transform: `translateX(${(phase === "out" ? -1 : 1) * s * 5}%) scale(${1 + s * 0.12})`, filter: s > 0.05 ? `url(#${id})` : undefined }, defs: <MotionBlurFilter id={id} amount={s * unit * 3} /> };
+    },
+  },
+  // Masque typographique : un aplat monte, puis la scène apparaît à travers les lettres géantes de son titre
+  stencil: {
+    enter: (energy) => (energy === "high" ? 20 : 26),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <StencilCover {...coverIn(c)} />,
+    exit: { frames: 9, cover: (c) => <StencilCover {...c} /> },
+  },
+  // Encre : des gouttes s'étalent jusqu'à couvrir l'écran, puis l'encre se retire
+  ink: {
+    enter: (energy) => (energy === "high" ? 18 : 24),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <InkCover {...coverIn(c)} />,
+    exit: { frames: 16, cover: (c) => <InkCover {...c} /> },
+  },
+  // Brûlure de pellicule : l'image brûle depuis un coin, puis la brûlure se retire
+  burn: {
+    enter: (energy) => (energy === "high" ? 14 : 20),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <BurnCover {...coverIn(c)} />,
+    exit: { frames: 14, cover: (c) => <BurnCover {...c} /> },
+  },
+  // Ondulation : l'image se trouble comme une surface d'eau (fond compris), la scène suivante se stabilise en ondes
+  ripple: {
+    enter: (energy) => (energy === "high" ? 16 : 22),
+    fadeOut: false,
+    style: () => ({}),
+    wrap: (children, c, id) => filtered(children, id, (1 - c.inP) * c.unit * 10, (fid) => <RippleFilter id={fid} amount={(1 - c.inP) * c.unit * 10} frame={c.frame} />),
+    overlay: ({ inP, unit, accent }) => <RippleRings progress={inP} unit={unit} color={accent} />,
+    exit: {
+      frames: 10,
+      style: (t) => ({ opacity: 1 - t }),
+      wrap: (children, t, c, id) => filtered(children, id, t * c.unit * 10, (fid) => <RippleFilter id={fid} amount={t * c.unit * 10} frame={c.frame} />),
+    },
+    backdrop: ({ phase, t, unit, frame, id }) => {
+      const s = phase === "out" ? t : 1 - t;
+      return { style: { filter: s > 0.05 ? `url(#${id})` : undefined }, defs: <RippleFilter id={id} amount={s * unit * 5} frame={frame} /> };
+    },
+  },
+  // Éclipse (Bold Orbit) : un anneau de lumière se trace puis enfle jusqu'à remplir l'écran, une couronne lumineuse découvre la scène
+  eclipse: {
+    enter: (energy) => (energy === "high" ? 14 : 20),
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP }) => ({ transform: `scale(${1.06 - 0.06 * clamp01(inP)})` }),
+    overlay: (c) => <EclipseCover {...coverIn(c)} />,
+    exit: { frames: 16, cover: (c) => <EclipseCover {...c} /> },
+  },
+  // Rame (Metro) : une rame traverse l'écran et emporte la scène
+  train: {
+    enter: (energy) => (energy === "high" ? 10 : 14),
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP }) => ({ transform: `translateX(${(1 - inP) * 6}%)` }),
+    overlay: (c) => <TrainCover {...coverIn(c)} />,
+    exit: { frames: 12, cover: (c) => <TrainCover {...c} /> },
+  },
+  // Cisaillement (Torque) : un pan incliné encre bordé de vermillon traverse l'écran comme un rail
+  shear: {
+    enter: (energy) => (energy === "high" ? 11 : 15),
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP }) => ({ transform: `translateX(${(1 - inP) * -5}%)` }),
+    overlay: (c) => <ShearCover {...coverIn(c)} />,
+    exit: { frames: 11, cover: (c) => <ShearCover {...c} /> },
+  },
+  // Filet (Linea) : un filet fin balaie l'écran à l'horizontale, la scène s'efface derrière lui puis la suivante apparaît
+  hairline: {
+    enter: (energy) => (energy === "high" ? 14 : 20),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <HairlineCover {...coverIn(c)} axis="x" />,
+    exit: { frames: 14, cover: (c) => <HairlineCover {...c} axis="x" /> },
+  },
+  // Filet vertical (Slate) : même geste, de bas en haut
+  lift: {
+    enter: (energy) => (energy === "high" ? 14 : 20),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <HairlineCover {...coverIn(c)} axis="y" />,
+    exit: { frames: 14, cover: (c) => <HairlineCover {...c} axis="y" /> },
+  },
+  // Capsule : un point devient une pilule qui s'étire puis remplit l'écran ; à l'entrée, elle se resserre et file à droite
+  capsule: {
+    enter: (energy) => (energy === "high" ? 14 : 20),
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP }) => ({ transform: `scale(${0.96 + 0.04 * Math.min(1, inP)})` }),
+    overlay: (c) => <CapsuleCover {...coverIn(c)} />,
+    exit: { frames: 16, cover: (c) => <CapsuleCover {...c} /> },
+  },
+  // Traînée (Smear) : l'image s'étire verticalement en lumière floue, la scène suivante se condense depuis une traînée
+  smear: {
+    enter: (energy) => (energy === "high" ? 10 : 14),
+    fadeOut: false,
+    style: ({ inP, unit }) => (inP < 1 ? { transform: `scaleY(${1 + (1 - inP) * 2.2})`, filter: `blur(${(1 - inP) * unit * 1.2}px) brightness(${1 + (1 - inP) * 0.8})` } : {}),
+    overlay: ({ inP, frame, accent, palette }) => <SmearStreaks intensity={1 - inP} frame={frame} colors={[palette[1], accent]} />,
+    exit: {
+      frames: 9,
+      style: (t, c) => ({ transform: `scaleY(${1 + t * 2.2})`, filter: `blur(${t * c.unit * 1.2}px) brightness(${1 + t * 0.8})`, opacity: 1 - t }),
+      wrap: (children, t, c) => <>{children}<SmearStreaks intensity={t} frame={c.frame} colors={[c.palette[1], c.accent]} /></>,
+    },
+  },
+  // Faisceau (Noise) : une bande de lumière striée s'ouvre jusqu'à remplir l'écran, puis se referme en ligne
+  flare: {
+    enter: (energy) => (energy === "high" ? 12 : 18),
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP }) => ({ transform: `scaleY(${1.08 - 0.08 * Math.min(1, inP)})` }),
+    overlay: (c) => <FlareCover {...coverIn(c)} />,
+    exit: { frames: 12, cover: (c) => <FlareCover {...c} /> },
+  },
+  // Embrasement (Ember) : un éclat chaud part du centre et remplit l'écran, la scène suivante sort du zoom
+  ignite: {
+    enter: (energy) => (energy === "high" ? 12 : 18),
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP }) => ({ transform: `scale(${1.25 - 0.25 * Math.min(1, inP)})` }),
+    overlay: (c) => <IgniteCover {...coverIn(c)} />,
+    exit: { frames: 12, style: (t) => ({ transform: `scale(${1 + t * t * 0.35})` }), cover: (c) => <IgniteCover {...c} /> },
+  },
+  // Tourbillon (Halo) : l'image tourne en flou de rotation et s'efface dans un anneau de lumière ; la suivante se déroule à l'inverse
+  whirl: {
+    enter: (energy) => (energy === "high" ? 12 : 17),
+    fadeOut: false,
+    style: ({ inP, unit }) => (inP < 1 ? { transform: `rotate(${-(1 - inP) * 28}deg) scale(${1 + (1 - inP) * 0.25})`, filter: `blur(${(1 - inP) * unit * 1.1}px)` } : {}),
+    overlay: ({ inP, unit, palette }) => <WhirlRing intensity={1 - inP} unit={unit} color={palette[2]} />,
+    exit: {
+      frames: 11,
+      style: (t, c) => ({ transform: `rotate(${t * t * 28}deg) scale(${1 + t * 0.25})`, filter: `blur(${t * c.unit * 1.1}px)`, opacity: 1 - t }),
+      wrap: (children, t, c) => <>{children}<WhirlRing intensity={t} unit={c.unit} color={c.palette[2]} /></>,
+    },
+  },
+  // Défocalisation (Void) : l'image se dissout dans un flou lumineux ambré, la suivante fait sa mise au point
+  defocus: {
+    enter: (energy) => (energy === "high" ? 14 : 20),
+    fadeOut: false,
+    style: ({ inP, unit }) => (inP < 1 ? { filter: `blur(${(1 - inP) * unit * 3}px) brightness(${1 + (1 - inP) * 0.9})`, transform: `scale(${1.06 - 0.06 * inP})` } : {}),
+    overlay: ({ inP, palette }) => (inP < 1 ? <AbsoluteFill style={{ pointerEvents: "none", background: `radial-gradient(ellipse at 50% 50%, color-mix(in srgb, ${palette[2]}, transparent 35%), transparent 70%)`, opacity: (1 - inP) * 0.8 }} /> : null),
+    exit: {
+      frames: 12,
+      style: (t, c) => ({ filter: `blur(${t * c.unit * 3}px) brightness(${1 + t * 0.9})`, opacity: 1 - t * t }),
+      wrap: (children, t, c) => <>{children}<AbsoluteFill style={{ pointerEvents: "none", background: `radial-gradient(ellipse at 50% 50%, color-mix(in srgb, ${c.palette[2]}, transparent 35%), transparent 70%)`, opacity: t * 0.8 }} /></>,
+    },
+  },
+  // Coulure (Melt) : des coulures roses et bleues descendent du haut jusqu'à couvrir l'écran, puis s'écoulent vers le bas
+  drip: {
+    enter: (energy) => (energy === "high" ? 14 : 20),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <DripCover {...coverIn(c)} />,
+    exit: { frames: 16, cover: (c) => <DripCover {...c} /> },
+  },
+  // Entaille (Holo) : des bandes diagonales s'élargissent jusqu'à couvrir l'écran, liserés irisés, puis se resserrent
+  slash: {
+    enter: (energy) => (energy === "high" ? 12 : 16),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <SlashCover {...coverIn(c)} />,
+    exit: { frames: 12, cover: (c) => <SlashCover {...c} /> },
+  },
+  // Colonnes de lumière (Lumen) : des colonnes violettes s'élargissent jusqu'à couvrir l'écran, puis redeviennent de fins traits
+  streak: {
+    enter: (energy) => (energy === "high" ? 14 : 20),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <StreakCover {...coverIn(c)} />,
+    exit: { frames: 14, cover: (c) => <StreakCover {...c} /> },
+  },
+  // Montée (Gloss) : le liquide rose monte en vague jusqu'à couvrir l'écran, puis redescend
+  surge: {
+    enter: (energy) => (energy === "high" ? 14 : 20),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <SurgeCover {...coverIn(c)} />,
+    exit: { frames: 16, cover: (c) => <SurgeCover {...c} /> },
   },
 };
 
@@ -163,37 +475,59 @@ function GlassPane({ left, accent }: { left: number; accent: string }) {
 }
 
 /** Entrée / sortie d'une scène. Frame locale à la scène. */
-export function SceneShell({ transition, next, energy, accent, nextAccent = accent, children }: { transition: Transition; next?: Transition; energy: Energy; accent: string; nextAccent?: string; children: ReactNode }) {
+export function SceneShell({ transition, next, energy, accent, nextAccent = accent, palette, nextPalette = palette, title = "", nextTitle = "", children }: {
+  transition: Transition; next?: Transition; energy: Energy; accent: string; nextAccent?: string;
+  /** Palettes et titres des scènes courante et suivante (couvertures thématiques, masque typographique) */
+  palette?: VideoProps["palette"]; nextPalette?: VideoProps["palette"]; title?: string; nextTitle?: string;
+  children: ReactNode;
+}) {
   const frame = useCurrentFrame();
   const { durationInFrames, width, height } = useVideoConfig();
+  const motion = useRecipe().motion;
+  const filterId = `t${useId().replace(/[^\w-]/g, "")}`;
   const unit = Math.min(width, height) / 100;
   const brick = TRANSITION_BRICKS[transition];
   const exit = 8;
   const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
-  const inP = interpolate(frame, [0, brick.enter(energy)], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
+  const inP = interpolate(frame, [0, brick.enter(energy)], [0, 1], { ...clamp, easing: easeFor(motion?.ease) });
   // La sortie dépend de la transition de la scène SUIVANTE : une coupe ou un rideau ne doit pas être précédé d'un fondu.
   const nextBrick = next ? TRANSITION_BRICKS[next] : undefined;
   const fadesOut = nextBrick ? nextBrick.fadeOut : true;
   const outP = fadesOut ? interpolate(frame, [durationInFrames - exit, durationInFrames], [0, 1], clamp) : 0;
-  const c: TransitionContext = { inP, outP, frame, durationInFrames, accent, unit, aspectRatio: width / height };
-  const baseOpacity = transition === "cut" || transition === "curtain" || transition === "glass" || transition === "glitch" || transition === "cube" ? 1 : inP;
+  const ownPalette = palette ?? (["#000000", accent, accent] as VideoProps["palette"]);
+  const c: TransitionContext = { inP, outP, frame, durationInFrames, accent, unit, aspectRatio: width / height, width, height, palette: ownPalette, title };
+  const baseOpacity = brick.opaque || transition === "cut" || transition === "curtain" || transition === "glass" || transition === "glitch" || transition === "cube" ? 1 : inP;
   // Face sortante du cube : charnière sur le bord gauche, la face pivote et s'assombrit
   const cubeOut = next === "cube" ? interpolate(frame, [durationInFrames - CUBE_OUT, durationInFrames], [0, 1], { ...clamp, easing: Easing.in(Easing.cubic) }) : 0;
   // Vitre entrante en fin de scène : elle arrive par la droite et finit pile là où la scène suivante la reprend
   const glassIn = next === "glass" ? interpolate(frame, [durationInFrames - GLASS_COVER, durationInFrames], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) }) : 0;
+  // Sortie thématique : la transition suivante prend la main sur la fin de cette scène
+  const themedExit = nextBrick?.exit;
+  const exitT = themedExit ? interpolate(frame, [durationInFrames - themedExit.frames, durationInFrames], [0, 1], clamp) : 0;
+  const exitCtx: TransitionContext = { ...c, accent: nextAccent, palette: nextPalette ?? ownPalette, title: nextTitle };
+
+  let content = children;
+  if (brick.wrap && inP < 1) content = brick.wrap(content, c, `${filterId}-in`);
+  if (themedExit && exitT > 0) {
+    if (themedExit.wrap) content = themedExit.wrap(content, exitT, exitCtx, `${filterId}-out`);
+    if (themedExit.style) content = <AbsoluteFill style={themedExit.style(exitT, exitCtx)}>{content}</AbsoluteFill>;
+  }
+  const exitStyle = exitMotion(motion?.exit, outP, unit);
+  if (exitStyle) content = <AbsoluteFill style={exitStyle}>{content}</AbsoluteFill>;
 
   return (
     <AbsoluteFill>
       <AbsoluteFill style={{ opacity: baseOpacity * (1 - outP), ...brick.style(c) }}>
         {cubeOut > 0 ? (
-          <AbsoluteFill style={{ transform: `perspective(${unit * 220}px) rotateY(${cubeOut * 60}deg)`, transformOrigin: "0% 50%", filter: `brightness(${1 - cubeOut * 0.45})` }}>{children}</AbsoluteFill>
+          <AbsoluteFill style={{ transform: `perspective(${unit * 220}px) rotateY(${cubeOut * 60}deg)`, transformOrigin: "0% 50%", filter: `brightness(${1 - cubeOut * 0.45})` }}>{content}</AbsoluteFill>
         ) : transition === "glitch" && inP < 1 ? (
-          <GlitchSlices intensity={1 - inP} frame={frame} seed="enter" unit={unit}>{children}</GlitchSlices>
+          <GlitchSlices intensity={1 - inP} frame={frame} seed="enter" unit={unit}>{content}</GlitchSlices>
         ) : (
-          children
+          content
         )}
       </AbsoluteFill>
       {brick.overlay?.(c)}
+      {themedExit?.cover && exitT > 0 && themedExit.cover({ p: exitT, phase: "out", frame, width, height, unit, color: nextAccent, palette: exitCtx.palette, title: nextTitle })}
       {next === "curtain" && <CurtainCover frame={frame} durationInFrames={durationInFrames} accent={nextAccent} />}
       {glassIn > 0 && <GlassPane left={100 - glassIn * 115} accent={nextAccent} />}
       {next && isCollectionTransition(next) && <CollectionTransitionCover kind={next} progress={1 - interpolate(frame, [durationInFrames - 10, durationInFrames - 1], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) })} color={nextAccent} aspectRatio={width / height} />}
@@ -229,4 +563,22 @@ export function sceneTimeline(scenes: Scene[], fps: number, bpm: number, phaseSe
     starts[i] = Math.max(starts[i - 1] + minScene, Math.min(nextStart - minScene, snapped));
   }
   return scenes.map((scene, i) => ({ scene, from: starts[i], duration: (i + 1 < scenes.length ? starts[i + 1] : total) - starts[i] }));
+}
+
+/**
+ * Mouvement du fond autour des frontières de scène, pour les transitions qui déplacent tout le cadre (whip, ripple).
+ * `timeline` = sceneTimeline() ; `energyAt(i)` = énergie de la scène i (entrée) ; `ease` = courbe de la recette.
+ * Hors fenêtre de transition (ou transition sans mouvement de fond) : aucun style, le fond est rendu tel quel.
+ */
+export function backdropMotion(timeline: { scene: Scene; from: number }[], frame: number, energyAt: (i: number) => Energy, unit: number, id: string, ease?: MotionEase): { style?: CSSProperties; defs?: ReactNode } {
+  for (let i = 1; i < timeline.length; i++) {
+    const brick = TRANSITION_BRICKS[timeline[i].scene.transition];
+    if (!brick.backdrop) continue;
+    const start = timeline[i].from;
+    const out = brick.exit?.frames ?? 0;
+    const enter = brick.enter(energyAt(i));
+    if (frame >= start - out && frame < start) return brick.backdrop({ phase: "out", t: (frame - (start - out)) / Math.max(1, out), unit, frame, id });
+    if (frame >= start && frame < start + enter) return brick.backdrop({ phase: "in", t: easeFor(ease)(clamp01((frame - start) / enter)), unit, frame, id });
+  }
+  return {};
 }

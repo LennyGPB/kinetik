@@ -2,6 +2,7 @@
 
 Ce document explique comment un template Kinetik devient une vidéo, et comment en créer ou en modifier un.
 À lire avant de toucher `config/recipes.ts`, `config/styles.ts` ou `remotion/video/`.
+Règles de direction artistique des templates motion (signature, transitions thématiques, diversité) : `docs/MOTION-RULES.md`.
 
 ## Le principe en une phrase
 
@@ -44,6 +45,30 @@ config/recipes.ts ────────────────────�
 | `remotion/video/stat.ts` | Compteur de la scène `stat` (logique pure, testée) |
 | `components/media/video-placeholder.tsx` | Aperçu CSS d'un fond dans la galerie (version légère, sans Remotion) |
 | `lib/projects/demo-video.ts` | Vidéo de démo d'un template (page Templates) |
+
+### Collection « inspirée » (16 templates, 14 fonds)
+
+Les fonds `tile-ring`, `neon-tunnel`, `grunge`, `optic`, `burst-panels`, `gradient-mosaic`, `grain-wave`, `neon-flow`, `cosmic`, `silk-ribbon`, `wire-globe`, `led-matrix`, `marble` et `circuit`
+sont codés dans `remotion/video/inspired-backgrounds.tsx`, un seul composant partagé par le rendu vidéo (`backgrounds.tsx`)
+et les miniatures de la galerie (`video-placeholder.tsx`). Ils sont dessinés en SVG à la proportion du cadre, pilotés par le temps et la pulsation du beat.
+Les décors laissent la bande centrale lisible : les tuiles de `tile-ring` et les cases de `gradient-mosaic` s'estompent quand elles la traversent.
+
+| Template | Fond | Typo | Composition | Caméra |
+| --- | --- | --- | --- | --- |
+| Carousel | tile-ring | display | center | drift |
+| Marble | marble | serif | center | still |
+| Hyperloop | neon-tunnel | condensed | poster | glitch |
+| Circuit | circuit | mono | left | push |
+| Grunge / Sticker | grunge (sombre / papier) | condensed | poster / left | handheld |
+| Optic / Darkroom | optic (bleu / noir) | sans / mono | left / center | drift / still |
+| Velocity | burst-panels | condensed | poster | handheld |
+| Atlas | wire-globe | sans | center | push |
+| Tilework | gradient-mosaic | display | center | drift |
+| Marquee | led-matrix | condensed | center | still |
+| Haze | grain-wave | serif | center | drift |
+| Silk | silk-ribbon | serif | left | drift |
+| Liquid Neon | neon-flow | display | center | swing |
+| Cosmos | cosmic | display | glass | drift |
 
 ## Anatomie d'une recette
 
@@ -361,3 +386,95 @@ Tessera and Ratchet now use independent square SVG viewports sized with containe
   en arche, page de livre) et Lens (ouverture circulaire, bague de mise au
   point), avec images remplaçables. Revue :
   `node --import tsx scripts/review-editorial-motion.ts contact folio lens --transitions`.
+
+## Transitions thématiques et personnalité du mouvement
+
+Règles de direction artistique : `docs/MOTION-RULES.md`. Mécanique dans le moteur :
+
+- **Transitions thématiques** (`remotion/video/themed-transitions.tsx`, registre `TRANSITION_BRICKS` de `transitions.tsx`) :
+  une brique peut définir `exit` (fin de la scène précédente : durée, couverture qui arrive, style ou filtre du contenu sortant),
+  `wrap` (filtre du contenu à l'entrée), `opaque` et `backdrop` (mouvement de tout le cadre, fond compris, via `backdropMotion()` dans `KinetikVideo.tsx`).
+  Convention des couvertures : `p` = part couverte, `phase` = `out` (la couverture arrive) ou `in` (elle découvre).
+- **`recipe.motion`** (facultatif) : `ease` (courbe des entrées : `cubic` par défaut, `expo`, `quint`, `back`, `steps`)
+  et `exit` (sortie des éléments avant un fondu : `fade` par défaut, `sink`, `rise`, `shrink`, `slam`, `blur`). Absent = rendu historique, à l'identique.
+- **Palette par scène** : quand les couleurs de marque changent d'une scène à l'autre, les décors du fond se fondent sur ±6 images autour de la frontière (fonds animés et graphiques).
+
+| Transition | Motif | Templates (signature en premier dans `transitions`) |
+| --- | --- | --- |
+| `press` | mâchoires de presse qui frappent | Anvil |
+| `cog` | ouverture dentée, cran par cran | Ratchet |
+| `stitch` | aiguille qui coud l'écran, couture qui s'ouvre | Suture |
+| `clasp` | pièces crantées qui s'emboîtent puis se déverrouillent | Interlock |
+| `tessellate` | tuiles Bauhaus qui pivotent en vague | Tessera |
+| `whip` | panoramique filé, fond compris | Sprint, Velocity |
+| `stencil` | la scène apparaît à travers les lettres de son titre | Kinetic Typo, Brutalist |
+| `ink` | encre qui s'étale puis se retire | Editorial, Marble |
+| `burn` | brûlure de pellicule | Cinéma, Seventies |
+| `ripple` | ondulation liquide, fond compris | Ocean, Liquid Neon |
+| `eclipse` | anneau de lumière qui remplit l'écran, couronne qui découvre | Bold Orbit |
+| `train` | une rame de métro traverse l'écran | Metro |
+| `shear` | pan incliné encre et vermillon, comme un rail | Torque |
+| `hairline` | filet fin qui balaie l'écran à l'horizontale | Linea |
+| `lift` | filet fin qui balaie l'écran de bas en haut | Slate |
+| `capsule` | un point devient une pilule qui remplit l'écran | Capsule (`interlock`) |
+| `smear` | l'image s'étire en traînée lumineuse verticale | Smear (`sticker`) |
+| `flare` | bande de lumière striée qui s'ouvre puis se referme | Noise (`optic`) |
+| `ignite` | éclat chaud qui part du centre | Ember (`flux`) |
+| `whirl` | flou de rotation dans un anneau de lumière | Halo (`lens`) |
+| `defocus` | l'image se dissout dans un flou lumineux ambré | Void (`carousel`) |
+| `drip` | coulures liquides qui descendent puis s'écoulent | Melt (`offprint`) |
+| `slash` | bandes diagonales qui s'élargissent | Holo (`patina`) |
+| `streak` | colonnes de lumière qui s'élargissent | Lumen (`interlock`) |
+| `surge` | le liquide monte jusqu'à couvrir l'écran puis redescend | Gloss (`gloss`) |
+
+Les anciennes transitions de ces templates restent autorisées : les projets existants gardent leurs transitions enregistrées,
+les nouvelles générations partent de la signature. Les transitions `whip` et `ripple` posent un filtre sur le contenu et le fond
+pendant quelques images : ne pas les associer à des templates en verre (`glass`, `liquid`, composition `glass`).
+
+### Bold Orbit, Metro et palettes (octobre 2026)
+
+- **Bold Orbit** (`BoldOrbit` dans `remotion/video/reference-motion.tsx`) : orbite agrandie et visible, lumière rose avec traînée de comète qui allume les points,
+  éclatement d'entrée à chaque scène (onde de choc), halo central ; titre plus grand (`reference-layout.tsx`). Transition signature `eclipse`.
+- **Metro** (`MetroNetwork` dans `remotion/video/collection-backgrounds.tsx`) : vrai plan de réseau aux proportions réelles du cadre
+  (4 lignes à 45°, stations qui s'allument au passage des rames, correspondance, pastilles de lignes). Transition signature `train`.
+- **Palettes** : les palettes ternes ou datées (collection éditoriale photo, Studio, Papercut, Folio, Tessera, Marble, Silk, Terrain, Corporate, Interlock, Luxe, Lens, Metro)
+  ont un accent vif propre à chaque template. Les palettes de `config/styles.ts` sont relues à chaque rendu : les projets sans couleurs de marque suivent la nouvelle palette.
+
+### Torque, Linea et Slate
+
+- **Torque** (`TorqueBackdrop`, `graphic-backdrop.tsx`) : rails crantés inclinés qui défilent en sens opposés par poussées sur le temps, filets vermillon, traits de vitesse ; compte-tours en portrait. Inclinaison -12° (portrait, carré) ou -7° (paysage), reprise par le titre.
+- **Linea** et **Slate** (traitements `linea` / `slate`, `editorial-backdrop.tsx`) : déclinaisons très sobres d'Oblique. Linea : papier clair, photo noir et blanc à droite, filet bleu vertical, sans-serif. Slate : ardoise, photo panoramique en haut, filet horizontal, serif. La photo se révèle au début de chaque scène et le numéro de scène s'affiche discrètement.
+
+### Smear (ex-Sticker) — Capsule a ensuite été remplacé par Lumen
+
+Les identifiants `interlock` et `sticker` sont conservés : les projets existants passent au nouveau design.
+
+- **Capsule** (`remotion/video/capsule.tsx`) : pilules, cercles et carrés arrondis (encre, accent, teinte) dans une grille modulaire, qui se transforment et échangent leurs places à chaque temps avec un léger ressort. Bandes en haut et en bas (portrait, carré), bloc à droite en paysage ; titre aligné à gauche.
+- **Smear** (`remotion/video/smear.tsx`) : affiche néon. Chaque lettre du titre s'étire en colonne de lumière (cœur jaune, bords magenta puis violet), doublée au-dessus et en dessous, sur tissu noir à coutures ; nom de fichier en tête, signature et méta-texte en pied. `SmearLayout` remplace la mise en page des scènes de texte ; `SmearTitle` (mesures en em) sert aussi à la miniature. Titres de 1 ou 2 mots.
+
+### Noise (ex-Optic) et Ember (ex-Flux)
+
+Identifiants `optic` et `flux` conservés : les projets existants passent au nouveau design (le fond `optic` reste utilisé par Darkroom).
+Comme Smear, chaque template sépare l'art pur (`*-art.tsx`, sans contexte React ni hook Remotion, importable par les miniatures rendues côté serveur) et la mise en page vidéo.
+
+- **Noise** (`noise-art.tsx`, `noise.tsx`) : mots empilés en Unbounded 800 (`wideFont`, `fonts.ts`), une ligne par mot calée sur la largeur, faisceaux de lumière vers le haut et le bas, grain argentique vivant ; pied de page en trois colonnes.
+- **Ember** (`ember-art.tsx`, `ember.tsx`) : carte d'affiche noire usée et pliée, mot au cœur blanc dont les lettres se répètent en échos rouge-orangé qui pulsent sur le temps, accroche en minuscules dans une pastille, étiquettes aux coins. Titres d'un mot.
+
+### Halo (ex-Lens) et Void (ex-Carousel)
+
+Identifiants `lens` et `carousel` conservés. Lens n'est plus un template photo : son traitement `lens-ring` et `future-backdrop.tsx` ont été retirés.
+
+- **Halo** (`halo-art.tsx`, `halo.tsx`) : un mot en casse normale, crème et granuleux, dont les copies tournent autour du centre ; un masque radial ne garde que les arcs orange de part et d'autre. Accroche en capitales très espacées au-dessus, étiquettes aux coins, signature « @ » en pied.
+- **Void** (`void-art.tsx`, `void.tsx`) : mots empilés (un par ligne) en ambre défocalisé dont la mise au point respire ; couronne d'épines (`ThornCrown`, 4 brins et 30 épines) qui tourne en 3D : moitié arrière sous le titre, moitié avant au-dessus.
+
+### Melt (ex-Offprint), Holo (ex-Patina) et Lumen (ex-Interlock)
+
+Identifiants conservés. Offprint et Patina ne sont plus des templates photo (traitements `caption-card` et `duotone` retirés) ; `capsule.tsx` a été supprimé (la transition `capsule` reste disponible).
+
+- **Melt** (`melt-art.tsx`, `melt.tsx`) : mot blanc large en arc, liseré rose et bleu, coulures rose → bleu qui s'allongent ; tourbillon spatial en flou de rotation et étoiles.
+- **Holo** (`holo-art.tsx`, `holo.tsx`) : capsule arrondie au liquide holographique (cyan, violet, magenta), titre découpé (vertical en portrait), entailles diagonales qui glissent, étiquettes tournées.
+- **Lumen** (`lumen-art.tsx`, `lumen.tsx`) : mot en minuscules en contour orange, lueur violette, lettres étirées en colonnes de lumière et fins traits verticaux ; accroche en minuscules au-dessus, pied « @nom · N° · site ».
+
+### Gloss (nouveau)
+
+`gloss-art.tsx`, `gloss.tsx` : liquide chromé rose et blanc dans la moitié basse, en couches ondulantes avec reflets, qui monte en colonne jusqu'au mot ; mot condensé en contour rose lumineux rempli de noir ; accroche en petites capitales au-dessus, en-tête en trois colonnes. La miniature affiche le nom du template (« GLOSS »).

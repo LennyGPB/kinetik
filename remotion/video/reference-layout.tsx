@@ -14,7 +14,7 @@ export function ReferenceTextLayout(l: TextLayoutProps) {
   const wide = width > height * 1.15;
   const color = textColorOn(l.props.palette[0]);
   const words = l.scene.title.split(/\s+/).filter(Boolean);
-  const baseSize = Math.min(u * (kind === "bold-orbit" ? 5.5 : 10), width * .75 / Math.max(1, ...words.map((word) => word.length * .6)));
+  const baseSize = Math.min(u * (kind === "bold-orbit" ? 7.5 : 10), width * .75 / Math.max(1, ...words.map((word) => word.length * .6)));
   const title = (text: string, size = baseSize) => <AnimatedTitle text={text} size={size} color={color} palette={l.props.palette} energy={l.props.graph.energy} align="center" />;
   const positions = kind === "lucent" ? wide ? { left: "7%", right: "56%", top: "28%" } : { left: "9%", right: "9%", top: "15%" } : kind === "bold-orbit" ? wide ? { left: "54%", right: "8%", top: "40%" } : { left: "10%", right: "10%", top: width / height >= .8 ? "70%" : "64%" } : { left: "9%", right: "9%", top: "27%" };
   return <AbsoluteFill style={{ color, fontFamily: body }}>

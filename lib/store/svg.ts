@@ -1,6 +1,7 @@
 import { STORE_SIZES, getStoreTemplate, type DevicePlacement, type StorePlatform, type StoreTemplate } from "../../config/store-templates";
 import { escapeSvg as esc, outlineGlyphs, outlineText, type OutlineFace } from "../posts/outline-text";
 import { pageScreens, type StoreDocument } from "./document";
+import { collectionBackground, isStoreCollection } from "./collection-background";
 
 export type StoreMedia = { appName?: string; logoUrl?: string | null; screenUrls?: string[]; watermark?: boolean; /** Unique per inline SVG on a page, so clip/gradient ids never collide. */ uid?: string };
 
@@ -60,6 +61,7 @@ function phone(c: Ctx, o: { android: boolean; x: number; y: number; w: number; r
 
 function background(c: Ctx, index: number, count: number, banner = false, word = "") {
   const { W, H, bg, fg, accent, uid } = c;
+  if (isStoreCollection(c.template.background)) return collectionBackground(c, c.template.background, index, banner);
   const rect = (fill: string) => `<rect width="${W}" height="${H}" fill="${fill}"/>`;
   switch (c.template.background) {
     case "bold":
@@ -144,6 +146,31 @@ const titleFace = (doc: StoreDocument): OutlineFace => doc.font;
 const bodyFace = (doc: StoreDocument): OutlineFace => doc.font === "serif" ? "serif" : "rounded";
 const caps = (doc: StoreDocument, value: string) => doc.uppercase ? value.toLocaleUpperCase() : value;
 
+/** Authored framing for the new collection, fitted below the measured text. */
+function collectionDevice(c: Ctx, android: boolean, top: number, image: string, variant: number) {
+  const { W, H } = c, area = H - top, ratio = android ? .48 : .49;
+  const kind = c.template.background;
+  let width = .7, height = .92, rotate = 0, shift = 0, lift = .03;
+  switch (kind) {
+    case "vault": width = .65; height = .9; lift = .055; break;
+    case "signal": width = .88; height = 1.12; rotate = -12; shift = .055; lift = .015; break;
+    case "exhibit": width = .57; height = .83; lift = .055; break;
+    case "satellite": width = .64; height = .86; rotate = 10; lift = .07; break;
+    case "ledger": width = .75; height = 1.02; shift = .09; lift = .045; break;
+    case "dune": width = .66; height = .88; rotate = -4; lift = .04; break;
+    case "conduit": width = .65; height = .92; lift = .045; break;
+    case "atelier": width = .65; height = .89; rotate = -8; shift = -.025; lift = .055; break;
+    case "facet": width = .75; height = .97; rotate = 13; lift = .06; break;
+    case "solstice": width = .68; height = 1.01; lift = .055; break;
+  }
+  const dw = Math.min(W * width, area * height * ratio), x = (W - dw) / 2 + W * shift, y = top + area * lift;
+  let body = "";
+  if (kind === "vault" || kind === "exhibit") body += `<ellipse cx="${n(W / 2)}" cy="${n(Math.min(H * .96, y + dw / ratio + W * .025))}" rx="${n(dw * .58)}" ry="${n(W * .022)}" fill="${c.fg}" opacity=".12"/>`;
+  body += phone(c, { android, x, y, w: dw, rotate, image, variant });
+  if (kind === "conduit") body += `<path d="M${n(x - W * .03)} ${n(y + dw * .18)}v-${n(W * .11)}h${n(W * .11)} M${n(x + dw + W * .03)} ${n(y + dw / ratio - dw * .18)}v${n(W * .11)}h-${n(W * .11)}" fill="none" stroke="${c.accent}" stroke-width="${n(W * .004)}"/>`;
+  return body;
+}
+
 /** One store screenshot (a page) rendered for iPhone or Android. Deterministic; no user markup is interpolated. */
 export function storeSvg(doc: StoreDocument, index: number, platform: Exclude<StorePlatform, "banner">, media: StoreMedia = {}) {
   const page = doc.pages[index];
@@ -163,7 +190,8 @@ export function storeSvg(doc: StoreDocument, index: number, platform: Exclude<St
     const title = words(caps(doc, page.title), titleFace(doc), pad, top + icon + W * .06, W - pad * 2, W * .34, W * .115, c.ink, true);
     const sub = words(page.subtitle, bodyFace(doc), pad, title.bottom + W * .035, W - pad * 2, W * .2, W * .055, c.ink, true, .72);
     const deviceTop = Math.max(sub.bottom + W * .08, H * (android ? .42 : .4)), dw = W * .8;
-    return wrap(c, body + title.svg + sub.svg + phone(c, { android, x: (W - dw) / 2, y: deviceTop, w: dw, image: screens[0], variant: variant(0) }), page.title, media.watermark);
+    const device = isStoreCollection(c.template.background) ? collectionDevice(c, android, deviceTop, screens[0], variant(0)) : phone(c, { android, x: (W - dw) / 2, y: deviceTop, w: dw, image: screens[0], variant: variant(0) });
+    return wrap(c, body + title.svg + sub.svg + device, page.title, media.watermark);
   }
 
   const title = words(caps(doc, page.title), titleFace(doc), pad, top, W - pad * 2, W * .3, W * .09, c.ink, center);
@@ -192,6 +220,8 @@ export function storeSvg(doc: StoreDocument, index: number, platform: Exclude<St
     body += phone(c, { android, x: W * .95 - front, y: areaTop, w: front, rotate: 5, image: screens[0], variant: variant(0) });
     return wrap(c, body, page.title, media.watermark);
   }
+
+  if (isStoreCollection(c.template.background)) return wrap(c, body + collectionDevice(c, android, areaTop, screens[0], variant(0)), page.title, media.watermark);
 
   const devicePages = doc.pages.slice(0, index).filter((item) => item.layout === "device").length;
   const placement: DevicePlacement = c.template.placements[devicePages % c.template.placements.length];

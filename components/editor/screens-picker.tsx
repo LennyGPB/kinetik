@@ -48,7 +48,8 @@ export function ScreensPicker({
         <p className="text-xs text-muted">{tl.screensPickHint}</p>
         {onManage && <button type="button" disabled={disabled} onClick={onManage} className="ml-auto min-h-9 rounded-lg border border-line px-3 text-xs font-medium hover:bg-surface-2 disabled:opacity-40">{t.copy["14e155156f7c"]}</button>}
       </div>
-      <ul className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {/* Wrapping grid, not a hidden horizontal scroller: every screenshot stays reachable with a mouse (8 at most). */}
+      <ul className="flex max-h-[50vh] flex-wrap gap-2 overflow-y-auto p-0.5">
         {screens.map((screen, i) => {
           const order = picked.indexOf(screen.url);
           return (
@@ -59,7 +60,7 @@ export function ScreensPicker({
                 onClick={() => toggle(screen.url)}
                 aria-pressed={order >= 0}
                 aria-label={format(tl.screenItem, { n: i + 1 })}
-                className={cn("relative h-28 overflow-hidden rounded-lg border-2 bg-black transition-[border-color,opacity]", order >= 0 ? "border-accent" : "border-transparent opacity-55 hover:opacity-100")}
+                className={cn("relative h-24 max-w-full overflow-hidden rounded-lg border-2 bg-black transition-[border-color,opacity] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-28", order >= 0 ? "border-accent" : "border-transparent opacity-55 hover:opacity-100")}
                 style={{ aspectRatio: `${screen.ratio ?? 9 / 19.5}` }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- fichier uploadé servi par /api/uploads */}

@@ -1,7 +1,9 @@
-export const LOGO_MOTION_IDS = ["logo-neon-stack", "logo-slice", "logo-liquid", "logo-rise", "logo-trace", "logo-wipe", "logo-focus", "logo-flip", "logo-echo", "logo-decode", "logo-drop", "logo-mosaic", "logo-coil", "logo-impact", "logo-neon"] as const;
+import { SIGNATURE_COLLECTION, SIGNATURE_COLLECTION_IDS } from "./logo-motion-collection";
+export const LOGO_MOTION_IDS = ["logo-neon-stack", "logo-slice", "logo-liquid", "logo-rise", "logo-trace", "logo-wipe", "logo-focus", "logo-flip", "logo-echo", "logo-decode", "logo-drop", "logo-mosaic", "logo-coil", "logo-impact", "logo-neon", ...SIGNATURE_COLLECTION_IDS] as const;
 export type LogoMotionId = (typeof LOGO_MOTION_IDS)[number];
 export const LOGO_MOTION_DURATIONS = [4, 6, 8] as const;
 export const LOGO_MOTIONS = [
+  ...SIGNATURE_COLLECTION,
   { id: "logo-neon-stack", name: "Sculpt", palette: ["#101014", "#F4F1FF", "#9784D9"], sample: "KINETIK", description: { fr: "Un lettrage sculpté, une rotation douce et un reflet lumineux.", en: "Sculpted lettering, a gentle rotation and a sweeping highlight." } },
   { id: "logo-slice", name: "Slice", palette: ["#FAFAF7", "#111111", "#111111"], sample: "Kinetik", description: { fr: "Le mot se découpe, glisse et se recompose.", en: "Your word slices, slides and comes back together." } },
   { id: "logo-liquid", name: "Elastic", palette: ["#111111", "#FAFAF7", "#FAFAF7"], sample: "kinetik", description: { fr: "Un lettrage souple qui fusionne et reprend sa forme.", en: "Soft lettering merges and returns to its original shape." } },

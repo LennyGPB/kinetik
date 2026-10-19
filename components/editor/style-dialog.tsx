@@ -13,6 +13,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { getStyle, STYLE_CATEGORIES, VIDEO_STYLES, type StyleCategory } from "@/config/styles";
+import { getLogoMotion } from "@/config/logo-motion";
 import { MAX_PROJECT_COLORS } from "@/config/colors";
 import { format } from "@/lib/i18n";
 import { changeStyle } from "@/lib/projects/actions";
@@ -61,7 +62,10 @@ export function StyleDialog({
   const changed = styleId !== currentStyle || colors.length !== currentColors.length || colors.some((color, i) => color !== currentColors[i]);
   const preview = buildVideoProps(project, { ...graph, styleId, colors }, watermark);
   const style = getStyle(styleId);
-  const styles = filter === "all" ? VIDEO_STYLES : VIDEO_STYLES.filter((item) => item.category === filter);
+  // Signatures et templates motion sont deux familles distinctes : on ne propose que celle du projet
+  const logoProject = Boolean(getLogoMotion(currentStyle));
+  const family = VIDEO_STYLES.filter((item) => Boolean(getLogoMotion(item.id)) === logoProject);
+  const styles = filter === "all" ? family : family.filter((item) => item.category === filter);
   // Couleurs d'origine du template choisi ([fond, principale, accent] → principale + accent)
   const templateColors = style ? [style.palette[1], style.palette[2]] : null;
   const usesTemplateColors = Boolean(templateColors && colors.length === 2 && colors.every((color, i) => color.toLowerCase() === templateColors[i].toLowerCase()));

@@ -1,3 +1,5 @@
+import { STORE_COLLECTION } from "./store-collection";
+
 /** Store listing screenshots: one design, rendered at each store's required size. */
 export const STORE_SIZES = {
   /** App Store Connect 6.9" iPhone — the only size Apple requires; it scales it down for older devices. */
@@ -28,6 +30,7 @@ export const STORE_TEMPLATES = [
   { id: "store-blueprint", name: "Blueprint", background: "blueprint", palette: ["#0F2A4A", "#EAF2FF", "#5CC8FF"], font: "wide", uppercase: false, align: "left", placements: ["float", "center", "float", "center"], description: { fr: "Plan technique : grille, cotes et repères qui pointent vers l’écran. Pour les apps d’outils et de dev.", en: "A technical drawing: grid, dimension lines and callouts pointing at the screen. For tools and dev apps." } },
   { id: "store-aurora", name: "Aurora", background: "aurora", palette: ["#F4F0FF", "#1A1530", "#8B5CF6"], font: "rounded", uppercase: false, align: "center", placements: ["center", "float", "tilt", "center"], description: { fr: "Halos de couleur fondus et titres sur un panneau en verre dépoli.", en: "Soft colour halos and titles on a frosted-glass panel." } },
   { id: "store-poster", name: "Poster", background: "poster", palette: ["#111111", "#F5F5F0", "#D7FF3A"], font: "condensed", uppercase: true, align: "center", placements: ["center", "tilt", "float", "center"], description: { fr: "Un mot géant en contour derrière le téléphone, façon affiche de concert.", en: "A giant outlined word behind the phone, gig-poster style." } },
+  ...STORE_COLLECTION,
 ] as const;
 export type StoreTemplate = (typeof STORE_TEMPLATES)[number];
 export type StoreTemplateId = StoreTemplate["id"];

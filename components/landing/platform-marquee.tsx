@@ -29,7 +29,7 @@ export function PlatformMarquee() {
   }, []);
 
   return (
-    <div ref={sectionRef} className="platform-marquee w-full pt-10 pb-4">
+    <div ref={sectionRef} className="platform-marquee w-full pt-4 pb-0">
       <p className="text-center text-xs font-medium tracking-[0.18em] text-subtle uppercase">{t.landing.marquee}</p>
       <div className="mask-fade-x mt-6 flex w-full overflow-hidden" aria-hidden>
         <div className="platform-marquee-track flex w-max shrink-0" style={{ animationPlayState: running ? "running" : "paused" }}>

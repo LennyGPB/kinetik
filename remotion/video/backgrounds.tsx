@@ -7,6 +7,7 @@ import { glitchBurst } from "./glitch-fx";
 import { isLight, useBeat } from "./theme";
 import { SignatureBackground } from "./signature-backgrounds";
 import { CollectionBackground } from "./collection-backgrounds";
+import { InspiredBackground, type InspiredBackgroundKind } from "./inspired-backgrounds";
 
 /**
  * BRIQUES « fonds animés » (recipe.background), dessinées sous toutes les scènes.
@@ -65,6 +66,11 @@ export function Background({ kind, palette, energy }: Props) {
   };
 
   return <AbsoluteFill style={{ backgroundColor: bg, overflow: "hidden" }}>{BACKGROUNDS[kind](c)}</AbsoluteFill>;
+}
+
+/** Fonds inspirés : même rendu que les miniatures de la galerie, à la proportion du cadre et calés sur le beat. */
+function Inspired({ c, kind }: { c: BackgroundContext; kind: InspiredBackgroundKind }) {
+  return <InspiredBackground kind={kind} palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} pulse={c.pulse} aspect={c.width / c.height} uid={`bg-${kind}`} />;
 }
 
 /** Tache de couleur diffuse (radial-gradient : bien moins coûteux qu'un flou). */
@@ -155,7 +161,7 @@ const BACKGROUNDS: Record<BackgroundKind, (c: BackgroundContext) => ReactNode> =
   focus: (c) => <CollectionBackground kind="focus" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   prism: (c) => <CollectionBackground kind="prism" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   papercut: (c) => <CollectionBackground kind="papercut" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
-  metro: (c) => <CollectionBackground kind="metro" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
+  metro: (c) => <CollectionBackground kind="metro" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} aspectRatio={c.width / c.height} />,
   "blueprint-draft": (c) => <SignatureBackground kind="blueprint-draft" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   "ocean-tide": (c) => <SignatureBackground kind="ocean-tide" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   "playful-fluid": (c) => <SignatureBackground kind="playful-fluid" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
@@ -165,6 +171,20 @@ const BACKGROUNDS: Record<BackgroundKind, (c: BackgroundContext) => ReactNode> =
   "studio-stage": (c) => <SignatureBackground kind="studio-stage" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   "gold-atelier": (c) => <SignatureBackground kind="gold-atelier" palette={[c.bg, c.rawMain, c.rawAccent]} time={c.t} />,
   blobs: (c) => <Blobs c={c} />,
+  "tile-ring": (c) => <Inspired c={c} kind="tile-ring" />,
+  "neon-tunnel": (c) => <Inspired c={c} kind="neon-tunnel" />,
+  "grunge": (c) => <Inspired c={c} kind="grunge" />,
+  "optic": (c) => <Inspired c={c} kind="optic" />,
+  "burst-panels": (c) => <Inspired c={c} kind="burst-panels" />,
+  "gradient-mosaic": (c) => <Inspired c={c} kind="gradient-mosaic" />,
+  "grain-wave": (c) => <Inspired c={c} kind="grain-wave" />,
+  "neon-flow": (c) => <Inspired c={c} kind="neon-flow" />,
+  "cosmic": (c) => <Inspired c={c} kind="cosmic" />,
+  "silk-ribbon": (c) => <Inspired c={c} kind="silk-ribbon" />,
+  "wire-globe": (c) => <Inspired c={c} kind="wire-globe" />,
+  "led-matrix": (c) => <Inspired c={c} kind="led-matrix" />,
+  marble: (c) => <Inspired c={c} kind="marble" />,
+  circuit: (c) => <Inspired c={c} kind="circuit" />,
 
   // Taches sombres et retenues, lignes CRT légères, neige numérique et bandes décalées par saccades
   glitch: (c) => {

@@ -137,6 +137,8 @@ export function Player({ videoProps, editing, variants, className, compact = fal
   const [drafts, setDrafts] = useState<TimelineEdit[]>([]);
   const [saving, setSaving] = useState(false);
   const commitTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  /** Nouvelle scène en attente d'enregistrement tant que son formulaire de texte est ouvert. */
+  const held = useRef<{ edits: TimelineEdit[]; focusSceneId: string | null } | null>(null);
 
   const previewEdits = scaleDraft ? [...drafts, scaleDraft] : drafts;
   const graph = previewEdits.length ? applyTimelineEdits(videoProps.graph, previewEdits) : videoProps.graph;
@@ -209,30 +211,54 @@ export function Player({ videoProps, editing, variants, className, compact = fal
     playerRef.current?.seekTo(Math.max(0, Math.min(total - 1, target)));
   }
 
-  /** Ajoute une modification à l'aperçu et planifie l'enregistrement groupé. */
-  function edit(change: TimelineEdit): boolean {
-    if (!editing || !editable) return false;
-    const next = [...drafts, change];
-    setDrafts(next);
-    if (change.kind === "delete") setSelectedId(null);
-    // Nouvelle scène : on la sélectionne et on ouvre directement l'édition de son texte
-    if (change.kind === "add" || change.kind === "duplicate") {
-      setSelectedIdState(change.id);
-      setPanel(change.kind === "add" && hasEditableTitle(change.sceneKind) ? "text" : null);
-    }
+  /** Planifie l'enregistrement groupé des modifications en attente. */
+  function scheduleCommit(next: TimelineEdit[], focusSceneId: string | null) {
+    if (!editing) return;
     clearTimeout(commitTimer.current);
     commitTimer.current = setTimeout(async () => {
       setSaving(true);
-      const ok = await editing.onCommit(next, change.kind === "delete" ? null : change.kind === "add" || change.kind === "duplicate" ? change.id : change.sceneId);
+      const ok = await editing.onCommit(next, focusSceneId);
       // Succès : le parent recharge le lecteur avec la nouvelle version. Échec : on revient à la version enregistrée.
       if (!ok) {
         setDrafts([]);
         setSaving(false);
       }
     }, COMMIT_DELAY_MS);
+  }
+
+  /** Ajoute une modification à l'aperçu et planifie l'enregistrement groupé. */
+  function edit(change: TimelineEdit): boolean {
+    if (!editing || !editable) return false;
+    const next = [...drafts, change];
+    setDrafts(next);
+    if (change.kind === "delete") setSelectedId(null);
+    const focusSceneId = change.kind === "delete" ? null : change.kind === "add" || change.kind === "duplicate" ? change.id : change.sceneId;
+    held.current = null;
+    // Nouvelle scène : on la sélectionne et on ouvre directement l'édition de son texte
+    if (change.kind === "add" || change.kind === "duplicate") {
+      setSelectedIdState(change.id);
+      const withText = change.kind === "add" && hasEditableTitle(change.sceneKind);
+      setPanel(withText ? "text" : null);
+      // L'enregistrement recharge le lecteur et fermerait le formulaire : on attend qu'il soit refermé
+      // (la scène et son texte partent alors ensemble, en une seule version).
+      if (withText) {
+        clearTimeout(commitTimer.current);
+        held.current = { edits: next, focusSceneId };
+        return true;
+      }
+    }
+    scheduleCommit(next, focusSceneId);
     return true;
   }
   useEffect(() => { editRef.current = edit; });
+  // Formulaire de la nouvelle scène refermé sans appliquer (Annuler, autre scène…) : la scène est quand même enregistrée.
+  useEffect(() => {
+    if (panel === "text" || !held.current) return;
+    const { edits, focusSceneId } = held.current;
+    held.current = null;
+    scheduleCommit(edits, focusSceneId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only reacts to the form closing
+  }, [panel]);
 
   /**
    * Curseur de taille : l'aperçu suit le glissement, et la taille est enregistrée une fois le curseur immobile

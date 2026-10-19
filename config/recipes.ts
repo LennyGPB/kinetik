@@ -1,3 +1,4 @@
+import { SIGNATURE_COLLECTION } from "./logo-motion-collection";
 // ⚠️ Fichier aussi bundlé par Remotion : imports RELATIFS uniquement.
 import type { Transition } from "../lib/projects/scenes";
 import type { EditorialTreatment } from "./editorial-motion";
@@ -31,6 +32,11 @@ import type { LogoMotionId } from "./logo-motion";
  * sun : soleil rétro rayé sur un ciel dégradé · confetti : confettis qui tombent en tournoyant
  * waves : vagues pleines superposées dans le bas du cadre · sunburst : éventail de rayons années 70 qui tourne
  * topo : courbes de niveau qui ondulent · starfield : saut dans l'hyperespace · pixels : cases qui s'allument sur le beat
+ * tile-ring : grille + anneau de tuiles en orbite 3D · neon-tunnel : tunnel de néons qui fonce vers la caméra · grunge : spray, coulures, scotch
+ * optic : trame halftone + cadre de mise au point · burst-panels : rayons, pilules, chevrons · gradient-mosaic : cases en dégradé sur le beat
+ * grain-wave : vagues floues granuleuses · neon-flow : tubes de néon liquide · cosmic : planète éclairée, anneau, étoiles + formes en courbes de niveau
+ * silk-ribbon : rubans de soie qui se tordent en 3D · wire-globe : globe en points + arcs de vol · led-matrix : panneau LED à points
+ * marble : papier marbré, encres qui ondulent · circuit : circuit imprimé néon, impulsions sur les pistes
  */
 export type BackgroundKind =
   | "monolith"
@@ -73,7 +79,22 @@ export type BackgroundKind =
   | "sunburst"
   | "topo"
   | "starfield"
-  | "pixels";
+  | "pixels"
+  // Fonds « inspirés » — remotion/video/inspired-backgrounds.tsx (partagés avec la galerie)
+  | "tile-ring"
+  | "neon-tunnel"
+  | "grunge"
+  | "optic"
+  | "burst-panels"
+  | "gradient-mosaic"
+  | "grain-wave"
+  | "neon-flow"
+  | "cosmic"
+  | "silk-ribbon"
+  | "wire-globe"
+  | "led-matrix"
+  | "marble"
+  | "circuit";
 
 /**
  * Mise en scène des screens — remotion/video/screens.tsx.
@@ -156,11 +177,21 @@ export type Camera = (typeof CAMERAS)[number];
 
 export type Energy = "calm" | "balanced" | "high";
 
+/**
+ * Personnalité du mouvement (docs/MOTION-RULES.md) — remotion/video/transitions.tsx.
+ * ease : courbe des entrées de scène · cubic (défaut) · expo : lent et feutré · quint : arrivée lourde
+ * back : léger dépassement, mécanique · steps : par crans, comme un cliquet
+ * exit : sortie des éléments avant une transition en fondu · fade (défaut) · sink : s'enfonce · rise : s'envole
+ * shrink : se rétracte · slam : écrasé · blur : se dissout dans le flou
+ */
+export type MotionEase = "cubic" | "expo" | "quint" | "back" | "steps";
+export type MotionExit = "fade" | "sink" | "rise" | "shrink" | "slam" | "blur";
+
 export type Recipe = {
   logoMotion?: LogoMotionId;
   referenceMotion?: ReferenceMotionKind;
   graphicTreatment?: GraphicMotionKind;
-  editorialLayout?: "column" | "aspect" | "patina" | "interval" | "memento" | "broadsheet" | "crosscut" | "offprint" | "contact" | "folio" | "lens";
+  editorialLayout?: "column" | "aspect" | "interval" | "memento" | "broadsheet" | "crosscut" | "contact" | "folio" | "linea" | "slate";
   photoTreatment?: EditorialTreatment;
   typography: Typography;
   titleAnimation: TitleAnimation;
@@ -178,6 +209,8 @@ export type Recipe = {
   energy: Energy;
   /** Transitions autorisées entre les scènes : Claude ne peut choisir que celles-ci (la première sert de repli). */
   transitions: Transition[];
+  /** Courbe et sortie propres au template ; absent = mouvement par défaut du moteur. */
+  motion?: { ease?: MotionEase; exit?: MotionExit };
   effects: Effect[];
   /** Consignes de ton et de rythme transmises à Claude. */
   direction: string;
@@ -214,6 +247,7 @@ export const DEFAULT_RECIPE: Recipe = {
 };
 
 export const RECIPES: Record<string, Recipe> = {
+  ...Object.fromEntries(SIGNATURE_COLLECTION.map((item) => [item.id, { ...BASE, logoMotion: item.id, screens: "hero", background: "clean", titleAnimation: "fade", composition: "center", camera: "still", beatPulse: false, effects: [], direction: "Preserve the supplied text exactly. " + item.description.en } satisfies Recipe])),
   "logo-neon-stack": { ...BASE, logoMotion: "logo-neon-stack", background: "clean", typography: "condensed", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["cut", "fade"], effects: [], direction: "Text-only logo motion. Preserve the supplied name exactly, no added claims or subtitles. Neon extruded lettering rotates with cyan and pink reflections." },
   "logo-slice": { ...BASE, logoMotion: "logo-slice", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["cut", "fade"], effects: [], direction: "Text-only wordmark. Preserve the supplied text. Horizontal word slices slide apart and reassemble, with a black/white color inversion. No added images or copy." },
   "logo-liquid": { ...BASE, logoMotion: "logo-liquid", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["cut", "fade"], effects: [], direction: "Text-only elastic wordmark. Preserve the supplied name. Soft letters squeeze, merge and return to sharp readable type. No added images or copy." },
@@ -230,37 +264,46 @@ export const RECIPES: Record<string, Recipe> = {
   "logo-impact": { ...BASE, logoMotion: "logo-impact", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["cut", "fade"], effects: [], direction: "Text-only logo motion. Preserve the supplied text exactly, no added images or copy. Heavy condensed word slams down from huge scale with a flash, frame shake, shock ring and speed lines; a second hit mid-way." },
   "logo-neon": { ...BASE, logoMotion: "logo-neon", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["cut", "fade"], effects: [], direction: "Text-only logo motion. Preserve the supplied text exactly, no added images or copy. Glass neon tubes stutter on letter by letter, settle into a humming glow, and one letter buzzes out mid-way." },
   lucent: { ...BASE, referenceMotion: "lucent", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "bento", logo: "soft", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["mosaic", "fade"], effects: [], direction: "Dark abstract design gallery. Four square softly rounded glass tiles with molten orange/violet lightning, eclipse and prism silhouettes. A clear short white headline above the artwork; no full-screen text over the tiles. Use 2 to 5 words per title, measured transitions and slow luminous movement." },
-  "bold-orbit": { ...BASE, referenceMotion: "bold-orbit", background: "clean", typography: "sans", titleAnimation: "words", composition: "center", camera: "still", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["fade", "iris", "cut"], effects: [], direction: "Minimal black motion poster. Six small outlined dots orbit an empty center, one glowing pink dot passes the light to the next. A short confident white sentence below, generous empty space. 2 to 4 words per title. No busy decoration, no invented event details." },
+  "bold-orbit": { ...BASE, referenceMotion: "bold-orbit", background: "clean", typography: "sans", titleAnimation: "words", composition: "center", camera: "still", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["eclipse", "fade", "iris", "cut"], motion: { ease: "expo", exit: "blur" }, effects: [], direction: "Minimal black motion poster. Six small outlined dots orbit an empty center, one glowing pink dot passes the light to the next. A short confident white sentence below, generous empty space. 2 to 4 words per title. No busy decoration, no invented event details." },
   "gold-rush": { ...BASE, referenceMotion: "gold-rush", background: "clean", typography: "condensed", titleAnimation: "flip", composition: "center", camera: "still", screens: "tilt", logo: "pop", logoLayout: "orbit", accent: "solid", beatPulse: false, energy: "high", transitions: ["cut", "curtain", "zoom"], effects: [], direction: "Red/black event-poster energy with oversized extruded metallic gold lettering rotating slowly in perspective. Keep titles extremely short, 1 to 3 words, so the 3D lettering dominates. Warm gold highlights, black sides, red light rising from below. Never invent dates, artists, venue or statistics." },
   "echo-frame": { ...BASE, referenceMotion: "echo-frame", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["zoom", "shutter", "cut"], effects: [], direction: "White photographic motion poster. Large black words at top and bottom frame a clean rectangular central photo. On each scene, the image stretches into a soft vertical echo, then resolves sharply. Titles of 2 to 4 words split into top/bottom phrases; keep the central photograph clear and do not add fictitious claims." },
   anvil: {
-    ...BASE, graphicTreatment: "anvil", background: "clean", typography: "condensed", titleAnimation: "mask", composition: "center", camera: "still", screens: "hero", accent: "solid", energy: "high", beatPulse: true, transitions: ["shutter", "cut"], effects: [],
+    ...BASE, graphicTreatment: "anvil", background: "clean", typography: "condensed", titleAnimation: "mask", composition: "center", camera: "still", screens: "hero", accent: "solid", energy: "high", beatPulse: true, transitions: ["press", "shutter", "cut"], motion: { ease: "quint", exit: "slam" }, effects: [],
     direction: "An industrial press: heavy upper and lower clamp jaws approach the open center, stop short of the title and release on the beat. Warm paper, ink and vermilion. Massive centered 1 to 3 word headlines; preserve the central reading window.",
   },
   tessera: {
-    ...BASE, graphicTreatment: "tessera", background: "clean", typography: "sans", titleAnimation: "words", composition: "left", camera: "still", screens: "bento", accent: "solid", energy: "balanced", beatPulse: false, transitions: ["mosaic", "fold", "cut"], effects: [],
+    ...BASE, graphicTreatment: "tessera", background: "clean", typography: "sans", titleAnimation: "words", composition: "left", camera: "still", screens: "bento", accent: "solid", energy: "balanced", beatPulse: false, transitions: ["tessellate", "mosaic", "fold", "cut"], motion: { ease: "quint", exit: "blur" }, effects: [],
     direction: "Four proportionally square lavender tiles with quarter-circle inlays settle into a clean two-by-two composition. Left-aligned headline below. Mosaic transitions disperse square tiles in a staggered rotation; no elongated diamonds or triangular spikes.",
   },
   suture: {
-    ...BASE, graphicTreatment: "suture", background: "clean", typography: "serif", titleAnimation: "letters", composition: "left", camera: "still", screens: "stack", logo: "soft", accent: "solid", energy: "balanced", beatPulse: false, transitions: ["fade", "curtain"], effects: [],
+    ...BASE, graphicTreatment: "suture", background: "clean", typography: "serif", titleAnimation: "letters", composition: "left", camera: "still", screens: "stack", logo: "soft", accent: "solid", energy: "balanced", beatPulse: false, transitions: ["stitch", "fade", "curtain"], motion: { ease: "expo", exit: "rise" }, effects: [],
     direction: "Black editorial poster with a vermilion thread drawing through oversized stitch points at the edges. Asymmetric ivory serif headline, wide black breathing room, a clear connection motif. No waveform or starfield.",
   },
   ratchet: {
-    ...BASE, graphicTreatment: "ratchet", background: "clean", typography: "condensed", titleAnimation: "mask", composition: "left", camera: "still", screens: "carousel", accent: "solid", energy: "high", beatPulse: true, transitions: ["rotary", "track", "cut"], effects: [],
+    ...BASE, graphicTreatment: "ratchet", background: "clean", typography: "condensed", titleAnimation: "mask", composition: "left", camera: "still", screens: "carousel", accent: "solid", energy: "high", beatPulse: true, transitions: ["cog", "rotary", "track", "cut"], motion: { ease: "steps", exit: "shrink" }, effects: [],
     direction: "A perfectly circular precision cog with an orange hub turns in eased discrete steps on warm ivory. Condensed flat headlines below in portrait, beside the cog in square and landscape. Use rotary shutter transitions and occasional express cuts. No stretched gear or extruded titles.",
   },
+  // Gloss : liquide chromé rose qui monte jusqu'à un mot en contour lumineux
+  gloss: {
+    ...BASE, graphicTreatment: "gloss", background: "clean", typography: "condensed", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", logo: "soft", accent: "solid", energy: "balanced", beatPulse: true, transitions: ["surge", "fade", "cut"], motion: { ease: "expo", exit: "rise" }, effects: [],
+    direction: "Black poster with a glossy pink-and-white chrome liquid flowing in the lower half and rising in a column to meet ONE tall condensed uppercase word drawn as a glowing pink outline filled with black. A short uppercase lead-in subtitle above the word (like 'I'M THE'), a three-column header. Titles of one word; subtitle of 1 to 3 words.",
+  },
+  // Lumen (ex-Interlock, ex-Capsule) : mot en contour orange, colonnes de lumière violette
   interlock: {
-    ...BASE, graphicTreatment: "interlock", background: "clean", typography: "display", titleAnimation: "words", composition: "center", camera: "still", screens: "hero", accent: "solid", energy: "balanced", beatPulse: false, transitions: ["track", "shutter"], effects: [],
-    direction: "Cobalt poster with two thick open angular brackets sliding into alignment from opposing corners. Mint and ivory pieces lock without covering the central headline. Short 1 to 4 word phrases with a confident pause after each reveal.",
+    ...BASE, graphicTreatment: "interlock", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "bento", logo: "soft", accent: "solid", energy: "balanced", beatPulse: true, transitions: ["streak", "capsule", "track", "shutter", "fade"], motion: { ease: "expo", exit: "rise" }, effects: [],
+    direction: "Neon long-exposure poster: ONE short lowercase word drawn as peach-orange outlines with a violet inner glow, each letter stretched into tall violet light columns and thin luminous vertical lines; dusty black film background. A short lowercase lead-in subtitle above the word (like 'lost in'). Titles of one word; subtitle of 1 to 3 words.",
   },
   "column": { ...BASE, editorialLayout: "column", "photoTreatment":"newsprint","typography":"serif","titleAnimation":"mask","composition":"center","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["fold","fade"],"effects":[],"direction":"Asymmetric magazine cover: title in the top-left column, a large photograph below, a small monochrome inset top-right and a dividing rule. Preserve the editorial grid, do not center the title." },
   "aspect": { ...BASE, editorialLayout: "aspect", "photoTreatment":"offset","typography":"serif","titleAnimation":"words","composition":"left","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["slide","fade"],"effects":[],"direction":"A diagonal-cut portrait above a bottom-left serif headline. The diagonal aperture expands slowly. Keep copy to 2 to 4 words; leave the upper portrait clear." },
-  "patina": { ...BASE, editorialLayout: "patina", "photoTreatment":"duotone","typography":"serif","titleAnimation":"fade","composition":"center","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["fade","fade"],"effects":[],"direction":"Duotone landscape in the upper 60 percent, solid bronze title block below and an outer vertical rule. Serif headlines sit low; no full-frame landscape behind centered text." },
+  // Holo (ex-Patina) : capsule holographique, titre découpé, entailles diagonales
+  "patina": { ...BASE, graphicTreatment: "patina", background: "clean", typography: "display", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", logo: "soft", accent: "solid", beatPulse: true, energy: "balanced", transitions: ["slash", "fade", "slide"], motion: { ease: "back", exit: "shrink" }, effects: [], direction: "Holographic monolith: a tall rounded capsule filled with moving iridescent liquid (cyan, violet, magenta) with the title cut out of it in black (vertical in portrait), diagonal slashes gliding through, tiny rotated side labels on black. Titles of ONE short word (2 at most), uppercase." },
   "interval": { ...BASE, editorialLayout: "interval", "photoTreatment":"shutters","typography":"condensed","titleAnimation":"letters","composition":"center","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["shutter","fade"],"effects":[],"direction":"Three offset photographic fragments arranged as alternating steps. Condensed text left-aligned across the middle, clipped photo reveals synchronized with scene changes." },
   "memento": { ...BASE, editorialLayout: "memento", "photoTreatment":"inlay","typography":"serif","titleAnimation":"mask","composition":"center","camera":"still","background":"clean","screens":"hero","logo":"soft","accent":"solid","beatPulse":false,"energy":"balanced","transitions":["iris","fade"],"effects":[],"direction":"A tilted photographic print with an ivory border in the upper half, a large serif caption below and a fine footer rule. Printed keepsake rather than a full-frame portrait." },
-  "torque": { ...BASE, graphicTreatment: "torque", "background":"clean","typography":"condensed","titleAnimation":"flip","composition":"poster","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["curtain","cut"],"effects":[],"direction":"Tilted industrial poster: title and thick perimeter rails rotate -12 degrees. Slanted black notches slide against vermilion rails. Short 1 to 3 word headlines; no repeating wall of words." },
+  "torque": { ...BASE, graphicTreatment: "torque", "background":"clean","typography":"condensed","titleAnimation":"flip","composition":"poster","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["shear","curtain","cut"],"motion":{"ease":"quint","exit":"sink"},"effects":[],"direction":"Tilted industrial poster under tension: two notched rails tilted -12 degrees surge in opposite directions on every beat, vermilion rules, a rev counter needle kicks to the red line. Short 1 to 3 word headlines with punch; no repeating wall of words." },
   "cadence": { ...BASE, graphicTreatment: "cadence", "background":"clean","typography":"sans","titleAnimation":"words","composition":"center","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["track","shutter"],"effects":[],"direction":"Mechanical metronome: a calibrated metronome needle swings above the headline while proportionate columns bounce independently along the lower edge. Lime and ink, measured beat-driven motion; no full-screen block grid." },
-  "vector-beat": { ...BASE, graphicTreatment: "vector-beat", "background":"clean","typography":"display","titleAnimation":"letters","composition":"left","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["track","cut"],"effects":[],"direction":"Directional arrow poster: outlined chevrons traverse the upper third, a broad amber return arrow crosses the lower edge and the headline sits in the open central lane. No diagonal stripe wallpaper." },
+  // Ember (ex-Flux) : affiche noire usée, mot incandescent à échos radiaux
+  flux: { ...BASE, graphicTreatment: "flux", background: "clean", typography: "sans", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", logo: "soft", accent: "solid", energy: "balanced", beatPulse: true, transitions: ["ignite", "shutter", "cut", "slide"], motion: { ease: "expo", exit: "blur" }, effects: ["grain"], direction: "Worn black poster card with a horizontal fold, dust and scratches. One glowing word at the centre: white-hot core, letters echoing outward in a red-orange radial zoom blur that pulses on the beat. A short lowercase tagline in a small dark pill, tiny corner labels. Titles of ONE word (two at most), uppercase; subtitles short and lowercase." },
+  "vector-beat": { ...BASE, graphicTreatment: "vector-beat", "background":"clean","typography":"display","titleAnimation":"letters","composition":"left","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["track","cut"],"effects":[],"direction":"Directional arrow poster driven by the beat: a stream of chevrons steps forward on every beat in the upper third, a circular arrow turns in the right column, and a broad amber arrow shoots across the lower edge each bar. The headline sits in the open central lane between dashed guide lines. Short, forward-moving titles (2 to 4 words). No diagonal stripe wallpaper." },
   "blackout": { ...BASE, graphicTreatment: "blackout", "background":"clean","typography":"condensed","titleAnimation":"mask","composition":"center","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["shutter","cut"],"effects":[],"direction":"Black optical instrument: a circular lime orbit above a centered white title, two precision reticles below and one advancing baseline. Preserve empty black space; no pulse-edge frame." },
   "voltage": { ...BASE, graphicTreatment: "voltage", "background":"clean","typography":"condensed","titleAnimation":"typewriter","composition":"poster","camera":"still","screens":"split","accent":"solid","energy":"high","beatPulse":true,"transitions":["glitch","cut"],"effects":["vignette"],"direction":"Black signal poster: a live orange waveform above a left-aligned white headline, sparse orange brackets and a barcode-like lower register. No starfield or space imagery." },
   cadran: {
@@ -306,9 +349,11 @@ export const RECIPES: Record<string, Recipe> = {
     ...BASE, editorialLayout: "crosscut", photoTreatment: "diagonal-diptych", typography: "condensed", titleAnimation: "words", composition: "left", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["curtain", "slide"], effects: [],
     direction: "Two diagonal photographic apertures in opposing corners, a slightly tilted central headline on deep teal, warm coral registration lines. Crop slides in opposite directions; 2 to 4 word titles. No full-height split or central masthead band.",
   },
+  // Melt (ex-Offprint) : texte qui fond en coulures roses et bleues dans un tourbillon spatial
   offprint: {
-    ...BASE, editorialLayout: "offprint", photoTreatment: "caption-card", typography: "sans", titleAnimation: "mask", composition: "left", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["shutter", "track"], effects: [],
-    direction: "An upper photographic proof with offset gold outline and a bottom-left caption card with oversized sans type. The photo mask opens horizontally while caption rules extend. Short direct titles; no centered agency masthead.",
+    ...BASE, graphicTreatment: "offprint", background: "clean", typography: "display", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", logo: "soft", accent: "solid", beatPulse: true, energy: "balanced",
+    transitions: ["drip", "shutter", "track"], motion: { ease: "quint", exit: "sink" }, effects: [],
+    direction: "Liquid melting type poster: ONE wide uppercase word, glowing white with a pink and blue fringe, slightly arched, with long pink-to-blue drips running down from the letters; dark space with a red and blue rotational blur swirl and dust stars. A short subtitle shown as spaced capitals at the top. Titles of one word (two at most).",
   },
   contact: {
     ...BASE, editorialLayout: "contact", photoTreatment: "contact-sheet", typography: "condensed", titleAnimation: "words", composition: "left", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "high", transitions: ["mosaic", "cut"], effects: [],
@@ -318,9 +363,11 @@ export const RECIPES: Record<string, Recipe> = {
     ...BASE, editorialLayout: "folio", photoTreatment: "arch-window", typography: "serif", titleAnimation: "mask", composition: "left", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "calm", transitions: ["fold", "fade"], effects: [],
     direction: "A book-page composition: an arched photographic window rises from its base, with an offset rose outline and a fine folio rule. Elegant serif titles in the lower third. Quiet pacing; no masthead or split screen.",
   },
+  // Halo (ex-Lens) : affiche noire, mot crème à arcs de rotation orange, grain
   lens: {
-    ...BASE, editorialLayout: "lens", photoTreatment: "lens-ring", typography: "sans", titleAnimation: "mask", composition: "center", camera: "still", background: "clean", screens: "hero", accent: "solid", beatPulse: false, energy: "balanced", transitions: ["iris", "fade"], effects: [],
-    direction: "A circular photographic aperture framed by a graduated focus ring that turns while a mint arc completes. Centered sans titles below the lens. Short direct titles; no rectangular photo panels.",
+    ...BASE, graphicTreatment: "lens", background: "clean", typography: "display", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", logo: "soft", accent: "solid", beatPulse: true, energy: "balanced",
+    transitions: ["whirl", "iris", "fade"], motion: { ease: "expo", exit: "shrink" }, effects: [],
+    direction: "Black typographic poster: ONE word in normal case (e.g. Create), cream and grainy, whose copies spin around the centre so the outer letters trace glowing orange arcs on both sides. A short subtitle shown as widely spaced capitals above the word, tiny corner labels. Titles of one word; subtitles of 2 to 4 words.",
   },
   montage: {
     ...BASE, photoTreatment: "strips", typography: "condensed", titleAnimation: "words", composition: "center", camera: "still",
@@ -346,6 +393,16 @@ export const RECIPES: Record<string, Recipe> = {
     ...BASE, photoTreatment: "portrait", typography: "serif", titleAnimation: "words", composition: "center", camera: "drift",
     background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["fade", "iris"], effects: [],
     direction: "Fashion editorial: immersive portraits, fine inset frame, elegant serif titles of 2 to 5 words, measured reveals and gentle camera motion. Let the supplied photography breathe.",
+  },
+  linea: {
+    ...BASE, editorialLayout: "linea", photoTreatment: "linea", typography: "sans", titleAnimation: "words", composition: "left", camera: "still",
+    background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["hairline", "fade"], motion: { ease: "expo", exit: "rise" }, effects: [],
+    direction: "Very sober, very clean studio layout: light paper, a black-and-white photograph on the right, one fine blue hairline and precise sans-serif headlines on the left. Short calm copy (2 to 5 words), lots of air, no decoration.",
+  },
+  slate: {
+    ...BASE, editorialLayout: "slate", photoTreatment: "slate", typography: "serif", titleAnimation: "mask", composition: "left", camera: "still",
+    background: "clean", screens: "hero", logo: "soft", accent: "solid", beatPulse: false, energy: "calm", transitions: ["lift", "fade"], motion: { ease: "quint", exit: "sink" }, effects: [],
+    direction: "Quiet, refined slate layout: a wide photograph across the top, one fine horizontal rule and an elegant serif headline below. Short understated copy (2 to 5 words), measured rhythm, no effects.",
   },
   oblique: {
     ...BASE, photoTreatment: "split", typography: "condensed", titleAnimation: "letters", composition: "left", camera: "still",
@@ -389,7 +446,7 @@ export const RECIPES: Record<string, Recipe> = {
   metro: {
     ...BASE, composition: "center", camera: "still", typography: "sans", titleAnimation: "mask",
     background: "metro", screens: "row", logo: "soft", logoLayout: "typographic", accent: "solid", beatPulse: false,
-    transitions: ["track", "cut"], effects: [],
+    transitions: ["train", "track", "cut"], motion: { ease: "quint", exit: "shrink" }, effects: [],
     direction: "Signalétique de réseau de transport : parcours clair, stations et lignes animées, titres de 1 à 4 mots. Privilégie track, passage horizontal rapide comme une rame. Présente les bénéfices comme les étapes d’un trajet, sans inventer de données.",
   },
   // ── Minimal ──
@@ -453,7 +510,7 @@ export const RECIPES: Record<string, Recipe> = {
     background: "type",
     screens: "split",
     energy: "high",
-    transitions: ["cut", "slide", "curtain", "zoom"],
+    transitions: ["stencil", "cut", "slide", "curtain", "zoom"], motion: { ease: "back", exit: "slam" },
     effects: ["vignette", "grain"],
     direction:
       "La typographie est la star : titres de 1 à 3 mots, verbes d'action, impact maximal. Rythme rapide, une idée par scène. Coupes sèches sur le beat et rideaux pour enchaîner.",
@@ -468,7 +525,7 @@ export const RECIPES: Record<string, Recipe> = {
     screens: "split",
     accent: "solid",
     energy: "high",
-    transitions: ["cut", "curtain"],
+    transitions: ["stencil", "cut", "curtain"], motion: { ease: "quint", exit: "sink" },
     effects: ["grain"],
     direction: "Brut et frontal : titres massifs de 1 à 3 mots, affirmations franches, ton direct. Uniquement des coupes sèches et des rideaux.",
   },
@@ -484,7 +541,7 @@ export const RECIPES: Record<string, Recipe> = {
     accent: "solid",
     beatPulse: false,
     energy: "calm",
-    transitions: ["curtain", "fade"],
+    transitions: ["ink", "curtain", "fade"], motion: { ease: "expo", exit: "rise" },
     effects: ["grain"],
     direction:
       "Façon couverture de magazine : titres élégants comme des accroches de une (2 à 5 mots), ton cultivé et assuré, sous-titres qui donnent envie de lire la suite. Rythme posé.",
@@ -757,7 +814,7 @@ export const RECIPES: Record<string, Recipe> = {
     background: "stripes",
     screens: "stack",
     energy: "high",
-    transitions: ["slide", "cut", "zoom"],
+    transitions: ["whip", "slide", "cut", "zoom"], motion: { ease: "quint", exit: "shrink" },
     effects: ["vignette", "grain"],
     direction: "Énergie de marque de sport : titres à l'impératif de 1 à 3 mots (va plus vite, dépasse-toi), ton motivant et franc. Scènes courtes, glissés et coupes sur le beat.",
   },
@@ -832,7 +889,7 @@ export const RECIPES: Record<string, Recipe> = {
     accent: "solid",
     beatPulse: false,
     energy: "calm",
-    transitions: ["fade", "cut"],
+    transitions: ["burn", "fade", "cut"], motion: { ease: "expo" },
     effects: ["letterbox", "film", "grain"],
     direction: "Bande-annonce de cinéma : titres courts et solennels (2 à 4 mots), en crescendo, ton dramatique mais sincère. Plans longs, fondus au noir et coupes franches.",
   },
@@ -848,7 +905,7 @@ export const RECIPES: Record<string, Recipe> = {
     accent: "solid",
     beatPulse: false,
     energy: "calm",
-    transitions: ["fade", "slide"],
+    transitions: ["ripple", "fade", "slide"], motion: { ease: "expo", exit: "sink" },
     effects: [],
     direction: "Fluide et serein comme l'océan : titres apaisants de 2 à 5 mots, ton clair et rassurant, promesse de simplicité. Rythme lent, fondus et glissés.",
   },
@@ -874,7 +931,7 @@ export const RECIPES: Record<string, Recipe> = {
     background: "sunburst",
     screens: "fan",
     accent: "solid",
-    transitions: ["curtain", "zoom", "slide"],
+    transitions: ["burn", "curtain", "zoom", "slide"], motion: { ease: "back", exit: "rise" },
     effects: ["film", "grain"],
     direction: "Affiche des années 70 : titres ronds et chaleureux de 2 à 4 mots, ton optimiste et groovy sans caricature. Rythme dansant, rideaux et zooms.",
   },
@@ -968,6 +1025,250 @@ export const RECIPES: Record<string, Recipe> = {
     effects: ["vignette"],
     direction:
       "Ambiance aurore boréale, calme et sobre : titres courts et posés (2 à 4 mots), ton premium et rassurant, sans emphase. Scènes un peu plus longues que la moyenne ; fondus et glissés uniquement.",
+  },
+  // Void (ex-Carousel) : texte ambré défocalisé et couronne d'épines lumineuse qui tourne autour
+  "carousel": {
+    ...BASE, graphicTreatment: "carousel", background: "clean", typography: "display", titleAnimation: "fade", composition: "center", camera: "still", screens: "carousel", logo: "soft", logoLayout: "orbit", accent: "solid", beatPulse: true, energy: "balanced",
+    transitions: ["defocus", "zoom", "fade", "cube"], motion: { ease: "expo", exit: "blur" }, effects: [],
+    direction: "Dark cinematic poster: 2 or 3 short uppercase words stacked, glowing amber and softly out of focus, wrapped by a sharp luminous crown of thorns that turns in 3D around them, passing behind then in front of the letters. Heavy grain, warm black. Titles of 2 to 3 short words; mysterious, intense tone.",
+  },
+  "hyperloop": {
+    ...BASE,
+    background: "neon-tunnel",
+    typography: "condensed",
+    titleAnimation: "glitch",
+    titleEffect: "glow",
+    composition: "poster",
+    camera: "glitch",
+    screens: "stack",
+    logo: "pop",
+    logoLayout: "typographic",
+    accent: "gradient",
+    beatPulse: true,
+    energy: "high",
+    transitions: ["cut", "glitch", "zoom"],
+    effects: ["scanlines"],
+    direction: "Tunnel magenta, capitales condensées et sursauts de glitch : énergie club et lancement explosif. Titres de 1 à 3 mots, coupes franches.",
+  },
+  "grunge": {
+    ...BASE,
+    background: "grunge",
+    typography: "condensed",
+    titleAnimation: "flip",
+    composition: "poster",
+    camera: "handheld",
+    screens: "tilt",
+    logo: "pop",
+    logoLayout: "poster",
+    accent: "solid",
+    beatPulse: true,
+    energy: "high",
+    transitions: ["cut", "curtain", "glitch"],
+    effects: ["grain"],
+    direction: "Affiche street : bombe de peinture violette et rose qui coule, scotch, gribouillis au marqueur. Ton direct et irrévérencieux, titres en capitales de 1 à 3 mots.",
+  },
+  // Smear (ex-Sticker) : affiche « traînée lumineuse »
+  "sticker": {
+    ...BASE, graphicTreatment: "sticker", background: "clean", typography: "condensed", titleAnimation: "words", composition: "center", camera: "still", screens: "stack", accent: "solid", energy: "high", beatPulse: true,
+    transitions: ["smear", "cut", "slide", "curtain"], motion: { ease: "quint", exit: "blur" }, effects: ["grain"],
+    direction: "Neon smear poster: one huge condensed uppercase word stretched into glowing vertical light trails, hot yellow core fading to magenta and violet, doubled above and below on black textured fabric with faint seams. Titles of 1 or 2 short words, uppercase and punchy. A signature-style app name at the bottom.",
+  },
+  // Noise (ex-Optic) : affiche typographique noire à faisceaux de lumière et gros grain
+  "optic": {
+    ...BASE, graphicTreatment: "optic", background: "clean", typography: "display", titleAnimation: "fade", composition: "center", camera: "still", screens: "hero", logo: "soft", logoLayout: "typographic", accent: "solid", beatPulse: true, energy: "balanced",
+    transitions: ["flare", "fade", "zoom", "glass"], motion: { ease: "expo", exit: "blur" }, effects: [],
+    direction: "Black typographic poster: two to four short words stacked one per line in a huge extended sans-serif, each line filling the width, white letters casting long vertical light beams above and below, heavy film grain. Bold uppercase claims of 2 to 4 short words; monochrome, no decoration.",
+  },
+  "darkroom": {
+    ...BASE,
+    background: "optic",
+    typography: "mono",
+    titleAnimation: "typewriter",
+    composition: "center",
+    camera: "still",
+    screens: "split",
+    logo: "soft",
+    logoLayout: "typographic",
+    accent: "solid",
+    beatPulse: false,
+    energy: "balanced",
+    transitions: ["cut", "fade"],
+    effects: ["grain"],
+    direction: "Chambre noire : trame de points grise, cadre de visée, lueur rouge. Titres en machine à écrire, ton factuel et minimal, phrases courtes.",
+  },
+  "velocity": {
+    ...BASE,
+    background: "burst-panels",
+    typography: "condensed",
+    titleAnimation: "flip",
+    composition: "poster",
+    camera: "handheld",
+    screens: "stack",
+    logo: "pop",
+    logoLayout: "poster",
+    accent: "solid",
+    beatPulse: true,
+    energy: "high",
+    transitions: ["whip", "cut", "zoom", "curtain"], motion: { ease: "back", exit: "slam" },
+    effects: ["grain"],
+    direction: "Version orange et nerveuse : rayons qui tournent, capitales géantes qui s'écrasent. Ton énergique, verbes d'action, titres de 1 à 3 mots.",
+  },
+  "tilework": {
+    ...BASE,
+    background: "gradient-mosaic",
+    typography: "display",
+    titleAnimation: "letters",
+    composition: "center",
+    camera: "drift",
+    screens: "fan",
+    logo: "pop",
+    logoLayout: "emblem",
+    accent: "gradient",
+    beatPulse: true,
+    energy: "balanced",
+    transitions: ["zoom", "slide", "cube"],
+    effects: ["grain"],
+    direction: "Mosaïque coucher de soleil : cases orange et or qui s'allument au rythme, lettres qui rebondissent. Ton chaleureux et joyeux, titres courts.",
+  },
+  "haze": {
+    ...BASE,
+    background: "grain-wave",
+    typography: "serif",
+    titleAnimation: "fade",
+    composition: "center",
+    camera: "drift",
+    screens: "hero",
+    logo: "soft",
+    logoLayout: "signature",
+    accent: "gradient",
+    beatPulse: false,
+    energy: "calm",
+    transitions: ["fade", "glass"],
+    effects: [],
+    direction: "Brume violette granuleuse qui ondule lentement : intime et premium. Titres serif posés, ton doux et confiant, scènes un peu plus longues.",
+  },
+  "liquid-neon": {
+    ...BASE,
+    background: "neon-flow",
+    typography: "display",
+    titleAnimation: "letters",
+    titleEffect: "glow",
+    composition: "center",
+    camera: "swing",
+    screens: "tilt",
+    logo: "pop",
+    logoLayout: "orbit",
+    accent: "gradient",
+    beatPulse: true,
+    energy: "high",
+    transitions: ["ripple", "zoom", "glass", "fade"], motion: { ease: "expo", exit: "blur" },
+    effects: ["vignette"],
+    direction: "Tubes de néon liquide bleu-rose qui ondulent sur les bords, ambiance nuit. Titres lumineux et courts, rythme vif.",
+  },
+  "cosmos": {
+    ...BASE,
+    background: "cosmic",
+    typography: "display",
+    titleAnimation: "fade",
+    titleEffect: "glow",
+    composition: "glass",
+    camera: "drift",
+    screens: "fan",
+    logo: "pop",
+    logoLayout: "emblem",
+    accent: "gradient",
+    beatPulse: true,
+    energy: "balanced",
+    transitions: ["zoom", "fade", "cube"],
+    effects: ["grain"],
+    direction: "Espace onirique : arc de planète incandescent, anneau fin et formes en courbes de niveau néon qui dérivent. Ton imaginatif, titres posés sur verre dépoli.",
+  },
+  "silk": {
+    ...BASE,
+    background: "silk-ribbon",
+    typography: "serif",
+    titleAnimation: "fade",
+    composition: "left",
+    camera: "drift",
+    screens: "hero",
+    logo: "soft",
+    logoLayout: "signature",
+    accent: "solid",
+    beatPulse: false,
+    energy: "calm",
+    transitions: ["fade", "slide", "glass"],
+    effects: [],
+    direction: "Rubans de soie terracotta qui ondulent et se retournent en 3D sur un papier crème. Ton élégant et éditorial, titres serif de 2 à 5 mots, scènes posées.",
+  },
+  "atlas": {
+    ...BASE,
+    background: "wire-globe",
+    typography: "sans",
+    titleAnimation: "words",
+    composition: "center",
+    camera: "push",
+    screens: "bento",
+    logo: "pop",
+    logoLayout: "app-icon",
+    accent: "gradient",
+    beatPulse: true,
+    energy: "balanced",
+    transitions: ["zoom", "fade", "slide"],
+    effects: ["vignette"],
+    direction: "Globe en points qui tourne et arcs de vol entre les villes : portée mondiale, croissance, réseau. Ton ambitieux et factuel, titres de 2 à 4 mots.",
+  },
+  "marquee": {
+    ...BASE,
+    background: "led-matrix",
+    typography: "condensed",
+    titleAnimation: "flicker",
+    titleEffect: "glow",
+    composition: "center",
+    camera: "still",
+    screens: "split",
+    logo: "pop",
+    logoLayout: "typographic",
+    accent: "solid",
+    beatPulse: true,
+    energy: "high",
+    transitions: ["cut", "glitch"],
+    effects: ["scanlines"],
+    direction: "Panneau LED à points ambre : chevrons qui défilent, égaliseur qui saute sur le beat. Ton d'annonce, capitales courtes comme un écran de stade.",
+  },
+  "marble": {
+    ...BASE,
+    background: "marble",
+    typography: "serif",
+    titleAnimation: "mask",
+    composition: "center",
+    camera: "still",
+    screens: "row",
+    logo: "soft",
+    logoLayout: "app-icon",
+    accent: "solid",
+    beatPulse: false,
+    energy: "calm",
+    transitions: ["ink", "fade", "slide"], motion: { ease: "expo", exit: "blur" },
+    effects: [],
+    direction: "Papier marbré façon ebru : veines d'encre bleu nuit et terracotta qui ondulent en haut et en bas, centre crème et dégagé. Ton raffiné et artisanal, titres serif courts.",
+  },
+  "circuit": {
+    ...BASE,
+    background: "circuit",
+    typography: "mono",
+    titleAnimation: "typewriter",
+    titleEffect: "glow",
+    composition: "left",
+    camera: "push",
+    screens: "tilt",
+    logo: "pop",
+    logoLayout: "emblem",
+    accent: "gradient",
+    beatPulse: true,
+    energy: "balanced",
+    transitions: ["cut", "glitch", "zoom"],
+    effects: ["vignette"],
+    direction: "Circuit imprimé vert néon : pistes, puces et impulsions lumineuses qui courent sur le cuivre. Ton technique et précis, titres courts comme des lignes de commande.",
   },
 };
 

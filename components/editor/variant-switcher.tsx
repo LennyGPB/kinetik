@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/toaster";
 import { FORMAT_IDS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import Link, { useRouter } from "@/lib/i18n/navigation";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
-import { createVariants } from "@/lib/projects/actions";
+import { createVariants, syncFormat } from "@/lib/projects/actions";
 import type { ProjectVariant } from "@/lib/projects/types";
 import { variantKind, type VariantKind } from "@/lib/projects/variants";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,8 @@ const pill = "flex h-6 items-center gap-1 rounded-full px-2 font-mono text-[11px
 
 /**
  * Formats de la vidéo, posés sur la vidéo à côté du temps : les 3 formats sont toujours proposés.
- * Un format déjà décliné s'ouvre ; un format manquant est créé (gratuit) puis ouvert. La version courte apparaît si elle existe.
+ * Un format déjà décliné s'ouvre en reprenant les modifications du format actuel ; un format manquant est créé (gratuit) puis ouvert.
+ * La version courte apparaît si elle existe.
  */
 /** `column` : pile verticale hors de la vidéo (mobile, aperçu étroit en 9:16 ou 1:1), aux couleurs de l'interface. */
 export function VariantSwitcher({ variants, currentId, canCreate, column = false }: { variants: ProjectVariant[]; currentId: string; canCreate: boolean; column?: boolean }) {
@@ -40,6 +41,18 @@ export function VariantSwitcher({ variants, currentId, canCreate, column = false
     });
   }
 
+  /** Opening another format first carries over every change made on the current one (short version excluded). */
+  function open(event: React.MouseEvent, variant: ProjectVariant) {
+    const fromShort = variants.find((item) => item.id === currentId)?.short;
+    if (variant.id === currentId || variant.short || fromShort || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    event.preventDefault();
+    startTransition(async () => {
+      const result = await syncFormat(currentId, variant.id).catch(() => null);
+      if (!result?.ok) toast({ title: result && !result.ok && result.error === "rate_limited" ? t.app.editor.rateLimited : t.common.error, tone: "error" });
+      router.push(`/project/${variant.id}`);
+    });
+  }
+
   const link = (variant: ProjectVariant) => {
     const kind = variantKind(variant);
     const Icon = ICONS[kind];
@@ -48,6 +61,8 @@ export function VariantSwitcher({ variants, currentId, canCreate, column = false
       <Link
         key={variant.id}
         href={`/project/${variant.id}`}
+        onClick={(event) => open(event, variant)}
+        aria-disabled={pending || undefined}
         aria-current={current ? "page" : undefined}
         title={v.kinds[kind].title}
         className={cn(pill, column && "size-7 justify-center px-0 [&_svg]:size-3.5", current ? (column ? "bg-fg text-bg" : "bg-white text-black") : (column ? "text-muted hover:bg-surface-2 hover:text-fg" : "text-white/80 hover:bg-white/15 hover:text-white"))}

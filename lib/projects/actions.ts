@@ -673,6 +673,50 @@ const v = t.app.variants;
   return { ok: true, projects: created };
 }
 
+/**
+ * Passage d'un format à un autre déjà décliné : le format d'arrivée reprend toutes les modifications du format de départ
+ * (scènes, textes, durées, template, couleurs, musique, médias). Le moteur réadapte la mise en page au format.
+ * Une nouvelle version est créée sur le format d'arrivée : son état précédent reste restaurable.
+ * La version courte n'est jamais synchronisée (elle n'a volontairement que les moments clés).
+ */
+export async function syncFormat(fromId: string, toId: string): Promise<ActionResult<{ id: string; synced: boolean }>> {
+  const t = await getServerDictionary();
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+  if (fromId === toId) return { ok: true, id: toId, synced: false };
+  if (await overLimit("setting", user.id)) return { ok: false, error: "rate_limited" };
+  const [from, to] = await Promise.all([fromId, toId].map((id) => db.project.findFirst({ where: { id, userId: user.id, kind: "MOTION" }, include: { assets: true } })));
+  if (!from || !to) return { ok: false, error: "not_found" };
+  const rootId = from.sourceProjectId ?? from.id;
+  if ((to.sourceProjectId ?? to.id) !== rootId) return { ok: false, error: "invalid" };
+  const family = await getProjectVariants(user.id, rootId);
+  if (family.some((item) => item.short && (item.id === fromId || item.id === toId))) return { ok: true, id: toId, synced: false };
+  if (from.status !== "READY" || to.status !== "READY") return { ok: true, id: toId, synced: false };
+
+  const key = `format-sync:${toId}`;
+  const lock = await acquireLock(key, 30_000, true);
+  if (!lock) return { ok: false, error: "busy" };
+  try {
+    const [source, target] = await Promise.all([fromId, toId].map((projectId) => db.projectVersion.findFirst({ where: { projectId }, orderBy: { number: "desc" } })));
+    if (!source) return { ok: true, id: toId, synced: false };
+    const graph = parseSceneGraph(source.scenes);
+    const media = (assets: typeof from.assets) => JSON.stringify(assets.filter((a) => a.type !== "REFERENCE").map((a) => [a.type, a.url, a.position]).sort());
+    const settings = (p: typeof from) => JSON.stringify([p.styleId, p.colors, p.musicTrackId, p.appName, p.brief, p.websiteUrl]);
+    const sameGraph = target && JSON.stringify(parseSceneGraph(target.scenes)) === JSON.stringify(graph);
+    if (sameGraph && settings(from) === settings(to) && media(from.assets) === media(to.assets)) return { ok: true, id: toId, synced: false };
+
+    await db.$transaction(async (tx) => {
+      await tx.project.update({ where: { id: toId }, data: { styleId: from.styleId, colors: from.colors ?? [], musicTrackId: from.musicTrackId, appName: from.appName, brief: from.brief, websiteUrl: from.websiteUrl, duration: Math.round(totalDuration(graph)), updatedAt: new Date() } });
+      // Mêmes fichiers (mêmes URLs) : rien n'est dupliqué dans le stockage
+      await tx.asset.deleteMany({ where: { projectId: toId, type: { not: "REFERENCE" } } });
+      await tx.asset.createMany({ data: from.assets.filter((a) => a.type !== "REFERENCE").map((a) => ({ projectId: toId, type: a.type, url: a.url, fileName: a.fileName, mimeType: a.mimeType, sizeBytes: a.sizeBytes, width: a.width, height: a.height, bpm: a.bpm, beatOffset: a.beatOffset, position: a.position })) });
+      if (!sameGraph) await tx.projectVersion.create({ data: { projectId: toId, number: (target?.number ?? 0) + 1, scenes: graph as unknown as Prisma.InputJsonValue, label: format(t.app.variants.versionSynced, { ratio: VIDEO_FORMATS[from.format].ratio }).slice(0, 60) } });
+    });
+    refresh();
+    return { ok: true, id: toId, synced: true };
+  } finally { await releaseLock(key, lock); }
+}
+
 // ───────────── Partage ─────────────
 
 /**

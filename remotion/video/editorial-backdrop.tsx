@@ -8,11 +8,7 @@ const ARCH_POSITIONS = [
   { left: "8%", shift: "0%", outline: 1, height: "40%", crop: "30% 50%", dot: "88%" },
   { left: "92%", shift: "-100%", outline: -1, height: "40%", crop: "70% 50%", dot: "12%" },
 ];
-const LENS_SHOTS = [
-  { top: 10, size: 42, zoom: 1, focus: "center", turn: 0, spin: 1, mono: false, halo: false },
-  { top: 15, size: 30, zoom: 1.8, focus: "50% 32%", turn: 120, spin: -1, mono: true, halo: true },
-  { top: 11, size: 38, zoom: 1.35, focus: "30% 60%", turn: 240, spin: 1, mono: true, halo: false },
-];
+
 
 /** Frame-driven motion; the same geometry is used by the static gallery preview. */
 export function EditorialBackdrop({ treatment, palette, progress = 0, scene = 0, renderPhoto }: {
@@ -26,8 +22,7 @@ export function EditorialBackdrop({ treatment, palette, progress = 0, scene = 0,
   const photo = (extra: CSSProperties = {}) => renderPhoto({ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${1.04 + progress * 0.045}) translateX(${-progress * 1.2}%)`, ...extra });
   const pick = CONTACT_PICKS[scene % CONTACT_PICKS.length];
   const arch = ARCH_POSITIONS[scene % ARCH_POSITIONS.length];
-  const lens = LENS_SHOTS[scene % LENS_SHOTS.length];
-  if (["contact-sheet", "arch-window", "lens-ring"].includes(treatment)) return <div style={{ ...full, background: bg }}>
+  if (["contact-sheet", "arch-window"].includes(treatment)) return <div style={{ ...full, background: bg }}>
     {treatment === "contact-sheet" && <>
       <div style={{ position: "absolute", inset: "9% 7% 42% 7%", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gridTemplateRows: "repeat(2, 1fr)", gap: "1.6%" }}>
         {CONTACT_CROPS.map((_, i) => {
@@ -47,19 +42,9 @@ export function EditorialBackdrop({ treatment, palette, progress = 0, scene = 0,
       <div style={{ position: "absolute", left: "8%", right: "8%", top: "62.5%", height: 1, background: accent, opacity: 0.55, transform: `scaleX(${Math.min(1, 0.3 + progress * 2)})`, transformOrigin: arch.outline < 0 ? "right" : "left" }}/>
       <div style={{ position: "absolute", left: arch.dot, bottom: "6%", height: "0.7%", aspectRatio: "1", borderRadius: "50%", background: accent, transform: "translateX(-50%)" }}/>
     </>}
-    {treatment === "lens-ring" && <>
-      {lens.halo && <div style={{ position: "absolute", top: `${lens.top - 8}%`, left: "50%", height: `${lens.size + 16}%`, aspectRatio: "1", borderRadius: "50%", background: accent, opacity: 0.14, transform: `translateX(-50%) scale(${0.85 + Math.min(1, progress * 3) * 0.15})` }}/>}
-      <div style={{ position: "absolute", top: `${lens.top - 4}%`, left: "50%", height: `${lens.size + 8}%`, aspectRatio: "1", transform: `translateX(-50%) rotate(${lens.turn + lens.spin * progress * 40}deg)` }}>
-        <svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden>
-          {Array.from({ length: 60 }, (_, i) => <path key={i} d={`M 100 ${i % 5 ? 4 : 1} V 9`} stroke={accent} strokeWidth={i % 5 ? 0.6 : 1.2} opacity={i % 5 ? 0.45 : 0.9} transform={`rotate(${i * 6} 100 100)`}/>)}
-          <circle cx="100" cy="100" r="93" fill="none" stroke={accent} strokeWidth="1.6" pathLength="100" strokeDasharray={`${Math.min(100, progress * 160)} 100`} transform="rotate(-90 100 100)"/>
-        </svg>
-      </div>
-      <div style={{ position: "absolute", top: `${lens.top}%`, left: "50%", height: `${lens.size}%`, aspectRatio: "1", overflow: "hidden", borderRadius: "50%", transform: `translateX(-50%) scale(${0.9 + Math.min(1, progress * 4) * 0.1})` }}>{photo({ opacity: 0.9, filter: lens.mono ? "grayscale(1) contrast(1.1)" : "none", objectPosition: lens.focus, transformOrigin: lens.focus, transform: `scale(${lens.zoom + progress * 0.06})` })}</div>
-      <div style={{ position: "absolute", left: "50%", top: "57.5%", width: `${8 + progress * 14}%`, height: 2, background: accent, transform: "translateX(-50%)" }}/>
-    </>}
+
   </div>;
-  if (["press-column", "diagonal-diptych", "caption-card"].includes(treatment)) return <div style={{ ...full, background: bg }}>
+  if (["press-column", "diagonal-diptych"].includes(treatment)) return <div style={{ ...full, background: bg }}>
     {treatment === "press-column" && <>
       <div style={{ ...full, inset: "10% 6% 48% 72%", clipPath: `inset(${Math.max(0, 100 - progress * 500)}% 0 0)` }}>{photo({ filter: "grayscale(1)", opacity: 0.85 })}</div>
       <div style={{ ...full, inset: "66% 6% 8% 6%" }}>{photo({ filter: "grayscale(1)", opacity: 0.8, objectPosition: "center 70%" })}</div>
@@ -71,14 +56,8 @@ export function EditorialBackdrop({ treatment, palette, progress = 0, scene = 0,
       <div style={{ ...full, inset: "70% 22% 0 0", clipPath: "polygon(0 18%,100% 0,82% 100%,0 100%)" }}>{photo({ opacity: 0.55, objectPosition: "70% 70%", transform: `scale(1.12) translateX(${progress * 4}%)` })}</div>
       <div style={{ position: "absolute", right: "6%", top: "72%", height: "19%", width: "0.6%", background: accent, transform: "rotate(12deg)" }}/>
     </>}
-    {treatment === "caption-card" && <>
-      <div style={{ ...full, inset: "9% 8% 43% 21%", clipPath: `inset(0 ${Math.max(0, 100 - progress * 400)}% 0 0)` }}>{photo({ filter: "grayscale(1)", opacity: 0.75 })}</div>
-      <div style={{ ...full, inset: "7% 6% 45% 23%", border: `1px solid ${accent}`, transform: `translateY(${progress * 2}%)` }}/>
-      <div style={{ position: "absolute", left: "7%", top: "61%", width: `${22 + progress * 30}%`, height: 2, background: accent }}/>
-      <div style={{ position: "absolute", right: "8%", bottom: "9%", width: "8%", height: "1%", background: accent }}/>
-    </>}
   </div>;
-  if (["newsprint", "offset", "duotone", "shutters", "inlay"].includes(treatment)) {
+  if (["newsprint", "offset", "shutters", "inlay"].includes(treatment)) {
     return <div style={{ ...full, background: bg }}>
       {treatment === "newsprint" && <>
         <div style={{ ...full, inset: "43% 34% 5% 6%", transform: `translateY(${-progress * 2}%)` }}>{photo({ opacity: 0.7 })}</div>
@@ -90,12 +69,6 @@ export function EditorialBackdrop({ treatment, palette, progress = 0, scene = 0,
         <div style={{ ...full, inset: "7% 7% 30% 19%", clipPath: `polygon(0 0,100% 0,100% 72%,${64 + progress * 12}% 100%,0 100%)` }}>{photo({ opacity: 0.65 })}</div>
         <div style={{ ...full, background: `linear-gradient(0deg,${bg} 12%,transparent 68%)` }} />
         <div style={{ position: "absolute", left: "6%", top: "10%", width: "8%", height: `${17 + progress * 8}%`, background: accent }} />
-      </>}
-      {treatment === "duotone" && <>
-        <div style={{ ...full, inset: "0 0 38% 0" }}>{photo({ opacity: 0.8, filter: "sepia(0.8) contrast(1.1)", transform: `scale(${1.08 + progress * 0.06})` })}</div>
-        <div style={{ ...full, inset: "0 0 38% 0", background: accent, mixBlendMode: "color", opacity: 0.6 }} />
-        <div style={{ position: "absolute", right: "6%", top: "8%", bottom: "8%", width: 2, background: accent }} />
-        <div style={{ position: "absolute", left: "7%", top: "65%", width: `${20 + progress * 30}%`, height: 1, background: accent }} />
       </>}
       {treatment === "shutters" && <>
         {[0, 1, 2].map((i) => <div key={i} style={{ ...full, top: `${7 + i * 30}%`, bottom: `${67 - i * 30}%`, left: `${i === 1 ? 6 : 36}%`, right: `${i === 1 ? 36 : 6}%`, clipPath: `inset(0 ${Math.max(0, 35 - progress * 70)}% 0 0)` }}>{photo({ opacity: 0.55, filter: "grayscale(1)", objectPosition: `center ${20 + i * 30}%` })}</div>)}
@@ -161,6 +134,21 @@ export function EditorialBackdrop({ treatment, palette, progress = 0, scene = 0,
         <div style={{ ...full, background: `linear-gradient(0deg,${bg}dd,${bg}33 50%,${bg}88)` }} />
         <div style={{ position: "absolute", left: `${5 + progress * 10}%`, right: "5%", bottom: "20%", height: 1, background: accent }} />
       </>}
+    </div>;
+  }
+  // Linea et Slate : partage net et sobre (photo révélée au début de chaque scène, filet fin qui se trace, numéro de scène)
+  if (treatment === "linea" || treatment === "slate") {
+    const reveal = 1 - (1 - Math.min(1, progress * 5)) ** 3;
+    const index = <div style={{ position: "absolute", ...(treatment === "linea" ? { left: "7%", bottom: "7%" } : { right: "6%", top: "61.5%" }), color: accent, fontFamily: "Inter, Arial, sans-serif", fontSize: "1.9cqmin", letterSpacing: "0.12em", fontWeight: 600 }}>{String(scene + 1).padStart(2, "0")}</div>;
+    return <div style={{ ...full, background: bg }}>
+      {treatment === "linea" ? <>
+        <div style={{ ...full, top: "7%", bottom: "7%", left: "47%", right: "7%", clipPath: `inset(${(1 - reveal) * 100}% 0 0 0)` }}>{photo({ filter: "grayscale(1) contrast(1.06)", transform: `scale(${1.08 - progress * 0.05})` })}</div>
+        <div style={{ position: "absolute", left: "42%", top: "7%", width: 2, height: `${86 * reveal}%`, background: accent }} />
+      </> : <>
+        <div style={{ ...full, top: "6%", left: "6%", right: "6%", bottom: "44%", clipPath: `inset(0 ${(1 - reveal) * 100}% 0 0)` }}>{photo({ filter: "saturate(.82)", transform: `scale(${1.08 - progress * 0.05})` })}</div>
+        <div style={{ position: "absolute", left: "6%", top: "60%", width: `${88 * reveal}%`, height: 2, background: accent }} />
+      </>}
+      {index}
     </div>;
   }
   return <div style={{ ...full, background: bg }}>
