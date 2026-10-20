@@ -110,17 +110,24 @@ export async function fulfillPackSession(session: Stripe.Checkout.Session) {
   return created ? pack : null;
 }
 
-/** Rattrapage quotidien (cron) : tranches mensuelles des abonnements annuels, webhooks manqués. */
-export async function syncAllSubscriptions(limit = 500) {
-  const users = await db.user.findMany({
-    where: { stripeSubscriptionId: { not: null } },
-    select: { id: true, stripeSubscriptionId: true },
-    take: limit,
-  });
-  let failed = 0;
-  for (const user of users) {
-    try { await syncSubscription(user.stripeSubscriptionId!); }
-    catch (error) { failed++; console.error("[billing.cron] synchronisation impossible", { userId: user.id, error }); }
+/** Rattrapage quotidien (cron) : tranches mensuelles des abonnements annuels, webhooks manqués. Parcourt tous les abonnés, par pages. */
+export async function syncAllSubscriptions(pageSize = 500) {
+  let checked = 0, failed = 0, cursor: string | undefined;
+  for (;;) {
+    const users = await db.user.findMany({
+      where: { stripeSubscriptionId: { not: null } },
+      select: { id: true, stripeSubscriptionId: true },
+      orderBy: { id: "asc" },
+      take: pageSize,
+      ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+    });
+    for (const user of users) {
+      try { await syncSubscription(user.stripeSubscriptionId!); }
+      catch (error) { failed++; console.error("[billing.cron] synchronisation impossible", { userId: user.id, error }); }
+    }
+    checked += users.length;
+    if (users.length < pageSize) break;
+    cursor = users[users.length - 1].id;
   }
-  return { checked: users.length, failed };
+  return { checked, failed };
 }

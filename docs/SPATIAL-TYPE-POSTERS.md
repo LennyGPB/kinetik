@@ -45,3 +45,5 @@ Ajouter `--fluidity` pour mesurer 51 frames consécutives autour de chaque front
 Tests d'intégration : `node --import tsx --test lib/projects/type-posters.test.ts`. TypeScript, lint du code source et build de production complètent la vérification.
 
 Le bundle cloud n'est pas déployé par cette modification. Les exports Lambda doivent être mis à jour séparément avec `npm run video:deploy`, après autorisation. Aucune migration de base de données.
+
+`block-pivot` (Block) fait exception : entrée 16 frames, sortie 14 frames. Le cube aux trois faces ombrées (face haute éclairée, gauche en demi-teinte, droite dans l'ombre) pivote d'un quart de tour en fonçant vers la caméra, puis le cadre passe au noir du fond pendant la coupe. Il est dessiné en `xMidYMid slice` pour ne jamais être déformé. Le cube de l'affiche reprend le même éclairage par face, avec des arêtes fines pour lire le volume.

@@ -12,8 +12,13 @@ export async function GET(request: Request) {
   const given = Buffer.from(request.headers.get("authorization") ?? "");
   const expected = Buffer.from(`Bearer ${secret}`);
   if (!secret || given.length !== expected.length || !timingSafeEqual(given, expected)) return new Response("unauthorized", { status: 401 });
-  const voiceoverRefunds = await recoverNarrationCredits();
-  await recoverPitchCredits();
-  if (!isStripeConfigured()) return Response.json({ skipped: "stripe_not_configured", voiceoverRefunds });
-  return Response.json({ ...await syncAllSubscriptions(), voiceoverRefunds });
+  // Chaque étape est isolée : un échec de récupération ne doit jamais bloquer la synchro des abonnements (crédits mensuels des annuels)
+  const step = async <T,>(name: string, run: () => Promise<T>) => {
+    try { return await run(); } catch (error) { console.error(`[cron.subscriptions] ${name}`, error); return null; }
+  };
+  const voiceoverRefunds = await step("voiceover", () => recoverNarrationCredits());
+  const pitchRefunds = await step("pitch", () => recoverPitchCredits());
+  if (!isStripeConfigured()) return Response.json({ skipped: "stripe_not_configured", voiceoverRefunds, pitchRefunds });
+  const billing = await step("billing", () => syncAllSubscriptions());
+  return Response.json({ ...billing, billingFailed: billing === null, voiceoverRefunds, pitchRefunds }, { status: billing === null ? 500 : 200 });
 }

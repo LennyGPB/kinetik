@@ -11,8 +11,10 @@ const ARCH_POSITIONS = [
 
 
 /** Frame-driven motion; the same geometry is used by the static gallery preview. */
-export function EditorialBackdrop({ treatment, palette, progress = 0, scene = 0, renderPhoto }: {
+export function EditorialBackdrop({ treatment, palette, progress = 0, scene = 0, time = 0, renderPhoto }: {
   treatment: EditorialTreatment; palette: [string, string, string]; progress?: number;
+  /** Temps de la vidéo en secondes (mouvements continus d'une scène à l'autre). */
+  time?: number;
   /** Active scene index; Contact, Folio and Lens recompose their geometry on each scene. */
   scene?: number;
   renderPhoto: (style: CSSProperties) => ReactNode;
@@ -51,11 +53,28 @@ export function EditorialBackdrop({ treatment, palette, progress = 0, scene = 0,
       <div style={{ position: "absolute", left: "6%", top: "61%", width: `${30 + progress * 58}%`, height: "0.5%", background: accent }}/>
       <div style={{ position: "absolute", top: "10%", left: "67%", bottom: "48%", width: 1, background: accent }}/>
     </>}
-    {treatment === "diagonal-diptych" && <>
-      <div style={{ ...full, inset: "0 0 61% 20%", clipPath: "polygon(18% 0,100% 0,100% 78%,0 100%)", transform: `translateX(${(1 - Math.min(1, progress * 4)) * 12}%)` }}>{photo({ filter: "grayscale(1)", opacity: 0.7 })}</div>
-      <div style={{ ...full, inset: "70% 22% 0 0", clipPath: "polygon(0 18%,100% 0,82% 100%,0 100%)" }}>{photo({ opacity: 0.55, objectPosition: "70% 70%", transform: `scale(1.12) translateX(${progress * 4}%)` })}</div>
-      <div style={{ position: "absolute", right: "6%", top: "72%", height: "19%", width: "0.6%", background: accent, transform: "rotate(12deg)" }}/>
-    </>}
+    {treatment === "diagonal-diptych" && (() => {
+      // Montage alterné : plan A en haut, plan B en bas, séparés par une bande d'accent en diagonale.
+      // Les plans travellent en sens opposés (un seul sens par scène) ; à chaque scène, couleur et noir et blanc s'échangent.
+      const swap = scene % 2 === 1;
+      const top = "polygon(0 0,100% 0,100% 39%,0 49%)", bottom = "polygon(0 64%,100% 54%,100% 100%,0 100%)", band = "polygon(0 49%,100% 39%,100% 54%,0 64%)";
+      const drift = Math.min(1, progress) * 7;
+      const ticker = `SCENE ${String(scene + 1).padStart(2, "0")} — TAKE 01 — CUT — `.repeat(8);
+      const label = (text: string, style: CSSProperties) => <div style={{ position: "absolute", fontFamily: "Inter, Arial, sans-serif", fontWeight: 800, fontSize: "2.2cqmin", letterSpacing: "0.12em", color: accent, ...style }}>{text}</div>;
+      return <div style={{ ...full, containerType: "size" }}>
+        <div style={{ ...full, clipPath: top }}><div style={{ ...full, inset: "-4% -10%", transform: `translateX(${-drift}%)` }}>{photo({ filter: swap ? "brightness(1.2) saturate(1.15)" : "grayscale(1) contrast(1.15) brightness(1.3)", objectPosition: "50% 70%", transform: "scale(1.08)" })}</div></div>
+        <div style={{ ...full, clipPath: bottom }}><div style={{ ...full, inset: "-4% -10%", transform: `translateX(${drift}%)` }}>{photo({ filter: swap ? "grayscale(1) contrast(1.15) brightness(1.3)" : "brightness(1.2) saturate(1.15)", objectPosition: "30% 40%", transform: "scale(1.5)" })}</div></div>
+        <div style={{ ...full, clipPath: top, background: `linear-gradient(90deg, ${bg}dd, ${bg}88 45%, transparent 80%), linear-gradient(180deg, ${bg}66, transparent 35%)` }} />
+        <div style={{ ...full, clipPath: band, background: accent }} />
+        {/* Défilant de clap le long de la bande : avance toujours dans le même sens */}
+        <div style={{ ...full, clipPath: band }}>
+          <div style={{ position: "absolute", left: "-30%", width: "160%", top: "calc(51.5% - 3cqmin)", height: "6cqmin", display: "flex", alignItems: "center", transform: "rotate(atan2(-10cqh, 100cqw))", transformOrigin: "50% 50%" }}>
+            <div style={{ whiteSpace: "nowrap", fontFamily: "Inter, Arial, sans-serif", fontWeight: 800, fontSize: "3.4cqmin", letterSpacing: "0.16em", color: bg, transform: `translateX(${-((time * 4) % 50)}%)` }}>{ticker}{ticker}</div>
+          </div>
+        </div>
+        {label(swap ? "B" : "A", { left: "4%", top: "4%" })}{label(swap ? "A" : "B", { right: "4%", bottom: "4%" })}
+      </div>;
+    })()}
   </div>;
   if (["newsprint", "offset", "shutters", "inlay"].includes(treatment)) {
     return <div style={{ ...full, background: bg }}>

@@ -22,7 +22,13 @@ export function legalData(locale: Locale) {
       monthly: price(p.monthlyPrice), yearly: price(p.yearlyPrice * 12), yearlyPerMonth: price(p.yearlyPrice),
     })),
     packs: CREDIT_PACKS.map((p) => ({ credits: p.credits, price: price(p.price) })),
-    costs: { generation: CREDIT_COSTS.generation, edit: CREDIT_COSTS.edit, translation: CREDIT_COSTS.translation, exportShort: exp.short, exportLong: exp.long, shortMaxSeconds: exp.shortMaxSeconds },
+    costs: {
+      generation: CREDIT_COSTS.generation, edit: CREDIT_COSTS.edit, translation: CREDIT_COSTS.translation, exportShort: exp.short, exportLong: exp.long, shortMaxSeconds: exp.shortMaxSeconds,
+      pitchAnalysis: CREDIT_COSTS.pitch.analysis, pitchCreation: CREDIT_COSTS.pitch.creation,
+      voicePerUnit: CREDIT_COSTS.voiceover.perUnit, voiceCharacters: CREDIT_COSTS.voiceover.perCharacters, voiceScript: CREDIT_COSTS.voiceover.script,
+      recordingImport: CREDIT_COSTS.recordingImport,
+      post: CREDIT_COSTS.post, store: CREDIT_COSTS.store,
+    },
   };
 }
 

@@ -97,8 +97,9 @@ test("private narration media participates in sharing without mutating saved URL
 
 test("voice costs are charged per nonempty scene, in character units", () => {
   assert.equal(getVoiceoverCost("   "), 0);
-  assert.equal(getVoiceoverCost("a".repeat(200)), 1);
-  assert.equal(getVoiceoverCost("a".repeat(201)), 2);
+  assert.equal(getVoiceoverCost("a".repeat(100)), 1);
+  assert.equal(getVoiceoverCost("a".repeat(101)), 2);
+  assert.equal(getVoiceoverCost("a".repeat(450)), 5);
 });
 
 test("fitting existing narration extends scenes across snapped cuts without changing audio or the original graph", () => {

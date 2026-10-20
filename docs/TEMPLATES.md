@@ -414,7 +414,7 @@ Règles de direction artistique : `docs/MOTION-RULES.md`. Mécanique dans le mot
 | `ink` | encre qui s'étale puis se retire | Editorial, Marble |
 | `burn` | brûlure de pellicule | Cinéma, Seventies |
 | `ripple` | ondulation liquide, fond compris | Ocean, Liquid Neon |
-| `eclipse` | anneau de lumière qui remplit l'écran, couronne qui découvre | Bold Orbit |
+| `eclipse` | la lumière trace l'orbite, puis un disque noir bordé d'une couronne rose enfle et plonge le cadre dans le noir (éclipse totale, sans aplat rose) ; la scène suivante se découvre dans l'ouverture | Bold Orbit |
 | `train` | une rame de métro traverse l'écran | Metro |
 | `shear` | pan incliné encre et vermillon, comme un rail | Torque |
 | `hairline` | filet fin qui balaie l'écran à l'horizontale | Linea |
@@ -481,3 +481,11 @@ Identifiants conservés. Offprint et Patina ne sont plus des templates photo (tr
 ### Gloss (nouveau)
 
 `gloss-art.tsx`, `gloss.tsx` : liquide chromé rose et blanc dans la moitié basse, en couches ondulantes avec reflets, qui monte en colonne jusqu'au mot ; mot condensé en contour rose lumineux rempli de noir ; accroche en petites capitales au-dessus, en-tête en trois colonnes. La miniature affiche le nom du template (« GLOSS »).
+
+### Crosscut (refonte)
+
+Montage alterné : deux plans de la photo en diagonale (pente de 10 % de la hauteur) qui travellent en sens opposés, une bande d’accent avec un défilant de clap (« SCENE 01 — TAKE 01 — CUT »), plans A / B qui échangent couleur et noir et blanc à chaque scène, titre aligné sur la diagonale. Transition signature `scissor` : deux pans se croisent sur la diagonale puis poursuivent leur course. `EditorialBackdrop` reçoit désormais `time` pour les mouvements continus entre scènes.
+
+### Hollow, Cursive, Overlap, Bloom, Reflect (affiches typographiques)
+
+`remotion/video/typo5-art.tsx` (titres et fonds, sans contexte React) et `typo5.tsx` (mise en page commune). Mouvements continus et à sens unique : copies en contour qui défilent (Hollow), rayures qui défilent et mot manuscrit qui s’écrit (Cursive, police Allura : `scriptFont` côté vidéo, `--font-script` côté site), bande pleine qui balaie le mot (Overlap), traînées émises vers la droite (Bloom), mot courbé et reflet qui défilent en sens contraires (Reflect). Transitions signatures : `strata`, `scrawl`, `scan`, `smudge`, `mirror`.

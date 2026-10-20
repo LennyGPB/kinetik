@@ -315,24 +315,28 @@ export function EclipseCover(c: CoverContext) {
   const accent = c.palette[2];
   const diag = Math.hypot(c.width, c.height);
   const cx = c.width / 2, cy = c.height / 2;
+  // Éclipse totale : la lumière trace l'orbite, puis un disque noir (la couleur de fond) enfle derrière une couronne rose
+  // et plonge le cadre dans le noir ; la scène suivante se découvre dans l'ouverture du disque. Jamais d'aplat rose plein écran.
+  const dark = c.palette[0];
   if (c.phase === "out") {
     const t = clamp01(c.p);
-    const r = Math.min(c.width, c.height) * 0.22;
-    const draw = Easing.out(Easing.cubic)(clamp01(t / 0.55));
-    const swell = Easing.in(Easing.cubic)(clamp01((t - 0.5) / 0.5));
-    const stroke = c.unit * 0.8 + swell * diag * 1.15;
-    // Halo : deux anneaux translucides plus larges (pas de flou SVG, dont la région coupait le halo quand l'anneau enfle)
+    const r0 = Math.min(c.width, c.height) * 0.22;
+    const draw = Easing.out(Easing.cubic)(clamp01(t / 0.5));
+    const swell = Easing.in(Easing.cubic)(clamp01((t - 0.42) / 0.58));
+    const r = r0 + swell * (diag * 0.62 - r0);
+    const ring = c.unit * (0.7 + 0.5 * swell);
     return <svg width={c.width} height={c.height} style={fill} aria-hidden>
-      {[[3.2, 0.14], [1.9, 0.3]].map(([k, o]) => <circle key={k} cx={cx} cy={cy} r={r} fill="none" stroke={accent} strokeWidth={stroke * k} opacity={o * (1 - swell)} pathLength="100" strokeDasharray={`${draw * 100} 100`} transform={`rotate(-90 ${cx} ${cy})`} />)}
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={accent} strokeWidth={stroke} pathLength="100" strokeDasharray={`${draw * 100} 100`} transform={`rotate(-90 ${cx} ${cy})`} />
+      {swell > 0 && <circle cx={cx} cy={cy} r={r} fill={dark} opacity={clamp01(swell * 5)} />}
+      {/* Couronne : un trait net et deux halos translucides plus larges (pas de flou SVG, coupé quand l'anneau enfle) */}
+      {[[5, 0.12], [2.6, 0.26], [1, 1]].map(([k, o]) => <circle key={k} cx={cx} cy={cy} r={r} fill="none" stroke={k === 1 ? "#fff6fb" : accent} strokeWidth={ring * k} opacity={o} pathLength="100" strokeDasharray={`${draw * 100} 100`} transform={`rotate(-90 ${cx} ${cy})`} />)}
       {draw < 1 && <circle cx={cx + Math.cos(draw * Math.PI * 2 - Math.PI / 2) * r} cy={cy + Math.sin(draw * Math.PI * 2 - Math.PI / 2) * r} r={c.unit * 0.9} fill="#fff6fb" />}
-      {t > 0.97 && <rect width={c.width} height={c.height} fill={accent} />}
+      {t > 0.97 && <rect width={c.width} height={c.height} fill={dark} />}
     </svg>;
   }
   const open = Easing.inOut(Easing.cubic)(1 - clamp01(c.p));
   const r = open * diag * 0.62;
-  const corona = c.unit * (1.2 + 2.5 * (1 - open));
-  return <div style={{ ...fill, background: `radial-gradient(circle at 50% 50%, transparent ${r}px, #fff6fb ${r + c.unit * 0.25}px, color-mix(in srgb, ${accent}, white 35%) ${r + corona * 0.5}px, ${accent} ${r + corona}px)` }} />;
+  const corona = c.unit * (1.4 + 2.2 * (1 - open));
+  return <div style={{ ...fill, background: `radial-gradient(circle at 50% 50%, transparent ${r}px, #fff6fb ${r + c.unit * 0.2}px, ${accent} ${r + corona * 0.45}px, color-mix(in srgb, ${accent} 30%, ${dark}) ${r + corona}px, ${dark} ${r + corona * 2.4}px)` }} />;
 }
 
 // ───────────── Metro : la rame ─────────────
@@ -545,4 +549,66 @@ export function SurgeCover(c: CoverContext) {
     <defs><linearGradient id={`surge-${c.frame}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={`color-mix(in srgb, ${accent}, ${main} 55%)`} /><stop offset="0.25" stopColor={accent} /><stop offset="1" stopColor={`color-mix(in srgb, ${accent}, black 35%)`} /></linearGradient></defs>
     <path d={`M0 ${H}L${pts.join("L")}L${W} ${H}Z`} fill={`url(#surge-${c.frame})`} />
   </svg>;
+}
+
+// ───────── Crosscut : les ciseaux ─────────
+
+/**
+ * Deux pans séparés par la diagonale de Crosscut (pente de 10 % de la hauteur) : le pan du haut arrive par la gauche, celui du bas
+ * par la droite ; ils se rejoignent sur la diagonale puis continuent dans le même sens pour découvrir la scène (jamais de retour).
+ */
+export function ScissorCover(c: CoverContext) {
+  if (c.p <= 0) return null;
+  const [bg, , accent] = c.palette;
+  const k = c.phase === "out" ? Easing.in(Easing.cubic)(clamp01(c.p)) : Easing.out(Easing.cubic)(1 - clamp01(c.p));
+  // Sortie : de ±101 % à 0 ; entrée : de 0 à ∓101 % (le pan du haut continue vers la droite, celui du bas vers la gauche)
+  const offset = c.phase === "out" ? (1 - k) * 101 : k * 101;
+  const topX = c.phase === "out" ? -offset : offset, bottomX = -topX;
+  return <div style={fill}>
+    <div style={{ ...fill, background: accent, clipPath: "polygon(0 0,100% 0,100% 47%,0 57.5%)", transform: `translateX(${topX}%)` }} />
+    <div style={{ ...fill, background: bg, clipPath: "polygon(0 56.5%,100% 46%,100% 100%,0 100%)", transform: `translateX(${bottomX}%)` }} />
+    <div style={{ ...fill, background: "#ffffff", clipPath: "polygon(0 56.6%,100% 46.1%,100% 46.6%,0 57.1%)", opacity: c.phase === "out" ? k : 1 - k }} />
+  </div>;
+}
+
+// ───────── Hollow, Cursive, Overlap, Bloom ─────────
+
+/** Aplat du fond bordé de trois filets d'accent : monte du bas (sortie) puis continue vers le haut (entrée). */
+export function StrataCover(c: CoverContext) {
+  if (c.p <= 0) return null;
+  const [bg, , accent] = c.palette;
+  const e = c.phase === "out" ? Easing.in(Easing.cubic)(clamp01(c.p)) : Easing.out(Easing.cubic)(1 - clamp01(c.p));
+  const top = c.phase === "out" ? (1 - e) * 115 - 15 : -e * 115;
+  return <div style={{ ...fill }}>
+    <div style={{ position: "absolute", left: 0, right: 0, top: `${top}%`, height: "115%", background: bg }}>
+      {[0, 1, 2].map((k) => <div key={k} style={{ position: "absolute", left: 0, right: 0, top: `${k * 3.5}%`, height: c.unit * 0.4, background: accent }} />)}
+    </div>
+  </div>;
+}
+
+/** Trait de feutre en diagonale (accent) qui s'élargit jusqu'à couvrir l'écran, puis file vers la droite. */
+export function ScrawlCover(c: CoverContext) {
+  if (c.p <= 0) return null;
+  const accent = c.palette[2];
+  const grow = c.phase === "out" ? Easing.in(Easing.cubic)(clamp01(c.p)) : 1;
+  const leave = c.phase === "in" ? Easing.out(Easing.cubic)(1 - clamp01(c.p)) : 0;
+  const diag = Math.hypot(c.width, c.height);
+  return <div style={fill}>
+    <div style={{ position: "absolute", left: "50%", top: "50%", width: diag * 1.2, height: Math.max(c.unit * 2, diag * 1.1 * grow), borderRadius: c.unit * 6, background: accent, transform: `translate(-50%, -50%) translateX(${leave * diag * 1.2}px) rotate(-14deg)` }} />
+  </div>;
+}
+
+/** Bande pleine (couleur principale) : son bas descend jusqu'à couvrir l'écran ; à l'entrée, son haut descend et la découvre. */
+export function ScanCover(c: CoverContext) {
+  if (c.p <= 0) return null;
+  const main = c.palette[1];
+  const e = c.phase === "out" ? Easing.in(Easing.cubic)(clamp01(c.p)) : Easing.out(Easing.cubic)(1 - clamp01(c.p));
+  const style: CSSProperties = c.phase === "out" ? { top: 0, height: `${e * 100.5}%` } : { top: `${e * 100}%`, bottom: 0 };
+  return <div style={fill}><div style={{ position: "absolute", left: 0, right: 0, background: main, ...style }} /></div>;
+}
+
+/** Lueur horizontale diffuse (accent) pendant la transition « smudge ». */
+export function SmudgeGlow({ intensity, color }: { intensity: number; color: string }) {
+  if (intensity <= 0.02) return null;
+  return <AbsoluteFill style={{ pointerEvents: "none", background: `radial-gradient(ellipse 80% 30% at 50% 50%, color-mix(in srgb, ${color}, transparent 30%), transparent 75%)`, opacity: intensity * 0.9, mixBlendMode: "screen" }} />;
 }

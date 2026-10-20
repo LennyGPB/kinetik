@@ -8,6 +8,7 @@ export function TypePosterCover({ kind, ...c }: CoverContext & { kind: TypePoste
   const p = Easing.inOut(Easing.cubic)(Math.max(0, Math.min(1, c.p)));
   if (p <= 0) return null;
   const [bg, ink, accent] = c.palette;
+  if (kind === "blocktype") return <BlockPivot p={p} bg={bg} ink={ink} />;
   return <svg viewBox="0 0 1000 1000" preserveAspectRatio="none" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "hidden", pointerEvents: "none", opacity: Math.max(0, Math.min(1, (p - 0.015) / 0.08)) }} aria-hidden>
     {kind === "power" && <g transform="rotate(-18 500 500)">{Array.from({ length: 5 }, (_, i) => <g key={i} transform={`translate(-400 ${-300 + i * 350}) scale(1.8 ${p * 6})`}><path d={paintStroke(i)} fill={accent} /></g>)}</g>}
     {kind === "spectra" && <>
@@ -27,9 +28,6 @@ export function TypePosterCover({ kind, ...c }: CoverContext & { kind: TypePoste
       <path d={`M -1100 ${-(p ** 3) * 1600} L ${-1100 + p * 2500} ${-p * 1500} V ${p * 1500} L -1100 ${p ** 3 * 1600} Z`} fill={ink} />
       {p < 0.98 && <path d={`M -1100 0 H ${-1100 + p * 2500}`} stroke={bg} strokeWidth="10" />}
     </g>}
-    {kind === "blocktype" && <g transform={`translate(500 500) rotate(${(1 - p) * 45}) scale(${p * 4}) translate(-500 -500)`}>
-      <path d="M 500 100 L 900 300 L 500 500 L 100 300 Z M 100 300 L 500 500 V 900 L 100 700 Z M 500 500 L 900 300 V 700 L 500 900 Z" fill={ink} stroke={bg} strokeWidth="10" />
-    </g>}
     {kind === "positive" && <>
       <rect x="0" y={500 - p * 510} width="1000" height={p * 1020} fill={ink} />
       {p < 0.98 && <path d="M 0 500 H 1000" stroke={bg} strokeWidth={(1 - p) * 35} />}
@@ -45,5 +43,32 @@ export function TypePosterCover({ kind, ...c }: CoverContext & { kind: TypePoste
       <ellipse cx="180" cy="1050" rx={p * 1800} ry={p * 1550} fill={accent} />
       <ellipse cx="900" cy="1150" rx={p * 1400} ry={p * 1400} fill={ink} />
     </>}
+  </svg>;
+}
+
+const mixHex = (a: string, b: string, k: number) => /^#[0-9a-f]{6}$/i.test(a) && /^#[0-9a-f]{6}$/i.test(b)
+  ? "#" + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - k) + parseInt(b.slice(i, i + 2), 16) * k).toString(16).padStart(2, "0")).join("")
+  : a;
+
+/**
+ * Block : le cube de lettres pivote d'un quart de tour en fonçant vers la caméra, ses trois faces ombrées remplissent le cadre,
+ * puis le cadre passe au noir du fond, sous lequel la scène change. Carré non déformé (slice) dans tous les formats.
+ */
+function BlockPivot({ p, bg, ink }: { p: number; bg: string; ink: string }) {
+  const grow = Easing.in(Easing.cubic)(p);
+  const scale = 0.25 + grow * 4.2;
+  const turn = (1 - p) * -90;
+  const flat = Math.max(0, Math.min(1, (p - 0.82) / 0.14));
+  const faces = [
+    { d: "M 500 100 L 900 300 L 500 500 L 100 300 Z", fill: ink },
+    { d: "M 100 300 L 500 500 V 900 L 100 700 Z", fill: mixHex(ink, bg, 0.28) },
+    { d: "M 500 500 L 900 300 V 700 L 500 900 Z", fill: mixHex(ink, bg, 0.55) },
+  ];
+  return <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "hidden", pointerEvents: "none" }} aria-hidden>
+    <rect width="1000" height="1000" fill={bg} opacity={Math.min(1, p * 2.2)} />
+    <g transform={`translate(500 500) rotate(${turn}) scale(${scale}) translate(-500 -500)`}>
+      {faces.map((f) => <path key={f.d} d={f.d} fill={f.fill} stroke={bg} strokeWidth={6 / scale} strokeLinejoin="round" />)}
+    </g>
+    {flat > 0 && <rect width="1000" height="1000" fill={bg} opacity={flat} />}
   </svg>;
 }

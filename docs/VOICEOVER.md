@@ -56,7 +56,7 @@ une version restaure sa voix.
 ## Crédits et reprises
 
 Tarif initial centralisé dans `config/credits.ts` : 1 crédit pour proposer le
-script, 1 crédit par tranche de 200 caractères par scène pour l’audio. Les écoutes,
+script, 1 crédit par tranche de 100 caractères par scène pour l’audio. Les écoutes,
 réglages et réutilisations ne déclenchent aucun appel TTS. Le coût est affiché
 avant chaque opération. Le tarif reste ajustable dans cette configuration.
 

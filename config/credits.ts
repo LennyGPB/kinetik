@@ -4,7 +4,7 @@
  */
 export const CREDIT_COSTS = {
   pitch: { analysis: 15, creation: 5 },
-  voiceover: { script: 1, perCharacters: 200, perUnit: 1 },
+  voiceover: { script: 1, perCharacters: 100, perUnit: 1 },
   /** Import réussi d’un enregistrement, avant accès à l’aperçu. */
   recordingImport: 10,
   /** Premier jet d'une vidéo */

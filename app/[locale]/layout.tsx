@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, Bricolage_Grotesque, Geist_Mono, Instrument_Serif, Poppins, Unbounded } from "next/font/google";
+import { Allura, Anton, Bricolage_Grotesque, Geist_Mono, Instrument_Serif, Poppins, Unbounded } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider, themeScript } from "@/components/theme/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,6 +21,8 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: ["latin"] });
 const instrumentSerif = Instrument_Serif({ variable: "--font-instrument-serif", subsets: ["latin"], weight: "400" });
 const anton = Anton({ variable: "--font-anton", subsets: ["latin"], weight: "400" });
+// Écriture manuscrite de la miniature du template Cursive (non préchargée : seule la galerie l'utilise)
+const allura = Allura({ variable: "--font-script", subsets: ["latin"], weight: "400", preload: false });
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -55,7 +57,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[lo
       lang={locale}
       data-theme="dark"
       suppressHydrationWarning
-      className={`${poppins.variable} ${poppinsThin.variable} ${unbounded.variable} ${geistMono.variable} ${bricolage.variable} ${instrumentSerif.variable} ${anton.variable} h-full antialiased`}
+      className={`${poppins.variable} ${poppinsThin.variable} ${unbounded.variable} ${geistMono.variable} ${bricolage.variable} ${instrumentSerif.variable} ${anton.variable} ${allura.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

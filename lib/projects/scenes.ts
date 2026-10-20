@@ -15,7 +15,7 @@ export type SceneKind = "intro" | "logo" | "feature" | "screens" | "cta" | "stat
  * - glass : une plaque de verre dépoli passe sur l'écran, floute la fin de la scène et dévoile la suivante
  * - cube : les deux scènes sont les faces d'un cube qui tourne en 3D
  */
-export const TRANSITIONS = ["gravity-pull", "violet-fold", "fan-fold", "block-pivot", "mirror-horizon", "helix-wind", "paint-sweep", "type-stretch", "stack-collapse", "ribbon-turn", "fade", "slide", "zoom", "glitch", "cut", "curtain", "glass", "cube", "shutter", "iris", "prism", "fold", "track", "mosaic", "rotary", "press", "cog", "stitch", "clasp", "tessellate", "whip", "stencil", "ink", "burn", "ripple", "eclipse", "train", "shear", "hairline", "lift", "capsule", "smear", "flare", "ignite", "whirl", "defocus", "drip", "slash", "streak", "surge"] as const;
+export const TRANSITIONS = ["gravity-pull", "violet-fold", "fan-fold", "block-pivot", "mirror-horizon", "helix-wind", "paint-sweep", "type-stretch", "stack-collapse", "ribbon-turn", "fade", "slide", "zoom", "glitch", "cut", "curtain", "glass", "cube", "shutter", "iris", "prism", "fold", "track", "mosaic", "rotary", "press", "cog", "stitch", "clasp", "tessellate", "whip", "stencil", "ink", "burn", "ripple", "eclipse", "train", "shear", "hairline", "lift", "capsule", "smear", "flare", "ignite", "whirl", "defocus", "drip", "slash", "streak", "surge", "scissor", "strata", "scrawl", "scan", "smudge", "mirror"] as const;
 export type Transition = (typeof TRANSITIONS)[number];
 /** Présentation des screens : dans un téléphone, une fenêtre de navigateur, ou tels quels. */
 export type ScreenFrame = "phone" | "browser" | "none";

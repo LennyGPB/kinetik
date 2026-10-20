@@ -4,6 +4,7 @@ import { loadFont as loadInstrumentSerif } from "@remotion/google-fonts/Instrume
 import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
 import { loadFont as loadJetBrainsMono } from "@remotion/google-fonts/JetBrainsMono";
 import { loadFont as loadUnbounded } from "@remotion/google-fonts/Unbounded";
+import { loadFont as loadAllura } from "@remotion/google-fonts/Allura";
 import type { CSSProperties } from "react";
 import type { Typography } from "../../config/recipes";
 
@@ -20,6 +21,8 @@ export const { fontFamily: condensedFont } = loadAnton("normal", { weights: ["40
 export const { fontFamily: monoFont } = loadJetBrainsMono("normal", { weights: ["400", "700"], ...latin });
 /** Grotesque très large, réservée à Noise (template optic). */
 export const { fontFamily: wideFont } = loadUnbounded("normal", { weights: ["800"], ...latin });
+/** Écriture manuscrite, réservée à Cursive. */
+export const { fontFamily: scriptFont } = loadAllura("normal", { weights: ["400"], ...latin });
 
 export type TypographySpec = {
   /** Style CSS des titres */

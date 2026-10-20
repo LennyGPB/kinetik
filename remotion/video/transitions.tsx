@@ -7,7 +7,7 @@ import type { MotionEase, MotionExit } from "../../config/recipes";
 import type { VideoProps } from "../props";
 import { useRecipe } from "./theme";
 import { CollectionTransitionCover, isCollectionTransition } from "./collection-transitions";
-import { BurnCover, CapsuleCover, DripCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
+import { BurnCover, CapsuleCover, DripCover, ScissorCover, ScanCover, ScrawlCover, SmudgeGlow, StrataCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
 
 /**
  * BRIQUES « transitions » (scene.transition, choisie par Claude parmi recipe.transitions).
@@ -104,7 +104,7 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
   "gravity-pull": { enter: () => 24, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="spill" {...coverIn(c)} p={1 - Math.min(1, c.frame / 24)} />, exit: { frames: 22, cover: c => <TypePosterCover kind="spill" {...c} /> } },
   "violet-fold": { enter: () => 24, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="veil" {...coverIn(c)} p={1 - Math.min(1, c.frame / 24)} />, exit: { frames: 22, cover: c => <TypePosterCover kind="veil" {...c} /> } },
   "fan-fold": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="fanout" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="fanout" {...c} /> } },
-  "block-pivot": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="blocktype" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="blocktype" {...c} /> } },
+  "block-pivot": { enter: () => 16, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="blocktype" {...coverIn(c)} p={1 - Math.min(1, c.frame / 16)} />, exit: { frames: 14, cover: c => <TypePosterCover kind="blocktype" {...c} /> } },
   "mirror-horizon": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="positive" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="positive" {...c} /> } },
   "helix-wind": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="helix" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="helix" {...c} /> } },
   "paint-sweep": { enter: () => 20, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="power" {...coverIn(c)} />, exit: { frames: 18, cover: c => <TypePosterCover kind="power" {...c} /> } },
@@ -417,6 +417,37 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     style: () => ({}),
     overlay: (c) => <SurgeCover {...coverIn(c)} />,
     exit: { frames: 16, cover: (c) => <SurgeCover {...c} /> },
+  },
+  // Ciseaux (Crosscut) : deux pans arrivent de côtés opposés, se croisent sur la diagonale, puis poursuivent leur course
+  scissor: {
+    enter: (energy) => (energy === "high" ? 12 : 16),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <ScissorCover {...coverIn(c)} />,
+    exit: { frames: 12, cover: (c) => <ScissorCover {...c} /> },
+  },
+  // Strates (Hollow) : un aplat bordé de filets en contour monte du bas, couvre, puis continue vers le haut
+  strata: { enter: (energy) => (energy === "high" ? 12 : 16), fadeOut: false, opaque: true, style: () => ({}), overlay: (c) => <StrataCover {...coverIn(c)} />, exit: { frames: 12, cover: (c) => <StrataCover {...c} /> } },
+  // Trait (Cursive) : un trait de feutre en diagonale s'élargit jusqu'à couvrir l'écran, puis file à droite
+  scrawl: { enter: (energy) => (energy === "high" ? 12 : 16), fadeOut: false, opaque: true, style: () => ({}), overlay: (c) => <ScrawlCover {...coverIn(c)} />, exit: { frames: 12, cover: (c) => <ScrawlCover {...c} /> } },
+  // Balayage (Overlap) : une bande pleine descend jusqu'à couvrir l'écran, puis poursuit vers le bas
+  scan: { enter: (energy) => (energy === "high" ? 10 : 14), fadeOut: false, opaque: true, style: () => ({}), overlay: (c) => <ScanCover {...coverIn(c)} />, exit: { frames: 10, cover: (c) => <ScanCover {...c} /> } },
+  // Estompe (Bloom) : l'image s'étale en flou lumineux horizontal, la suivante se resserre depuis la lumière
+  smudge: {
+    enter: (energy) => (energy === "high" ? 12 : 18),
+    fadeOut: false,
+    style: ({ inP, unit }) => (inP < 1 ? { transform: `scaleX(${1 + (1 - inP) * 0.35})`, filter: `blur(${(1 - inP) * unit * 2}px) brightness(${1 + (1 - inP)})` } : {}),
+    overlay: ({ inP, palette }) => <SmudgeGlow intensity={1 - inP} color={palette[2]} />,
+    exit: { frames: 12, style: (t, c) => ({ transform: `scaleX(${1 + t * 0.35})`, filter: `blur(${t * c.unit * 2}px) brightness(${1 + t})`, opacity: 1 - t * t }), wrap: (children, t, c) => <>{children}<SmudgeGlow intensity={t} color={c.palette[2]} /></> },
+  },
+  // Miroir (Reflect) : l'image se replie sur la ligne médiane, la suivante se déplie depuis elle
+  mirror: {
+    enter: (energy) => (energy === "high" ? 10 : 14),
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP }) => (inP < 1 ? { transform: `scaleY(${Math.max(0.001, inP)})` } : {}),
+    exit: { frames: 10, style: (t) => ({ transform: `scaleY(${Math.max(0.001, 1 - t)})` }) },
   },
 };
 

@@ -26,6 +26,7 @@ import { SpillLayout } from "./spill";
 import { VeilLayout } from "./veil";
 import { LumenLayout } from "./lumen";
 import { GlossLayout } from "./gloss";
+import { Typo5Layout } from "./typo5";
 import { isLight, textColorOn, useBodyFont, useIsPortrait, useRecipe, useTitleFont, useTitleScale, useUnit } from "./theme";
 
 /**
@@ -119,7 +120,7 @@ function AuthoredLayout(l: TextLayoutProps) {
     contact: { top: "64%", left: "7%", right: "10%" },
     folio: { top: "66%", left: "8%", right: "8%" },
     broadsheet: { top: "17%", left: "6%", right: "35%" },
-    crosscut: { top: "39%", left: "8%", right: "10%", transform: "rotate(-5deg)" },
+    crosscut: { top: "27%", left: "7%", right: "8%", transform: `rotate(${(-Math.atan((0.1 * height) / width) * 180) / Math.PI}deg)`, transformOrigin: "0% 100%" },
     anvil: { top: width >= height ? "35%" : "41%", left: "12%", right: "12%", textAlign: "center" },
     tessera: { top: width >= height ? "50%" : "49%", left: "8%", right: "13%" },
     suture: { top: "40%", left: "12%", right: "12%" },
@@ -158,6 +159,7 @@ function AuthoredLayout(l: TextLayoutProps) {
   if (kind === "veil") return <VeilLayout {...l} />;
   if (kind === "interlock") return <LumenLayout {...l} />;
   if (kind === "gloss") return <GlossLayout {...l} />;
+  if (kind === "hollow" || kind === "cursive" || kind === "overlap" || kind === "bloom" || kind === "reflect") return <Typo5Layout kind={kind} {...l} />;
   const centered = ["blackout", "cadence", "anvil"].includes(kind ?? "");
   const graphicScale = width >= height && ["anvil", "blackout"].includes(kind ?? "") ? 1.1 : 1.35;
   const titleSize = Math.min(u * l.titleSize * (recipe.graphicTreatment ? graphicScale : 0.95), width * (["column", "broadsheet"].includes(kind ?? "") ? 0.55 : kind === "linea" ? 0.29 : kind === "ratchet" && width >= height ? 0.4 : 0.76) / Math.max(1, ...l.scene.title.split(/\s+/).map((word) => word.length * 0.62)));

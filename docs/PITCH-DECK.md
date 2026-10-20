@@ -54,7 +54,7 @@ Configuration dans `config/credits.ts` :
 
 - Analyse de la source et script : **15 crédits**.
 - Création du motion à partir du plan validé : **5 crédits**.
-- Voix facultative : tarif existant, **1 crédit par tranche de 200 caractères
+- Voix facultative : tarif existant, **1 crédit par tranche de 100 caractères
   et par scène**.
 - Export MP4 : tarif existant, distinct et annoncé dans l’éditeur.
 

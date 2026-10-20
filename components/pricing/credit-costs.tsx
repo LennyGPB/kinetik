@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
-import { CREDIT_COSTS, getPostGenerationCost } from "@/config/credits";
+import { CREDIT_COSTS, getPostGenerationCost, getStoreGenerationCost } from "@/config/credits";
 import { postCopy } from "@/lib/posts/copy";
 
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ export function CreditCosts({ className, reveal = false, includePosts = false }:
   const ease = [0.16, 1, 0.3, 1] as const;
 
   const c = t.landing.pricing.costs;
+  const fr = t.locale === "fr";
   const ROWS = [
   { graphic: "type", label: c.generation, cost: CREDIT_COSTS.generation },
   { graphic: "chat", label: c.edit, cost: CREDIT_COSTS.edit },
@@ -47,6 +48,15 @@ export function CreditCosts({ className, reveal = false, includePosts = false }:
     { graphic: "type", label: `${postCopy(t.locale).generationCost} · 5 ${postCopy(t.locale).pages.toLowerCase()}`, cost: getPostGenerationCost(5) },
     { graphic: "chat", label: postCopy(t.locale).ai, cost: CREDIT_COSTS.post.edit },
     { graphic: "mp4", label: `${postCopy(t.locale).exportCost} / ${postCopy(t.locale).image.toLowerCase()}`, cost: CREDIT_COSTS.post.exportPerImage },
+    // Les autres produits payants, pour que la liste couvre tout ce qui consomme des crédits
+    { graphic: "type", label: fr ? "Signature animée" : "Animated signature", cost: CREDIT_COSTS.generation },
+    { graphic: "type", label: fr ? "Captures App Store & Play · 1 page" : "App Store & Play screenshots · 1 page", cost: getStoreGenerationCost(1) },
+    { graphic: "mp4", label: fr ? "Export captures stores / page" : "Store screenshots export / page", cost: CREDIT_COSTS.store.exportPerPage },
+    { graphic: "type", label: fr ? "Pitch deck · analyse du document" : "Pitch deck · document analysis", cost: CREDIT_COSTS.pitch.analysis },
+    { graphic: "type", label: fr ? "Pitch deck · création du motion" : "Pitch deck · motion creation", cost: CREDIT_COSTS.pitch.creation },
+    { graphic: "chat", label: fr ? `Voix off · par scène, par tranche de ${CREDIT_COSTS.voiceover.perCharacters} caractères` : `Voiceover · per scene, per ${CREDIT_COSTS.voiceover.perCharacters} characters`, cost: CREDIT_COSTS.voiceover.perUnit },
+    { graphic: "mp4", label: fr ? "Démo d’écran · import" : "Screen demo · import", cost: CREDIT_COSTS.recordingImport },
+    { graphic: "chat", label: fr ? "Traduction FR ↔ EN" : "Translation FR ↔ EN", cost: CREDIT_COSTS.translation },
   ] : []),
 ];
 
