@@ -1,4 +1,5 @@
 "use server";
+import { hasVoiceIssues } from "./voiceover";
 import { getServerDictionary } from "@/lib/i18n/server";
 
 import { randomBytes } from "node:crypto";
@@ -100,6 +101,7 @@ const types = t.app.credits.types;
   if (!ownsFiles(user.id, [data.logo, data.music, ...data.screens])) return { ok: false, error: "invalid" };
   if (await overLimit("generation", user.id)) return { ok: false, error: "rate_limited" };
 
+  const initialVoiceover = data.voiceover ? { enabled: true, voiceId: data.voiceover.voiceId, language: data.locale, volume: 1, duckMusic: true, autoFit: data.voiceover.autoFit, setupPending: true, segments: [] } : undefined;
   const assets: Prisma.AssetCreateWithoutProjectInput[] = [
     ...(data.logo ? [{ type: "LOGO" as const, ...data.logo }] : []),
     ...data.screens.map((file, position) => ({ type: "SCREEN" as const, position, ...file })),
@@ -122,7 +124,7 @@ const types = t.app.credits.types;
       brief: data.brief || null,
       websiteUrl: data.websiteUrl || null,
       assets: { create: assets },
-      ...(data.deviceMockup && { versions: { create: { number: 1, label: "Device selection", scenes: { schema: 1, energy: "balanced", logoEmphasis: false, musicTrackId: null, bpm: 120, scenes: [], deviceMockup: data.deviceMockup } } } }),
+      ...((data.deviceMockup || initialVoiceover) && { versions: { create: { number: 1, label: "Creation settings", scenes: { schema: 1, energy: "balanced", logoEmphasis: false, musicTrackId: null, bpm: 120, scenes: [], ...(data.deviceMockup && { deviceMockup: data.deviceMockup }), ...(initialVoiceover && { voiceover: initialVoiceover }) } } } }),
     },
     select: { id: true },
   });
@@ -151,6 +153,7 @@ const types = t.app.credits.types;
   try {
     const project = await ownedProject(user.id, projectId);
     if (!project) return { ok: false, error: "not_found" };
+    if (project.videoType === "pitch-deck") return { ok: false, error: "invalid" };
     if (project.status !== "DRAFT" && project.status !== "FAILED") return { ok: false, error: "busy" };
     if (await overLimit("generation", user.id)) return { ok: false, error: "rate_limited" };
 
@@ -184,6 +187,7 @@ const types = t.app.credits.types;
   try {
     const project = await ownedProject(user.id, projectId);
     if (!project) return { ok: false, error: "not_found" };
+    if (project.videoType === "pitch-deck") return { ok: false, error: "invalid" };
     if (project.status !== "GENERATING") return { ok: true };
     const claim = await claimGeneration(user.id, projectId);
     if (!claim) return { ok: false, error: "busy" };
@@ -200,6 +204,7 @@ const types = t.app.credits.types;
       const initialVersion = await db.projectVersion.findUnique({ where: { projectId_number: { projectId, number: 1 } } });
       const initialGraph = initialVersion ? parseSceneGraph(initialVersion.scenes) : null;
       if (initialGraph?.deviceMockup) graph.deviceMockup = initialGraph.deviceMockup;
+      if (initialGraph?.voiceover) graph.voiceover = { ...initialGraph.voiceover, segments: graph.scenes.map((s) => ({ sceneId: s.id, text: "" })) };
       const brandFonts = await getBrandFonts(user.id);
       if (brandFonts) graph = { ...graph, fonts: brandFonts };
       await db.$transaction([
@@ -761,6 +766,7 @@ const types = t.app.credits.types;
   if (!latest) return { ok: false, error: "busy" };
 
   const graph = parseSceneGraph(latest.scenes);
+  if (hasVoiceIssues(graph)) return { ok: false, error: "invalid" };
   const duration = totalDuration(graph);
   let cost = 0;
 

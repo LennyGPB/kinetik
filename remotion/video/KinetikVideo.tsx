@@ -18,6 +18,9 @@ import { SCENES } from "./scenes";
 import { BeatContext, bodyFont, luminance, RecipeContext, useUnit } from "./theme";
 import { backdropMotion, SceneShell, sceneTimeline } from "./transitions";
 import { useId } from "react";
+import { VoiceoverAudio, NarrationCaptions } from "./voiceover";
+import { PitchChartScene } from "./pitch-chart";
+import { musicDuckVolume } from "../../lib/projects/voiceover";
 
 /**
  * Composition principale. Ordre des calques, du fond vers l'avant :
@@ -25,7 +28,7 @@ import { useId } from "react";
  * Le rendu d'un template dépend de `props.recipe` (config/recipes.ts), sauf réglages choisis par l'utilisateur dans le SceneGraph.
  */
 export function KinetikVideo(input: VideoProps) {
-  return input.graph.recording ? <ScreenRecordingVideo props={input} /> : <MotionVideo input={input} />;
+  return <>{input.graph.recording ? <ScreenRecordingVideo props={input} /> : <MotionVideo input={input} />}<VoiceoverAudio graph={input.graph} /><NarrationCaptions graph={input.graph} /></>;
 }
 
 function MotionVideo({ input }: { input: VideoProps }) {
@@ -40,7 +43,7 @@ function MotionVideo({ input }: { input: VideoProps }) {
   const timeline = sceneTimeline(graph.scenes, fps, graph.bpm, grid.phase);
   const colors = props.brandColors ?? graph.colors;
   const activeIndex = Math.max(0, timeline.findIndex((item) => frame >= item.from && frame < item.from + item.duration));
-  const activePalette = scenePalette(palette, colors, activeIndex);
+  const activePalette = graph.pitch ? palette : scenePalette(palette, colors, activeIndex);
   const activeScene = timeline[activeIndex];
   const photoUrls = props.screenUrls;
   const photoUrl = props.backgroundUrl ?? activeScene?.scene.screens?.find((url) => photoUrls.includes(url)) ?? photoUrls[activeIndex % Math.max(1, photoUrls.length)];
@@ -53,7 +56,7 @@ function MotionVideo({ input }: { input: VideoProps }) {
     : <Background kind={recipe.background} palette={pal} energy={graph.energy} />;
   // Couleurs de marque réparties par scène : les décors passent d'une palette à l'autre en fondu autour de la frontière,
   // au lieu d'un saut visible (fonds animés et graphiques ; les fonds photo et « reference » suivent leur scène).
-  const blend = recipe.referenceMotion || recipe.photoTreatment ? undefined : paletteBlend(timeline, frame, (i) => scenePalette(palette, colors, i));
+  const blend = recipe.referenceMotion || recipe.photoTreatment ? undefined : paletteBlend(timeline, frame, (i) => graph.pitch ? palette : scenePalette(palette, colors, i));
   const backdropLayer = blend ? <>{backdrop(blend.from)}<AbsoluteFill style={{ opacity: blend.k }}>{backdrop(blend.to)}</AbsoluteFill></> : backdrop(activePalette);
   // Transitions qui emportent tout le cadre (whip, ripple) : le fond bouge avec la scène
   const backdropMove = backdropMotion(timeline, frame, (i) => sceneSettings(graph, timeline[i].scene).energy, u, backdropId, recipe.motion?.ease);
@@ -67,11 +70,11 @@ function MotionVideo({ input }: { input: VideoProps }) {
           <Effects effects={recipe.effects} layer="under" palette={activePalette} />
 
           {timeline.map(({ scene, from, duration }, i) => {
-            const Scene = SCENES[scene.kind];
+            const Scene = scene.pitchVisual?.chart ? PitchChartScene : SCENES[scene.kind];
             const sceneGraph = sceneSettings(graph, scene);
             const sceneRecipe = sceneGraph.titleAnimation ? { ...recipe, titleAnimation: sceneGraph.titleAnimation } : recipe;
-            const localPalette = scenePalette(palette, colors, i);
-            const nextPalette = scenePalette(palette, colors, i + 1);
+            const localPalette = graph.pitch ? palette : scenePalette(palette, colors, i);
+            const nextPalette = graph.pitch ? palette : scenePalette(palette, colors, i + 1);
             const sceneProps = { ...props, palette: recipe.logoMotion ? palette : localPalette, recipe: sceneRecipe, graph: sceneGraph };
             return (
               <Sequence key={scene.id} from={from} durationInFrames={duration} name={`${scene.kind} · ${scene.title}`}>
@@ -136,7 +139,7 @@ function Music({ src, graph }: { src: string; graph: VideoProps["graph"] }) {
       volume={(f) => {
         const up = fadeIn ? interpolate(f, [0, fps], [0, 1], clamp) : 1;
         const down = fadeOut ? interpolate(f, [total - fps * 2, total], [1, 0], clamp) : 1;
-        return Math.max(0, Math.min(1, volume)) * up * down;
+        return Math.max(0, Math.min(1, volume)) * up * down * musicDuckVolume(graph, f, fps);
       }}
     />
   );

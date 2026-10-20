@@ -8,10 +8,11 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { MAX_FOCUS_STEPS, type ScreenFocus } from "@/lib/projects/scenes";
 import { FocusEditor } from "./focus-editor";
 
-export function FocusSequenceEditor({ screens, sceneScreens, value, sceneTitle, titleColor, duration, disabled, onApply, onCancel }: {
+export function FocusSequenceEditor({ screens, sceneScreens, onAddScreen, value, sceneTitle, titleColor, duration, disabled, onApply, onCancel }: {
   screens: { url: string; ratio: number | null }[];
   /** Screens montrés par la scène : le premier est présélectionné pour un nouveau cadrage. */
   sceneScreens: string[];
+  onAddScreen?: (file: File) => Promise<{ url: string; ratio: number | null }>;
   value: ScreenFocus[];
   sceneTitle: string;
   /** Couleur actuelle du titre de la scène, proposée par défaut pour chaque cadrage */
@@ -37,6 +38,7 @@ export function FocusSequenceEditor({ screens, sceneScreens, value, sceneTitle, 
   if (editing !== null) return <FocusEditor
     key={editing}
     screens={screens}
+    onAddScreen={onAddScreen}
     defaultSrc={sceneScreens[0]}
     value={steps[editing] ?? null}
     sceneTitle={sceneTitle}

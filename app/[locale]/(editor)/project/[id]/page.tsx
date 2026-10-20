@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Suspense } from "react";
+import { PitchCreate } from "@/components/create/pitch-create";
 import { Editor } from "@/components/editor/editor";
 import { RecordingEditor } from "@/components/recordings/recording-editor";
 import { getPlan } from "@/config/pricing";
@@ -39,6 +40,7 @@ async function EditorLoader({ params }: { params: PageProps<"/[locale]/project/[
   const [project, balance] = await Promise.all([getEditorProject(user.id, id), getCreditBalance(user.id)]);
   if (!project) notFound();
 
+  if (project.versions.at(-1)?.graph.pitch && project.status !== "READY") return <div className="min-h-dvh bg-bg p-4 sm:p-8"><PitchCreate balance={balance.total} resumeProjectId={project.id} /></div>;
   const { watermark, maxQuality } = getPlan(user.plan);
   if (project.versions.at(-1)?.graph.recording) return <RecordingEditor key={project.id} project={project} initialBalance={balance.total} plan={{ watermark, maxQuality }} />;
   // `key` : remonte l'éditeur quand la génération se termine (nouvelles versions côté serveur)

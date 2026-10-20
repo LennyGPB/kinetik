@@ -13,13 +13,15 @@ export function buildVideoProps(project: VideoSource, graph: SceneGraph, waterma
   // Le style de la version (changé depuis l'éditeur) prime sur celui du projet
   const styleId = graph.styleId ?? project.styleId;
   const { palette } = projectVisual({ styleId, colors: graph.colors ?? project.colors });
+  const colors = graph.colors ?? project.colors;
+  const recipe = getRecipe(styleId);
   return {
     appName: project.appName,
     locale: graph.language ?? project.locale ?? "fr",
     format: project.format,
-    palette,
+    palette: graph.pitch && colors.length >= 2 ? [colors[0], colors[1], colors[2] ?? colors[1]] : palette,
     brandColors: graph.colors ?? project.colors,
-    recipe: getRecipe(styleId),
+    recipe: graph.pitch ? { ...recipe, graphicTreatment: undefined, referenceMotion: undefined, photoTreatment: undefined, background: "clean", titleAnimation: "words", camera: "still", effects: [] } : recipe,
     graph,
     logoUrl: project.logoUrl,
     backgroundUrl: project.backgroundUrl ?? null,

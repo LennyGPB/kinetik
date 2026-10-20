@@ -5,7 +5,7 @@ import { GlitchSlices } from "./glitch-fx";
 import type { Scene, Transition } from "../../lib/projects/scenes";
 import type { MotionEase, MotionExit } from "../../config/recipes";
 import type { VideoProps } from "../props";
-import { beatFrames, useRecipe } from "./theme";
+import { useRecipe } from "./theme";
 import { CollectionTransitionCover, isCollectionTransition } from "./collection-transitions";
 import { BurnCover, CapsuleCover, DripCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
 
@@ -559,22 +559,7 @@ function CurtainCover({ frame, durationInFrames, accent }: { frame: number; dura
  * (`phaseSeconds` : position d'un temps dans la vidéo, voir beatGrid()).
  * La durée totale ne change pas (seules les frontières internes bougent).
  */
-export function sceneTimeline(scenes: Scene[], fps: number, bpm: number, phaseSeconds = 0) {
-  const frames = scenes.map((scene) => Math.max(1, Math.round(scene.duration * fps)));
-  const starts = frames.map((_, i) => frames.slice(0, i).reduce((sum, f) => sum + f, 0));
-  const total = frames.reduce((sum, f) => sum + f, 0);
-  const beat = beatFrames(fps, bpm);
-  const minScene = fps; // une scène garde au moins 1 seconde
-
-  for (let i = 1; i < scenes.length; i++) {
-    if (scenes[i].transition !== "cut") continue;
-    const phase = phaseSeconds * fps;
-    const snapped = Math.round(Math.round((starts[i] - phase) / beat) * beat + phase);
-    const nextStart = i + 1 < scenes.length ? starts[i + 1] : total;
-    starts[i] = Math.max(starts[i - 1] + minScene, Math.min(nextStart - minScene, snapped));
-  }
-  return scenes.map((scene, i) => ({ scene, from: starts[i], duration: (i + 1 < scenes.length ? starts[i + 1] : total) - starts[i] }));
-}
+export { sceneTimeline } from "../../lib/projects/scene-timing";
 
 /**
  * Mouvement du fond autour des frontières de scène, pour les transitions qui déplacent tout le cadre (whip, ripple).

@@ -40,7 +40,7 @@ export function EditorShowcase({ label }: { label: string }) {
 
         <div className="relative rounded-[1.25rem] border border-line-strong bg-surface p-1.5 shadow-[0_60px_140px_-40px_var(--accent-glow),0_30px_60px_-30px_rgb(0_0_0/0.45)] sm:rounded-[1.75rem] sm:p-2">
           <div className="relative overflow-hidden rounded-[1rem] bg-black sm:rounded-[1.35rem]">
-            <video src="/medias/kinetik_edit2.mp4" autoPlay muted loop playsInline preload="metadata" aria-label={label} className="aspect-video w-full object-contain" />
+            <video src="/medias/kinetik_edit3.mp4" autoPlay muted loop playsInline preload="metadata" aria-label={label} className="aspect-video w-full object-contain" />
             <motion.div aria-hidden className="pointer-events-none absolute inset-0 mix-blend-overlay" style={{ background: glare }} />
             <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/10" />
           </div>

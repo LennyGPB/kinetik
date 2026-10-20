@@ -35,6 +35,7 @@ import { UploadZone } from "./upload-zone";
 import { useWebsiteAnalysis, type WebsiteAnalysis } from "./use-website-analysis";
 import { VideoTypePreview } from "./video-type-preview";
 import { WebsiteAnalysisStatus, WebsiteSuggestions } from "./website-suggestions";
+import { CreationVoicePicker, type CreationVoice } from "./voiceover-picker";
 
 const STEPS = ["app", "assets", "colors", "style", "videoType", "format", "music", "brief", "review"] as const;
 type StepId = (typeof STEPS)[number];
@@ -53,6 +54,7 @@ type WizardState = {
   musicMode: "library" | "upload" | "none";
   musicTrackId: string | null;
   music: UploadedFile[];
+  voiceover: CreationVoice | null;
   brief: string;
 };
 
@@ -65,6 +67,7 @@ function validate(step: StepId, s: WizardState, t: ReturnType<typeof useDictiona
   }
   if (step === "style" && !s.styleId) return c.errors.styleRequired;
   if (step === "music" && (s.musicMode === "library" ? !s.musicTrackId : s.musicMode === "upload" && s.music.length === 0)) return c.errors.musicRequired;
+  if (step === "music" && s.voiceover && !s.voiceover.voiceId) return t.voiceover.voiceRequired;
   return null;
 }
 
@@ -105,6 +108,7 @@ export function CreateWizard({
     musicMode: "library",
     musicTrackId: MUSIC_LIBRARY[0]?.id ?? null,
     music: [],
+    voiceover: null,
     brief: "",
   });
 
@@ -151,6 +155,7 @@ export function CreateWizard({
         musicMode: state.musicMode,
         musicTrackId: state.musicTrackId,
         music: state.music[0] ?? null,
+        voiceover: state.voiceover,
         brief: state.brief,
       });
       // En cas de succès, l'action redirige vers l'éditeur.
@@ -170,7 +175,7 @@ export function CreateWizard({
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-accent-text">{format(c.step, { current: stepIndex + 1, total: STEPS.length })}</p>
-          <h1 className="mt-1 text-xl font-semibold sm:text-2xl">{c.steps[step]}</h1>
+          <h1 className="mt-1 text-xl font-semibold sm:text-2xl">{step === "music" ? t.voiceover.soundStep : c.steps[step]}</h1>
         </div>
         <Badge tone="accent" className="hidden py-1 sm:inline-flex">
           <Coins className="size-3.5" /> {CREDIT_COSTS.generation} {t.common.credits}
@@ -183,7 +188,7 @@ export function CreateWizard({
             type="button"
             disabled={i > stepIndex}
             onClick={() => i < stepIndex && jumpTo(id)}
-            aria-label={c.steps[id]}
+            aria-label={id === "music" ? t.voiceover.soundStep : c.steps[id]}
             className="group h-1.5 flex-1 overflow-hidden rounded-full bg-surface-3 disabled:cursor-default"
           >
             <motion.span
@@ -582,7 +587,7 @@ function StepContent({
       );
 
     case "music":
-      return <MusicStep state={state} set={set} />;
+      return <><MusicStep state={state} set={set} /><CreationVoicePicker value={state.voiceover} onChange={(value) => set("voiceover", value)} /></>;
 
     case "brief":
       return (
@@ -635,6 +640,7 @@ function StepContent({
         { step: "videoType", label: c.steps.videoType, value: localizeText(VIDEO_TYPES[state.videoType].label, t) },
         { step: "format", label: c.steps.format, value: `${VIDEO_FORMATS[state.format].ratio} · ${state.duration} s` },
         { step: "music", label: c.steps.music, value: state.musicMode === "library" ? track?.title : state.musicMode === "upload" ? state.music[0]?.fileName ?? c.review.noMusic : c.music.none },
+        { step: "music", label: t.voiceover.title, value: state.voiceover?.voiceName || t.voiceover.withoutVoice },
       ];
       const after = balance - CREDIT_COSTS.generation;
       return (

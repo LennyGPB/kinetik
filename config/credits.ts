@@ -3,6 +3,8 @@
  * Règle produit : une modification coûte toujours moins qu'une génération.
  */
 export const CREDIT_COSTS = {
+  pitch: { analysis: 15, creation: 5 },
+  voiceover: { script: 1, perCharacters: 200, perUnit: 1 },
   /** Import réussi d’un enregistrement, avant accès à l’aperçu. */
   recordingImport: 10,
   /** Premier jet d'une vidéo */
@@ -35,6 +37,10 @@ export const CREDIT_COSTS = {
     long: 10,
   },
 } as const;
+
+export function getVoiceoverCost(text: string) {
+  return Math.ceil(text.trim().length / CREDIT_COSTS.voiceover.perCharacters) * CREDIT_COSTS.voiceover.perUnit;
+}
 
 function checkedPostCount(count: number) {
   if (!Number.isInteger(count) || count < 1 || count > 5) throw new Error("invalid_post_count");

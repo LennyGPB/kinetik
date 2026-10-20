@@ -26,6 +26,7 @@ export function translationEntries(graph: SceneGraph): TranslationEntry[] {
   graph.overlays?.forEach((layer, index) => {
     if (["text", "badge"].includes(layer.type) && layer.text?.trim()) entries.push({ key: `overlay-${index}`, text: layer.text, maxLength: 160 });
   });
+  graph.voiceover?.segments.forEach((s) => { if (s.text.trim()) entries.push({ key: `voice-${s.sceneId}`, text: s.text, maxLength: 1000 }); });
   return entries;
 }
 
@@ -34,6 +35,10 @@ export function applyTranslation(graph: SceneGraph, translated: { key: string; t
   const byKey = new Map(translated.map((entry) => [entry.key, entry.text.trim()]));
   if (translated.length !== expected.length || byKey.size !== expected.length || expected.some((entry) => !byKey.get(entry.key) || byKey.get(entry.key)!.length > entry.maxLength)) throw new Error("invalid_translation");
   const next = structuredClone(graph);
+  if (next.voiceover) {
+    if (language) next.voiceover.language = language;
+    next.voiceover.segments = next.voiceover.segments.map((s) => ({ ...s, text: byKey.get(`voice-${s.sceneId}`) ?? s.text }));
+  }
   if (language) next.language = language;
   next.scenes.forEach((scene, index) => {
     const title = byKey.get(`scene-${index}-title`);

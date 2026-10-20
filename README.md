@@ -1,5 +1,9 @@
 # Kinetik
 
+**Pitch deck → motion** : PDF ou URL vers une vidéo de 30 à 120 secondes,
+synthèse en 5 à 8 scènes, marque extraite, graphiques animés, voix et sous-titres.
+Voir [docs/PITCH-DECK.md](docs/PITCH-DECK.md).
+
 **Posts Instagram et carrousels** : formulaire `/create?kind=post`, éditeur dédié, 1 à 5 images,
 templates classiques ou liés, exports PNG/JPG et crédits partagés. Voir [docs/POSTS.md](docs/POSTS.md).
 

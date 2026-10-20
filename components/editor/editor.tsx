@@ -1,10 +1,13 @@
 "use client";
 
 
+import { VoiceoverDialog } from "./voiceover-dialog";
+import { Mic2 } from "lucide-react";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
 import { ArrowLeft, ChevronDown, Coins, Copy, Download, History, Images, Languages, Layers, MessageSquare, MoreHorizontal, Music2, Palette, Share2, Undo2 } from "lucide-react";
-import Link from "@/lib/i18n/navigation";
+import Link, { useRouter } from "@/lib/i18n/navigation";
+import { uploadFile } from "@/lib/storage/client";
 import { useState, useTransition, type ReactNode } from "react";
 import { StatusBadge } from "@/components/app/project-grid";
 import { LanguageToggle } from "@/components/ui/language-toggle";
@@ -17,7 +20,7 @@ import { useToast } from "@/components/ui/toaster";
 import type { PricingPlan } from "@/config/pricing";
 import { format, localizeVersionLabel } from "@/lib/i18n";
 import { getRecipe } from "@/config/recipes";
-import { applyEditProposal, applyEditorSetting, editTimeline, restoreVersion, sendEditRequest } from "@/lib/projects/actions";
+import { applyEditProposal, applyEditorSetting, editTimeline, restoreVersion, sendEditRequest, updateProjectMedia } from "@/lib/projects/actions";
 import type { QuickSetting } from "@/lib/projects/settings";
 import { formatSeconds, type TimelineEdit } from "@/lib/projects/timeline";
 import { totalDuration } from "@/lib/projects/scenes";
@@ -72,7 +75,17 @@ export function Editor({
   const [shareOpen, setShareOpen] = useState(false);
   const [variantsOpen, setVariantsOpen] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);
+  const router = useRouter();
+  /** Ajoute une capture aux médias du projet depuis une fenêtre de l'éditeur (ex. Focus), sans passer par la fenêtre Médias. */
+  async function addScreen(file: File) {
+    const uploaded = await uploadFile(file, "image");
+    const result = await updateProjectMedia(project.id, { logo: project.media.logo, screens: [...project.media.screens, uploaded] });
+    if (!result.ok) throw new Error(result.error);
+    router.refresh();
+    return { url: uploaded.url, ratio: uploaded.width && uploaded.height ? uploaded.width / uploaded.height : null };
+  }
   const [soundOpen, setSoundOpen] = useState(false);
+  const [voiceoverOpen, setVoiceoverOpen] = useState(Boolean(project.versions.at(-1)?.graph.voiceover?.setupPending && project.status === "READY"));
   const [styleOpen, setStyleOpen] = useState(false);
   const [overlaysOpen, setOverlaysOpen] = useState(false);
   // Historique des versions replié par défaut (desktop) : on l'ouvre au besoin
@@ -220,7 +233,8 @@ export function Editor({
           { key: "style", label: t.app.style.button, icon: <Palette />, onClick: () => setStyleOpen(true) },
           { key: "media", label: t.app.media.button, icon: <Images />, onClick: () => setMediaOpen(true) },
           { key: "layers", label: t.copy["eaa1ecaa099b"], icon: <Layers />, onClick: () => setOverlaysOpen(true) },
-          { key: "sound", label: t.app.sound.button, icon: <Music2 />, onClick: () => setSoundOpen(true) },
+          { key: "sound", label: t.app.sound.music, icon: <Music2 />, onClick: () => setSoundOpen(true) },
+          { key: "voiceover", label: t.voiceover.title, icon: <Mic2 />, onClick: () => setVoiceoverOpen(true) },
           { key: "variants", label: t.app.variants.button, icon: <Copy />, onClick: () => setVariantsOpen(true) },
           { key: "share", label: t.app.share.button, icon: <Share2 />, onClick: () => setShareOpen(true) },
         ]
@@ -331,7 +345,7 @@ export function Editor({
               videoProps={buildVideoProps(project, proposal && !compareOriginal ? proposal.graph : current.graph, plan.watermark)}
               variants={{ list: project.variants, currentId: project.id, canCreate: project.status === "READY" && !restoring && !proposal }}
               // Montage seulement sur la dernière version (une ancienne version se restaure d'abord)
-              editing={!proposal && current.number === latest?.number ? { onCommit: handleTimelineCommit, onSelectScene: setEditingSceneId, onSetting: handleSetting, onMedia: () => setMediaOpen(true), disabled: restoring || thinking || applying, initialSceneId: focusScene, onAskScene: (sceneId) => { setChatSceneId(sceneId); setMobileSheet("chat"); } } : undefined}
+              editing={!proposal && current.number === latest?.number ? { onCommit: handleTimelineCommit, onSelectScene: setEditingSceneId, onSetting: handleSetting, onMedia: () => setMediaOpen(true), onAddScreen: addScreen, disabled: restoring || thinking || applying, initialSceneId: focusScene, onAskScene: (sceneId) => { setChatSceneId(sceneId); setMobileSheet("chat"); } } : undefined}
             />
           </div>
           {proposal && (
@@ -474,11 +488,16 @@ export function Editor({
           audio={latest.graph.audio}
           onVersion={(version) => {
             setFocusScene(null);
-            setVersions((list) => [...list, version]);
+            setVersions((list) => list.some((v) => v.id === version.id) ? list : [...list, version]);
             setSelected(version.number);
           }}
         />
       )}
+      {latest && voiceoverOpen && <VoiceoverDialog projectId={project.id} version={latest} onClose={() => setVoiceoverOpen(false)} onBalance={setBalance} onVersion={(version) => {
+        setFocusScene(null);
+        setVersions((list) => list.some((v) => v.id === version.id) ? list : [...list, version]);
+        setSelected(version.number);
+      }} />}
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} projectId={project.id} token={shareToken} onToken={setShareToken} />
       {latest && <VariantsDialog open={variantsOpen} onClose={() => setVariantsOpen(false)} projectId={project.id} format={project.format} graph={latest.graph} variants={project.variants} />}
 

@@ -19,6 +19,7 @@ import { getRenderStatuses, startExports } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
 import { Player } from "@remotion/player";
 import { DIMENSIONS, durationInFrames, FPS, type VideoProps } from "@/remotion/props";
+import { hasVoiceIssues } from "@/lib/projects/voiceover";
 import { KinetikVideo } from "@/remotion/video/KinetikVideo";
 
 /** Un rendu par format exporté. */
@@ -74,7 +75,8 @@ export function ExportDialog({
   const reexport = exported || exportedNow;
   const costs = formats.map((_, i) => getExportCost({ duration, quality, reexport: reexport || i > 0 }));
   const cost = costs.reduce((sum, c) => sum + c, 0);
-  const canAfford = balance >= cost;
+  const voiceIssues = hasVoiceIssues(videoProps.graph);
+  const canAfford = balance >= cost && !voiceIssues;
 
   // Suivi des rendus (Remotion Lambda, ou simulés sans configuration AWS) : un seul appel pour tous les formats,
   // et le suivant n'est planifié qu'une fois la réponse reçue (pas d'appels qui se chevauchent si le serveur est lent)
@@ -242,7 +244,7 @@ export function ExportDialog({
             <Button variant="purple" size="lg" onClick={start} loading={starting} disabled={!canAfford} className="w-full">
               {formats.length > 1 ? interpolate(x.startMany, { count: formats.length }) : x.start}
             </Button>
-            {!canAfford && <p className="-mt-3 text-center text-sm text-danger">{t.app.editor.insufficient}</p>}
+            {voiceIssues ? <p role="alert" className="-mt-3 text-center text-sm text-danger">{t.voiceover.exportBlocked}</p> : !canAfford && <p className="-mt-3 text-center text-sm text-danger">{t.app.editor.insufficient}</p>}
           </motion.div>
         )}
 

@@ -2,6 +2,7 @@ import { AbsoluteFill, Audio, OffthreadVideo, interpolate, useCurrentFrame, useV
 import { recordingFrame } from "../../lib/recordings/framing";
 import type { VideoProps } from "../props";
 import { recordingCamera, recordingTilt } from "../../lib/recordings/model";
+import { musicDuckVolume } from "../../lib/projects/voiceover";
 import { DeviceShell } from "../../components/media/device-shell";
 
 /** One continuous source; camera is applied inside the frame, leaving the stage still. */
@@ -16,7 +17,7 @@ export function ScreenRecordingVideo({ props }: { props: VideoProps }) {
   const { volume = 0.25, trimStart = 0, fadeIn = true, fadeOut = true } = props.graph.audio ?? {};
   const content = <div style={{ width: videoWidth, height: videoHeight, overflow: "hidden", position: "relative", flexShrink: 0 }}>
     <div style={{ position: "absolute", inset: 0, transform: `translate(${camera.x * videoWidth}px, ${camera.y * videoHeight}px) scale(${camera.scale})` }}>
-      <OffthreadVideo src={recording.src} muted={!recording.originalAudio} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+      <OffthreadVideo src={recording.src} muted={!recording.originalAudio} volume={(f) => musicDuckVolume(props.graph, f, fps)} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
     </div>
   </div>;
   return <AbsoluteFill style={{ background: recording.background, alignItems: "center", justifyContent: "center" }}>
@@ -28,7 +29,7 @@ export function ScreenRecordingVideo({ props }: { props: VideoProps }) {
       {content}
       </>}
     </div>
-    {props.musicSrc && <Audio src={props.musicSrc} trimBefore={Math.round(trimStart * fps)} volume={(f) => volume * (fadeIn ? interpolate(f, [0, fps], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1) * (fadeOut ? interpolate(f, [Math.max(0, durationInFrames - fps * 2), durationInFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1)} />}
+    {props.musicSrc && <Audio src={props.musicSrc} trimBefore={Math.round(trimStart * fps)} volume={(f) => musicDuckVolume(props.graph, f, fps) * volume * (fadeIn ? interpolate(f, [0, fps], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1) * (fadeOut ? interpolate(f, [Math.max(0, durationInFrames - fps * 2), durationInFrames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1)} />}
     {props.watermark && <div style={{ position: "absolute", right: width * 0.025, bottom: height * 0.025, padding: "8px 16px", borderRadius: 20, background: "rgba(0,0,0,0.65)", color: "white", fontFamily: "sans-serif", fontSize: Math.min(width, height) * 0.022 }}>Made with Kinetik</div>}
   </AbsoluteFill>;
 }

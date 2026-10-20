@@ -3,11 +3,12 @@
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { SquareDashedMousePointer, Trash2, ZoomIn } from "lucide-react";
+import { ImagePlus, Loader2, SquareDashedMousePointer, Trash2, ZoomIn } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatedApply } from "@/components/ui/animated-apply";
 import { Dialog } from "@/components/ui/dialog";
 import { Segmented } from "@/components/ui/segmented";
+import { useToast } from "@/components/ui/toaster";
 
 import { FOCUS_ANIMATIONS, FOCUS_MODES, type ScreenFocus } from "@/lib/projects/scenes";
 import { TITLE_MAX } from "@/lib/projects/timeline";
@@ -28,7 +29,8 @@ const INPUT = "h-10 w-full rounded-xl border border-line-strong bg-bg px-3 text-
  * Trois colonnes numérotées sur desktop (screen · zone · réglages), empilées sur mobile.
  */
 export function FocusEditor({
-  screens,
+  screens: projectScreens,
+  onAddScreen,
   value,
   defaultSrc,
   sceneTitle,
@@ -40,6 +42,8 @@ export function FocusEditor({
   onClose = onCancel,
 }: {
   screens: { url: string; ratio: number | null }[];
+  /** Ajoute une capture aux médias du projet ; sans elle, pas de bouton d'ajout. */
+  onAddScreen?: (file: File) => Promise<{ url: string; ratio: number | null }>;
   value: ScreenFocus | null;
   defaultSrc?: string;
   sceneTitle: string;
@@ -56,6 +60,13 @@ export function FocusEditor({
   const t = useDictionary();
 
   const tl = t.app.editor.timeline;
+  const fr = t.locale === "fr";
+  const toast = useToast();
+  // Captures ajoutées depuis cette fenêtre : visibles tout de suite, avant que le projet rechargé ne les renvoie
+  const [added, setAdded] = useState<{ url: string; ratio: number | null }[]>([]);
+  const screens = [...projectScreens, ...added.filter((a) => !projectScreens.some((s) => s.url === a.url))];
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const known = (url?: string) => (url && screens.some((s) => s.url === url) ? url : undefined);
   const [src, setSrc] = useState(known(value?.src) ?? known(defaultSrc) ?? screens[0]?.url);
@@ -71,7 +82,22 @@ export function FocusEditor({
   const [removing, setRemoving] = useState(false);
   const [applying, setApplying] = useState(false);
   const pendingFocus = useRef<ScreenFocus | null>(null);
-  const locked = disabled || applying;
+  const locked = disabled || applying || uploading;
+  async function addScreen(file?: File) {
+    if (!file || !onAddScreen) return;
+    if (!file.type.startsWith("image/")) { toast({ title: fr ? "Choisis une image (PNG, JPG ou WebP)." : "Choose an image (PNG, JPG or WebP).", tone: "error" }); return; }
+    setUploading(true);
+    try {
+      const screen = await onAddScreen(file);
+      setAdded((list) => [...list, screen]);
+      setSrc(screen.url); setRect(null); setRemoving(false); setZoom(1);
+    } catch {
+      toast({ title: fr ? "L’image n’a pas pu être ajoutée. Réessaie." : "The image could not be added. Please try again.", tone: "error" });
+    } finally {
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  }
   const imageRef = useRef<HTMLDivElement>(null);
   const ratio = screens.find((s) => s.url === src)?.ratio ?? 9 / 19.5;
 
@@ -101,13 +127,27 @@ export function FocusEditor({
   const valid = Boolean(src && rect && rect.w >= MIN_SIZE && rect.h >= MIN_SIZE);
 
   return (
-    <Dialog open onClose={onClose} title={tl.focusTitle} description={t.copy["113775d369d8"]} className="sm:max-w-[min(94vw,80rem)]">
+    <Dialog open onClose={onClose} title={tl.focusTitle} description={t.copy["113775d369d8"]} className="sm:max-w-[min(94vw,80rem)] lg:max-h-[96dvh] lg:max-w-[min(97vw,112rem)]">
     <div className="flex flex-col gap-5">
-      <div className="grid gap-5 lg:grid-cols-[8.5rem_minmax(0,1fr)_19rem]">
+      <div className="grid gap-5 lg:grid-cols-[10rem_minmax(0,1fr)_minmax(24rem,32%)]">
         {/* 1. Choix du screen */}
         <section className="flex min-w-0 flex-col gap-2.5">
           <StepHeading index={1}>{tl.focusScreenHeading}</StepHeading>
-          <div className="flex gap-2 overflow-x-auto scrollbar-none lg:max-h-[58dvh] lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:p-0.5">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none lg:max-h-[68dvh] lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:p-0.5">
+            {onAddScreen && <>
+              <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" tabIndex={-1} onChange={(event) => void addScreen(event.target.files?.[0])} />
+              <button
+                type="button"
+                disabled={locked || screens.length >= 8}
+                onClick={() => fileInput.current?.click()}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => { event.preventDefault(); void addScreen(event.dataTransfer.files[0]); }}
+                className="flex h-16 w-24 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-accent/50 bg-accent-soft/40 text-xs font-medium text-accent-text transition-colors hover:border-accent hover:bg-accent-soft disabled:cursor-default disabled:opacity-50 lg:h-20 lg:w-full"
+              >
+                {uploading ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
+                {uploading ? (fr ? "Envoi…" : "Uploading…") : screens.length >= 8 ? (fr ? "8 max" : "8 max") : (fr ? "Ajouter un média" : "Add media")}
+              </button>
+            </>}
             {screens.map((screen, i) => (
               <button
                 key={screen.url}
@@ -146,7 +186,7 @@ export function FocusEditor({
               <span className="w-12 text-right font-mono tabular-nums">{Math.round(zoom * 100)} %</span>
             </label>
           </div>
-          <div ref={canvasRef} className="h-[45dvh] min-w-0 overflow-auto rounded-xl border border-line bg-bg-subtle p-3 lg:h-[58dvh]">
+          <div ref={canvasRef} className="h-[45dvh] min-w-0 overflow-auto rounded-xl border border-line bg-bg-subtle p-3 lg:h-[68dvh]">
             <div className="flex min-h-full w-max min-w-full items-center justify-center">
               <div
                 ref={imageRef}
@@ -186,7 +226,7 @@ export function FocusEditor({
         {/* 3. Réglages : l'effet, puis les textes */}
         <section className="flex min-w-0 flex-col gap-2.5">
           <StepHeading index={3}>{tl.focusSettingsHeading}</StepHeading>
-          <div className="flex flex-col gap-5 rounded-xl border border-line bg-bg-subtle p-4 lg:max-h-[58dvh] lg:overflow-y-auto">
+          <div className="flex flex-col gap-5 rounded-xl border border-line bg-bg-subtle p-4 lg:max-h-[68dvh] lg:overflow-y-auto">
             <Field label={tl.focusEffect} hint={tl.focusModeHints[mode]}>
               <Segmented label={tl.focusEffect} size="sm" value={mode} onChange={setMode} className="flex w-full [&>button]:flex-1" options={FOCUS_MODES.map((m) => ({ value: m, label: tl.focusModes[m], disabled: locked }))} />
             </Field>

@@ -3,6 +3,8 @@ import type { PostDocument } from "./document";
 import { professionalPostSvg } from "./professional-svg";
 import type { PostRenderMedia } from "./professional-svg";
 import { photoPostSvg } from "./photo-svg";
+import { orbitPostSvg } from "./orbit-svg";
+import { framePostSvg } from "./frame-svg";
 
 const esc = (text: string) => text.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[char]!);
 function lines(text: string, max: number) {
@@ -33,6 +35,10 @@ export function postSvg(doc: PostDocument, index: number, media: PostRenderMedia
   if (!page) throw new Error("invalid_page");
   const photographic = photoPostSvg(doc, index, media);
   if (photographic) return photographic;
+  // Orbit et Frame ont leur propre rendu (refonte : vraies polices de titre, décor dédié)
+  const layout = getPostTemplate(doc.templateId)?.layout;
+  if (layout === "orbit") return orbitPostSvg(doc, index, media);
+  if (layout === "frame") return framePostSvg(doc, index, media);
   const professional = professionalPostSvg(doc, index, media);
   if (professional) return professional;
   const { width: w, height: h } = POST_FORMATS[doc.format];

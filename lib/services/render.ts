@@ -1,4 +1,5 @@
 import "server-only";
+import { mapVoiceMedia } from "@/lib/projects/voiceover";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getR2Store } from "@/lib/storage/r2";
@@ -77,6 +78,13 @@ export async function inlineAssets(props: VideoProps, userId: string): Promise<V
     const data = await storage.get(key);
     return data ? `data:${mimeFromKey(key)};base64,${data.toString("base64")}` : null;
   };
+  const voices = new Map<string, string>();
+  for (const segment of props.graph.voiceover?.segments ?? []) {
+    if (!props.graph.voiceover?.enabled || !segment.text.trim() || !segment.clip) continue;
+    const src = await inline(segment.clip.src);
+    if (!src) throw new Error("missing_voice_audio");
+    voices.set(segment.clip.src, src);
+  }
   const [logoUrl, musicSrc, backgroundUrl, ...inlined] = await Promise.all([inline(props.logoUrl), inline(props.musicSrc), inline(props.backgroundUrl ?? null), ...props.screenUrls.map(inline)]);
   // On garde l'ordre des screens (les proportions et la mise en avant s'y réfèrent) en écartant ceux illisibles
   const kept = props.screenUrls.map((url, i) => ({ url, data: inlined[i], ratio: props.screenRatios?.[i] ?? null })).filter((s) => s.data);
@@ -89,7 +97,7 @@ export async function inlineAssets(props: VideoProps, userId: string): Promise<V
     screenUrls: kept.map((s) => s.data as string),
     screenRatios: kept.map((s) => s.ratio),
     graph: {
-      ...props.graph,
+      ...mapVoiceMedia(props.graph, (src) => voices.get(src) ?? src),
       ...(props.graph.recording && { recording: { ...props.graph.recording, src: byUrl.get(props.graph.recording.src) ?? await inline(props.graph.recording.src) ?? "" } }),
       scenes: await Promise.all(props.graph.scenes.map(async (scene) => {
         const focus = scene.focus ? byUrl.get(scene.focus.src) ?? await inline(scene.focus.src) : null;

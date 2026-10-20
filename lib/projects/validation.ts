@@ -37,6 +37,7 @@ export const createProjectSchema = z
     musicMode: z.enum(["library", "upload", "none"]),
     musicTrackId: z.string().max(40).nullable(),
     music: uploadedFileSchema.nullable(),
+    voiceover: z.object({ voiceId: z.string().min(1).max(100).regex(/^[A-Za-z0-9_-]+$/), voiceName: z.string().max(100).optional(), autoFit: z.boolean() }).nullable().optional(),
     brief: z.string().trim().max(1000).optional(),
   })
   .refine((v) => VIDEO_STYLES.some((s) => s.id === v.styleId), { path: ["styleId"] })

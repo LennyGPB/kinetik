@@ -49,6 +49,7 @@ export async function captureWebsite(input: string, format: keyof typeof CAPTURE
     await page.waitForNetworkIdle({ idleTime: 500, timeout: 4000 }).catch(() => {});
     await page.evaluate(() => Promise.race([document.fonts.ready.then(() => undefined), new Promise<void>((resolve) => setTimeout(resolve, 2000))]));
     const colors = suggestPalette(await page.evaluate(collectPageColors));
+    const content = await page.evaluate(() => ({ title: document.title.slice(0, 160), text: document.body.innerText.slice(0, 30_000), fonts: [...new Set([...document.querySelectorAll("h1,h2,p")].slice(0, 30).map((el) => getComputedStyle(el).fontFamily))].slice(0, 6) }));
     const viewport = CAPTURE_VIEWPORTS[format];
     const totalHeight = await page.evaluate(() => document.documentElement.scrollHeight);
     const offsets = [...new Set([0, Math.min(viewport.height * 0.85, Math.max(0, totalHeight - viewport.height)), Math.min(viewport.height * 1.7, Math.max(0, totalHeight - viewport.height))].map(Math.round))];
@@ -59,7 +60,7 @@ export async function captureWebsite(input: string, format: keyof typeof CAPTURE
       const buffer = Buffer.from(await page.screenshot({ type: "png", captureBeyondViewport: false }));
       images.push({ buffer, width: viewport.width * viewport.deviceScaleFactor, height: viewport.height * viewport.deviceScaleFactor, fileName: `${url.hostname}-${format}-${index + 1}.png` });
     }
-    return { images, colors };
+    return { images, colors, content };
   } catch (error) {
     if (timedOut || (error instanceof Error && error.name === "TimeoutError")) throw new Error("capture_timeout");
     throw error;

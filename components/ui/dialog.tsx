@@ -23,6 +23,7 @@ export function Dialog({
   className,
   aside,
   headerAction,
+  contentClassName,
 }: {
   open: boolean;
   onClose: () => void;
@@ -33,6 +34,7 @@ export function Dialog({
   /** Contenu posé à côté de la modale, hors de son fond (grands écrans uniquement), ex. un aperçu */
   aside?: ReactNode;
   headerAction?: ReactNode;
+  contentClassName?: string;
 }) {
   const t = useDictionary();
 
@@ -117,7 +119,7 @@ export function Dialog({
               {title}
             </h2>
             {description && <p className="mt-1.5 text-sm text-muted">{description}</p>}
-            <div className="mt-5">{children}</div>
+            <div className={cn("mt-5", contentClassName)}>{children}</div>
           </motion.div>
           {aside && (
             <motion.div

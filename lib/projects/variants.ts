@@ -43,7 +43,7 @@ export function shortenGraph(graph: SceneGraph, target = SHORT_DURATION): SceneG
   // Ajuste la plus longue scène pour tomber pile sur la durée visée
   const longest = durations.indexOf(Math.max(...durations));
   durations[longest] = Math.max(SCENE_MIN_SECONDS, durations[longest] + target - durations.reduce((a, b) => a + b, 0));
-  return { ...graph, scenes: kept.map((s, i) => ({ ...s, duration: durations[i] })) };
+  return { ...graph, ...(graph.voiceover && { voiceover: { ...graph.voiceover, segments: graph.voiceover.segments.filter((s) => kept.some((scene) => scene.id === s.sceneId)).map((s) => ({ sceneId: s.sceneId, text: s.text })) } }), scenes: kept.map((s, i) => ({ ...s, duration: durations[i] })) };
 }
 
 /** Sorte d'une déclinaison existante (la version courte garde le format de l'original). */

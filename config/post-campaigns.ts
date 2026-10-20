@@ -1,7 +1,7 @@
 /** Photo-led campaign collection. Images are replaceable; each entry has its own composition. */
 export const CAMPAIGN_POST_TEMPLATES = [
   { id: "post-kinetik-launch", name: "Kinetik Launch", linked: false, layout: "kinetik-launch", palette: ["#09070F", "#FAF9FF", "#9864FF"], description: { fr: "Une annonce produit Kinetik : noir, violet lumineux, titre franc et image encadrée.", en: "A Kinetik product announcement: black, luminous purple, bold type and framed imagery." } },
-  { id: "post-kinetik-guide", name: "Kinetik Guide", linked: true, layout: "kinetik-guide", palette: ["#0C0914", "#FAF9FF", "#A78BFA"], description: { fr: "Un carrousel Kinetik, avec étapes, accents violets et une ligne continue entre les pages.", en: "A Kinetik carousel with steps, purple accents and a continuous line across pages." } },
+  { id: "post-kinetik-guide", name: "Kinetik Guide", linked: true, layout: "kinetik-guide", palette: ["#140A33", "#FFFFFF", "#B44DFF"], description: { fr: "Un carrousel Kinetik, avec étapes, accents violets et une ligne continue entre les pages.", en: "A Kinetik carousel with steps, purple accents and a continuous line across pages." } },
   { id: "post-margin", name: "Margin", linked: false, layout: "margin", palette: ["#F0E9DD", "#252921", "#86513D"], description: { fr: "Une large marge, une photo verticale et un titre serif qui respire.", en: "A generous margin, a vertical photograph and airy serif typography." } },
   { id: "post-placard", name: "Placard", linked: false, layout: "placard", palette: ["#27392F", "#F7EDDA", "#D9E6AB"], description: { fr: "Une affiche vert forêt : photographie en vignette et grande typographie crème.", en: "A forest-green poster with inset photography and oversized cream typography." } },
   { id: "post-cutline", name: "Cutline", linked: true, layout: "cutline", palette: ["#F2EDE6", "#20232B", "#BD3F28"], description: { fr: "Une bande photo décentrée et un filet vermillon qui traverse le carrousel.", en: "An off-center photo strip and a vermilion rule spanning the carousel." } },
@@ -25,7 +25,7 @@ export const CAMPAIGN_POST_TEMPLATES = [
   { id: "post-contact", name: "Contact", linked: false, layout: "contact", palette: ["#ECE8E0", "#252525", "#D64C2F"], description: { fr: "Deux cadrages de votre photo, légendes fines et titre de magazine.", en: "Two crops of your photograph, fine captions and a magazine headline." } },
   { id: "post-sienna", name: "Sienna", linked: true, layout: "sienna", palette: ["#292622", "#F6EBDC", "#FF8A59"], description: { fr: "Intérieur feutré, titre serif corail et ruban continu entre les pages.", en: "Moody interiors, coral serif headlines and a ribbon spanning the pages." } },
   { id: "post-tidal", name: "Tidal", linked: true, layout: "tidal", palette: ["#173842", "#F2EBDD", "#D3B784"], description: { fr: "Paysage en bande centrale et courbe dorée reliant les pages.", en: "A landscape strip and a golden curve connecting the pages." } },
-  {"id":"post-ligne","name":"Ligne","linked":true,"layout":"ligne","palette":["#E8E2D7","#272B27","#9C563C"],"description":{"fr":"Photo en bande, titre serif et filet continu.","en":"A photo strip, serif headline and continuous rule."}},
+  {"id":"post-ligne","name":"Ligne","linked":true,"layout":"ligne","palette":["#FF5A36","#FFFFFF","#1D1B2E"],"description":{"fr":"Photo en bande, titre serif et filet continu.","en":"A photo strip, serif headline and continuous rule."}},
   {"id":"post-vellum","name":"Vellum","linked":false,"layout":"vellum","palette":["#ECE5D8","#282723","#927A59"],"description":{"fr":"Portrait encadré et composition de revue.","en":"Framed portraits and journal composition."}},
   {"id":"post-edition","name":"Edition","linked":false,"layout":"edition","palette":["#CC4528","#FFF2E0","#242421"],"description":{"fr":"Manchette crème et photo urbaine monochrome.","en":"A cream masthead and monochrome city photography."}},
   {"id":"post-ascend","name":"Ascend","linked":false,"layout":"ascend","palette":["#222B2D","#F7EDDE","#D4AF87"],"description":{"fr":"Paysage vertical et titre sur deux colonnes.","en":"Vertical landscapes and a two-column headline."}},
@@ -39,6 +39,12 @@ export const CAMPAIGN_POST_TEMPLATES = [
   { id: "post-warp", name: "Warp", linked: false, layout: "warp", palette: ["#0B0B0D", "#FFFFFF", "#5B5BFF"], description: { fr: "Typographie qui fond et se déforme, dédoublée en rouge, cyan et bleu, sur fond noir.", en: "Melting, warping type split into red, cyan and blue on black." } },
   { id: "post-spray", name: "Spray", linked: false, layout: "spray", palette: ["#2B1561", "#F4EEFF", "#FF4FB0"], description: { fr: "Grunge violet : spray rose, photo noir et blanc scotchée et titre condensé bicolore.", en: "Purple grunge: pink spray, a taped black-and-white photo and a two-tone condensed title." } },
   { id: "post-hype", name: "Hype", linked: false, layout: "hype", palette: ["#0E0E0E", "#FFFFFF", "#C6FF3D"], description: { fr: "Post d’agence : capitales, punchline sur étiquette lime, post-it rose, gribouillis et polaroid.", en: "An agency post: capitals, a punchline on a lime label, a pink sticky note, scribbles and a polaroid." } },
+  { id: "post-focal", name: "Focal", linked: false, layout: "focal", palette: ["#C8161D", "#FFFFFF", "#111111"], description: { fr: "Rouge franc, silhouette floue, regard net dans un cadre et mot géant. Affiche de campagne.", en: "Bold red, a blurred silhouette, a sharp framed gaze and a giant word. A campaign poster." } },
+  { id: "post-riptide", name: "Riptide", linked: false, layout: "riptide", palette: ["#141414", "#FFFFFF", "#B6FF1A"], description: { fr: "Drop mode : photo noir et blanc, panneau lime déchiré, titre vertical et code-barres.", en: "Fashion drop: black-and-white photo, a torn lime panel, vertical headline and barcode." } },
+  { id: "post-acid", name: "Acid", linked: false, layout: "acid", palette: ["#38F21E", "#0B0B0B", "#FFFFFF"], description: { fr: "Affiche vert acide : carte noire centrale, photo teintée, points et textes verticaux.", en: "Acid-green poster: a central black card, tinted photo, dot columns and vertical type." } },
+  { id: "post-brush", name: "Brush", linked: false, layout: "brush", palette: ["#1C1B20", "#FFFFFF", "#7C4DFF"], description: { fr: "Photo sombre, coup de pinceau violet, damier, texte circulaire et titre condensé.", en: "Moody photo, a violet brush stroke, checkerboard, circular text and condensed type." } },
+  { id: "post-moderno", name: "Moderno", linked: false, layout: "moderno", palette: ["#191919", "#FFFFFF", "#EF7D35"], description: { fr: "Feed moderne : photo noir et blanc, titre serif, mot en italique orange et pages orange.", en: "A modern feed: black-and-white photo, serif title, an orange italic word and orange pages." } },
+  { id: "post-bleed", name: "Bleed", linked: false, layout: "bleed", palette: ["#4B2FE0", "#FFFFFF", "#0E0E10"], description: { fr: "Aplat de couleur et mot géant qui déborde du cadre. Bannière typographique franche.", en: "Flat colour and a giant word bleeding off the frame. A bold typographic banner." } },
   { id: "post-chrome", name: "Chrome", linked: false, layout: "chrome", palette: ["#F1ECFF", "#14121C", "#7B4DFF"], description: { fr: "Lavande et violet : forme 3D chromée, photo en duotone, titre net et bouton flèche.", en: "Lavender and purple: a chrome 3D shape, duotone photo, crisp title and an arrow button." } },
 ] as const;
 
@@ -48,6 +54,12 @@ export const CAMPAIGN_DEMO_PHOTOS: Record<string, string> = {
   "post-spray": "/post-demos/portrait-4.jpg",
   "post-hype": "/post-demos/portrait-3.jpg",
   "post-chrome": "/post-demos/portrait-5.jpg",
+  "post-riptide": "/post-demos/portrait-6.jpg",
+  "post-focal": "/post-demos/portrait-2.jpg",
+  "post-acid": "/post-demos/portrait-5.jpg",
+  "post-brush": "/post-demos/portrait-4.jpg",
+  "post-moderno": "/post-demos/portrait-2.jpg",
+  "post-bleed": "/post-demos/city.jpg",
   "post-kinetik-launch": "/post-demos/workspace.jpg",
   "post-kinetik-guide": "/post-demos/detail.jpg",
   "post-margin": "/post-demos/portrait-4.jpg",

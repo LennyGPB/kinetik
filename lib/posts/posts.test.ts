@@ -91,7 +91,7 @@ test("linked pages match crops of one continuous panorama at every boundary", as
 });
 
 test("retired templates leave the catalogue while existing documents remain renderable", () => {
-  for (const id of ["post-studio", "post-signal"]) {
+  for (const id of ["post-studio", "post-signal", "post-paper"]) {
     assert.ok(!POST_TEMPLATES.some((template) => template.id === id));
     assert.ok(getPostTemplate(id));
     const doc = demoPost(id);

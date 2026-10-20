@@ -59,6 +59,8 @@ export type TimelineEditing = {
   onSelectScene?: (sceneId: string | null) => void;
   onSetting?: (setting: QuickSetting, sceneId?: string) => void;
   onMedia?: () => void;
+  /** Envoie une nouvelle capture et l'ajoute aux médias du projet. */
+  onAddScreen?: (file: File) => Promise<{ url: string; ratio: number | null }>;
   onAskScene?: (sceneId: string) => void;
   /** Enregistre les modifications ; renvoie false en cas d'échec (l'aperçu revient alors à la version enregistrée). */
   onCommit: (edits: TimelineEdit[], focusSceneId: string | null) => Promise<boolean>;
@@ -750,6 +752,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           screens={videoProps.screenUrls.map((url, i) => ({ url, ratio: videoProps.screenRatios?.[i] ?? null }))}
           value={sceneFocuses(selected)}
           sceneScreens={sceneScreens(graph.scenes, selected, videoProps.screenUrls, 3)}
+          onAddScreen={editing.onAddScreen}
           sceneTitle={selected.title}
           titleColor={selected.textColors?.title ?? defaultColors[`${selected.id}:title`] ?? null}
           duration={selected.duration}

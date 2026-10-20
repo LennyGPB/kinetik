@@ -12,7 +12,7 @@ Les projets `kind = POST` partagent les comptes, les assets, les versions, les l
 - Collection professionnelle : `Swiss` (grille et accent vert), `Ledger` (colonnes éditoriales), `Frame` (captures sur bleu nuit), `Outline` (ligne continue) et `Continuum` (courbe panoramique). Les deux derniers sont liés.
 - Collection photo : `Portrait` (photo plein cadre et serif italique), `Team Board` (six portraits avec noms/rôles), `Nomad` (panneau dépoli), `District` (photo monochrome et carrousel contrasté) et `Manifest` (affiche rouge/noir/crème). Les photos sont remplaçables et disposent de réglages de cadrage. Les photos de démonstration sont réservées aux aperçus.
 - Collection campagne : `Afterhours`, `Daybook`, `Muse`, `Ritual`, `Dune`, `Still`, `Diptych`, `Ember`, `Chromatic` et `Atelier`. Photos remplaçables, compositions distinctes, mélange de serif et de sans serif ; `Ritual`, `Dune` et `Chromatic` possèdent un élément continu entre les pages.
-- `Signal` et `Studio` sont retirés du catalogue et des créations. Leur rendu reste disponible pour éditer/exporter les projets existants et restaurer leurs anciennes versions. Le catalogue compte 43 templates actifs.
+- `Signal`, `Studio` et `Paper Trail` sont retirés du catalogue et des créations. Leur rendu reste disponible pour éditer/exporter les projets existants et restaurer leurs anciennes versions. Le catalogue compte 43 templates actifs.
 - Formats : carré 1080 × 1080, feed 1080 × 1350 et story 1080 × 1920.
 
 ## Crédits
@@ -51,3 +51,8 @@ Les tests vérifient les prix et arrondis, la validation, les accès, les double
 - Verve, Aura, Contact, Sienna et Tidal : cinq compositions photo. Sienna et Tidal proposent un carrousel lié.
 
 - Ligne, Vellum, Edition, Ascend, Persona, Chroma, Canopy, Sculpt, Tempo and Verso add ten editable photographic layouts. Ligne, Chroma and Verso include cross-page graphics.
+
+- Riptide, Acid, Brush, Moderno et Bleed (`lib/posts/campaign-svg.ts`) : drop mode lime (panneau déchiré, titre vertical, code-barres), affiche vert acide (carte noire, photo teintée), photo et coup de pinceau violet (damier, texte circulaire), feed moderne orange (serif, mot en italique, une page sur deux en aplat orange), bannière à mot géant qui déborde du cadre. Les titres d’exemple n’inventent ni prix ni pourcentage.
+
+- Refonte : `Orbit` (`lib/posts/orbit-svg.ts`, orbite lumineuse continue sur tout le carrousel, une planète par page, ciel étoilé, titre en grotesque large) et `Frame` (`lib/posts/frame-svg.ts`, capture entière dans une fenêtre d’app en verre sur halos colorés, interface esquissée sans capture). `Kinetik Launch` reprend la landing : grille, halo violet, badge, bouton et maquette qui alterne moniteur / téléphone / post carré. `Brush` gagne un pinceau texturé, un cercle tracé autour du mot en accent et une note scotchée. Couleurs plus vives pour `Kinetik Guide` et `Ligne`.
+- `Focal` : affiche rouge, photo fondue en silhouette, bande nette sur le regard, mot géant (début gras, fin légère) et texte justifié façon poème.

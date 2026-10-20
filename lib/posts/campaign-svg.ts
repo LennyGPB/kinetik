@@ -40,21 +40,40 @@ export function campaignPostArt(doc: PostDocument, index: number, tools: Campaig
 
   switch (template.layout) {
     case "kinetik-launch": {
-      const headlineSize = page.titleSize * 1.14;
-      const estimatedRows = beginning ? Math.ceil(beginning.length / Math.max(1, Math.floor(940 / (headlineSize * .66)))) : 0;
-      const emphasisTop = h * .18 + Math.min(h * .18, estimatedRows * headlineSize * 1.13) + 16;
-      return `<defs><radialGradient id="${id}violet"><stop stop-color="${accent}" stop-opacity=".45"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient><clipPath id="${id}product"><rect x="90" y="${h * .61 + 34}" width="900" height="${h * .27 - 54}" rx="8"/></clipPath></defs>
-        <ellipse cx="${index % 2 ? 220 : 900}" cy="${h * .76}" rx="780" ry="${h * .41}" fill="url(#${id}violet)"/>
-        ${label(page.kicker, 70, 116, 19, accent, false, 790)}<path d="M 70 150 H 1010" stroke="${fg}" opacity=".18"/>
-        ${heading(beginning, "wide", 70, h * .18, 940, h * .18, page.titleSize * 1.14)}
-        ${heading(ending, "wide", 70, emphasisTop, 940, h * .12, headlineSize, accent)}
-        ${body(70, h * .535, 860, h * .05)}
-        <rect x="70" y="${h * .61}" width="940" height="${h * .27}" rx="20" fill="${bg}" stroke="${accent}" stroke-width="2"/>
-        <path d="M 90 ${h * .61 + 27} H 990" stroke="${fg}" opacity=".15"/>
-        ${[0, 1, 2].map((i) => `<circle cx="${98 + i * 15}" cy="${h * .61 + 14}" r="3" fill="${i === 0 ? accent : fg}" opacity="${i === 0 ? 1 : .3}"/>`).join("")}
-        <g clip-path="url(#${id}product)">${photo(image, imageRatio, 90, h * .61 + 34, 900, h * .27 - 54)}</g>
-        <path d="M 360 ${h * .90} H 720" stroke="${accent}" stroke-width="3"/>
-        <path d="M 940 ${h - 122} h 55 m -20 -20 20 20 -20 20" stroke="${fg}" stroke-width="2" fill="none"/>`;
+      // Landing Kinetik : noir quadrillé, halo violet, badge, titre blanc + ligne violette fine, bouton violet,
+      // et la maquette du hero qui change de format à chaque page (moniteur, téléphone, post carré).
+      const glow = mixHex(accent, "#ffffff", 0.25);
+      const grid = Array.from({ length: Math.ceil(w / 72) + 1 }, (_, k) => `<path d="M ${k * 72} 0 V ${h}" stroke="${fg}" stroke-opacity=".05"/>`).join("")
+        + Array.from({ length: Math.ceil(h / 72) + 1 }, (_, k) => `<path d="M 0 ${k * 72} H ${w}" stroke="${fg}" stroke-opacity=".05"/>`).join("");
+      const badgeW = Math.min(620, page.kicker.length * 13 + 90);
+      // Le cadre commun affiche déjà le CTA en bas : le bouton porte seulement la flèche
+      const button = "→", buttonW = 200;
+      const top = h * 0.53, area = h * 0.36, kind = index % 3;
+      const device = kind === 0
+        ? `<rect x="150" y="${top}" width="780" height="${area * 0.82}" rx="22" fill="#0c0c11" stroke="${fg}" stroke-opacity=".18" stroke-width="2"/>
+           <clipPath id="${id}scr"><rect x="166" y="${top + 16}" width="748" height="${area * 0.82 - 32}" rx="12"/></clipPath><g clip-path="url(#${id}scr)">${photo(image, imageRatio, 166, top + 16, 748, area * 0.82 - 32)}</g>
+           <rect x="500" y="${top + area * 0.82}" width="80" height="${area * 0.08}" fill="#1d1d24"/><rect x="400" y="${top + area * 0.9}" width="280" height="12" rx="6" fill="#1d1d24"/>`
+        : kind === 1
+        ? `<rect x="${w / 2 - area * 0.29}" y="${top}" width="${area * 0.58}" height="${area}" rx="44" fill="#0c0c11" stroke="${fg}" stroke-opacity=".18" stroke-width="2"/>
+           <clipPath id="${id}scr"><rect x="${w / 2 - area * 0.29 + 12}" y="${top + 12}" width="${area * 0.58 - 24}" height="${area - 24}" rx="34"/></clipPath><g clip-path="url(#${id}scr)">${photo(image, imageRatio, w / 2 - area * 0.29 + 12, top + 12, area * 0.58 - 24, area - 24)}</g>
+           <rect x="${w / 2 - 50}" y="${top + 22}" width="100" height="22" rx="11" fill="#000"/>`
+        : `<rect x="${w / 2 - area * 0.5}" y="${top}" width="${area}" height="${area}" rx="26" fill="#14141c" stroke="${fg}" stroke-opacity=".18" stroke-width="2"/>
+           <circle cx="${w / 2 - area * 0.5 + 34}" cy="${top + 32}" r="14" fill="${accent}"/>${label("kinetik", w / 2 - area * 0.5 + 58, top + 40, 20, fg, false, 200)}
+           <clipPath id="${id}scr"><rect x="${w / 2 - area * 0.5 + 14}" y="${top + 62}" width="${area - 28}" height="${area - 120}" rx="14"/></clipPath><g clip-path="url(#${id}scr)">${photo(image, imageRatio, w / 2 - area * 0.5 + 14, top + 62, area - 28, area - 120)}</g>
+           <path d="M ${w / 2 - area * 0.5 + 30} ${top + area - 34} c -10 -8 -10 -18 -2 -18 c 4 0 6 3 6 5 c 0 -2 2 -5 6 -5 c 8 0 8 10 -2 18 z" fill="#ff4d6d"/>`;
+      return `<defs>
+          <radialGradient id="${id}violet" cx=".5" cy="0" r=".9"><stop stop-color="${accent}" stop-opacity=".55"/><stop offset=".6" stop-color="${accent}" stop-opacity=".1"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient>
+          <radialGradient id="${id}under" cx=".5" cy=".5" r=".5"><stop stop-color="${accent}" stop-opacity=".45"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient>
+          <linearGradient id="${id}btn" x1="0" x2="1"><stop stop-color="${glow}"/><stop offset="1" stop-color="${accent}"/></linearGradient>
+        </defs>
+        ${grid}<rect width="${w}" height="${h * 0.7}" fill="url(#${id}violet)"/><ellipse cx="${w / 2}" cy="${top + area * 0.55}" rx="${w * 0.48}" ry="${area * 0.5}" fill="url(#${id}under)"/>
+        <rect x="${w / 2 - badgeW / 2}" y="${h * 0.075}" width="${badgeW}" height="48" rx="24" fill="${fg}" fill-opacity=".06" stroke="${fg}" stroke-opacity=".18"/>
+        <circle cx="${w / 2 - badgeW / 2 + 28}" cy="${h * 0.075 + 24}" r="6" fill="#ef4444"/>${label(page.kicker, w / 2 + 12, h * 0.075 + 32, 19, fg, true, badgeW - 70)}
+        ${heading(beginning || page.title, "wide", 70, h * 0.135, 940, h * 0.15, page.titleSize * 1.05, fg, true)}
+        ${beginning ? heading(ending, "rounded", 70, h * 0.135 + h * 0.14, 940, h * 0.08, page.titleSize * 0.85, glow, true) : ""}
+        ${label(page.body, w / 2, h * 0.39, 24, mixHex(fg, bg, 0.35), true, 820, h * 0.05)}
+        <rect x="${w / 2 - buttonW / 2}" y="${h * 0.44}" width="${buttonW}" height="64" rx="32" fill="url(#${id}btn)"/>${label(button, w / 2, h * 0.44 + 42, 24, "#ffffff", true, buttonW - 30)}
+        ${device}`;
     }
     case "kinetik-guide":
       return `<defs><linearGradient id="${id}purple" x2="1" y2="1"><stop stop-color="${accent}"/><stop offset="1" stop-color="${bg}"/></linearGradient></defs>
@@ -259,6 +278,138 @@ export function campaignPostArt(doc: PostDocument, index: number, tools: Campaig
         ${body(60, h * 0.37, 440, h * 0.12)}
         <circle cx="955" cy="${h * 0.87}" r="52" fill="${accent}"/><path d="M 930 ${h * 0.87} h 48 m -18 -18 18 18 -18 18" stroke="#ffffff" stroke-width="5" fill="none" stroke-linecap="round"/>`;
     }
+    case "riptide": {
+      // Fashion drop: B&W photo, torn lime panel with the title running vertically, outlined word repeated on the photo, barcode.
+      const title = page.title.toUpperCase(), first = title.split(/\s+/)[0] ?? "";
+      const edge = Array.from({ length: Math.ceil(h / 28) + 1 }, (_, k) => `${(w * 0.6 + (rnd(k + index * 31) - 0.5) * 36).toFixed(1)},${Math.min(h, k * 28)}`);
+      const bars = Array.from({ length: 30 }, (_, k) => { const x = 60 + k * 9; return rnd(k * 7 + 3) > 0.35 ? `<rect x="${x}" y="${h * 0.8}" width="${rnd(k + 11) > 0.6 ? 5 : 2.5}" height="64" fill="${fg}"/>` : ""; }).join("");
+      return `${photo(image, imageRatio, 0, 0, w * 0.68, h, true)}${shade}
+        <g opacity=".35">${[0, 1, 2, 3, 4].map((k) => stroked(first, "wide", 40, h * 0.12 + k * h * 0.085, 560, h * 0.08, 90, accent, 2)).join("")}</g>
+        <polygon points="${edge.map((p) => p.replace(/^([\d.]+)/, (x) => String(Number(x) - 10))).join(" ")} ${w},${h} ${w},0" fill="#F2F2EC"/>
+        <polygon points="${edge.join(" ")} ${w},${h} ${w},0" fill="${accent}"/>
+        <g transform="translate(${w - 40} ${h * 0.07}) rotate(90)">${heading(title, "condensed", 0, 0, h * 0.84, 330, 260, bg, false)}</g>
+        <rect x="60" y="70" width="400" height="56" fill="${accent}"/>${label(page.kicker.toUpperCase(), 78, 107, 20, bg, false, 370)}
+        ${body(60, h * 0.62, 520, h * 0.12)}${bars}${label(String(index + 1).padStart(2, "0"), 360, h * 0.8 + 52, 44, accent, false, 120)}`;
+    }
+    case "acid": {
+      // Acid-green tech poster: black central card with the title, green-tinted photo below, dot columns, vertical side texts, corner signs.
+      const cx = w * 0.22, cw = w * 0.56, cy = h * 0.1, ch = h * 0.42;
+      const dots = [0.08, 0.13, 0.87, 0.92].flatMap((fx) => Array.from({ length: 16 }, (_, k) => `<circle cx="${w * fx}" cy="${h * 0.1 + k * h * 0.045}" r="${3 + rnd(k + fx * 100) * 5}" fill="${fg}" opacity="${0.35 + rnd(k * 3 + fx * 50) * 0.6}"/>`)).join("");
+      const sign = (x: number, y: number) => `<circle cx="${x}" cy="${y}" r="24" fill="none" stroke="${fg}" stroke-width="3"/><path d="M ${x} ${y - 12} L ${x + 11} ${y + 9} H ${x - 11} Z" fill="${fg}"/>`;
+      return `<rect width="${w}" height="${h}" fill="${bg}"/>${dots}${sign(70, 70)}${sign(w - 70, 70)}
+        ${photo(image, imageRatio, w * 0.2, h * 0.5, w * 0.6, h * 0.42, true)}<rect x="${w * 0.2}" y="${h * 0.5}" width="${w * 0.6}" height="${h * 0.42}" fill="${bg}" opacity=".5"/>
+        <rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" fill="${fg}"/>
+        ${heading(page.title.toUpperCase(), "wide", cx + 40, cy + 50, cw - 80, ch * 0.5, Math.min(page.titleSize * 0.72, (cw - 80) / (Math.max(...page.title.split(/\s+/).map((word) => word.length), 4) * 0.98)), bg, false)}
+        <path d="M ${cx + 40} ${cy + ch * 0.68} H ${cx + cw - 40}" stroke="${bg}" stroke-width="2"/>${label(page.body, cx + 40, cy + ch * 0.78, 20, accent, false, cw - 80, ch * 0.2)}
+        <g transform="translate(64 ${h * 0.7}) rotate(-90)">${label(page.kicker.toUpperCase(), 0, 0, 24, fg, false, h * 0.5)}</g>
+        <g transform="translate(${w - 64} ${h * 0.25}) rotate(90)">${label(`N° ${String(index + 1).padStart(2, "0")} / ${String(doc.pages.length).padStart(2, "0")}`, 0, 0, 24, fg, false, h * 0.4)}</g>
+        <path d="M 40 ${h * 0.86} l 22 14 -22 14 z M 62 ${h * 0.86} l 22 14 -22 14 z M ${w - 40} ${h * 0.86} l -22 14 22 14 z M ${w - 62} ${h * 0.86} l -22 14 22 14 z" fill="${fg}"/>`;
+    }
+    case "brush": {
+      // Purple brush: darkened photo, a textured violet brush stroke, hand-drawn circle around the accent word,
+      // a taped paper note with the kicker, checkerboard strip, circular text, condensed two-tone title, arrow button, grain.
+      // Seul le dernier mot passe en accent
+      const parts = page.title.trim().split(/\s+/), lastWord = parts.length > 1 ? parts.pop()! : "", lead = parts.join(" ");
+      const ring = `${page.kicker.toUpperCase()} · `.repeat(2).slice(0, 34);
+      const ringText = [...ring].map((ch, k) => `<g transform="rotate(${(k / ring.length) * 360} 170 170)">${label(ch, 170, 90, 18, fg, true, 30)}</g>`).join("");
+      const checker = Array.from({ length: 30 }, (_, k) => { const col = k % 3, row = Math.floor(k / 3); return (col + row) % 2 ? "" : `<rect x="${w - 92 + col * 22}" y="${36 + row * 22}" width="22" height="22" fill="${fg}"/>`; }).join("");
+      const size = page.titleSize * 1.5;
+      const leadBox = measure(lead.toUpperCase(), "condensed", 900, h * 0.16, size), wordBox = measure(lastWord.toUpperCase(), "condensed", 900, h * 0.13, size);
+      const wordY = h * 0.5 + leadBox.height + 8;
+      const noteX = w - 420, noteY = h * 0.2;
+      return `<defs>
+          <filter id="${id}bristle" x="-10%" y="-30%" width="120%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.18" numOctaves="2" seed="${index + 5}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="34" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <filter id="${id}grain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .12"/></feComponentTransfer></filter>
+          <pattern id="${id}dots" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.4" fill="#000" opacity=".18"/></pattern>
+        </defs>
+        ${fullPhoto()}${shade}<rect width="${w}" height="${h}" fill="${bg}" opacity=".35"/>
+        <g filter="url(#${id}bristle)">
+          <path d="M -40 ${h * 1.02} C 140 ${h * 0.96}, 300 ${h * 0.9}, 470 ${h * 0.78}" stroke="${accent}" stroke-width="120" stroke-linecap="round" fill="none" opacity=".92"/>
+          <path d="M -20 ${h * 0.93} C 160 ${h * 0.88}, 320 ${h * 0.82}, 500 ${h * 0.74}" stroke="${accent}" stroke-width="26" stroke-linecap="round" fill="none" opacity=".7"/>
+        </g>
+        ${checker}<g opacity=".8">${ringText}</g>
+        <g transform="rotate(4 ${noteX + 170} ${noteY + 90})">
+          <rect x="${noteX}" y="${noteY}" width="340" height="180" fill="#F4F2EE"/><rect x="${noteX}" y="${noteY}" width="340" height="180" fill="url(#${id}dots)"/>
+          ${label(page.kicker, noteX + 28, noteY + 62, 26, "#1a1a1a", false, 290, 110)}
+          <rect x="${noteX + 120}" y="${noteY - 18}" width="110" height="34" fill="${accent}" opacity=".75" transform="rotate(-6 ${noteX + 175} ${noteY})"/>
+        </g>
+        ${heading(lead.toUpperCase(), "condensed", 76, h * 0.5, 900, h * 0.16, size, fg, false)}
+        ${heading(lastWord.toUpperCase(), "condensed", 76, wordY, 900, h * 0.13, size, accent, false)}
+        ${lastWord ? `<ellipse cx="${76 + wordBox.width / 2}" cy="${wordY + wordBox.height / 2}" rx="${wordBox.width / 2 + 40}" ry="${wordBox.height / 2 + 22}" fill="none" stroke="${fg}" stroke-width="4" transform="rotate(-4 ${76 + wordBox.width / 2} ${wordY + wordBox.height / 2})"/><ellipse cx="${76 + wordBox.width / 2 + 6}" cy="${wordY + wordBox.height / 2 - 4}" rx="${wordBox.width / 2 + 48}" ry="${wordBox.height / 2 + 16}" fill="none" stroke="${fg}" stroke-width="2.5" opacity=".7" transform="rotate(-1 ${76 + wordBox.width / 2} ${wordY + wordBox.height / 2})"/>` : ""}
+        ${body(76, wordY + wordBox.height + 50, 640, h * 0.06)}
+        <circle cx="${w - 110}" cy="${h - 150}" r="34" fill="${accent}"/><path d="M ${w - 126} ${h - 150} h 32 m -12 -12 12 12 -12 12" stroke="${fg}" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <rect width="${w}" height="${h}" filter="url(#${id}grain)"/>`;
+    }
+    case "focal": {
+      // Red campaign poster: the photo blurred into a dark silhouette on red, a sharp framed strip (the gaze),
+      // a giant lowercase word (first letters heavy, the rest light) and the body set as a justified poem.
+      const word = page.title.trim().toLowerCase(), cut = Math.min(2, Math.max(1, Math.floor(word.length / 2)));
+      const heavy = word.slice(0, cut), light = word.slice(cut);
+      let size = page.titleSize * 2.3;
+      let a = measure(heavy, "wide", w * 2, h, size).width, b = measure(light, "rounded", w * 2, h, size).width;
+      if (a + b > 950) { size *= 950 / (a + b); a = measure(heavy, "wide", w * 2, h, size).width; b = measure(light, "rounded", w * 2, h, size).width; }
+      const x0 = (w - a - b) / 2, ty = h * 0.43;
+      const words = page.body.trim().split(/\s+/).filter(Boolean), perLine = Math.max(4, Math.ceil(words.length / 3));
+      const poem = Array.from({ length: Math.ceil(words.length / perLine) }, (_, r) => words.slice(r * perLine, r * perLine + perLine)).map((line, r) =>
+        // Justifié : mots répartis de 90 à 990 px, le dernier calé à droite (largeur estimée à 0,55 em par lettre)
+        line.map((item, k) => label(item, line.length > 1 ? 90 + ((900 - (k === line.length - 1 ? item.length * 21 * 0.55 : 0)) * k) / (line.length - 1) : 90, ty + size * 1.02 + 40 + r * 30, 21, fg, false, 220)).join("")).join("");
+      const strip = { x: w * 0.28, y: h * 0.29, w: w * 0.44, h: h * 0.085 };
+      return `<defs>
+          <filter id="${id}silhouette" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="34" result="b"/><feColorMatrix in="b" type="saturate" values="0" result="g"/><feFlood flood-color="${bg}" result="f"/><feBlend in="g" in2="f" mode="multiply"/></filter>
+          <filter id="${id}grain"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .16"/></feComponentTransfer></filter>
+          <clipPath id="${id}strip"><rect x="${strip.x}" y="${strip.y}" width="${strip.w}" height="${strip.h}"/></clipPath>
+        </defs>
+        <rect width="${w}" height="${h}" fill="${bg}"/>
+        <g filter="url(#${id}silhouette)">${photo(image, imageRatio, 0, 0, w, h, true)}</g>
+        <g clip-path="url(#${id}strip)">${photo(image, imageRatio, 0, 0, w, h, true)}</g>
+        <rect x="${strip.x}" y="${strip.y}" width="${strip.w}" height="${strip.h}" fill="none" stroke="${fg}" stroke-width="2"/>
+        ${label(page.kicker.toUpperCase(), w / 2, 96, 18, fg, true, 700)}
+        ${outlineText(heavy, "wide", x0 + page.offsetX, ty + page.offsetY, w * 2, h, size, fg)}${outlineText(light, "rounded", x0 + a + page.offsetX, ty + page.offsetY, w * 2, h, size, fg)}
+        ${poem}
+        <rect width="${w}" height="${h}" filter="url(#${id}grain)"/>`;
+    }
+    case "moderno": {
+      // Modern orange feed: B&W photo with serif title, an italic orange word and a drawn arrow; every second page is a solid orange card.
+      const ink = mixHex(bg, "#000000", 0.2);
+      // Le dernier mot passe en italique orange, le reste en serif
+      const words2 = page.title.trim().split(/\s+/), italicWord = words2.length > 1 ? words2.pop()! : "", plain = words2.join(" ");
+      if (index % 2 === 1) {
+        return `<rect width="${w}" height="${h}" fill="${accent}"/>
+          ${label(page.kicker, 76, 96, 18, ink)}${label(String(index + 1).padStart(2, "0"), w - 76, 96, 18, ink, true, 80)}
+          ${heading(plain.toUpperCase(), "serif", 76, h * 0.3, 928, h * 0.2, page.titleSize * 1.3, ink, false)}
+          ${heading(italicWord, "italic", 76, h * 0.5, 928, h * 0.12, page.titleSize * 1.1, fg, false)}
+          ${label(page.body, 76, h * 0.7, 26, ink, false, 700, h * 0.1)}<path d="M 76 ${h - 150} H ${w - 200}" stroke="${ink}" stroke-width="2"/><path d="M ${w - 180} ${h - 162} h 70 v 24 h -70 z" fill="none" stroke="${ink}" stroke-width="2"/>`;
+      }
+      const ring = `${page.kicker.toUpperCase()} · `.repeat(2).slice(0, 30);
+      const ringText = [...ring].map((ch, k) => `<g transform="rotate(${(k / ring.length) * 360} ${w * 0.8} ${h * 0.5})">${label(ch, w * 0.8, h * 0.5 - 110, 15, fg, true, 26)}</g>`).join("");
+      return `${photo(image, imageRatio, 0, 0, w, h, true)}${shade}<rect width="${w}" height="${h}" fill="${bg}" opacity=".3"/>
+        ${label(page.kicker, 76, 96, 18, fg)}${label(String(index + 1).padStart(2, "0"), w - 76, 96, 18, fg, true, 80)}<g opacity=".45">${ringText}</g>
+        ${heading(plain.toUpperCase(), "serif", 76, h * 0.5, 928, h * 0.22, page.titleSize * 1.35, fg, false)}
+        <g transform="rotate(-6 640 ${h * 0.44})">${heading(italicWord, "italic", 520, h * 0.38, 520, h * 0.1, page.titleSize * 0.9, accent, false)}</g>
+        <path d="M 600 ${h * 0.49} c -30 20 -40 40 -36 70 m 0 0 l -14 -18 m 14 18 l 18 -12" stroke="${accent}" stroke-width="4" fill="none" stroke-linecap="round"/>
+        ${body(76, h * 0.78, 700, h * 0.06)}<path d="M 76 ${h - 150} H ${w - 200}" stroke="${fg}" stroke-width="2" opacity=".7"/><path d="M ${w - 180} ${h - 162} h 70 v 24 h -70 z" fill="none" stroke="${fg}" stroke-width="2" opacity=".7"/>`;
+    }
+    case "bleed": {
+      // Flat-colour banner: a giant lowercase word bleeding off the frame (bottom, or vertical on the right every third page), small bold headline.
+      const giant = (ending.split(/\s+/).at(-1) ?? page.title).toLowerCase().replace(/[.,!?]+$/, "");
+      const lead = page.title.trim().slice(0, page.title.trim().length - giant.length).trim().replace(/[,–-]+$/, "") || page.kicker;
+      const vertical = index % 3 === 1;
+      const giantArt = vertical
+        ? `<g transform="translate(${w * 0.6} ${h + 30}) rotate(-90)">${heading(giant, "wide", 0, 0, h * 1.15, w * 0.55, 520, accent, false)}</g>`
+        : heading(giant, "wide", -20, h * 0.6, w * 1.2, h * 0.5, 560, accent, false);
+      // Petite carte photo arrondie (la photo de l'utilisateur reste présente, le mot géant reste le sujet)
+      const card = vertical ? { x: 76, y: h * 0.52, s: Math.min(260, h * 0.22) } : { x: w - 76 - 300, y: h * 0.3, s: 300 };
+      return `<rect width="${w}" height="${h}" fill="${bg}"/>${giantArt}
+        <defs><clipPath id="${id}card"><rect x="${card.x}" y="${card.y}" width="${card.s}" height="${card.s}" rx="28"/></clipPath></defs>
+        <g clip-path="url(#${id}card)">${photo(image, imageRatio, card.x, card.y, card.s, card.s)}</g>
+        ${heading(lead, "rounded", 76, 90, vertical ? 560 : 640, h * 0.17, 84, fg, false)}
+        ${label(page.kicker, vertical ? 76 : 760, vertical ? h * 0.33 : 140, 22, fg, false, 280)}
+        ${label(page.body, 76, vertical ? h * 0.42 : h * 0.3, 22, fg, false, vertical ? 480 : 520, h * 0.12)}
+        ${heading(`${(lead.split(/\s+/)[0] ?? "").replace(/[,.]+$/, "")}-`, "rounded", vertical ? 76 : 90, vertical ? h * 0.78 : h * 0.6, 520, h * 0.09, 76, fg, false)}`;
+    }
     default: return null;
   }
 }
+
+/** Deterministic pseudo-random value in [0, 1) for decorative jitter. */
+function rnd(seed: number) { const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); }

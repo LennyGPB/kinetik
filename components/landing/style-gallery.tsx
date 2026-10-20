@@ -39,14 +39,18 @@ const interleave = <T,>(groups: T[][]) => Array.from({ length: Math.max(...group
 
 const MOTION_STYLES = VIDEO_STYLES.filter((style) => !getLogoMotion(style.id));
 const MOTION_CATEGORIES = STYLE_CATEGORIES.filter((category) => MOTION_STYLES.some((style) => style.category === category));
-const MOTION_ITEMS: Item[] = interleave(MOTION_CATEGORIES.map((category) => MOTION_STYLES.filter((style) => style.category === category))).map((style) => ({ kind: "motion", id: style.id, style }));
+/** Motions mis en avant en tête de galerie : Void, Noise, Veil. */
+const FEATURED_MOTIONS = ["carousel", "optic", "veil"];
+const FEATURED_ITEMS: Item[] = FEATURED_MOTIONS.flatMap((id) => { const style = MOTION_STYLES.find((item) => item.id === id); return style ? [{ kind: "motion" as const, id, style }] : []; });
+const OTHER_MOTION_ITEMS: Item[] = interleave(MOTION_CATEGORIES.map((category) => MOTION_STYLES.filter((style) => style.category === category && !FEATURED_MOTIONS.includes(style.id)))).map((style) => ({ kind: "motion", id: style.id, style }));
+const MOTION_ITEMS: Item[] = [...FEATURED_ITEMS, ...OTHER_MOTION_ITEMS];
 const ITEMS: Record<Exclude<Kind, "all">, Item[]> = {
   motion: MOTION_ITEMS,
   logo: VIDEO_STYLES.filter((style) => getLogoMotion(style.id)).map((style) => ({ kind: "logo", id: style.id, style })),
   post: POST_TEMPLATES.map((template) => ({ kind: "post", id: template.id, template })),
   store: STORE_TEMPLATES.map((template) => ({ kind: "store", id: template.id, template })),
 };
-const ALL_ITEMS = interleave([ITEMS.motion, ITEMS.logo, ITEMS.post, ITEMS.store]);
+const ALL_ITEMS = [...FEATURED_ITEMS, ...interleave([OTHER_MOTION_ITEMS, ITEMS.logo, ITEMS.post, ITEMS.store])];
 
 export function StyleGallery() {
   const t = useDictionary();

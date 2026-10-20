@@ -13,6 +13,7 @@ Créer des contenus de présentation de produits et d’applications à partir d
 ## Capabilities and Constraints
 
 - Motion design, posts Instagram et carrousels de 1 à 5 images.
+- Pitch deck PDF ou URL vers motion de 30 à 120 secondes, synthèse en 5 à 8 scènes, marque extraite, graphiques, narration et sous-titres.
 - Certains templates de carrousel prolongent leur décor entre les pages.
 - Création guidée, édition manuelle, modifications IA, versions et exports.
 - Un seul solde de crédits pour tous les contenus ; coût affiché avant chaque opération payante.

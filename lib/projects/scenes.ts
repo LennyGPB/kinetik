@@ -21,6 +21,7 @@ export type Transition = (typeof TRANSITIONS)[number];
 export type ScreenFrame = "phone" | "browser" | "none";
 
 export type Scene = {
+  pitchVisual?: { source: string; evidence: string; chart?: import("../pitch/model").PitchChart };
   textOffsets?: Partial<Record<"title" | "subtitle", { x: number; y: number }>>;
   /** Taille du titre / sous-titre par rapport à celle du template (1 = inchangée) */
   textScales?: Partial<Record<"title" | "subtitle", number>>;
@@ -154,6 +155,8 @@ export type AudioSettings = {
 export const MAX_SCREEN_COUNT = 3;
 
 export type SceneGraph = {
+  pitch?: import("../pitch/model").PitchMetadata;
+  voiceover?: import("./voiceover").Voiceover;
   deviceMockup?: import("../../config/device-mockups").DeviceMockup;
   recording?: import("../recordings/model").ScreenRecording;
   language?: "fr" | "en";

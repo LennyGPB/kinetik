@@ -90,7 +90,7 @@ export function SoundDialog({
   const hasMusic = mode === "library" || (mode === "upload" && Boolean(file));
 
   return (
-    <Dialog open={open} onClose={onClose} title={m.title} description={m.description} className="sm:max-w-xl">
+    <Dialog open={open} onClose={onClose} title={m.music} description={m.description} className="sm:max-w-xl">
       <div className="flex flex-col gap-5">
         <fieldset disabled={pending || applying} className="contents">
         <Segmented
