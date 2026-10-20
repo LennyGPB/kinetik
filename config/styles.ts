@@ -27,6 +27,16 @@ export type VideoStyle = {
 export const STYLE_CATEGORIES: StyleCategory[] = ["editorial", "tech", "minimal", "typo", "bold", "fun", "business"];
 
 const CATALOG: Omit<VideoStyle, "recipe">[] = [
+  { id: "spill", name: "Spill", category: "typo", palette: ["#141414", "#E6E4E2", "#D5D2D0"], ratio: "9:16" },
+  { id: "veil", name: "Veil", category: "tech", palette: ["#E8E6E0", "#24241F", "#784CFF"], ratio: "1:1" },
+  { id: "fanout", name: "Fanout", category: "typo", palette: ["#000000", "#FFFFFF", "#FFFFFF"], ratio: "16:9" },
+  { id: "blocktype", name: "Block", category: "typo", palette: ["#000000", "#FFFFFF", "#FFFFFF"], ratio: "1:1" },
+  { id: "positive", name: "Positive", category: "typo", palette: ["#000000", "#FFFFFF", "#FFFFFF"], ratio: "4:5" },
+  { id: "helix", name: "Helix", category: "typo", palette: ["#080808", "#F5F5F5", "#FFFFFF"], ratio: "9:16" },
+  { id: "power", name: "Power", category: "bold", palette: ["#0B171B", "#F1F4DD", "#9DFF00"], ratio: "9:16" },
+  { id: "spectra", name: "Spectra", category: "typo", palette: ["#030303", "#FFFFFF", "#42FF00"], ratio: "9:16" },
+  { id: "batch", name: "Batch", category: "typo", palette: ["#E3E5DE", "#0A0C12", "#0A0C12"], ratio: "4:5" },
+  { id: "turn", name: "Turn", category: "typo", palette: ["#000000", "#FFFFFF", "#FFFFFF"], ratio: "16:9" },
   ...SIGNATURE_COLLECTION.map((item) => ({ id: item.id, name: item.name, category: "typo" as const, palette: [...item.palette] as [string, string, string], ratio: "1:1" as const })),
   { id: "logo-neon-stack", name: "Sculpt", category: "typo", palette: ["#101014", "#F4F1FF", "#9784D9"], ratio: "1:1" },
   { id: "logo-slice", name: "Slice", category: "typo", palette: ["#FAFAF7", "#111111", "#111111"], ratio: "1:1" },

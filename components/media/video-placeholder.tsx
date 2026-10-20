@@ -14,7 +14,9 @@ import { EmberTitle } from "../../remotion/video/ember-art";
 import { HaloTitle } from "../../remotion/video/halo-art";
 import { ThornCrown, VoidTitle } from "../../remotion/video/void-art";
 import { MeltTitle } from "../../remotion/video/melt-art";
-import { HoloCapsule } from "../../remotion/video/holo-art";
+import { HoloCapsule, holoPlacement } from "../../remotion/video/holo-art";
+import { TYPE_POSTER_ART } from "../../remotion/video/type-poster-art-registry";
+import { getTypePoster, typePosterPlacement, type TypePosterKind } from "../../config/type-posters";
 import { LumenTitle } from "../../remotion/video/lumen-art";
 import { GlossTitle } from "../../remotion/video/gloss-art";
 import { getGraphicMotion } from "../../config/graphic-motion";
@@ -75,6 +77,10 @@ export function VideoPlaceholder({
   const [bg, main, accent] = palette;
   const editorial = getEditorialMotion(templateId);
   const graphic = getGraphicMotion(templateId);
+  const typePoster = getTypePoster(templateId);
+  const posterAspectRatio = ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1]);
+  const PosterArt = typePoster ? TYPE_POSTER_ART[templateId as TypePosterKind] : undefined;
+  const holoVertical = ratio !== "fill" && Number(ratio.split(":")[1]) > Number(ratio.split(":")[0]) * 1.2;
   const reference = getReferenceMotion(templateId);
   const logoMotion = getLogoMotion(templateId);
   const editorialTop = editorial ? ({ "contact-sheet": "63%", "arch-window": "66%", "press-column": "17%", "diagonal-diptych": "39%", newsprint: "14%", offset: "65%", shutters: "39%", inlay: "63%", linea: "36%", slate: "64%" } as Record<string, string>)[editorial.treatment] : undefined;
@@ -106,11 +112,12 @@ export function VideoPlaceholder({
               <ThornCrown time={0.9} layer="front" aspectRatio={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} palette={palette} />
               <NoiseGrain seed={4} opacity={0.35} />
             </>}
-            {!bare && graphic.kind === "offprint" && <div className="font-heading absolute inset-x-[6%] top-[30%] text-[17cqmin]"><MeltTitle text={graphic.headline} time={2.4} palette={palette} /></div>}
-            {!bare && graphic.kind === "patina" && <div className="font-heading absolute" style={{ ...(ratio !== "fill" && Number(ratio.split(":")[1]) > Number(ratio.split(":")[0]) * 1.2 ? { left: "30%", right: "30%", top: "8%", bottom: "14%" } : { left: "14%", right: "14%", top: "20%", bottom: "26%" }) }}><HoloCapsule text={graphic.headline} time={0.9} palette={palette} vertical={ratio !== "fill" && Number(ratio.split(":")[1]) > Number(ratio.split(":")[0]) * 1.2} /></div>}
+            {!bare && graphic.kind === "offprint" && <div className="font-heading absolute inset-x-[6%] top-1/2 -translate-y-1/2 text-[17cqmin]"><MeltTitle text={graphic.headline} time={2.4} palette={palette} /></div>}
+            {!bare && typePoster && PosterArt && <div className={typePoster.font === "wide" ? "font-heading" : "font-condensed"} style={typePosterPlacement(templateId as TypePosterKind, posterAspectRatio)}><PosterArt text={typePoster.name} time={1.2} palette={palette} aspectRatio={posterAspectRatio} id={`thumb-${templateId}-${ratio.replace(":", "-")}-${palette.join("").replace(/[^a-zA-Z0-9]/g, "")}`} /></div>}
+            {!bare && graphic.kind === "patina" && <div className="font-heading absolute" style={holoPlacement(holoVertical)}><HoloCapsule text={graphic.headline} time={0.9} palette={palette} vertical={holoVertical} /></div>}
             {!bare && graphic.kind === "interlock" && <div className="absolute inset-x-[6%] top-1/2 -translate-y-1/2"><LumenTitle text={graphic.headline} time={0.9} palette={palette} /></div>}
             {!bare && graphic.kind === "gloss" && <div className="font-condensed absolute inset-x-[6%] bottom-[44%] text-[24cqmin]"><GlossTitle text={graphic.headline} palette={palette} /></div>}
-            {!bare && !["sticker", "optic", "flux", "lens", "carousel", "offprint", "patina", "interlock", "gloss"].includes(graphic.kind) && <div className={cn("absolute inset-x-[9%] leading-none", ["anvil", "tessera", "suture", "ratchet", "interlock", "blackout"].includes(graphic.kind) ? "text-[13cqmin]" : "text-[15cqmin]", graphic.kind === "suture" ? "font-serif" : ["cadence", "flux", "vector-beat", "tessera", "interlock"].includes(graphic.kind) ? "font-video font-semibold" : "font-condensed")} style={{ color: main, top: ({ anvil: "41%", tessera: "49%", suture: "40%", ratchet: "54%", interlock: "42%", torque: "34%", voltage: "38%" } as Record<string, string>)[graphic.kind] ?? "44%", transform: graphic.kind === "torque" ? "rotate(-12deg)" : undefined }}>{graphic.headline}</div>}
+            {!bare && !typePoster && !["sticker", "optic", "flux", "lens", "carousel", "offprint", "patina", "interlock", "gloss"].includes(graphic.kind) && <div className={cn("absolute inset-x-[9%] leading-none", ["anvil", "tessera", "suture", "ratchet", "interlock", "blackout"].includes(graphic.kind) ? "text-[13cqmin]" : "text-[15cqmin]", graphic.kind === "suture" ? "font-serif" : ["cadence", "flux", "vector-beat", "tessera", "interlock"].includes(graphic.kind) ? "font-video font-semibold" : "font-condensed")} style={{ color: main, top: ({ anvil: "41%", tessera: "49%", suture: "40%", ratchet: "54%", interlock: "42%", torque: "34%", voltage: "38%" } as Record<string, string>)[graphic.kind] ?? "44%", transform: graphic.kind === "torque" ? "rotate(-12deg)" : undefined }}>{graphic.headline}</div>}
           </div> : editorial ? <div className="absolute inset-0 [container-type:size]">
             <EditorialBackdrop treatment={editorial.treatment} palette={palette} progress={0.5} renderPhoto={(photoStyle) => <div style={{ ...photoStyle, backgroundImage: `url(${editorial.photo})`, backgroundSize: "cover", backgroundPosition: "center" }} />} />
             {!bare && <div className="absolute inset-x-[9%]" style={{ color: main, top: editorialTop ?? "50%", transform: editorialTop ? undefined : "translateY(-50%)", right: ["newsprint", "press-column"].includes(editorial.treatment) ? "33%" : editorial.treatment === "linea" ? "58%" : "9%" }}><span className={cn("block leading-[1.05]", editorialTop ? "text-[12cqmin]" : "text-[17cqmin]", ["contact-sheet", "press-column", "diagonal-diptych", "shutters", "band", "split", "masthead", "strips", "ribbon", "rust-panel"].includes(editorial.treatment) ? "font-condensed uppercase" : ["linea"].includes(editorial.treatment) ? "font-video font-semibold" : "font-serif")}>{editorial.headline}</span><span className="mt-[7cqmin] block text-[4cqmin]">{label}</span></div>}

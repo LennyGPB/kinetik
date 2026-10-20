@@ -83,7 +83,8 @@ export function BrowserFrame({ width, host, children }: { width: number; host: s
  * Trois variantes (liste, tableau de bord, carte) pour éviter trois écrans identiques.
  */
 export function MockScreen({ palette, variant, width }: { palette: VideoProps["palette"]; variant: number; width: number }) {
-  const [, main, rawAccent] = palette;
+  const [, rawMain, rawAccent] = palette;
+  const main = luminance(rawMain) > 0.8 ? "#24242c" : rawMain;
   // Un accent trop clair disparaît sur le fond blanc de l'interface : on retombe sur la couleur principale.
   const accent = luminance(rawAccent) > 0.8 ? main : rawAccent;
   const s = width / 100; // 1 % de la largeur de l'écran

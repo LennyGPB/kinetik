@@ -505,7 +505,7 @@ export function SlashCover(c: CoverContext) {
     <div style={{ position: "absolute", left: "50%", top: "50%", width: span, height: span, transform: "translate(-50%, -50%) rotate(-28deg)" }}>
       {Array.from({ length: bands }, (_, i) => {
         const w = pitch * e * 1.04;
-        return <div key={i} style={{ position: "absolute", top: 0, bottom: 0, left: i * pitch + pitch / 2 - w / 2, width: w, background: bg, boxShadow: e < 0.98 ? `-${c.unit * 0.3}px 0 0 ${accent}, ${c.unit * 0.3}px 0 0 ${main}` : undefined }} />;
+        return <div key={i} style={{ position: "absolute", top: 0, bottom: 0, left: i * pitch + pitch / 2 - w / 2, width: w, background: bg, boxShadow: e < 0.98 ? `-${c.unit * 0.3}px 0 0 ${accent}, ${c.unit * 0.3}px 0 0 ${main}` : undefined, opacity: clamp01((e - 0.02) / 0.08) }} />;
       })}
     </div>
   </div>;

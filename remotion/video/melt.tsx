@@ -25,7 +25,7 @@ export function MeltLayout(l: TextLayoutProps) {
     <div style={{ position: "absolute", left: "8%", right: "8%", top: "6%", textAlign: "center" }}>
       <MovableText target="subtitle"><span style={{ ...small, letterSpacing: "0.32em", fontWeight: 600 }}>{l.subtitle || l.props.appName}</span></MovableText>
     </div>
-    <div style={{ position: "absolute", left: "5%", right: "5%", top: "30%", fontSize: size }}>
+    <div style={{ position: "absolute", left: "5%", right: "5%", top: "50%", transform: "translateY(-50%)", fontSize: size }}>
       <MovableText target="title"><MeltTitle text={title} time={frame / fps} enter={enter} palette={l.props.palette} fontFamily={brand ? (titleFont.fontFamily as string) : wideFont} /></MovableText>
     </div>
     <div style={{ position: "absolute", left: "10%", right: "10%", top: "78%", display: "flex", flexDirection: "column", alignItems: "center", gap: u * 2 }}>

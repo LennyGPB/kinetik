@@ -3,6 +3,9 @@
 Ce document explique comment un template Kinetik devient une vidéo, et comment en créer ou en modifier un.
 À lire avant de toucher `config/recipes.ts`, `config/styles.ts` ou `remotion/video/`.
 Règles de direction artistique des templates motion (signature, transitions thématiques, diversité) : `docs/MOTION-RULES.md`.
+Collection typographique Power, Spectra, Batch et Turn : `docs/TYPE-POSTERS.md` (signatures, architecture, vérifications).
+Extension Fanout, Block, Positive et Helix : `docs/SPATIAL-TYPE-POSTERS.md` (géométrie, signatures et prévisualisations).
+Spill et Veil : `docs/LIQUID-TYPE-POSTERS.md` (coulures en perspective, reflets et plis violets).
 
 ## Le principe en une phrase
 
@@ -472,7 +475,7 @@ Identifiants `lens` et `carousel` conservés. Lens n'est plus un template photo 
 Identifiants conservés. Offprint et Patina ne sont plus des templates photo (traitements `caption-card` et `duotone` retirés) ; `capsule.tsx` a été supprimé (la transition `capsule` reste disponible).
 
 - **Melt** (`melt-art.tsx`, `melt.tsx`) : mot blanc large en arc, liseré rose et bleu, coulures rose → bleu qui s'allongent ; tourbillon spatial en flou de rotation et étoiles.
-- **Holo** (`holo-art.tsx`, `holo.tsx`) : capsule arrondie au liquide holographique (cyan, violet, magenta), titre découpé (vertical en portrait), entailles diagonales qui glissent, étiquettes tournées.
+- **Holo** (`holo-art.tsx`, `holo.tsx`, identifiant conservé `patina`) : capsule irisée cyan/violet/magenta, reflets métalliques continus et bord biseauté. Titre sombre centré (vertical en portrait), deux entailles oscillantes aux extrémités, étiquettes tournées et sous-titre clair. `holoPlacement()` partage les proportions entre miniature et vidéo. Entrée exponentielle calée sur la durée d'un beat, transition signature `slash` par fermeture d'entailles diagonales à liserés irisés. Un mot court recommandé ; les titres plus longs se réduisent sans recadrage. Les polices du brand kit restent prioritaires.
 - **Lumen** (`lumen-art.tsx`, `lumen.tsx`) : mot en minuscules en contour orange, lueur violette, lettres étirées en colonnes de lumière et fins traits verticaux ; accroche en minuscules au-dessus, pied « @nom · N° · site ».
 
 ### Gloss (nouveau)

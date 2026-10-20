@@ -474,7 +474,17 @@
     "logo-mosaic": "Word built pixel by pixel with flashes of colour.",
     "logo-coil": "Word curled around a wheel that unrolls, then curls up again.",
     "logo-impact": "Word that slams in with a shake, shock ring and speed lines.",
-    "logo-neon": "Neon sign that stutters on, glows and flickers."
+    "logo-neon": "Neon sign that stutters on, glows and flickers.",
+    "power": "Bold type wall, acid outlines and electric green brush marks.",
+    "spectra": "Chromatic poster, stretched letters and compressed echoes.",
+    "batch": "Monochrome type sculpture in stacked bands.",
+    "turn": "Black and white ribbon with sliced and reversed letters.",
+    "fanout": "Two lines of condensed letters unfolding into a typographic fan.",
+    "blocktype": "An isometric letter cube in pure black and white.",
+    "positive": "Metallic type repeats reflected around a dark horizon.",
+    "helix": "A printed letter ribbon winding between two thin rings.",
+    "spill": "Sloping letters with long luminous liquid tails on charcoal.",
+    "veil": "A dark word, violet reflection and soft foreground folds on a pale ground."
   },
   "landing": {
     "hero": {
@@ -1121,7 +1131,17 @@
           "drip": "Drip",
           "slash": "Slash",
           "streak": "Light columns",
-          "surge": "Liquid surge"
+          "surge": "Liquid surge",
+          "paint-sweep": "Paint sweep",
+          "type-stretch": "Chromatic stretch",
+          "stack-collapse": "Stack compression",
+          "ribbon-turn": "Ribbon twist",
+          "fan-fold": "Fan fold",
+          "block-pivot": "Cube pivot",
+          "mirror-horizon": "Mirror horizon",
+          "helix-wind": "Helix winding",
+          "gravity-pull": "Liquid fall",
+          "violet-fold": "Violet folds"
         },
         "recommended": "Recommended by the template",
         "others": "Others",

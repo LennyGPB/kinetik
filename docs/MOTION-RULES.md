@@ -74,10 +74,34 @@ Chaque template a une **signature** : un geste propre à son thème, qu'on recon
 - Toute nouvelle transition : `TRANSITIONS` (`lib/projects/scenes.ts`), `TRANSITION_BRICKS` (`transitions.tsx`),
   description dans le `SYSTEM` de `lib/services/ai.ts`, libellé de l'éditeur.
 
-## 7. Vérification avant de livrer un template
+## 7. Couleurs et nommage
+
+- Palettes **vives et actuelles** : un accent saturé propre au template (pas de beige, kaki ou gris-vert ternes). Le noir et blanc
+  n'est admis que s'il est le parti pris du thème (Monolith, Minimal…).
+- La miniature de la galerie montre le **nom du template** (ou un mot d'exemple qui le rend reconnaissable) ; le dashboard affiche
+  aussi le nom sous chaque carte.
+- La `direction` donne à Claude la forme attendue des textes (nombre de mots du titre, rôle du sous-titre) : un effet pensé pour
+  un mot (Halo, Ember, Gloss) doit le dire explicitement.
+
+## 8. Architecture d'un template « affiche » (Smear, Noise, Ember, Halo, Void, Melt, Holo, Lumen, Gloss)
+
+- Deux fichiers : `<nom>-art.tsx` (titre et fond purs : **aucun contexte React ni hook Remotion**, car la miniature est rendue
+  côté serveur et Next refuse `createContext` dans un Server Component) et `<nom>.tsx` (mise en page vidéo, hooks autorisés).
+- Branchements : `config/graphic-motion.ts` (kind + mot de la miniature), `graphic-backdrop.tsx` (fond), `composition.tsx`
+  (mise en page), recette (`graphicTreatment`), `config/styles.ts`, descriptions FR/EN, titre de démo (`demo-video.ts`),
+  miniature (`video-placeholder.tsx`), transition signature (section 6).
+- `MovableText` (déplacement des textes dans l'éditeur) n'a **pas de hauteur propre** : un élément en `position: absolute; inset: 0`
+  placé dedans fait 0 px de haut. Lui donner une hauteur explicite.
+- Respecter les polices du brand kit : `brandFonts ? useTitleFont() : police du thème`.
+- **Remplacer** un template = garder son identifiant (les projets existants suivent) ; retirer le code devenu mort
+  (ancien fond, traitement photo, entrées de position) et le documenter dans `docs/TEMPLATES.md`.
+
+## 9. Vérification avant de livrer un template
 
 1. Le test de la silhouette passe (section 1).
 2. Rendu des frames d'entrée, de transition et de fin dans les 3 formats :
-   `node --import tsx scripts/review-editorial-motion.ts <ids> --transitions --endings`.
-3. Comparaison avec les 3 templates les plus proches du catalogue : au moins 3 axes différents.
-4. `npm run typecheck`, puis `npm run video:deploy` pour les exports Lambda.
+   `node --import tsx scripts/review-editorial-motion.ts <ids> --transitions --endings`. Aucun mot coupé, aucun élément invisible.
+3. Fluidité : écart entre images consécutives sans pic isolé (section 5).
+4. Non-régression : les templates non modifiés restent identiques au pixel près (rendus avant / après comparés).
+5. Comparaison avec les 3 templates les plus proches du catalogue : au moins 3 axes différents.
+6. `npm run typecheck` et lint, puis `npm run video:deploy` pour les exports Lambda.

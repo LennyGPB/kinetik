@@ -14,6 +14,16 @@ import { HaloLayout } from "./halo";
 import { VoidLayout } from "./void";
 import { MeltLayout } from "./melt";
 import { HoloLayout } from "./holo";
+import { PowerLayout } from "./power";
+import { SpectraLayout } from "./spectra";
+import { BatchLayout } from "./batch";
+import { TurnLayout } from "./turn";
+import { FanoutLayout } from "./fanout";
+import { BlocktypeLayout } from "./blocktype";
+import { PositiveLayout } from "./positive";
+import { HelixLayout } from "./helix";
+import { SpillLayout } from "./spill";
+import { VeilLayout } from "./veil";
 import { LumenLayout } from "./lumen";
 import { GlossLayout } from "./gloss";
 import { isLight, textColorOn, useBodyFont, useIsPortrait, useRecipe, useTitleFont, useTitleScale, useUnit } from "./theme";
@@ -100,6 +110,7 @@ export function TextLayout(layout: TextLayoutProps) {
 /** Dedicated silhouettes for this collection; text controls and per-scene animation remain active. */
 function AuthoredLayout(l: TextLayoutProps) {
   const recipe = useRecipe();
+  const body = useBodyFont();
   const u = useUnit();
   const { width, height } = useVideoConfig();
   const kind = recipe.graphicTreatment ?? recipe.editorialLayout;
@@ -135,13 +146,23 @@ function AuthoredLayout(l: TextLayoutProps) {
   if (kind === "carousel") return <VoidLayout {...l} />;
   if (kind === "offprint") return <MeltLayout {...l} />;
   if (kind === "patina") return <HoloLayout {...l} />;
+  if (kind === "power") return <PowerLayout {...l} />;
+  if (kind === "spectra") return <SpectraLayout {...l} />;
+  if (kind === "batch") return <BatchLayout {...l} />;
+  if (kind === "turn") return <TurnLayout {...l} />;
+  if (kind === "fanout") return <FanoutLayout {...l} />;
+  if (kind === "blocktype") return <BlocktypeLayout {...l} />;
+  if (kind === "positive") return <PositiveLayout {...l} />;
+  if (kind === "helix") return <HelixLayout {...l} />;
+  if (kind === "spill") return <SpillLayout {...l} />;
+  if (kind === "veil") return <VeilLayout {...l} />;
   if (kind === "interlock") return <LumenLayout {...l} />;
   if (kind === "gloss") return <GlossLayout {...l} />;
   const centered = ["blackout", "cadence", "anvil"].includes(kind ?? "");
   const graphicScale = width >= height && ["anvil", "blackout"].includes(kind ?? "") ? 1.1 : 1.35;
   const titleSize = Math.min(u * l.titleSize * (recipe.graphicTreatment ? graphicScale : 0.95), width * (["column", "broadsheet"].includes(kind ?? "") ? 0.55 : kind === "linea" ? 0.29 : kind === "ratchet" && width >= height ? 0.4 : 0.76) / Math.max(1, ...l.scene.title.split(/\s+/).map((word) => word.length * 0.62)));
   return <AbsoluteFill style={{ color }}>
-    <div style={{ position: "absolute", top: "4%", left: "7%", right: "7%", display: "flex", justifyContent: "space-between", color, fontFamily: useBodyFont(), fontSize: u * 1.7, letterSpacing: "0.08em", opacity: 0.75 }}><span>{l.props.appName}</span><span>{kind?.toUpperCase()}</span></div>
+    <div style={{ position: "absolute", top: "4%", left: "7%", right: "7%", display: "flex", justifyContent: "space-between", color, fontFamily: body, fontSize: u * 1.7, letterSpacing: "0.08em", opacity: 0.75 }}><span>{l.props.appName}</span><span>{kind?.toUpperCase()}</span></div>
     <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: centered ? "center" : "flex-start", gap: u * 2.5, ...positions[kind!] }}>
       {l.header}{l.kicker}{titleNode(l, centered ? "center" : "left", titleSize, color)}
       {l.subtitle && <Subtitle text={l.subtitle} color={color} delay={l.subtitleDelay} size={3} />}

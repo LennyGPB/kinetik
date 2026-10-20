@@ -1,5 +1,6 @@
 import { useId, type CSSProperties, type ReactNode } from "react";
 import { AbsoluteFill, Easing, interpolate, random, useCurrentFrame, useVideoConfig } from "remotion";
+import { TypePosterCover } from "./type-poster-transitions";
 import { GlitchSlices } from "./glitch-fx";
 import type { Scene, Transition } from "../../lib/projects/scenes";
 import type { MotionEase, MotionExit } from "../../config/recipes";
@@ -100,6 +101,16 @@ function filtered(children: ReactNode, id: string, amount: number, filter: (id: 
 }
 
 const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
+  "gravity-pull": { enter: () => 24, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="spill" {...coverIn(c)} p={1 - Math.min(1, c.frame / 24)} />, exit: { frames: 22, cover: c => <TypePosterCover kind="spill" {...c} /> } },
+  "violet-fold": { enter: () => 24, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="veil" {...coverIn(c)} p={1 - Math.min(1, c.frame / 24)} />, exit: { frames: 22, cover: c => <TypePosterCover kind="veil" {...c} /> } },
+  "fan-fold": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="fanout" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="fanout" {...c} /> } },
+  "block-pivot": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="blocktype" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="blocktype" {...c} /> } },
+  "mirror-horizon": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="positive" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="positive" {...c} /> } },
+  "helix-wind": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="helix" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="helix" {...c} /> } },
+  "paint-sweep": { enter: () => 20, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="power" {...coverIn(c)} />, exit: { frames: 18, cover: c => <TypePosterCover kind="power" {...c} /> } },
+  "type-stretch": { enter: () => 18, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="spectra" {...coverIn(c)} />, exit: { frames: 16, cover: c => <TypePosterCover kind="spectra" {...c} /> } },
+  "stack-collapse": { enter: () => 24, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="batch" {...coverIn(c)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="batch" {...c} /> } },
+  "ribbon-turn": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="turn" {...coverIn(c)} />, exit: { frames: 18, cover: c => <TypePosterCover kind="turn" {...c} /> } },
   mosaic: { enter: () => 25, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent, aspectRatio }) => <CollectionTransitionCover kind="mosaic" progress={inP} color={accent} aspectRatio={aspectRatio} /> },
   rotary: { enter: () => 22, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent }) => <CollectionTransitionCover kind="rotary" progress={inP} color={accent} /> },
   shutter: { enter: () => 12, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent }) => <CollectionTransitionCover kind="shutter" progress={inP} color={accent} /> },

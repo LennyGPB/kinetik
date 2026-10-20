@@ -8,6 +8,7 @@ import { HaloBackdrop } from "./halo-art";
 import { VoidBackdrop } from "./void-art";
 import { MeltBackdrop } from "./melt-art";
 import { HoloBackdrop } from "./holo-art";
+import { VeilForeground } from "./veil-art";
 import { GlossBackdrop } from "./gloss-art";
 
 /** Authored graphics, shared by catalogue thumbnails and frame-driven renders. */
@@ -15,6 +16,8 @@ export function GraphicBackdrop({ kind, palette, time: elapsed = 0, beatPosition
   // Legacy artwork uses seconds at 120 BPM. Drive that clock from the actual beats.
   const time = beatPosition === undefined ? elapsed : beatPosition / 2;
   const [bg, fg, accent] = palette;
+  if (kind === "veil") return <div style={{ position: "absolute", inset: 0, background: bg, overflow: "hidden" }}><VeilForeground palette={palette} time={time} /></div>;
+  if (["power", "spectra", "batch", "turn", "fanout", "blocktype", "positive", "helix", "spill", "veil"].includes(kind)) return <div style={{ position: "absolute", inset: 0, background: bg }} />;
   const phase = time * Math.PI;
   if (kind === "interlock") return <LumenBackdrop palette={palette} time={time} />;
   if (kind === "sticker") return <SmearBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
