@@ -321,7 +321,7 @@ export const fr = {
       title: "Pour chaque lancement, une direction artistique",
       titleLine1: "Pour chaque lancement",
       titleLine2: "une direction artistique",
-      subtitle: "Choisis un style, Kinetik l'adapte à ta marque.",
+      subtitle: "Des templates prêts à l’emploi, faciles à personnaliser avec ta marque.",
       use: "Utiliser ce style",
     },
     how: {
@@ -408,9 +408,9 @@ export const fr = {
     },
     pricing: {
       eyebrow: "Tarifs",
-      title: "Des crédits, pas de surprise",
+      title: "Des crédits, pour toutes les fonctionnalités",
       titleLine1: "Des crédits,",
-      titleLine2: "pas de surprise",
+      titleLine2: "pour toutes les fonctionnalités",
       subtitle: "Paie ce que tu génères. Les modifs coûtent toujours moins cher que la génération.",
       monthly: "Mensuel",
       yearly: "Annuel",

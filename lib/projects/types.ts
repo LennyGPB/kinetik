@@ -6,6 +6,7 @@ import type { SceneGraph } from "./scenes";
 export type ProjectStatus = "DRAFT" | "GENERATING" | "READY" | "FAILED";
 
 export type ProjectCard = {
+  decorId?: import("@/config/decors").DecorId;
   videoType?: string;
   kind?: string;
   postDocument?: import("@/lib/posts/document").PostDocument;

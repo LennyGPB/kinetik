@@ -4,6 +4,7 @@ import type { VideoProps } from "@/remotion/props";
 import type { SceneGraph } from "./scenes";
 import type { EditorProject } from "./types";
 import { projectVisual } from "./visuals";
+import { resolveStageTransitions } from "../../config/stage-motion";
 
 /** Ce qu'il faut d'un projet pour le rendre (éditeur, page de partage, export). */
 export type VideoSource = Pick<EditorProject, "appName" | "format" | "styleId" | "colors" | "logoUrl" | "backgroundUrl" | "screenUrls" | "screenRatios" | "websiteUrl" | "musicSrc" | "locale">;
@@ -22,7 +23,7 @@ export function buildVideoProps(project: VideoSource, graph: SceneGraph, waterma
     palette: graph.pitch && colors.length >= 2 ? [colors[0], colors[1], colors[2] ?? colors[1]] : palette,
     brandColors: graph.colors ?? project.colors,
     recipe: graph.pitch ? { ...recipe, graphicTreatment: undefined, referenceMotion: undefined, stage: undefined, photoTreatment: undefined, background: "clean", titleAnimation: "words", camera: "still", effects: [] } : recipe,
-    graph,
+    graph: resolveStageTransitions(graph, recipe.stage),
     logoUrl: project.logoUrl,
     backgroundUrl: project.backgroundUrl ?? null,
     screenUrls: project.screenUrls,

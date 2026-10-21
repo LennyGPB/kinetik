@@ -215,13 +215,11 @@ export function HeroCapabilities() {
     <div ref={viewport} id="hero-formats" className="hero-capabilities-viewport" onPointerEnter={(event) => { if (event.pointerType === "mouse") setHovered(true); }} onPointerLeave={() => setHovered(false)} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
       <div ref={track} className="hero-capabilities-track">
         {[false, true].map((duplicate) => <ul key={String(duplicate)} aria-hidden={duplicate || undefined} aria-label={duplicate ? undefined : fr ? "Tous les formats de création" : "All creation formats"} className="hero-capabilities-rail">
-          {formats.map((format, index) => <li key={format.kind} className={`hero-capabilities-cardSlot hero-capabilities-kind-${format.kind}`}>
+          {formats.map((format) => <li key={format.kind} className={`hero-capabilities-cardSlot hero-capabilities-kind-${format.kind}`}>
             <Link href="/register" className="hero-capabilities-card" tabIndex={duplicate ? -1 : undefined} onPointerMove={trackSheen} onPointerLeave={resetSheen} style={{ "--rx": `${format.tilt[0]}deg`, "--ry": `${format.tilt[1]}deg`, "--rz": `${format.tilt[2]}deg` } as CSSProperties}>
               <div className="hero-capabilities-artwork" aria-hidden="true"><Preview kind={format.kind} fr={fr} /></div>
               <div className="hero-capabilities-cardContent">
-                <div className="hero-capabilities-cardMeta"><span className="hero-capabilities-index">{String(index + 1).padStart(2, "0")} / {String(formats.length).padStart(2, "0")}</span></div>
                 <h3>{format.title}<span className="hero-capabilities-arrow"><ArrowRight size={15} /></span></h3>
-                <p>{format.description}</p>
               </div>
               <span className="hero-capabilities-sheen" aria-hidden="true" />
             </Link>

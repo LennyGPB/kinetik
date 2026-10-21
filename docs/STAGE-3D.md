@@ -53,7 +53,7 @@ Branchements : `Recipe.stage` (`config/recipes.ts`), fond dans `KinetikVideo.tsx
   recul et élévation (cta). Le côté alterne d'une scène à l'autre.
 - **Formats** : l'appareil est décalé dans l'image (`setViewOffset`, sans fausser la perspective) : à droite du texte en 16:9 et 1:1,
   sous le texte en 9:16, au centre pour les scènes de captures.
-- **Transitions** : `turntable` (signature), `fade` (glissement de caméra, écrans en fondu), `cut` (changement de plan net, sur le beat).
+- **Transitions** : après la première scène, toute transition absente ou `cut` est remplacée automatiquement par la signature de l'univers (`resolveStageTransitions`). La règle est partagée par le montage, l'aperçu et l'export, y compris pour les projets existants et les scènes déplacées/ajoutées. Les autres transitions choisies sont conservées ; les coupes sèches ne sont plus proposées entre scènes 3D. Le moteur de plateau bas niveau prend toujours en charge `cut` pour les transitions signatures masquées par un flash ou un rideau.
 - **Mises en avant (zoom / découpe)** : jouées en vraie 3D sur l'écran de l'appareil, avec le même calendrier que la version 2D
   (`stageFocusState` : repère à 16 images, action de 30 à 56). Un repère (`anchorRef`) posé au centre de l'écran de chaque modèle
   donne la position exacte de la zone, quel que soit l'appareil ou l'angle.
@@ -63,8 +63,9 @@ Branchements : `Recipe.stage` (`config/recipes.ts`), fond dans `KinetikVideo.tsx
     (« pivot » : en tournant) et se pose dans la moitié libre de l'image ; l'appareil se range à gauche (en haut en portrait).
     La légende est un texte 2D placé sous la plaque (`popoutTarget`, partagé par la 3D et la 2D).
   - La zone est en fractions de la capture : `containRect` la reporte sur l'écran (capture affichée en entier).
-  - Pendant la transition vers la scène suivante, la caméra ressort du zoom et la plaque regagne l'écran (poids `focus.weight`).
+  - Pendant la sortie de la scène, la caméra ressort du zoom et la plaque regagne l'écran (poids `focus.weight`). Aucun cadrage, repère ou plaque de la scène précédente ne reste actif après la frontière, même si la transition de caméra continue.
   - Titre par cadrage, couleur et fin du titre : dans la pastille ; un fondu du haut de l'image la garde lisible en zoom.
+  - Le sous-titre sous la pastille est éditable dans le formulaire de texte du mockup 3D (contenu, couleur, taille, position et fin d'affichage). Son absence initiale n'empêche pas d'en ajouter un.
 - **Réglages de l'utilisateur** : une mise en scène des screens (sans mise en avant), une présentation de scène
   ou une mise en scène du logo choisies par l'utilisateur reprennent la mise en page 2D ; l'appareil 3D redescend alors dans son socle.
 - **Couleurs** : le plateau reste sombre (un fond de marque clair est assombri) ; la lueur prend l'accent, ou la principale si l'accent est trop sombre.

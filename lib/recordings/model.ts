@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DEVICE_MOCKUP_IDS } from "../../config/device-mockups";
+import { DECOR_IDS } from "../../config/decors";
 
 export const RECORDING_MAX_BYTES = 30 * 1024 * 1024;
 export const RECORDING_MAX_SECONDS = 120;
@@ -33,12 +34,17 @@ export const RecordingSettingsSchema = z.object({
   radius: z.number().min(0).max(40),
   frame: z.enum(["browser", "none"]),
   deviceMockup: z.enum(DEVICE_MOCKUP_IDS).optional(),
+  decorId: z.enum(DECOR_IDS).optional(),
+  decorFit: z.enum(["contain", "cover"]).optional(),
   originalAudio: z.boolean(),
   clicks: z.array(RecordingClickSchema).max(60).optional(),
   clickColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   clickEffects: z.boolean().optional(),
   zooms: z.array(ZoomSchema).max(30),
 }).superRefine((value, ctx) => {
+  if (value.decorId && (value.zooms.length || value.clicks?.length || value.deviceMockup)) {
+    ctx.addIssue({ code: "custom", path: ["decorId"], message: "Decor videos use a fixed calibrated display" });
+  }
   const clickIds = new Set<string>();
   for (const click of value.clicks ?? []) {
     if (click.time >= value.duration || clickIds.has(click.id)) ctx.addIssue({ code: "custom", path: ["clicks"], message: "Invalid click" });

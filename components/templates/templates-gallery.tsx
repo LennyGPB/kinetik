@@ -24,6 +24,8 @@ import { PostTemplateGallery } from "@/components/posts/post-template-gallery";
 import { StoreTemplateGallery } from "@/components/store/store-template-gallery";
 import { storeCopy } from "@/lib/store/copy";
 import { postCopy } from "@/lib/posts/copy";
+import { DecorGallery } from "@/components/decors/decor-gallery";
+import { decorCopy } from "@/lib/decors/copy";
 
 type Filter = StyleCategory | "all";
 
@@ -39,7 +41,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
   const [applying, setApplying] = useState(false);
 
   const [filter, setFilter] = useState<Filter>("all");
-  const [kind, setKind] = useState<"motion" | "logo" | "post" | "store">("motion");
+  const [kind, setKind] = useState<"motion" | "logo" | "post" | "store" | "decor">("motion");
   const [open, setOpen] = useState<VideoStyle | null>(null);
   const [videoFormat, setVideoFormat] = useState<VideoFormatId>("LANDSCAPE");
   const closePreview = useCallback(() => { if (!applying) setOpen(null); }, [applying]);
@@ -53,8 +55,8 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
 
   return (
     <div>
-      {!onSelect && <div className="mb-6"><Segmented label={postCopy(t.locale).newContent} value={kind} onChange={(value) => { endHover(); setKind(value); }} options={[{ value: "motion", label: postCopy(t.locale).motion }, { value: "logo", label: t.styleCategories.logo }, { value: "post", label: postCopy(t.locale).posts }, { value: "store", label: storeCopy(t.locale).kind }]} /></div>}
-      {kind === "store" ? <StoreTemplateGallery /> : kind === "post" ? <PostTemplateGallery /> : <>
+      {!onSelect && <div className="mb-6"><Segmented label={postCopy(t.locale).newContent} value={kind} onChange={(value) => { endHover(); setKind(value); }} options={[{ value: "motion", label: postCopy(t.locale).motion }, { value: "logo", label: t.styleCategories.logo }, { value: "post", label: postCopy(t.locale).posts }, { value: "store", label: storeCopy(t.locale).kind }, { value: "decor", label: decorCopy(t.locale).title }]} /></div>}
+      {kind === "decor" ? <DecorGallery /> : kind === "store" ? <StoreTemplateGallery /> : kind === "post" ? <PostTemplateGallery /> : <>
       <div className={cn("flex flex-col gap-4", !compact && "sm:flex-row sm:items-center sm:justify-between")}>
         {kind === "logo" ? <span /> : <div className="min-w-0 overflow-x-auto scrollbar-none">
           <Segmented

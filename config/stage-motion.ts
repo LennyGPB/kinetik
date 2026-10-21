@@ -1,5 +1,5 @@
 // ⚠️ Fichier aussi bundlé par Remotion : imports RELATIFS uniquement.
-import { sceneFocuses, type Scene, type ScreenFocus, type Transition } from "../lib/projects/scenes";
+import { sceneFocuses, type Scene, type SceneGraph, type ScreenFocus, type Transition } from "../lib/projects/scenes";
 import { deviceSpec } from "./device-mockups";
 
 /**
@@ -11,6 +11,20 @@ import { deviceSpec } from "./device-mockups";
 
 export const STAGE_KINDS = ["orbit", "monument", "shoot", "aquarium", "zen", "kiosk", "obsidian", "halo", "magnet", "vault", "gyroscope"] as const;
 export type StageKind = (typeof STAGE_KINDS)[number];
+
+/** Old, added and reordered scenes share the template's entrance instead of a bare cut.
+ * Resolve at playback time so saved projects need no migration and real custom transitions survive.
+ */
+export function resolveStageTransitions(graph: SceneGraph, kind?: StageKind): SceneGraph {
+  if (!kind || graph.pitch || graph.recording) return graph;
+  let changed = false;
+  const scenes = graph.scenes.map((scene, index) => {
+    if (index === 0 || (scene.transition && scene.transition !== "cut")) return scene;
+    changed = true;
+    return { ...scene, transition: STAGE_THEMES[kind].signature };
+  });
+  return changed ? { ...graph, scenes } : graph;
+}
 
 /**
  * Univers 3D : identifiant du template, transition signature, ambiance claire ou sombre,
@@ -248,8 +262,8 @@ export type StageState = {
   index: number;
   progress: number;
   /**
-   * Mise en avant en cours : scène concernée, image locale à cette scène, et poids (1, puis 0 pendant la transition
-   * vers la scène suivante : la caméra ressort du zoom et la découpe regagne l'écran au lieu de sauter).
+   * Mise en avant de la scène active : image locale et poids. Le poids revient à 0 avant la frontière
+   * suivante : la caméra ressort du zoom et la découpe regagne l'écran sans déborder sur la scène suivante.
    */
   focus: { scene: number; frame: number; weight: number } | null;
   /** Emplacement de l'appareil au sol (x, z) : fixe, sauf Kiosque où chaque scène a son quartier */
@@ -313,9 +327,10 @@ export function stageState(scenes: StageScene[], frame: number, format: StageFor
     blend = { from: index, to: index + 1, p: (leave - untilNext) / (leave + inFrames), transition: next.transition };
   }
 
-  // Mise en avant : la scène quittée garde la sienne pendant toute la transition, en s'effaçant
-  const focusScene = blend && blend.to === index ? blend.from : index;
-  const focusWeight = blend && blend.from === focusScene ? 1 - easeInOutCubic(clamp01(blend.p)) : 1;
+  // A crop belongs exclusively to its scene. Return to the full screen before its boundary,
+  // even when the camera/screen transition continues into the next scene.
+  const focusScene = index;
+  const focusWeight = next && leave > 0 ? easeInOutCubic(clamp01(untilNext / leave)) : 1;
   const focus = scenes[focusScene]?.focus?.length && scenes[focusScene].showDevice
     ? { scene: focusScene, frame: Math.min(frame - scenes[focusScene].from, scenes[focusScene].duration - 1), weight: focusWeight }
     : null;

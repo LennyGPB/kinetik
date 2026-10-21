@@ -6,6 +6,7 @@ import { MotionCreateFlow } from "@/components/create/motion-create-flow";
 import { RecordingCreate } from "@/components/recordings/recording-create";
 import { PostForm } from "@/components/posts/post-form";
 import { StoreForm } from "@/components/store/store-form";
+import { DecorGallery } from "@/components/decors/decor-gallery";
 import { requireUser } from "@/lib/auth/dal";
 import { getCreditBalance } from "@/lib/credits/ledger";
 
@@ -19,6 +20,7 @@ async function CreateContent({ searchParams }: { searchParams: PageProps<"/[loca
   const user = await requireUser();
   const [params, balance, brandKit] = await Promise.all([searchParams, getCreditBalance(user.id), getDefaultBrandKit(user.id)]);
   const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+  if (first(params.kind) === "decor") return <div className="mx-auto max-w-6xl"><DecorGallery /></div>;
 
   const kind = first(params.kind) === "recording" ? "recording" : first(params.kind) === "post" ? "post" : first(params.kind) === "store" ? "store" : "motion";
   return (

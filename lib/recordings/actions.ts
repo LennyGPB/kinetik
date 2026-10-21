@@ -33,7 +33,7 @@ export async function createRecording(input: z.input<typeof CreateSchema>): Prom
   const { name, file, settings, format, musicTrackId } = parsed.data;
   if (!isOwnUpload(user.id, file.url) || !file.url.includes("/video/") || file.url.includes("/pending-") || (musicTrackId && !getTrack(musicTrackId))) return { ok: false, error: "invalid" };
   const paid = await db.creditTransaction.aggregate({ where: { userId: user.id, type: "GENERATION", reference: file.url, amount: { lt: 0 } }, _sum: { amount: true } });
-  if (-(paid._sum.amount ?? 0) < CREDIT_COSTS.recordingImport) return { ok: false, error: "insufficient_credits" };
+  if (-(paid._sum.amount ?? 0) < (settings.decorId ? CREDIT_COSTS.decor.preview : CREDIT_COSTS.recordingImport)) return { ok: false, error: "insufficient_credits" };
   if (!(await limitKey("project", user.id, LIMITS.project)).ok) return { ok: false, error: "rate_limited" };
   const data = await storage.get(file.url.slice("/api/uploads/".length));
   if (!data) return { ok: false, error: "invalid" };
@@ -48,10 +48,10 @@ export async function createRecording(input: z.input<typeof CreateSchema>): Prom
     scenes: [{ id: "recording", kind: "screens", title: "", duration: meta.duration, transition: "fade" }],
   };
   const project = await db.project.create({ data: {
-    userId: user.id, name, appName: name, videoType: "screen-recording", locale: t.locale,
+    userId: user.id, name, appName: name, videoType: settings.decorId ? "decor" : "screen-recording", locale: t.locale,
     status: "READY", format, duration: Math.ceil(meta.duration), colors: [settings.background], musicTrackId,
     assets: { create: [{ type: "SCREEN", url: file.url, fileName: file.fileName, mimeType: "video/mp4", sizeBytes: data.length, width: meta.width, height: meta.height }] },
-    versions: { create: [{ number: 1, label: t.locale === "fr" ? "Démo d’écran" : "Screen demo", scenes: graph }] },
+    versions: { create: [{ number: 1, label: settings.decorId ? (t.locale === "fr" ? "Vidéo dans un décor" : "Video in a scene") : t.locale === "fr" ? "Démo d’écran" : "Screen demo", scenes: graph }] },
   }, select: { id: true } });
   return await localizedRedirect(`/project/${project.id}`);
 }
@@ -65,12 +65,14 @@ export async function saveRecording(projectId: string, expectedVersion: number, 
   const lock = await acquireLock(`recording:${projectId}`, 15000, true);
   if (!lock) return { ok: false, error: "busy" };
   try {
-    const project = await db.project.findFirst({ where: { id: projectId, userId: user.id, videoType: "screen-recording", status: "READY" }, include: { versions: { orderBy: { number: "desc" }, take: 1 } } });
+    const project = await db.project.findFirst({ where: { id: projectId, userId: user.id, videoType: { in: ["screen-recording", "decor"] }, status: "READY" }, include: { versions: { orderBy: { number: "desc" }, take: 1 } } });
     const latest = project?.versions[0];
     if (!latest) return { ok: false, error: "not_found" };
     if (latest.number !== expectedVersion) return { ok: false, error: "busy" };
     const graph = parseSceneGraph(latest.scenes);
     const original = graph.recording;
+    // Preview and screen-demo imports have distinct prices; keep their project types.
+    if (Boolean(original?.decorId) !== Boolean(parsed.data.decorId)) return { ok: false, error: "invalid" };
     if (!original || parsed.data.duration !== original.duration || parsed.data.width !== original.width || parsed.data.height !== original.height) return { ok: false, error: "invalid" };
     const next = { ...graph, recording: { ...parsed.data, src: original.src } };
     const t = await getServerDictionary();

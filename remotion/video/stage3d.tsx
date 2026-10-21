@@ -239,7 +239,7 @@ function StageWorld({ kind: theme, palette, scenes, screens, deviceId, appName, 
   const detail = focus ? sources.get(focus.src) ?? null : null;
   const marks = focus && region && (inFocusScene || leavingFocus) ? (
     <>
-      {detail && <FocusDetail texture={detail} w={screenW} h={screenH} region={region} source={focus.rect} opacity={focus.srcMix} />}
+      {detail && <FocusDetail texture={detail} w={screenW} h={screenH} region={region} source={focus.rect} opacity={focus.srcMix * focus.weight} />}
       {markK > 0.001 && <FocusMarks w={screenW} h={screenH} region={region} mark={markK} accent={glow} />}
     </>
   ) : undefined;

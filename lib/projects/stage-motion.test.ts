@@ -2,15 +2,34 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { CREDIT_COSTS, getExportCost } from "../../config/credits";
 import { getRecipe } from "../../config/recipes";
-import { popoutTarget, STAGE_KINDS, STAGE_THEMES, stageColors, stageDeviceId, stageFocusState, stageScreens, stageShowsDevice, stageSpot, stageState, type StageScene } from "../../config/stage-motion";
+import { popoutTarget, resolveStageTransitions, STAGE_KINDS, STAGE_THEMES, stageColors, stageDeviceId, stageFocusState, stageScreens, stageShowsDevice, stageSpot, stageState, type StageScene } from "../../config/stage-motion";
+import { buildVideoProps } from "./video-props";
 import { getStyle } from "../../config/styles";
 import { getDictionary } from "../i18n";
 import { parseSceneGraph, sceneScreens, TRANSITIONS, type Scene, type SceneGraph, type ScreenFocus } from "./scenes";
-import { applyTimelineEdit, isTimelineEdit } from "./timeline";
+import { applyTimelineEdit, hasEditableSubtitle, isTimelineEdit } from "./timeline";
 
 const scene = (kind: Scene["kind"], transition: Scene["transition"], extra: Partial<Scene> = {}): Scene => ({ id: `${kind}-${transition}`, kind, title: "Titre", duration: 3, transition, ...extra });
 const stage = (scenes: [Scene["kind"], Scene["transition"]][], counts: number[] = []): StageScene[] =>
   scenes.map(([kind, transition], i) => ({ kind, transition, from: i * 90, duration: 90, deviceCount: counts[i] ?? 1, showDevice: true }));
+
+test("all 3D templates replace absent transitions and cuts with their own signature without mutating saved scenes", () => {
+  for (const kind of STAGE_KINDS) {
+    const graph: SceneGraph = { schema: 1, energy: "calm", logoEmphasis: false, musicTrackId: null, bpm: 120, scenes: [
+      scene("intro", "cut"), scene("screens", "cut"), scene("feature", undefined as unknown as Scene["transition"]), scene("cta", "glass"),
+    ] };
+    const resolved = resolveStageTransitions(graph, kind);
+    assert.deepEqual(resolved.scenes.map(s => s.transition), ["cut", STAGE_THEMES[kind].signature, STAGE_THEMES[kind].signature, "glass"]);
+    assert.equal(graph.scenes[1].transition, "cut");
+    assert.equal(graph.scenes[2].transition, undefined);
+    assert.equal(resolveStageTransitions(resolved, kind), resolved);
+    const props = buildVideoProps({ appName: "Test", format: "LANDSCAPE", styleId: STAGE_THEMES[kind].templateId, colors: [], logoUrl: null, screenUrls: [], screenRatios: [], websiteUrl: null, musicSrc: null }, graph, false);
+    assert.equal(props.graph.scenes[1].transition, STAGE_THEMES[kind].signature, `${kind} preview/export`);
+    const reordered = { ...graph, scenes: [graph.scenes[3], graph.scenes[0], graph.scenes[1]] };
+    assert.equal(resolveStageTransitions(reordered, kind).scenes[1].transition, STAGE_THEMES[kind].signature, `${kind} moved intro`);
+    assert.equal(resolveStageTransitions(graph), graph, "2D remains unchanged");
+  }
+});
 
 test("Stage is a catalogued 3D template with its signature transition and descriptions", () => {
   const style = getStyle("stage");
@@ -162,18 +181,50 @@ test("3D focus follows the 2D calendar: mark, then dive; later steps glide witho
   assert.deepEqual([settled.zoom, settled.pop, settled.srcMix, settled.label], [0, 1, 1, "Légende"]);
 });
 
-test("a focused scene keeps one device, shows its captures, and releases the zoom during the next transition", () => {
+test("a focused scene releases its crop before the next scene starts", () => {
   const scenes = stage([["screens", "fade"], ["feature", "turntable"]]);
   scenes[0].focus = [zoom(0.1)];
   assert.deepEqual(stageState(scenes, 60, "landscape").focus, { scene: 0, frame: 60, weight: 1 });
   const leaving = stageState(scenes, 86, "landscape").focus!;
   assert.ok(leaving.weight > 0 && leaving.weight < 1);
-  const after = stageState(scenes, 95, "landscape").focus!;
-  assert.equal(after.scene, 0);
-  assert.ok(after.weight < leaving.weight);
+  const final = stageState(scenes, 89, "landscape").focus!;
+  assert.ok(final.weight < leaving.weight);
+  assert.equal(stageState(scenes, 90, "landscape").focus, null);
+  assert.equal(stageState(scenes, 95, "landscape").focus, null);
   assert.equal(stageState(scenes, 130, "landscape").focus, null);
   const contents = stageScreens([scene("screens", "fade", { focuses: [zoom(0.1, { src: "/b.png" }), zoom(0.2, { src: "/a.png" }), zoom(0.3, { src: "/b.png" })] })], ["/a.png", "/b.png"], () => ["/a.png"]);
   assert.deepEqual(contents[0], [{ kind: "image", src: "/b.png" }, { kind: "image", src: "/a.png" }]);
+});
+
+test("3D mockup subtitles can be edited, styled, saved and removed", () => {
+  const mockup = scene("screens", "fade", { subtitle: "Crews, duos, partenaires de battle" });
+  const graph: SceneGraph = { schema: 1, energy: "calm", logoEmphasis: false, musicTrackId: null, bpm: 120, scenes: [mockup] };
+  assert.equal(hasEditableSubtitle(mockup, true), true);
+  assert.equal(hasEditableSubtitle({ kind: "screens" }, true), true);
+  assert.equal(hasEditableSubtitle({ kind: "screens" }), false);
+  const changed = applyTimelineEdit(graph, { kind: "text", sceneId: mockup.id, title: mockup.title, subtitle: "Nouveau sous-titre", colors: { subtitle: "#aabbcc" }, ends: { subtitle: .7 } });
+  assert.equal(changed.scenes[0].subtitle, "Nouveau sous-titre");
+  assert.equal(changed.scenes[0].textColors?.subtitle, "#aabbcc");
+  assert.equal(changed.scenes[0].textEnds?.subtitle, .7);
+  assert.equal(parseSceneGraph(JSON.parse(JSON.stringify(changed))).scenes[0].subtitle, "Nouveau sous-titre");
+  assert.equal(applyTimelineEdit(changed, { kind: "text", sceneId: mockup.id, title: mockup.title, subtitle: "" }).scenes[0].subtitle, undefined);
+});
+
+test("3D focus never leaks across scene boundaries, including consecutive cropped scenes and seeking", () => {
+  for (const kind of STAGE_KINDS) for (const transition of [STAGE_THEMES[kind].signature, "fade", "cut"] as const) {
+    const scenes = stage([["screens", "fade"], ["screens", transition], ["feature", transition]]);
+    scenes[0].focus = [zoom(.1, { mode: "popout" })];
+    scenes[1].focus = [zoom(.5, { src: "/b.png" })];
+    for (const frame of [89,90,95,179,180,185,90,30,180]) {
+      const state = stageState(scenes, frame, "landscape", kind);
+      if (state.focus) assert.equal(state.focus.scene, state.index, `${kind}/${transition} frame ${frame}`);
+      if (frame >= 180) assert.equal(state.focus, null);
+      if (frame === 90) {
+        assert.equal(state.focus?.frame, 0);
+        assert.equal(stageFocusState(scenes[1].focus!, 90, state.focus!.frame).zoom, 0);
+      }
+    }
+  }
 });
 
 test("the cutout lands in the free half of the frame, never larger than its box", () => {

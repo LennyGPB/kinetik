@@ -14,7 +14,7 @@ import { Player as RemotionPlayer, type PlayerRef } from "@remotion/player";
 import { ALargeSmall, Check, ChevronRight, Copy, Images, Maximize2, MessageSquare, Minimize2, Minus, Move, Pause, Pencil, Play, Plus, RotateCcw, ScanSearch, Trash2, Type, Volume2, VolumeX, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VIDEO_FORMATS } from "@/config/formats";
-import { stageShowsDevice } from "@/config/stage-motion";
+import { resolveStageTransitions, stageShowsDevice } from "@/config/stage-motion";
 import { beatGrid, HEADLINE_MAX, HEADLINES_MAX, HEADLINES_MIN, sceneFocuses, sceneHeadlines, sceneScreens, TRANSITIONS, type Scene, type Transition } from "@/lib/projects/scenes";
 import {
   applyTimelineEdits,
@@ -28,7 +28,7 @@ import {
   SCENE_MAX_SECONDS,
   SCENE_MIN_SECONDS,
   sceneLabel,
-  SUBTITLE_KINDS,
+  hasEditableSubtitle,
   SUBTITLE_MAX,
   TITLE_MAX,
   KICKER_MAX,
@@ -144,7 +144,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
   const held = useRef<{ edits: TimelineEdit[]; focusSceneId: string | null } | null>(null);
 
   const previewEdits = scaleDraft ? [...drafts, scaleDraft] : drafts;
-  const graph = previewEdits.length ? applyTimelineEdits(videoProps.graph, previewEdits) : videoProps.graph;
+  const graph = resolveStageTransitions(previewEdits.length ? applyTimelineEdits(videoProps.graph, previewEdits) : videoProps.graph, videoProps.recipe.stage);
   const props = graph === videoProps.graph ? videoProps : { ...videoProps, graph };
   const total = durationInFrames(graph);
   const { width, height } = DIMENSIONS[videoProps.format];
@@ -371,7 +371,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           </div>
           {sizing && (
             <div className={cn(GROUP, "flex flex-wrap items-center gap-x-5 gap-y-2")}>
-              {(["title", "subtitle"] as const).filter((target) => target === "title" || (SUBTITLE_KINDS.includes(selected.kind) && selected.subtitle)).map((target) => {
+              {(["title", "subtitle"] as const).filter((target) => target === "title" || (hasEditableSubtitle(selected, Boolean(videoProps.recipe.stage)) && selected.subtitle)).map((target) => {
                 const saved = selected.textScales?.[target] ?? 1;
                 const value = scaleDraft?.sceneId === selected.id && scaleDraft.target === target ? scaleDraft.scale ?? 1 : saved;
                 return (
@@ -592,7 +592,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
                 </ToolButton>
               )}
               <span className="mx-0.5 h-5 w-px bg-line max-sm:hidden" />
-              <TransitionSelect value={selected.transition} recommended={videoProps.recipe.transitions} disabled={!editable} onChange={(transition) => edit({ kind: "transition", sceneId: selected.id, transition })} />
+              <TransitionSelect value={selected.transition} recommended={videoProps.recipe.transitions} allowCut={!videoProps.recipe.stage || selected.id === graph.scenes[0]?.id} disabled={!editable} onChange={(transition) => edit({ kind: "transition", sceneId: selected.id, transition })} />
               <span className="mx-0.5 h-5 w-px bg-line max-sm:hidden" />
               <ToolButton
                 label={graph.scenes.length >= MAX_SCENES ? tl.maxScenes : tl.duplicate}
@@ -696,7 +696,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
                   {selected.kind === "screens" && <SheetAction icon={<ScanSearch />} label={tl.focus} disabled={!editable || !videoProps.screenUrls.length} onClick={() => { playerRef.current?.pause(); setPanel("focus"); }} />}
                   <SheetAction icon={<Copy />} label={tl.duplicate} disabled={!editable || graph.scenes.length >= MAX_SCENES} onClick={() => edit({ kind: "duplicate", sceneId: selected.id, id: newSceneId(selected.kind) })} />
                 </div>
-                <TransitionSelect wide value={selected.transition} recommended={videoProps.recipe.transitions} disabled={!editable} onChange={(transition) => edit({ kind: "transition", sceneId: selected.id, transition })} />
+                <TransitionSelect wide value={selected.transition} recommended={videoProps.recipe.transitions} allowCut={!videoProps.recipe.stage || selected.id === graph.scenes[0]?.id} disabled={!editable} onChange={(transition) => edit({ kind: "transition", sceneId: selected.id, transition })} />
                 <div className="border-t border-line pt-4">
                   <p className="mb-3 text-xs font-semibold tracking-wide text-subtle uppercase">{tl.advancedSection}</p>
                   {advanced}
@@ -716,6 +716,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
         <TextForm
           key={selected.id}
           scene={selected}
+          stage={Boolean(videoProps.recipe.stage)}
           badgeAuto={selected.kind === "cta" ? videoProps.websiteUrl?.replace(/^https?:\/\//, "").replace(/\/$/, "") ?? videoProps.appName : undefined}
           headlineColors={selected.kind === "headlines" ? headlineDefaults(videoProps.palette) : undefined}
           defaultColors={{ title: defaultColors[`${selected.id}:title`] ?? null, subtitle: defaultColors[`${selected.id}:subtitle`] ?? null, kicker: null }}
@@ -770,13 +771,13 @@ export function Player({ videoProps, editing, variants, className, compact = fal
 
 /** Transition d'entrée de la scène : celles du template en premier. */
 /** `wide` : version pleine largeur de la feuille mobile (étiquette à gauche, sélecteur à droite). */
-function TransitionSelect({ value, recommended, disabled, onChange, wide = false }: { value: Transition; recommended: Transition[]; disabled: boolean; onChange: (t: Transition) => void; wide?: boolean }) {
+function TransitionSelect({ value, recommended, disabled, onChange, wide = false, allowCut = true }: { value: Transition; recommended: Transition[]; disabled: boolean; onChange: (t: Transition) => void; wide?: boolean; allowCut?: boolean }) {
   const t = useDictionary();
 
   const e = t.app.editor;
   const tl = e.timeline;
 
-  const others = TRANSITIONS.filter((t) => !recommended.includes(t));
+  const others = TRANSITIONS.filter((t) => !recommended.includes(t) && (allowCut || t !== "cut"));
   return (
     <span className={cn("relative flex shrink-0 items-center gap-1.5", wide ? "w-full justify-between gap-3" : "ml-0.5")}>
     <span aria-hidden className={cn("font-medium text-muted", wide ? "text-sm font-normal" : "text-[11px]")}>{wide ? tl.transition : tl.transitionShort}</span>
@@ -789,7 +790,7 @@ function TransitionSelect({ value, recommended, disabled, onChange, wide = false
       className={cn("appearance-none truncate rounded-full border border-line bg-bg pr-7 pl-2.5 font-medium text-fg outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-40", wide ? "h-11 w-44 text-sm" : "h-9 max-w-36 text-xs sm:h-8")}
     >
       <optgroup label={tl.recommended}>
-        {recommended.map((t) => (
+        {recommended.filter((t) => allowCut || t !== "cut").map((t) => (
           <option key={t} value={t}>
             {tl.transitions[t]}
           </option>
@@ -819,8 +820,9 @@ type TextChange = { title: string; subtitle: string | null; colors: Partial<Text
  * Textes de la scène et leur couleur. `kicker` : surtitre affiché par cette scène (scène feature classique),
  * avec sa valeur par défaut (nom de l'app) et sa couleur de template ; absent = pas de surtitre.
  */
-function TextForm({ scene, defaultColors, headlineColors, badgeAuto, kicker: kickerDefaults, disabled, onApply, onCancel }: {
+function TextForm({ scene, stage = false, defaultColors, headlineColors, badgeAuto, kicker: kickerDefaults, disabled, onApply, onCancel }: {
   scene: Scene;
+  stage?: boolean;
   /** Scènes cta : texte automatique du bouton (site, sinon nom de l'app) */
   badgeAuto?: string;
   /** Scènes headlines : couleurs par défaut des titres (texte, et mise en avant du dernier) */
@@ -852,7 +854,7 @@ function TextForm({ scene, defaultColors, headlineColors, badgeAuto, kicker: kic
   const [ends, setEnds] = useState<TextEnds>({ title: scene.textEnds?.title ?? 1, subtitle: scene.textEnds?.subtitle ?? 1, kicker: scene.textEnds?.kicker ?? 1 });
   const [applying, setApplying] = useState(false);
   const pending = useRef<TextChange>({ title, subtitle, colors, ends });
-  const withSubtitle = SUBTITLE_KINDS.includes(scene.kind);
+  const withSubtitle = hasEditableSubtitle(scene, stage);
   const colorPicker = (target: keyof TextColors) => (
     <TextColorPicker value={colors[target]} fallback={target === "kicker" ? kickerDefaults?.color ?? null : defaultColors[target]} disabled={disabled || applying} onChange={(color) => setColors((c) => ({ ...c, [target]: color }))} />
   );

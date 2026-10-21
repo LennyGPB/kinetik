@@ -66,8 +66,12 @@ export function newSceneId(kind: SceneKind) {
 /** Longueurs maximales des textes (mêmes que pour Claude). */
 export const TITLE_MAX = 80;
 export const SUBTITLE_MAX = 120;
-/** Scènes dont le sous-titre est affiché (la scène logo affiche le nom de l'app, la scène screens seulement un titre). */
+/** Sous-titres des scènes standard ; le mockup Stage est traité par hasEditableSubtitle. */
 export const SUBTITLE_KINDS: SceneGraph["scenes"][number]["kind"][] = ["intro", "feature", "cta", "stat", "quote"];
+/** Stage mockups render a subtitle too; legacy populated subtitles remain editable. */
+export function hasEditableSubtitle(scene: Pick<SceneGraph["scenes"][number], "kind" | "subtitle">, stage = false) {
+  return SUBTITLE_KINDS.includes(scene.kind) || (scene.kind === "screens" && (stage || Boolean(scene.subtitle)));
+}
 /** Scènes dont le titre est modifiable (la scène logo affiche toujours le nom de l'app). */
 export function hasEditableTitle(kind: SceneGraph["scenes"][number]["kind"]) {
   return kind !== "logo";
@@ -214,7 +218,7 @@ export function applyTimelineEdit(graph: SceneGraph, edit: TimelineEdit): SceneG
     case "text": {
       const title = edit.title.trim().slice(0, TITLE_MAX);
       if (!title || !hasEditableTitle(scenes[index].kind)) return graph;
-      const subtitle = SUBTITLE_KINDS.includes(scenes[index].kind) ? edit.subtitle?.trim().slice(0, SUBTITLE_MAX) || undefined : scenes[index].subtitle;
+      const subtitle = (SUBTITLE_KINDS.includes(scenes[index].kind) || scenes[index].kind === "screens") ? edit.subtitle?.trim().slice(0, SUBTITLE_MAX) || undefined : scenes[index].subtitle;
       scenes[index] = { ...scenes[index], title, subtitle };
       if (!subtitle) delete scenes[index].subtitle;
       if (edit.lines && scenes[index].kind === "headlines") {

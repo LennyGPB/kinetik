@@ -1,0 +1,95 @@
+﻿{
+    "components":  [
+                       {
+                           "html":  "\u003cbutton class=\"ds-primary\"\u003eCréer\u003c/button\u003e",
+                           "name":  "Primary Button",
+                           "css":  ".ds-primary{height:40px;padding:0 20px;border-radius:9999px;border:1px solid rgb(196 181 253/.6);background:radial-gradient(ellipse at top,rgb(255 255 255/.18),transparent 70%),linear-gradient(155deg,#9061f9 0%,#7c3aed 40%,#4c1d95 100%);color:white;font:600 14px var(--font-poppins),sans-serif;box-shadow:inset 0 1px 1px rgb(255 255 255/.3),0 8px 24px -8px rgb(139 92 246/.65);transition:transform .2s,box-shadow .2s}.ds-primary:hover{border-color:rgb(221 214 254/.9);box-shadow:inset 0 1px 1px rgb(255 255 255/.4),0 10px 28px -8px rgb(139 92 246/.85)}.ds-primary:active{transform:scale(.97)}.ds-primary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}",
+                           "kind":  "button"
+                       },
+                       {
+                           "html":  "\u003cdiv class=\"ds-filter\"\u003e\u003cbutton aria-selected=\"true\"\u003ePC\u003c/button\u003e\u003cbutton\u003eTéléphone\u003c/button\u003e\u003c/div\u003e",
+                           "name":  "Category Filter",
+                           "css":  ".ds-filter{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--line);background:var(--surface-2);border-radius:9999px;overflow:auto}.ds-filter button{min-height:36px;padding:4px 12px;border:1px solid transparent;border-radius:9999px;background:transparent;color:var(--muted);font:500 12px var(--font-poppins),sans-serif}.ds-filter button[aria-selected=true]{background:var(--surface);border-color:var(--line-strong);color:var(--fg);box-shadow:var(--shadow-soft)}.ds-filter button:hover{color:var(--fg)}.ds-filter button:focus-visible{outline:2px solid var(--accent);outline-offset:4px}",
+                           "kind":  "nav"
+                       },
+                       {
+                           "html":  "\u003cbutton class=\"ds-upload\"\u003eImporter une vidéo\u003cbr\u003e\u003csmall\u003eMP4 / MOV\u003c/small\u003e\u003c/button\u003e",
+                           "name":  "Upload Zone",
+                           "css":  ".ds-upload{width:100%;min-height:112px;padding:20px;border:1px dashed var(--line-strong);border-radius:12px;background:var(--surface);color:var(--fg);font:500 14px var(--font-poppins),sans-serif}.ds-upload small{color:var(--muted);font-size:12px}.ds-upload:hover{background:var(--surface-2)}.ds-upload:focus-visible{outline:2px solid var(--accent);outline-offset:4px}",
+                           "kind":  "input"
+                       },
+                       {
+                           "html":  "\u003cbutton class=\"ds-card\"\u003e\u003cimg src=\"/decors/prepared/cafe-thumb.webp\" alt=\"Café parisien\"\u003e\u003cspan\u003eCafé parisien \u003csmall\u003ePC\u003c/small\u003e\u003c/span\u003e\u003c/button\u003e",
+                           "name":  "Scene Card",
+                           "css":  ".ds-card{display:block;width:100%;padding:0;border:0;background:transparent;color:var(--fg);text-align:left;border-radius:12px;font:600 14px var(--font-poppins),sans-serif}.ds-card img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;transition:transform .5s ease-out}.ds-card span{display:flex;justify-content:space-between;margin-top:12px;padding:0 4px}.ds-card small{font-size:12px;font-weight:400;color:var(--muted)}.ds-card:hover img{transform:scale(1.035)}.ds-card:focus-visible{outline:2px solid var(--accent);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-card:hover img{transform:none}}",
+                           "kind":  "card"
+                       },
+                       {
+                           "html":  "\u003cbutton class=\"ds-thumb\" aria-pressed=\"true\"\u003e\u003cimg src=\"/decors/prepared/setup-thumb.webp\" alt=\"\"\u003e\u003cspan\u003eStudio violet ✓\u003c/span\u003e\u003c/button\u003e",
+                           "name":  "Selected Editor Thumbnail",
+                           "css":  ".ds-thumb{overflow:hidden;padding:0;border:0;border-radius:8px;background:var(--surface-2);color:var(--fg);box-shadow:0 0 0 2px var(--accent);text-align:left;font:400 12px var(--font-poppins),sans-serif}.ds-thumb img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}.ds-thumb span{display:block;padding:8px}.ds-thumb:hover{filter:brightness(1.05)}.ds-thumb:focus-visible{outline:2px solid var(--accent);outline-offset:4px}",
+                           "kind":  "chip"
+                       }
+                   ],
+    "generatedAt":  "2026-10-21T16:07:26.2969208Z",
+    "narrative":  {
+                      "northStar":  "The existing Kinetik workspace",
+                      "donts":  [
+                                    "Don\u0027t introduce a décor-specific brand or replacement button style.",
+                                    "Don\u0027t substitute invented device scenes for unavailable categories.",
+                                    "Don\u0027t treat test-shim previews as authenticated end-to-end validation."
+                                ],
+                      "keyCharacteristics":  [
+                                                 "Landscape photography leads each card.",
+                                                 "Compact controls reuse application primitives.",
+                                                 "Preview and editing remain part of the same workspace."
+                                             ],
+                      "dos":  [
+                                  "Do preserve Kinetik\u0027s existing theme, typography and shared controls.",
+                                  "Do use the six real photographs and truthful category availability.",
+                                  "Do keep preview, fit settings and upload feedback readable on mobile."
+                              ],
+                      "overview":  "This is a feature-scoped record of the shipped interface, not a new brand direction. Photo-led scenes sit within the application\u0027s neutral surfaces and violet action language. The existing light and dark theme tokens remain authoritative.",
+                      "rules":  [
+                                    {
+                                        "section":  "colors",
+                                        "body":  "Preserve the application\u0027s theme variables rather than introducing a décor-specific palette. The shared primary button retains its existing violet gradient and inset highlight; do not flatten or redesign that primitive based on the global stylesheet\u0027s flat-accent commentary.",
+                                        "name":  "The Existing Palette Rule"
+                                    }
+                                ]
+                  },
+    "schemaVersion":  2,
+    "title":  "Design System: Kinetik — Décors",
+    "extensions":  {
+                       "scope":  "Feature-scoped extraction; live theme variables inherit from the app. Scene images require the app origin.",
+                       "breakpoints":  [
+                                           {
+                                               "value":  "640px",
+                                               "name":  "sm"
+                                           },
+                                           {
+                                               "value":  "1024px",
+                                               "name":  "lg"
+                                           },
+                                           {
+                                               "value":  "1280px",
+                                               "name":  "xl"
+                                           }
+                                       ],
+                       "shadows":  [
+                                       {
+                                           "name":  "segmented-active",
+                                           "value":  "var(--shadow-soft)",
+                                           "purpose":  "Shared active segmented option."
+                                       }
+                                   ],
+                       "previewMode":  "Experience",
+                       "motion":  [
+                                      {
+                                          "name":  "card-hover",
+                                          "value":  "transform 500ms ease-out; scale(1.035)",
+                                          "purpose":  "Image hover; removed for reduced motion."
+                                      }
+                                  ]
+                   }
+}

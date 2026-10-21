@@ -7,6 +7,8 @@ export const CREDIT_COSTS = {
   voiceover: { script: 1, perCharacters: 100, perUnit: 1 },
   /** Import réussi d’un enregistrement, avant accès à l’aperçu. */
   recordingImport: 10,
+  /** Décors : paiement de l'import avant l'aperçu, puis export réduit. */
+  decor: { preview: 5, exportShort: 2, exportLong: 4 },
   /** Premier jet d'une vidéo */
   generation: 10,
   /** Une modification demandée via le chat */
@@ -83,9 +85,10 @@ export const EXPORT_QUALITIES: ExportQuality[] = ["SD", "HD"];
  * Coût d'un export. `reexport` : le projet a déjà été exporté (rendu réussi ou en cours) → moitié prix, arrondi au supérieur.
  * Une déclinaison (autre format, version courte) est un projet à part : son premier export est plein tarif.
  * `premium3d` : template rendu en vraie 3D (recette avec `stage`), tarif multiplié par `premium3dMultiplier`.
+ * `decor` : tarif réduit des décors, dont l'aperçu a déjà été payé.
  */
-export function getExportCost({ duration, reexport = false, premium3d = false }: { duration: number; quality?: ExportQuality; reexport?: boolean; premium3d?: boolean }) {
+export function getExportCost({ duration, reexport = false, premium3d = false, decor = false }: { duration: number; quality?: ExportQuality; reexport?: boolean; premium3d?: boolean; decor?: boolean }) {
   const { shortMaxSeconds, short, long, premium3dMultiplier } = CREDIT_COSTS.export;
-  const full = (duration <= shortMaxSeconds ? short : long) * (premium3d ? premium3dMultiplier : 1);
+  const full = decor ? (duration <= shortMaxSeconds ? CREDIT_COSTS.decor.exportShort : CREDIT_COSTS.decor.exportLong) : (duration <= shortMaxSeconds ? short : long) * (premium3d ? premium3dMultiplier : 1);
   return reexport ? Math.ceil(full / 2) : full;
 }

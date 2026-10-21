@@ -1,5 +1,6 @@
 import { SceneClock, TextSceneContext } from "./movable-text";
 import { ScreenRecordingVideo } from "./screen-recording";
+import { DecorVideo } from "./decor";
 import { overlayApplies } from "../../lib/projects/overlays";
 import { OverlayLayer } from "./overlays";
 import { AbsoluteFill, Audio, Img, getRemotionEnvironment, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
@@ -7,7 +8,7 @@ import { EditorialBackdrop } from "./editorial-backdrop";
 import { GraphicBackdrop } from "./graphic-backdrop";
 import { ReferenceBackdrop } from "./reference-motion";
 import { StageBackdrop } from "./stage3d";
-import { stageDeviceId, stageScreens, stageShowsDevice } from "../../config/stage-motion";
+import { resolveStageTransitions, stageDeviceId, stageScreens, stageShowsDevice } from "../../config/stage-motion";
 import { sceneFocuses, sceneScreens } from "../../lib/projects/scenes";
 import { beatGrid } from "../../lib/projects/scenes";
 import { musicalClock } from "../../lib/audio/beat";
@@ -31,7 +32,7 @@ import { musicDuckVolume } from "../../lib/projects/voiceover";
  * Le rendu d'un template dépend de `props.recipe` (config/recipes.ts), sauf réglages choisis par l'utilisateur dans le SceneGraph.
  */
 export function KinetikVideo(input: VideoProps) {
-  return <>{input.graph.recording ? <ScreenRecordingVideo props={input} /> : <MotionVideo input={input} />}<VoiceoverAudio graph={input.graph} /><NarrationCaptions graph={input.graph} /></>;
+  return <>{input.graph.recording?.decorId ? <DecorVideo props={input} /> : input.graph.recording ? <ScreenRecordingVideo props={input} /> : <MotionVideo input={input} />}<VoiceoverAudio graph={input.graph} /><NarrationCaptions graph={input.graph} /></>;
 }
 
 function MotionVideo({ input }: { input: VideoProps }) {
@@ -39,7 +40,8 @@ function MotionVideo({ input }: { input: VideoProps }) {
   const { fps, width, height } = useVideoConfig();
   const u = useUnit();
   const props = withUserSettings(input);
-  const { graph, recipe, palette } = props;
+  const { recipe, palette } = props;
+  const graph = resolveStageTransitions(props.graph, recipe.stage);
   // Temps musicaux : tempo + position du premier temps (détectés à l'upload), décalés si le début du morceau est coupé
   const grid = beatGrid(graph);
   const phaseFrames = grid.phase * fps;

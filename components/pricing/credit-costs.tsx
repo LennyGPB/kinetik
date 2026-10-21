@@ -57,6 +57,9 @@ export function CreditCosts({ className, reveal = false, includePosts = false }:
     { graphic: "type", label: fr ? "Pitch deck · création du motion" : "Pitch deck · motion creation", cost: CREDIT_COSTS.pitch.creation },
     { graphic: "chat", label: fr ? `Voix off · par scène, par tranche de ${CREDIT_COSTS.voiceover.perCharacters} caractères` : `Voiceover · per scene, per ${CREDIT_COSTS.voiceover.perCharacters} characters`, cost: CREDIT_COSTS.voiceover.perUnit },
     { graphic: "mp4", label: fr ? "Démo d’écran · import" : "Screen demo · import", cost: CREDIT_COSTS.recordingImport },
+    { graphic: "type", label: fr ? "Décors · déblocage de l’aperçu" : "Scenes · unlock preview", cost: CREDIT_COSTS.decor.preview },
+    { graphic: "mp4", label: fr ? `Décors · export jusqu’à ${CREDIT_COSTS.export.shortMaxSeconds} s` : `Scenes · export up to ${CREDIT_COSTS.export.shortMaxSeconds}s`, cost: CREDIT_COSTS.decor.exportShort },
+    { graphic: "long", label: fr ? `Décors · export au-delà de ${CREDIT_COSTS.export.shortMaxSeconds} s` : `Scenes · export above ${CREDIT_COSTS.export.shortMaxSeconds}s`, cost: CREDIT_COSTS.decor.exportLong },
     { graphic: "chat", label: fr ? "Traduction FR ↔ EN" : "Translation FR ↔ EN", cost: CREDIT_COSTS.translation },
   ] : []),
 ];

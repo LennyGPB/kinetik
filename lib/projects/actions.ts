@@ -790,7 +790,7 @@ const types = t.app.credits.types;
     if (running >= LIMITS.exportConcurrent) return { ok: false, error: "export_busy" };
     // Ré-export (le projet a déjà un rendu réussi ou en cours) : moitié prix. Décidé sous le verrou pour éviter deux « premiers » exports
     const reexport = (await db.render.count({ where: { projectId, status: { not: "FAILED" } } })) > 0;
-    cost = getExportCost({ duration, quality: options.quality, reexport, premium3d: isPremium3d(project.styleId, graph) });
+    cost = getExportCost({ duration, quality: options.quality, reexport, decor: Boolean(graph.recording?.decorId), premium3d: isPremium3d(project.styleId, graph) });
     render = await db.render.create({
       data: { projectId, versionId: latest.id, status: "RENDERING", format: options.format, quality: options.quality, watermark: plan.watermark, creditCost: cost },
     });
@@ -860,7 +860,7 @@ export async function startExports(
   const duration = totalDuration(parseSceneGraph(latest.scenes));
   const exported = (await db.render.count({ where: { projectId, status: { not: "FAILED" } } })) > 0;
   const premium3d = isPremium3d(project.styleId, parseSceneGraph(latest.scenes));
-  const required = formats.reduce((sum, _, i) => sum + getExportCost({ duration, quality: options.quality, reexport: exported || i > 0, premium3d }), 0);
+  const required = formats.reduce((sum, _, i) => sum + getExportCost({ duration, quality: options.quality, reexport: exported || i > 0, premium3d, decor: Boolean(parseSceneGraph(latest.scenes).recording?.decorId) }), 0);
   const available = (await getCreditBalance(user.id)).total;
   if (available < required) return { ok: false, error: "insufficient_credits", required, available };
 

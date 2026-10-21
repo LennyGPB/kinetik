@@ -18,7 +18,8 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "unauthorized" }, { status: 401 });
   if (request.headers.get("origin") !== new URL(request.url).origin) return Response.json({ error: "forbidden" }, { status: 403 });
-  if ((await getCreditBalance(user.id)).total < CREDIT_COSTS.recordingImport) return Response.json({ error: "insufficient_credits" }, { status: 402 });
+  const decor = new URL(request.url).searchParams.get("purpose") === "decor";
+  if ((await getCreditBalance(user.id)).total < (decor ? CREDIT_COSTS.decor.preview : CREDIT_COSTS.recordingImport)) return Response.json({ error: "insufficient_credits" }, { status: 402 });
   if (!(await limitKey("upload", user.id, LIMITS.upload)).ok) return Response.json({ error: "rate_limited" }, { status: 429 });
   try {
     const r2 = getR2Store();
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
       try {
         const data = await r2.get(body.key);
         if (!data) return Response.json({ error: "invalid_file" }, { status: 400 });
-        return await persist(data, typeof body.name === "string" ? body.name : "recording.mp4", user.id);
+        return await persist(data, typeof body.name === "string" ? body.name : "recording.mp4", user.id, decor);
       } finally {
         try { await r2.client.send(new DeleteObjectCommand({ Bucket: r2.bucket, Key: body.key })); }
         catch { console.error("[recording-upload] pending_cleanup_failed"); }
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     const form = await boundedFormData(request, RECORDING_MAX_BYTES + 65536);
     const file = form.get("file");
     if (!(file instanceof File)) return Response.json({ error: "invalid_file" }, { status: 400 });
-    return await persist(Buffer.from(await file.arrayBuffer()), file.name, user.id);
+    return await persist(Buffer.from(await file.arrayBuffer()), file.name, user.id, decor);
   } catch (error) {
     if (error instanceof InsufficientCreditsError) return Response.json({ error: "insufficient_credits" }, { status: 402 });
     const code = error instanceof PayloadTooLargeError ? "too_large" : error instanceof Error ? error.message : "upload_failed";
@@ -64,10 +65,10 @@ export async function POST(request: Request) {
   }
 }
 
-async function persist(data: Buffer, name: string, userId: string) {
+async function persist(data: Buffer, name: string, userId: string, decor: boolean) {
   const metadata = inspectRecording(data);
   const file = new File([new Uint8Array(data)], "recording.mp4", { type: "video/mp4" });
   const stored = await storage.put(file, `${userId}/video`);
-  const balance = await spendCredits(userId, { amount: CREDIT_COSTS.recordingImport, type: "GENERATION", description: "Démo d’écran · Import", reference: stored.url });
+  const balance = await spendCredits(userId, { amount: decor ? CREDIT_COSTS.decor.preview : CREDIT_COSTS.recordingImport, type: "GENERATION", description: decor ? "Décor · Aperçu" : "Démo d’écran · Import", reference: stored.url });
   return Response.json({ url: stored.url, fileName: name.slice(0, 120), mimeType: "video/mp4", sizeBytes: file.size, balance: balance.total, ...metadata });
 }

@@ -12,6 +12,8 @@ Créer des contenus de présentation de produits et d’applications à partir d
 
 ## Capabilities and Constraints
 
+- Décors vidéo : insertion automatique d’une vidéo H.264 dans les écrans des photos fournies, avec perspective conservée. Catégories PC, téléphone, tablette et hybride ; seuls les décors disponibles sont proposés. Aperçu débloqué après paiement de 5 crédits ; export réduit à 2 crédits jusqu’à 30 s, 4 au-delà.
+
 - Motion design, posts Instagram et carrousels de 1 à 5 images.
 - Pitch deck PDF ou URL vers motion de 30 à 120 secondes, synthèse en 5 à 8 scènes, marque extraite, graphiques, narration et sous-titres.
 - Certains templates de carrousel prolongent leur décor entre les pages.

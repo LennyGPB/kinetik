@@ -73,7 +73,7 @@ export function ExportDialog({
   // Le premier export lancé ici fait aussi passer les suivants à moitié prix ; plusieurs formats = exports successifs
   const [exportedNow, setExportedNow] = useState(false);
   const reexport = exported || exportedNow;
-  const costs = formats.map((_, i) => getExportCost({ duration, quality, reexport: reexport || i > 0, premium3d: Boolean(videoProps.recipe.stage) }));
+  const costs = formats.map((_, i) => getExportCost({ duration, quality, reexport: reexport || i > 0, decor: Boolean(videoProps.graph.recording?.decorId), premium3d: Boolean(videoProps.recipe.stage) }));
   const cost = costs.reduce((sum, c) => sum + c, 0);
   const voiceIssues = hasVoiceIssues(videoProps.graph);
   const canAfford = balance >= cost && !voiceIssues;
