@@ -5,7 +5,8 @@ import { getRecipe } from "../../config/recipes";
 import { popoutTarget, STAGE_KINDS, STAGE_THEMES, stageColors, stageDeviceId, stageFocusState, stageScreens, stageShowsDevice, stageSpot, stageState, type StageScene } from "../../config/stage-motion";
 import { getStyle } from "../../config/styles";
 import { getDictionary } from "../i18n";
-import { TRANSITIONS, type Scene, type ScreenFocus } from "./scenes";
+import { parseSceneGraph, sceneScreens, TRANSITIONS, type Scene, type SceneGraph, type ScreenFocus } from "./scenes";
+import { applyTimelineEdit, isTimelineEdit } from "./timeline";
 
 const scene = (kind: Scene["kind"], transition: Scene["transition"], extra: Partial<Scene> = {}): Scene => ({ id: `${kind}-${transition}`, kind, title: "Titre", duration: 3, transition, ...extra });
 const stage = (scenes: [Scene["kind"], Scene["transition"]][], counts: number[] = []): StageScene[] =>
@@ -72,9 +73,51 @@ test("screen contents follow the scenes and never invent screenshots", () => {
   const urls = ["/a.png", "/b.png", "/c.png"];
   const contents = stageScreens(scenes, urls, (s) => (s.screenCount === 2 ? urls.slice(0, 2) : [urls[0]]));
   assert.deepEqual(contents[1], [{ kind: "image", src: "/a.png" }, { kind: "image", src: "/b.png" }]);
-  assert.deepEqual(contents[3], [{ kind: "splash" }]);
-  assert.deepEqual(contents[4], [{ kind: "splash" }]);
+  assert.deepEqual(contents[3], [{ kind: "image", src: "/b.png" }]);
+  assert.deepEqual(contents[4], [{ kind: "image", src: "/b.png" }]);
   assert.deepEqual(stageScreens(scenes, [], () => [])[0], [{ kind: "mock", variant: 0 }]);
+});
+
+test("3D scene capture choices survive timeline save/reload and override automatic screens on every mockup scene", () => {
+  const urls = ["/api/uploads/u/a.png", "/api/uploads/u/b.png", "/api/uploads/u/c.png"];
+  const graph: SceneGraph = { schema: 1, styleId: "stage", energy: "calm", logoEmphasis: false, musicTrackId: null, bpm: 120,
+    scenes: (["intro", "feature", "stat", "quote", "logo", "cta", "screens"] as const).map((kind) => scene(kind, "fade")),
+  };
+  for (const target of graph.scenes) {
+    const edit = { kind: "screens", sceneId: target.id, screens: [urls[1], urls[2]] } as const;
+    assert.ok(isTimelineEdit(edit));
+    const changed = applyTimelineEdit(graph, { ...edit, screens: [...edit.screens] });
+    const saved = parseSceneGraph(JSON.parse(JSON.stringify(changed)));
+    const index = saved.scenes.findIndex((s) => s.id === target.id);
+    assert.deepEqual(saved.scenes[index].screens, target.kind === "screens" ? [urls[1], urls[2]] : [urls[1]]);
+    for (const other of graph.scenes.filter((s) => s.id !== target.id)) assert.strictEqual(changed.scenes.find((s) => s.id === other.id), other);
+    const contents = stageScreens(saved.scenes, urls, (s) => sceneScreens(saved.scenes, s, urls, 1));
+    assert.deepEqual(contents[index][0], { kind: "image", src: urls[1] }, target.kind);
+    assert.equal(stageShowsDevice(saved.scenes[index], false), true);
+    const reset = applyTimelineEdit(saved, { kind: "screens", sceneId: target.id, screens: null });
+    assert.equal(reset.scenes[index].screens, undefined);
+    assert.deepEqual(stageScreens(reset.scenes, urls, (s) => sceneScreens(reset.scenes, s, urls, 1))[index], stageScreens(graph.scenes, urls, (s) => sceneScreens(graph.scenes, s, urls, 1))[index]);
+  }
+});
+
+test("missing chosen 3D captures fall back safely and explicit choices do not shift neighbouring automatic scenes", () => {
+  const scenes = [scene("intro", "fade", { screens: ["/c.png"] }), scene("feature", "fade"), scene("logo", "fade", { screens: ["/gone.png"] }), scene("cta", "fade", { screens: ["/b.png"] })];
+  const urls = ["/a.png", "/b.png", "/c.png"];
+  const content = stageScreens(scenes, urls, () => []);
+  assert.deepEqual(content[0], [{ kind: "image", src: "/c.png" }]);
+  assert.deepEqual(content[1], [{ kind: "image", src: "/b.png" }]);
+  assert.deepEqual(content[2], [{ kind: "image", src: "/b.png" }]);
+  assert.deepEqual(content[3], [{ kind: "image", src: "/b.png" }]);
+  assert.deepEqual(stageScreens(scenes, [], () => []), [[{ kind: "mock", variant: 0 }], [{ kind: "mock", variant: 1 }], [{ kind: "splash" }], [{ kind: "splash" }]]);
+});
+
+test("changing a multi-screen scene still removes focuses on captures that are no longer selected", () => {
+  const a = "/api/uploads/u/a.png", b = "/api/uploads/u/b.png";
+  const focus: ScreenFocus = { mode: "zoom", src: a, x: 0.1, y: 0.1, w: 0.5, h: 0.5 };
+  const graph: SceneGraph = { schema: 1, energy: "calm", logoEmphasis: false, musicTrackId: null, bpm: 120, scenes: [scene("screens", "fade", { focuses: [focus] })] };
+  const changed = applyTimelineEdit(graph, { kind: "screens", sceneId: graph.scenes[0].id, screens: [b] });
+  assert.deepEqual(changed.scenes[0].focuses, []);
+  assert.deepEqual(stageScreens(changed.scenes, [a, b], (s) => sceneScreens(changed.scenes, s, [a, b], 1)), [[{ kind: "image", src: b }]]);
 });
 
 test("user-chosen 2D layouts take the device away; devices and colours resolve sensibly", () => {

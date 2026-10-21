@@ -59,7 +59,7 @@ export type Scene = {
   focus?: ScreenFocus;
   /** Ordered framing steps; legacy focus remains supported. */
   focuses?: ScreenFocus[];
-  /** Scènes "screens" : URLs des screens à montrer, dans l'ordre (absent = les suivants dans l'ordre du projet). */
+  /** Captures choisies : jusqu'à 3 sur les scènes screens ; la première habille le mockup des autres scènes 3D. Absent = automatique. */
   screens?: string[];
   /** Scènes "headlines" : titres qui suivent le titre principal, dans l'ordre (1 à 4) */
   lines?: string[];

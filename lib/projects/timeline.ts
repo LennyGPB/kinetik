@@ -27,7 +27,7 @@ export type TimelineEdit =
   /** Scènes screens : zone d'un screen à mettre en avant (null = retirer) */
   | { kind: "focus"; sceneId: string; focus: ScreenFocus | null }
   | { kind: "focuses"; sceneId: string; focuses: ScreenFocus[] }
-  /** Scènes screens : captures à montrer, dans l'ordre (null = automatique) */
+  /** Captures de la scène ; une seule pour le mockup 3D hors scènes screens (null = automatique). */
   | { kind: "screens"; sceneId: string; screens: string[] | null }
   /** Nouvelle scène après `afterId` (null = au début). L'id est fourni par le client pour que le serveur rejoue la même suite. */
   | { kind: "add"; id: string; afterId: string | null; sceneKind: SceneKind; title: string; transition: Transition }
@@ -262,8 +262,8 @@ export function applyTimelineEdit(graph: SceneGraph, edit: TimelineEdit): SceneG
       scenes[index] = { ...scenes[index], transition: edit.transition };
       break;
     case "screens": {
-      if (scenes[index].kind !== "screens") return graph;
-      const list = edit.screens ? [...new Set(edit.screens)].slice(0, MAX_SCREEN_COUNT) : [];
+      const limit = scenes[index].kind === "screens" ? MAX_SCREEN_COUNT : 1;
+      const list = edit.screens ? [...new Set(edit.screens)].slice(0, limit) : [];
       scenes[index] = { ...scenes[index], screens: list };
       if (list.length && scenes[index].focus && !list.includes(scenes[index].focus!.src)) delete scenes[index].focus;
       if (list.length && scenes[index].focuses) scenes[index] = { ...scenes[index], focuses: scenes[index].focuses!.filter((f) => list.includes(f.src)) };

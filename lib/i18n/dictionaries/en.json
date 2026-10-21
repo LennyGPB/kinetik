@@ -1104,6 +1104,8 @@
         "screensPick": "Choose screenshots",
         "screensPickTitle": "Screenshots in this scene",
         "screensPickHint": "Click in order of appearance (up to 3).",
+          "mockupScreenPick": "Change mockup screen",
+          "mockupScreenHint": "Choose the screenshot displayed in this scene’s mockup.",
         "screensAuto": "Automatic",
         "editMockup": "Edit mockup",
         "textColor": "Color",

@@ -69,7 +69,7 @@ function SignatureReel() {
 
 export function Preview({ kind, fr }: { kind: Format; fr: boolean }) {
   if (kind === "motion") return <div className={`hero-capabilities-preview hero-capabilities-motionPreview`}>
-    <video src={fr ? "/medias/kinetik-16x9_fr.mp4" : "/medias/kinetik_landscape3.mp4"} autoPlay loop muted playsInline preload="metadata" tabIndex={-1} />
+    <video src="/medias/stage-landscape-en.mp4" autoPlay loop muted playsInline preload="metadata" tabIndex={-1} />
     <span className="hero-capabilities-play"><Play size={16} fill="currentColor" /></span>
     <span className="hero-capabilities-timeline"><i /><i /><i /><i /><i /></span>
   </div>;

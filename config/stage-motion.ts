@@ -371,18 +371,33 @@ export type ScreenContent = { kind: "image"; src: string } | { kind: "splash" } 
 
 export function stageScreens(scenes: Scene[], screenUrls: string[], pick: (scene: Scene) => string[]): ScreenContent[][] {
   let textIndex = 0;
+  let lastCapture: ScreenContent | undefined;
   return scenes.map((scene) => {
-    if (scene.kind === "logo" || scene.kind === "cta") return [{ kind: "splash" }];
     if (scene.kind === "screens") {
       // Mise en avant : l'écran montre les captures des cadrages, dans l'ordre
       const framed = [...new Set(sceneFocuses(scene).map((focus) => focus.src).filter((src) => screenUrls.includes(src)))];
-      if (framed.length) return framed.map((src) => ({ kind: "image", src }));
+      if (framed.length) {
+        lastCapture = { kind: "image", src: framed[framed.length - 1] };
+        return framed.map((src) => ({ kind: "image", src }));
+      }
       const urls = pick(scene);
+      if (urls.length) lastCapture = { kind: "image", src: urls[0] };
       return urls.length ? urls.map((src) => ({ kind: "image", src })) : Array.from({ length: Math.max(1, Math.min(3, scene.screenCount ?? 1)) }, (_, i) => ({ kind: "mock", variant: i }));
     }
-    // Scènes de texte : les captures défilent d'une scène à l'autre
-    const k = textIndex++;
-    return [screenUrls.length ? { kind: "image", src: screenUrls[k % screenUrls.length] } : { kind: "mock", variant: k }];
+    // A scene-specific capture overrides the automatic screen.
+    // Keep the automatic rotation stable when a neighbouring text scene has an explicit choice.
+    const splash = scene.kind === "logo" || scene.kind === "cta";
+    const k = splash ? textIndex : textIndex++;
+    const chosen = scene.screens?.find((src) => screenUrls.includes(src));
+    if (chosen) {
+      lastCapture = { kind: "image", src: chosen };
+      return [lastCapture];
+    }
+    // Keep the app visible through logo/CTA scenes instead of replacing it with a dark splash.
+    if (splash) return [lastCapture ?? (screenUrls.length ? { kind: "image", src: screenUrls[0] } : { kind: "splash" })];
+    const content: ScreenContent = screenUrls.length ? { kind: "image", src: screenUrls[k % screenUrls.length] } : { kind: "mock", variant: k };
+    if (content.kind === "image") lastCapture = content;
+    return [content];
   });
 }
 

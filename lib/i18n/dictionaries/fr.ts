@@ -832,6 +832,8 @@ export const fr = {
         screensPick: "Choisir les captures",
         screensPickTitle: "Captures de cette scène",
         screensPickHint: "Clique dans l'ordre d'apparition (3 au maximum).",
+        mockupScreenPick: "Changer l’écran du mockup",
+        mockupScreenHint: "Choisis la capture affichée dans le mockup de cette scène.",
         screensAuto: "Automatique",
         editMockup: "Modifier le mockup",
         textColor: "Couleur",

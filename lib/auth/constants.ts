@@ -10,3 +10,15 @@ export function safeRedirect(path: string | null | undefined, fallback = DEFAULT
   if (!path || !path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) return fallback;
   return path;
 }
+
+/** Keep the requested destination when an already authenticated visitor opens an auth page. */
+export function authRedirectTarget(params: Pick<URLSearchParams, "get">) {
+  const explicit = params.get("redirectTo");
+  if (explicit) return safeRedirect(explicit);
+  const forward = new URLSearchParams();
+  for (const key of ["kind", "app", "style"]) {
+    const value = params.get(key);
+    if (value) forward.set(key, value);
+  }
+  return forward.size ? `/create?${forward}` : DEFAULT_REDIRECT;
+}

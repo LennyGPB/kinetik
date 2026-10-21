@@ -48,6 +48,7 @@ Branchements : `Recipe.stage` (`config/recipes.ts`), fond dans `KinetikVideo.tsx
 - **Écrans** : les scènes `screens` montrent leurs captures (1 à 3 appareils côte à côte, selon `screenCount`) ;
   `logo` et `cta` montrent un écran d'accueil (logo ou initiale, nom de l'app) ; les autres scènes font défiler les captures.
   Une capture n'est jamais recadrée : les bandes prennent la couleur de son bord. Sans capture : maquette faite de formes, sans chiffre.
+- **Choix par scène** : « Changer l’écran du mockup » permet de sélectionner une capture sur chaque scène qui affiche un appareil 3D, y compris intro, bénéfice, statistique, témoignage, logo et CTA. Le choix prime sur le défilement automatique ou l'écran d'accueil ; « Automatique » rétablit ce comportement. Les scènes `screens` gardent la sélection ordonnée de 1 à 3 captures et leurs cadrages. Une capture retirée des médias est ignorée au profit du repli automatique.
 - **Plans** (`shotPair`) : grue d'ouverture (intro), contre-plongée (logo), gros plan frontal (screens), orbite lente (feature, stat),
   recul et élévation (cta). Le côté alterne d'une scène à l'autre.
 - **Formats** : l'appareil est décalé dans l'image (`setViewOffset`, sans fausser la perspective) : à droite du texte en 16:9 et 1:1,

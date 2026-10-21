@@ -12,8 +12,8 @@ import { MAX_SCREEN_COUNT } from "@/lib/projects/scenes";
 import { cn } from "@/lib/utils";
 
 /**
- * Choix des captures montrées par une scène « Mockups » : clic dans l'ordre d'apparition, 3 au maximum.
- * « Automatique » = les captures suivantes dans l'ordre du projet (comportement par défaut).
+ * Choix des captures : jusqu'à 3 sur une scène « Mockups », une seule pour les autres scènes 3D.
+ * « Automatique » rétablit le comportement du template (rotation des captures ou écran d'accueil).
  */
 export function ScreensPicker({
   screens,
@@ -22,6 +22,7 @@ export function ScreensPicker({
   onApply,
   onCancel,
   onManage,
+  maxCount = MAX_SCREEN_COUNT,
 }: {
   screens: { url: string; ratio: number | null }[];
   value: string[] | undefined;
@@ -29,15 +30,17 @@ export function ScreensPicker({
   onApply: (screens: string[] | null) => void;
   onCancel: () => void;
   onManage?: () => void;
+  maxCount?: number;
 }) {
   const t = useDictionary();
 
   const tl = t.app.editor.timeline;
 
-  const [picked, setPicked] = useState<string[]>(value?.filter((url) => screens.some((s) => s.url === url)) ?? []);
+  const limit = maxCount === 1 ? 1 : MAX_SCREEN_COUNT;
+  const [picked, setPicked] = useState<string[]>(value?.filter((url) => screens.some((s) => s.url === url)).slice(0, limit) ?? []);
 
   function toggle(url: string) {
-    setPicked((list) => (list.includes(url) ? list.filter((u) => u !== url) : list.length < MAX_SCREEN_COUNT ? [...list, url] : list));
+    setPicked((list) => (list.includes(url) ? list.filter((u) => u !== url) : limit === 1 ? [url] : list.length < limit ? [...list, url] : list));
   }
 
   return (
@@ -45,7 +48,7 @@ export function ScreensPicker({
       <div className="flex flex-wrap items-center gap-2">
         <Images className="size-4 text-accent-text" />
         <p className="text-sm font-semibold">{tl.screensPickTitle}</p>
-        <p className="text-xs text-muted">{tl.screensPickHint}</p>
+        <p className="text-xs text-muted">{limit === 1 ? tl.mockupScreenHint : tl.screensPickHint}</p>
         {onManage && <button type="button" disabled={disabled} onClick={onManage} className="ml-auto min-h-9 rounded-lg border border-line px-3 text-xs font-medium hover:bg-surface-2 disabled:opacity-40">{t.copy["14e155156f7c"]}</button>}
       </div>
       {/* Wrapping grid, not a hidden horizontal scroller: every screenshot stays reachable with a mouse (8 at most). */}

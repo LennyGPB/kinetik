@@ -14,6 +14,7 @@ import { Player as RemotionPlayer, type PlayerRef } from "@remotion/player";
 import { ALargeSmall, Check, ChevronRight, Copy, Images, Maximize2, MessageSquare, Minimize2, Minus, Move, Pause, Pencil, Play, Plus, RotateCcw, ScanSearch, Trash2, Type, Volume2, VolumeX, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VIDEO_FORMATS } from "@/config/formats";
+import { stageShowsDevice } from "@/config/stage-motion";
 import { beatGrid, HEADLINE_MAX, HEADLINES_MAX, HEADLINES_MIN, sceneFocuses, sceneHeadlines, sceneScreens, TRANSITIONS, type Scene, type Transition } from "@/lib/projects/scenes";
 import {
   applyTimelineEdits,
@@ -156,6 +157,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
   const index = Math.max(0, timeline.findLastIndex((s) => s.from <= frame));
   const editable = Boolean(editing) && !editing?.disabled && !saving;
   const selected = graph.scenes.find((s) => s.id === selectedId) ?? null;
+  const canChooseScreens = Boolean(selected && (selected.kind === "screens" || (videoProps.recipe.stage && stageShowsDevice(selected, Boolean(graph.logoLayout)))));
 
   useEffect(() => {
     const player = playerRef.current;
@@ -579,9 +581,9 @@ export function Player({ videoProps, editing, variants, className, compact = fal
                   <ScanSearch />
                 </ToolButton>
               )}
-              {selected.kind === "screens" && (
+              {canChooseScreens && (
                 <ToolButton
-                  label={videoProps.screenUrls.length ? tl.screensPick : tl.screensNone}
+                  label={videoProps.screenUrls.length ? selected.kind === "screens" ? tl.screensPick : tl.mockupScreenPick : tl.screensNone}
                   disabled={!editable || !videoProps.screenUrls.length}
                   active={panel === "screens" || Boolean(selected.screens?.length)}
                   onClick={() => setPanel((v) => (v === "screens" ? null : "screens"))}
@@ -690,7 +692,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
                     if (next === "text" && timing) seek(timing.from + Math.min(Math.round(FPS * 0.8), Math.floor(selected.duration * FPS * 0.6)));
                     setPanel(next);
                   }} />
-                  {selected.kind === "screens" && <SheetAction icon={<Images />} label={tl.screensPick} disabled={!editable || !videoProps.screenUrls.length} onClick={() => setPanel("screens")} />}
+                  {canChooseScreens && <SheetAction icon={<Images />} label={selected.kind === "screens" ? tl.screensPick : tl.mockupScreenPick} disabled={!editable || !videoProps.screenUrls.length} onClick={() => setPanel("screens")} />}
                   {selected.kind === "screens" && <SheetAction icon={<ScanSearch />} label={tl.focus} disabled={!editable || !videoProps.screenUrls.length} onClick={() => { playerRef.current?.pause(); setPanel("focus"); }} />}
                   <SheetAction icon={<Copy />} label={tl.duplicate} disabled={!editable || graph.scenes.length >= MAX_SCENES} onClick={() => edit({ kind: "duplicate", sceneId: selected.id, id: newSceneId(selected.kind) })} />
                 </div>
@@ -727,12 +729,13 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           }}
         />
       )}
-      {editing && selected?.kind === "screens" && panel === "screens" && (
+      {editing && selected && canChooseScreens && panel === "screens" && (
         <Dialog open onClose={() => setPanel(null)} title={tl.editMockup}>
           <ScreensPicker
             key={selected.id}
             screens={videoProps.screenUrls.map((url, i) => ({ url, ratio: videoProps.screenRatios?.[i] ?? null }))}
             value={selected.screens}
+            maxCount={selected.kind === "screens" ? 3 : 1}
             disabled={!editable}
             onManage={() => { setPanel(null); editing.onMedia?.(); }}
             onCancel={() => setPanel(null)}

@@ -101,7 +101,7 @@ const SceneOutput = z.object({
   transition: z.enum(TRANSITIONS).describe("Transition d'entrée de la scène, parmi celles autorisées par le style"),
   layout: z.enum(SCREENS_LAYOUTS).nullable().describe("Scènes screens uniquement : mise en scène demandée explicitement par l'utilisateur, sinon null (celle du style)"),
   screenCount: z.number().nullable().describe("Scènes screens uniquement : nombre d'écrans (1 à 3) demandé explicitement par l'utilisateur, sinon null"),
-  screens: z.array(z.number()).nullable().describe("Scènes screens uniquement : numéros des screens à montrer, dans l'ordre (3 au maximum), ou null pour les suivants dans l'ordre"),
+  screens: z.array(z.number()).nullable().describe("Numéros des captures : jusqu’à 3 pour une scène screens ; sur un template 3D, une capture peut aussi habiller le mockup de toute autre scène (intro, feature, logo, cta, stat, quote). null = automatique."),
   focus: FocusOutput,
   focuses: z.array(FocusOutput.unwrap()).nullable().describe("Ordered framing steps for screens scenes. Preserve all existing steps on unrelated edits. null keeps the current sequence; [] removes it."),
 });
@@ -212,7 +212,7 @@ Réglages de mise en scène (null = choix du style, à garder tant que l'utilisa
 - presentation (par scène) : intro = classic (template), editorial (affiche éditoriale), split (texte et capture) ; feature = classic, spotlight (bénéfice en lumière), card (carte graphique) ; cta = classic, end-card (signature avec logo), browser (fenêtre web avec capture ou logo). Conserve les identifiants id des scènes existantes et leurs mises en scène lors des autres modifications.
 - logoLayout (séquences logo) : signature = logo, nom et accroche en douceur · app-icon = icône d'app en gros plan et légère rotation · typographic = grand nom et logo côte à côte · product = captures qui se rassemblent derrière le logo · orbit = orbites animées autour du logo · poster = affiche graphique et panneau de couleur · echo = copies du logo qui fusionnent · emblem = sceau géométrique qui se dessine. Ne le change que sur demande explicite. Sans captures, product révèle simplement le logo.
 - logoBackground : false retire la tuile derrière le logo, true la remet. Ce réglage ne détoure pas l'image fournie. Ne le change que sur demande et conserve sa valeur lors des autres modifications.
-- screens (par scène screens) : numéros des screens à montrer, dans l'ordre. Utile pour associer une scène à la bonne capture (ex. la carte pour une scène sur la carte).
+- screens : numéros des captures à montrer, dans l'ordre, sur les scènes screens. Pour les templates en vraie 3D (recette stage), ce champ permet aussi de choisir UNE capture pour le mockup de chaque autre scène, y compris intro, feature, logo et cta. Conserve les captures déjà choisies lors des modifications sans rapport.
 - focus (par scène screens) : met en avant une zone précise d'un screen. mode "zoom" = la caméra plonge dans la zone ; mode "popout" = la zone est découpée et sort de l'écran en s'agrandissant, avec une légende facultative. Repère la zone sur l'image (fractions de 0 à 1 depuis le coin haut gauche) : un élément net et lisible (bouton, carte, graphique, message), ni minuscule ni presque tout l'écran. Tu peux en proposer de toi-même au plus une fois par vidéo, quand une fonctionnalité du brief est clairement visible sur un screen.
 
 Réglages de marque, de son et de position des textes (en modification uniquement). Le champ brand est une CHAÎNE contenant un objet JSON avec seulement les clés à changer, ou null si rien ne change. Exemple : {"colors":["#0b1d3a","#ff7a1a"]}. Clés possibles :
@@ -502,7 +502,7 @@ function normalize(output: z.infer<typeof GraphOutput>, targetDuration: number |
       ...(s.kind === "screens" && s.screenCount && Number.isFinite(s.screenCount) ? { screenCount: Math.max(1, Math.min(MAX_SCREEN_COUNT, Math.round(s.screenCount))) } : {}),
       ...(s.kind === "screens" && s.focuses !== null && s.focuses !== undefined ? { focuses: s.focuses.slice(0, 6).map((focus) => toFocus(focus, ctx.screenUrls)).filter((focus): focus is ScreenFocus => Boolean(focus)) } : {}),
       ...(s.kind === "screens" && toFocus(s.focus, ctx.screenUrls) ? { focus: toFocus(s.focus, ctx.screenUrls) } : {}),
-      ...(s.kind === "screens" && toScreens(s.screens, ctx.screenUrls) ? { screens: toScreens(s.screens, ctx.screenUrls) } : {}),
+      ...((s.kind === "screens" || recipe.stage) && toScreens(s.screens, ctx.screenUrls) ? { screens: toScreens(s.screens, ctx.screenUrls)!.slice(0, s.kind === "screens" ? MAX_SCREEN_COUNT : 1) } : {}),
     })),
   };
 }

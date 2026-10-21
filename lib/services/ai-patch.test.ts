@@ -23,6 +23,14 @@ test("an empty patch rebuilds the current plan and touches nothing", () => {
   assert.equal(touched.size, 0);
 });
 
+test("3D mockup capture overrides on intro and CTA are included in the AI editing context", () => {
+  const source = { ...graph, styleId: "stage", scenes: graph.scenes.map((s) => s.kind === "screens" ? s : { ...s, screens: [screen] }) };
+  const { output, touched } = applyEditPatch(source, empty, { ...ctx, styleId: "stage" }, false);
+  assert.deepEqual(output.scenes[0].screens, [0]);
+  assert.deepEqual(output.scenes[2].screens, [0]);
+  assert.equal(touched.size, 0);
+});
+
 test("only changed scenes are replaced, new scenes go before the final call to action", () => {
   const intro = { id: "intro", presentation: null, kind: "intro" as const, title: "Bonjour", subtitle: null, duration: 2, transition: "fade" as const, layout: null, screenCount: null, screens: null, focus: null, focuses: null };
   const fresh = { ...intro, id: null, kind: "feature" as const, title: "New" };

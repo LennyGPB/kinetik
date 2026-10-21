@@ -61,7 +61,7 @@ export function FocusLayout({ scene, props, focus, src, ratio, stepFrames, hold 
   const regionOnVideo: Rect = { x: left + box.screen.x + region.x, y: top + box.screen.y + region.y, w: region.w, h: region.h };
 
   const titleFade = useEndFade(focus.titleEnd);
-  const content = <ScreenContent src={src} region={region} screen={box.screen} mark={(hold ? 1 : mark) * (1 - act * (popout ? 1 : 0.7))} accent={accent} dim={popout ? act : 0} />;
+  const content = <ScreenContent src={src} region={region} mark={(hold ? 1 : mark) * (1 - act * (popout ? 1 : 0.7))} accent={accent} />;
 
   // Zoom caméra : l'appareil grandit autour de la zone, qui vient se centrer et remplir l'image
   const zoomScale = Math.max(1.2, Math.min(4, (width * 0.82) / region.w, ((height - titleSpace) * 0.62) / region.h));
@@ -83,7 +83,6 @@ export function FocusLayout({ scene, props, focus, src, ratio, stepFrames, hold 
           opacity: enter,
           transformOrigin: `${origin.x}px ${origin.y}px`,
           transform: camera,
-          filter: popout ? `brightness(${1 - act * 0.35})` : undefined,
         }}
       >
         <Frame device={device} width={box.w} host={props.websiteUrl} model={props.graph.deviceMockup}>
@@ -127,14 +126,14 @@ function Frame({ device, width, host, children, model }: { device: VideoProps["g
   );
 }
 
-/** L'image du screen, avec le cadre qui repère la zone (et la zone assombrie une fois découpée). */
-function ScreenContent({ src, region, mark, accent, dim }: { src: string; region: Rect; screen: { w: number; h: number }; mark: number; accent: string; dim: number }) {
+/** La capture reste intacte sous le repère et la copie détachée. */
+function ScreenContent({ src, region, mark, accent }: { src: string; region: Rect; mark: number; accent: string }) {
   const u = useUnit();
   return (
     <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", background: "#000" }}>
       <div style={{ position: "absolute", inset: 0 }}>
         <PreviewTarget target="screens"><Img src={src} style={{ width: "100%", height: "100%", display: "block" }} /></PreviewTarget>
-        {/* Repère : le reste de l'écran s'assombrit, la zone est cerclée */}
+        {/* Le repère souligne la zone sans masquer le reste de la capture. */}
         {mark > 0 && (
           <div
             style={{
@@ -145,13 +144,12 @@ function ScreenContent({ src, region, mark, accent, dim }: { src: string; region
               height: region.h,
               borderRadius: u * 0.8,
               border: `${Math.max(2, u * 0.35)}px solid ${accent}`,
-              boxShadow: `0 0 0 9999px rgb(0 0 0 / ${0.45 * mark}), 0 0 ${u * 2}px ${accent}`,
+              boxShadow: `0 0 ${u * 2}px ${accent}`,
               opacity: mark,
             }}
           />
         )}
       </div>
-      {dim > 0 && <div style={{ position: "absolute", left: region.x, top: region.y, width: region.w, height: region.h, background: `rgb(0 0 0 / ${0.55 * dim})`, borderRadius: u * 0.8 }} />}
     </div>
   );
 }

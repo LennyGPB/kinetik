@@ -4,17 +4,18 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthFormSkeleton, AuthHeader } from "@/components/auth/auth-header";
 import { LoginForm } from "@/components/auth/auth-forms";
+import { AuthEntry } from "@/components/auth/auth-entry";
 
 export async function generateMetadata(): Promise<Metadata> { const t = await getServerDictionary(); return { title: t.common.login }; }
 
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: PageProps<"/[locale]/login">) {
   const t = useDictionary();
 
   return (
     <>
       <AuthHeader title={t.auth.loginTitle} subtitle={t.auth.loginSubtitle} />
       <Suspense fallback={<AuthFormSkeleton fields={2} />}>
-        <LoginForm />
+        <AuthEntry searchParams={searchParams}><LoginForm /></AuthEntry>
       </Suspense>
     </>
   );

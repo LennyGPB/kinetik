@@ -240,7 +240,7 @@ function StageWorld({ kind: theme, palette, scenes, screens, deviceId, appName, 
   const marks = focus && region && (inFocusScene || leavingFocus) ? (
     <>
       {detail && <FocusDetail texture={detail} w={screenW} h={screenH} region={region} source={focus.rect} opacity={focus.srcMix} />}
-      {(markK > 0.001 || popK > 0.001) && <FocusMarks w={screenW} h={screenH} region={region} mark={markK} dim={popK} accent={glow} />}
+      {markK > 0.001 && <FocusMarks w={screenW} h={screenH} region={region} mark={markK} accent={glow} />}
     </>
   ) : undefined;
   const cardTexture = focus ? detail ?? focusTexture(focus.src) : null;
@@ -438,8 +438,8 @@ function FocusDetail({ texture, w, h, region, source, opacity }: { texture: Text
   );
 }
 
-/** Sur l'écran : le reste s'assombrit, la zone est cerclée de lumière ; une fois découpée, sa place reste en creux. */
-function FocusMarks({ w, h, region, mark, dim, accent }: { w: number; h: number; region: FocusRect; mark: number; dim: number; accent: string }) {
+/** Le repère se superpose à la capture intacte ; la découpe en emporte une copie. */
+function FocusMarks({ w, h, region, mark, accent }: { w: number; h: number; region: FocusRect; mark: number; accent: string }) {
   const x0 = (region.x - 0.5) * w, x1 = (region.x + region.w - 0.5) * w;
   const y0 = (0.5 - region.y) * h, y1 = (0.5 - region.y - region.h) * h;
   const line = Math.min(w, h) * 0.012;
@@ -451,11 +451,6 @@ function FocusMarks({ w, h, region, mark, dim, accent }: { w: number; h: number;
   );
   return (
     <>
-      {shade("top", -w / 2, w / 2, h / 2, y0, "#000000", 0.45 * mark)}
-      {shade("bottom", -w / 2, w / 2, y1, -h / 2, "#000000", 0.45 * mark)}
-      {shade("left", -w / 2, x0, y0, y1, "#000000", 0.45 * mark)}
-      {shade("right", x1, w / 2, y0, y1, "#000000", 0.45 * mark)}
-      {shade("hole", x0, x1, y0, y1, "#000000", 0.55 * dim)}
       {shade("t", x0 - line, x1 + line, y0 + line, y0, accent, mark, 0.0004)}
       {shade("b", x0 - line, x1 + line, y1, y1 - line, accent, mark, 0.0004)}
       {shade("l", x0 - line, x0, y0, y1, accent, mark, 0.0004)}
@@ -622,8 +617,8 @@ function ScreenPlanes({ geometry, position, size, a, b, mix: k, anchorRef, overl
   return (
     <>
       <group ref={anchorRef} position={[position[0], position[1], position[2] + 0.0014]} userData={{ w: size[0], h: size[1] }}>{overlay}</group>
-      <mesh key={a?.uuid ?? "empty"} geometry={geometry} position={position}><meshBasicMaterial map={a} color={a ? "#ffffff" : "#050507"} toneMapped={false} /></mesh>
-      {k > 0.001 && b && b !== a && <mesh key={b.uuid} geometry={geometry} position={[position[0], position[1], position[2] + 0.0006]}><meshBasicMaterial map={b} toneMapped={false} transparent opacity={k} depthWrite={false} /></mesh>}
+      <mesh geometry={geometry} position={position}><meshBasicMaterial key={a || b ? "textured" : "empty"} map={a ?? b} color={a || b ? "#ffffff" : "#050507"} toneMapped={false} /></mesh>
+      <mesh geometry={geometry} visible={k > 0.001 && Boolean(b) && b !== a} position={[position[0], position[1], position[2] + 0.0006]}><meshBasicMaterial key={b || a ? "textured" : "empty"} map={b ?? a} toneMapped={false} transparent opacity={k} depthWrite={false} /></mesh>
     </>
   );
 }
