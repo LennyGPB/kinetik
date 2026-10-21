@@ -536,15 +536,12 @@ export function Player({ videoProps, editing, variants, className, compact = fal
         <div className={cn("flex min-h-10 flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted", compact && "max-lg:hidden")}>
           {selected ? (
             <>
-            <div className="flex min-h-12 w-full items-center rounded-2xl border border-line bg-surface pr-1 lg:hidden">
-              <button type="button" onClick={() => setSceneSheet(true)} aria-haspopup="dialog" className="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-l-2xl px-3 text-left text-fg">
-                <span className="truncate text-sm font-semibold">{sceneLabel(selected.kind, t.locale)}</span>
-                <span className="font-mono text-xs text-muted tabular-nums">{formatSeconds(selected.duration, t.locale)}</span>
-                <span className="ml-auto flex shrink-0 items-center gap-1 text-xs font-medium text-accent-text">{tl.sceneSheet} <ChevronRight className="size-4" aria-hidden /></span>
+            <div className="flex w-full items-center gap-1 lg:hidden">
+              <button type="button" onClick={() => setSceneSheet(true)} aria-haspopup="dialog" className="group flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft px-3 py-3 text-left text-fg shadow-sm transition-[background-color,border-color,transform] hover:border-accent hover:bg-accent/15 active:scale-[0.98] active:bg-accent/20">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-fg"><Pencil className="size-4" aria-hidden /></span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{sceneLabel(selected.kind, t.locale)}</span><span className="mt-0.5 block text-xs text-muted tabular-nums">{formatSeconds(selected.duration, t.locale)}</span></span>
+                <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-accent-text">{tl.sceneSheet} <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden /></span>
               </button>
-              <ToolButton label={tl.deselect} onClick={() => setSelectedId(null)}>
-                <X />
-              </ToolButton>
             </div>
             <div role="toolbar" aria-label={tl.selected} className="max-lg:hidden flex w-full flex-wrap items-center gap-1 rounded-2xl border border-line bg-surface p-1.5 pl-3 text-fg sm:w-auto sm:max-w-full sm:flex-nowrap sm:gap-1 sm:overflow-x-auto sm:rounded-full sm:p-1 sm:pl-3 sm:scrollbar-none">
               <span className="mr-1 shrink-0 text-sm font-semibold whitespace-nowrap">{sceneLabel(selected.kind, t.locale)}</span>
@@ -622,7 +619,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
             <span className="max-sm:hidden">{tl.hint}</span>
           )}
           {/* Mobile : bouton flottant en bas à droite, menu ouvert vers le haut */}
-          <div ref={addMenuRef} className="relative max-lg:fixed max-lg:right-4 max-lg:bottom-[max(1rem,env(safe-area-inset-bottom))] max-lg:z-40">
+          <div ref={addMenuRef} className="relative max-lg:fixed max-lg:right-4 max-lg:bottom-[calc(max(1rem,env(safe-area-inset-bottom))+0.75rem)] max-lg:z-40">
             <button
               type="button"
               disabled={!editable || graph.scenes.length >= MAX_SCENES}

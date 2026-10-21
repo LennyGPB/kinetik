@@ -227,9 +227,10 @@ export function Editor({
   }
 
   // Outils du projet : icônes dans la barre dès lg, regroupés dans une feuille « Plus » sur mobile et tablette
-  const tools: { key: string; label: string; icon: ReactNode; onClick: () => void }[] =
+  const tools: { key: string; label: string; icon: ReactNode; onClick: () => void; disabled?: boolean }[] =
     project.status === "READY"
       ? [
+          { key: "translation", label: t.copy["e6646d000948"], icon: <Languages />, onClick: () => setTranslationOpen(true), disabled: Boolean(proposal) || thinking || applying || restoring || translating || current?.number !== latest?.number },
           { key: "style", label: t.app.style.button, icon: <Palette />, onClick: () => setStyleOpen(true) },
           { key: "media", label: t.app.media.button, icon: <Images />, onClick: () => setMediaOpen(true) },
           { key: "layers", label: t.copy["eaa1ecaa099b"], icon: <Layers />, onClick: () => setOverlaysOpen(true) },
@@ -264,14 +265,13 @@ export function Editor({
         </span>
       </div>
       {project.status === "READY" && <Button variant="ghost" size="md" disabled={undoNumber === null || restoring || Boolean(proposal) || thinking || applying || translating || current?.number !== latest?.number} onClick={handleUndo} aria-label={e.undo} title={e.undoHelp} className="h-9 shrink-0 px-2.5"><Undo2 /><span className="hidden sm:inline">{e.undo}</span></Button>}
-      {project.status === "READY" && <Button variant="ghost" size="md" disabled={Boolean(proposal) || thinking || applying || restoring || translating || current?.number !== latest?.number} onClick={() => setTranslationOpen(true)} aria-label={t.copy["e6646d000948"]} title={t.copy["e6646d000948"]} className="h-9 shrink-0 px-2.5"><Languages /><span className="hidden sm:inline">{t.copy["e6646d000948"]}</span></Button>}
       {tools.map((tool) => (
-        <Button key={tool.key} variant="ghost" size="md" disabled={restoring || Boolean(proposal) || translating} onClick={tool.onClick} aria-label={tool.label} className="hidden h-9 px-2.5 lg:inline-flex xl:px-3.5">
+        <Button key={tool.key} variant="ghost" size="md" disabled={tool.disabled || restoring || Boolean(proposal) || translating} onClick={tool.onClick} aria-label={tool.label} className="hidden h-9 px-2.5 lg:inline-flex xl:px-3.5">
           {tool.icon} <span className="hidden xl:inline">{tool.label}</span>
         </Button>
       ))}
       {tools.length > 0 && (
-        <Button variant="ghost" size="md" disabled={restoring || Boolean(proposal)} onClick={() => setToolsOpen(true)} aria-label={t.copy["9fa688952e6d"]} className="size-10 shrink-0 px-0 lg:hidden">
+        <Button variant="soft" size="md" disabled={restoring || Boolean(proposal)} onClick={() => setToolsOpen(true)} aria-label={t.copy["9fa688952e6d"]} aria-haspopup="dialog" title={t.copy["9fa688952e6d"]} className="h-9 shrink-0 rounded-full border border-accent/40 px-3 hover:border-accent hover:bg-accent/20 active:bg-accent/25 lg:hidden">
           <MoreHorizontal />
         </Button>
       )}
@@ -435,11 +435,12 @@ export function Editor({
             <button
               key={tool.key}
               type="button"
+              disabled={tool.disabled || restoring || Boolean(proposal) || translating}
               onClick={() => {
                 setToolsOpen(false);
                 tool.onClick();
               }}
-              className="flex min-h-14 items-center gap-3 rounded-2xl border border-line bg-surface px-4 text-left text-sm font-semibold transition-colors hover:border-line-strong active:bg-surface-2 [&_svg]:size-5 [&_svg]:text-accent-text"
+              className="flex min-h-14 items-center gap-3 rounded-2xl border border-line bg-surface px-4 text-left text-sm font-semibold transition-colors hover:border-line-strong active:bg-surface-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-5 [&_svg]:text-accent-text"
             >
               {tool.icon}
               {tool.label}

@@ -215,20 +215,21 @@ export function QuickSettings({
         aria-expanded={open ?? undefined}
         aria-controls={id}
         title={s.hint}
-        className={cn(purpleButtonStyle, "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-[filter,box-shadow] max-lg:min-h-12 max-lg:gap-2 max-lg:rounded-2xl max-lg:border-line max-lg:bg-none max-lg:bg-surface max-lg:py-0 max-lg:text-fg max-lg:shadow-none max-lg:hover:border-line max-lg:hover:shadow-none")}
+        className={cn(purpleButtonStyle, "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-[filter,box-shadow,background-color,border-color,transform] max-lg:min-h-16 max-lg:border-line-strong max-lg:bg-none max-lg:bg-surface-2 max-lg:text-fg max-lg:shadow-sm max-lg:hover:border-accent/50 max-lg:hover:bg-surface-3 max-lg:hover:shadow-sm max-lg:active:scale-[0.98] max-lg:active:bg-surface-3")}
       >
-        <SlidersHorizontal className="size-4 shrink-0 max-lg:text-accent-text" />
+        <span className="shrink-0 max-lg:grid max-lg:size-9 max-lg:place-items-center max-lg:rounded-lg max-lg:bg-accent-soft max-lg:text-accent-text"><SlidersHorizontal className="size-4" aria-hidden /></span>
         <span className="min-w-0 flex-1">
-          <span className="block">{title}</span>
+          <span className="block max-lg:font-semibold">{title}</span>
+          {modified > 0 && <span className="mt-1 block text-[11px] font-medium text-accent-text lg:hidden">{format(modified > 1 ? s.modifiedMany : s.modifiedOne, { count: modified })}</span>}
           <span className="mt-0.5 block text-[11px] font-normal text-accent-fg/80 max-lg:hidden">
             {open === null ? (
               <><span className="lg:hidden">{t.copy["57091951bccb"]}</span><span className="hidden lg:inline">{t.copy["5888cb0b1e81"]}</span></>
             ) : open ? t.copy["5888cb0b1e81"] : t.copy["57091951bccb"]}
           </span>
         </span>
-        {modified > 0 && <span className="shrink-0 rounded-full bg-accent-fg/15 px-2 py-0.5 text-[11px] font-medium max-lg:bg-accent-soft max-lg:text-accent-text">{format(modified > 1 ? s.modifiedMany : s.modifiedOne, { count: modified })}</span>}
+        {modified > 0 && <span className="shrink-0 rounded-full bg-accent-fg/15 px-2 py-0.5 text-[11px] font-medium max-lg:hidden">{format(modified > 1 ? s.modifiedMany : s.modifiedOne, { count: modified })}</span>}
         <ChevronDown className={cn("size-4 shrink-0 transition-transform", sheetMode && "max-lg:hidden", open === null ? "lg:rotate-180" : open && "rotate-180")} />
-        {sheetMode && <ChevronRight className="size-4 shrink-0 lg:hidden" />}
+        {sheetMode && <span className="grid size-8 shrink-0 place-items-center rounded-full border border-line-strong bg-surface lg:hidden"><ChevronRight className="size-4" aria-hidden /></span>}
       </button>
 
       {open !== false && (
