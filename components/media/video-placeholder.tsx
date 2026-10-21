@@ -24,6 +24,7 @@ import { getGraphicMotion } from "../../config/graphic-motion";
 import { GraphicBackdrop } from "../../remotion/video/graphic-backdrop";
 import { getReferenceMotion, type ReferenceMotionKind } from "../../config/reference-motion";
 import { ReferenceMotionThumbnail } from "./reference-motion-thumbnail";
+import { isStageTemplate, StageThumbnail } from "./stage-thumbnail";
 import { getLogoMotion } from "../../config/logo-motion";
 import { LogoWordArt } from "../../remotion/video/logo-word";
 import { InspiredBackground, INSPIRED_BACKGROUNDS } from "../../remotion/video/inspired-backgrounds";
@@ -101,7 +102,7 @@ export function VideoPlaceholder({
         <video className="absolute inset-0 size-full object-cover" src={src} poster={poster} autoPlay muted loop playsInline />
       ) : (
         <div className="absolute inset-0" aria-hidden>
-          {logoMotion ? <LogoWordArt template={logoMotion.id} text={label ?? logoMotion.sample} colors={palette} time={1.5} /> : reference ? <ReferenceMotionThumbnail kind={templateId as ReferenceMotionKind} palette={palette} aspectRatio={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} bare={bare} /> : graphic ? <div className="absolute inset-0 [container-type:size]">
+          {isStageTemplate(templateId) ? <StageThumbnail templateId={templateId!} ratio={ratio} /> : logoMotion ? <LogoWordArt template={logoMotion.id} text={label ?? logoMotion.sample} colors={palette} time={1.5} /> : reference ? <ReferenceMotionThumbnail kind={templateId as ReferenceMotionKind} palette={palette} aspectRatio={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} bare={bare} /> : graphic ? <div className="absolute inset-0 [container-type:size]">
             <GraphicBackdrop kind={graphic.kind} palette={palette} time={0.8} aspectRatio={ratio === "fill" ? 2 / 3 : Number(ratio.split(":")[0]) / Number(ratio.split(":")[1])} />
             {!bare && graphic.kind === "sticker" && <div className="font-condensed absolute inset-x-[5%] top-1/2 -translate-y-1/2 text-[15cqmin]"><SmearTitle text={graphic.headline} time={0.9} palette={palette} /></div>}
             {!bare && graphic.kind === "optic" && <><div className="font-heading absolute inset-x-[4%] top-[8%] bottom-[18%] flex items-center justify-center"><NoiseTitle text={graphic.headline} time={0.9} color={palette[1]} /></div><NoiseGrain seed={5} opacity={0.5} /></>}

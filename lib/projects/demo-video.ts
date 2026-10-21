@@ -5,6 +5,7 @@ import type { VideoProps } from "@/remotion/props";
 import { getEditorialMotion } from "@/config/editorial-motion";
 import { getGraphicMotion } from "@/config/graphic-motion";
 import { getReferenceMotion } from "@/config/reference-motion";
+import { stageTheme } from "@/config/stage-motion";
 import { getTypePoster } from "@/config/type-posters";
 import { getLogoMotion } from "@/config/logo-motion";
 
@@ -27,6 +28,26 @@ export function demoVideoProps(style: VideoStyle, format: VideoFormatId, locale:
       })),
     },
   };
+  // Univers 3D : une scène à trois appareils pour montrer la mise en scène multi-écrans
+  if (style.recipe.stage) {
+    const fr = locale === "fr";
+    const theme = stageTheme(style.recipe.stage);
+    const scenes = [
+      { kind: "intro", title: fr ? theme.headline.fr : theme.headline.en, subtitle: fr ? "Votre progression, enfin visible" : "Your progress, finally visible", duration: 3.2 },
+      { kind: "screens", title: fr ? "Suivi en direct" : "Live tracking", duration: 3 },
+      { kind: "feature", title: fr ? "Tout au même endroit" : "Everything in one place", subtitle: fr ? "Simple. Rapide. Puissant." : "Simple. Fast. Powerful.", duration: 3 },
+      { kind: "screens", title: fr ? "Chaque écran compte" : "Every screen counts", duration: 3, screenCount: 3 },
+      { kind: "logo", title: "Flowly", duration: 2.6 },
+      { kind: "cta", title: fr ? "Essaie Flowly" : "Try Flowly", subtitle: fr ? "Disponible dès aujourd’hui" : "Available today", duration: 3 },
+    ] as const;
+    return {
+      ...demoProps, format, locale, palette: style.palette, recipe: style.recipe, screenUrls: [], backgroundUrl: null, musicSrc: null, watermark: false,
+      graph: {
+        ...demoProps.graph, language: locale, energy, styleId: style.id, screenFrame: "phone",
+        scenes: scenes.map((scene, i) => ({ ...scene, id: `stage-${i}`, transition: i === 0 ? "fade" : style.recipe.transitions[(i - 1) % style.recipe.transitions.length] })),
+      },
+    };
+  }
   const editorial = getEditorialMotion(style.id);
   const graphic = getGraphicMotion(style.id);
   const reference = getReferenceMotion(style.id);

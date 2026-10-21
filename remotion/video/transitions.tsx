@@ -449,7 +449,141 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     style: ({ inP }) => (inP < 1 ? { transform: `scaleY(${Math.max(0.001, inP)})` } : {}),
     exit: { frames: 10, style: (t) => ({ transform: `scaleY(${Math.max(0.001, 1 - t)})` }) },
   },
+  // Tour de plateau (Stage) : l'appareil 3D fait un tour sur lui-même (stage3d.tsx) ; les textes partent dans le sens
+  // de la rotation en perspective et la scène suivante arrive de l'autre côté. Hors Stage : simple pivot en perspective.
+  turntable: {
+    enter: (energy) => (energy === "high" ? 11 : 14),
+    fadeOut: false,
+    style: ({ inP, unit }) => (inP < 1 ? { transform: `perspective(${unit * 160}px) translateX(${(1 - inP) * unit * 9}px) rotateY(${(1 - inP) * -24}deg)`, filter: `blur(${(1 - inP) * unit * 0.6}px)` } : {}),
+    exit: { frames: 12, style: (t, c) => ({ transform: `perspective(${c.unit * 160}px) translateX(${-t * t * c.unit * 9}px) rotateY(${t * t * 24}deg)`, filter: `blur(${t * c.unit * 0.6}px)`, opacity: 1 - t * t }) },
+  },
+  // ── Univers 3D (stage3d.tsx) : le décor fait le geste, les textes suivent ──
+  // Course du soleil (Monument) : les textes s'éclairent et se dissolvent dans la lumière, un halo chaud passe
+  sunpath: {
+    enter: (energy) => (energy === "high" ? 16 : 22),
+    fadeOut: false,
+    style: ({ inP, unit }) => (inP < 1 ? { opacity: inP, filter: `brightness(${1 + (1 - inP) * 0.8}) blur(${(1 - inP) * unit * 0.7}px)`, transform: `translateY(${(1 - inP) * unit * 2}px)` } : {}),
+    overlay: ({ inP, palette }) => (inP < 1 ? <SunGlow intensity={(1 - inP) * 0.55} color={palette[2]} /> : null),
+    exit: { frames: 16, style: (t, c) => ({ opacity: 1 - t, filter: `brightness(${1 + t * 0.8}) blur(${t * c.unit * 0.7}px)`, transform: `translateY(${-t * c.unit * 2}px)` }), cover: (c) => <SunGlow intensity={c.p * 0.55} color={c.palette[2]} /> },
+  },
+  // Flash (Shoot) : un flash de studio éclate, le plan change sous la lumière (un seul éclair : bien sous 3 flashs/s)
+  flash: {
+    enter: () => 9,
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: ({ inP }) => (inP < 1 ? <AbsoluteFill style={{ background: "#ffffff", opacity: (1 - inP) ** 2 * 0.95, pointerEvents: "none" }} /> : null),
+    exit: { frames: 5, cover: (c) => <AbsoluteFill style={{ background: "#ffffff", opacity: c.p * c.p * 0.95, pointerEvents: "none" }} /> },
+  },
+  // Courant (Aquarium) : l'appareil tourne dans un nuage de bulles ; les textes remontent comme des bulles
+  current: {
+    enter: (energy) => (energy === "high" ? 13 : 18),
+    fadeOut: false,
+    style: ({ inP, unit }) => (inP < 1 ? { opacity: inP, transform: `translateY(${(1 - inP) * unit * 7}px)`, filter: `blur(${(1 - inP) * unit * 0.7}px)` } : {}),
+    exit: { frames: 14, style: (t, c) => ({ opacity: 1 - t * t, transform: `translateY(${-t * t * c.unit * 7}px)`, filter: `blur(${t * c.unit * 0.7}px)` }) },
+  },
+  // Râteau (Zen) : une bande de sable ratissé balaie l'écran et emporte la scène ; la suivante se découvre derrière
+  rake: {
+    enter: (energy) => (energy === "high" ? 14 : 18),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => (c.inP < 1 ? <RakeCover p={1 - c.inP} phase="in" unit={c.unit} palette={c.palette} /> : null),
+    exit: { frames: 16, cover: (c) => <RakeCover p={c.p} phase="out" unit={c.unit} palette={c.palette} /> },
+  },
+  "array-sweep": {
+    enter: () => 26,
+    fadeOut: false,
+    style: ({ inP, unit }) => ({ opacity: inP, transform: `translateX(${(1 - inP) * unit * 3}px)`, filter: `blur(${(1 - inP) * unit * 0.4}px)` }),
+    exit: { frames: 20, style: (t, c) => ({ opacity: 1 - t, transform: `translateX(${-t * c.unit * 3}px)`, filter: `blur(${t * c.unit * 0.4}px)` }) },
+  },
+  "gyro-turn": {
+    enter: () => 28,
+    fadeOut: false,
+    style: ({ inP, unit }) => ({ opacity: inP, transform: `perspective(${unit * 180}px) rotateY(${(1 - inP) * -10}deg)`, filter: `blur(${(1 - inP) * unit * 0.3}px)` }),
+    exit: { frames: 22, style: (t, c) => ({ opacity: 1 - t, transform: `perspective(${c.unit * 180}px) rotateY(${t * 10}deg)`, filter: `blur(${t * c.unit * 0.3}px)` }) },
+  },
+  "magnetic-lock": {
+    enter: () => 22,
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP }) => ({ opacity: inP }),
+    overlay: ({ inP, accent }) => inP < 1 ? <MagneticCover p={1 - inP} glow={accent} /> : null,
+    exit: { frames: 18, style: (t) => ({ opacity: 1 - t }), cover: (c) => <MagneticCover p={c.p} glow={c.palette[2]} /> },
+  },
+  "vault-pass": {
+    enter: () => 26,
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP, unit }) => ({ opacity: inP, transform: `translateX(${(1 - inP) * unit * 2}px)` }),
+    overlay: ({ inP }) => inP < 1 ? <VaultPassCover p={1 - inP} entering /> : null,
+    exit: { frames: 22, style: (t) => ({ opacity: 1 - t }), cover: (c) => <VaultPassCover p={c.p} /> },
+  },
+  "stone-slide": {
+    enter: () => 22,
+    fadeOut: false,
+    opaque: true,
+    style: ({ inP, unit }) => ({ opacity: inP, transform: `translateX(${(1 - inP) * unit * 3}px)` }),
+    overlay: ({ inP }) => inP < 1 ? <StoneSlideCover p={1 - inP} entering /> : null,
+    exit: { frames: 18, style: (t) => ({ opacity: 1 - t }), cover: (c) => <StoneSlideCover p={c.p} /> },
+  },
+  "halo-pass": {
+    enter: () => 24,
+    fadeOut: false,
+    style: ({ inP, unit }) => ({ opacity: inP, filter: `blur(${(1 - inP) * unit * 0.35}px)`, transform: `scale(${1 + (1 - inP) * 0.025})` }),
+    exit: { frames: 20, style: (t, c) => ({ opacity: 1 - t, filter: `blur(${t * c.unit * 0.35}px)` }) },
+  },
+  // Quartier suivant (Kiosque) : la caméra survole la ville ; les textes filent dans le sens du vol
+  district: {
+    enter: (energy) => (energy === "high" ? 20 : 26),
+    fadeOut: false,
+    style: ({ inP, unit }) => (inP < 1 ? { opacity: inP, transform: `translateX(${(1 - inP) ** 2 * unit * 14}px)`, filter: `blur(${(1 - inP) * unit}px)` } : {}),
+    exit: { frames: 20, style: (t, c) => ({ opacity: 1 - t, transform: `translateX(${-t * t * c.unit * 14}px)`, filter: `blur(${t * c.unit}px)` }) },
+  },
 };
+
+/** Facing metal poles meet at the scene boundary, then release the new screen. */
+function MagneticCover({ p, glow }: { p: number; glow: string }) {
+  const k = Easing.inOut(Easing.cubic)(Math.max(0, Math.min(1, p)));
+  return <AbsoluteFill style={{ pointerEvents: "none", overflow: "hidden" }}>
+    {[-1, 1].map((side) => <div key={side} style={{ position: "absolute", left: 0, right: 0, [side < 0 ? "top" : "bottom"]: 0, height: "50.1%", transform: `translateY(${side * (1 - k) * 101}%)`, background: side < 0 ? "linear-gradient(175deg, #2D3B4E, #101A29 75%, #060C15)" : "linear-gradient(5deg, #2D3B4E, #101A29 75%, #060C15)", boxShadow: `${side < 0 ? "0 1px" : "0 -1px"} 0 ${glow}, 0 0 24px #0006` }} />)}
+  </AbsoluteFill>;
+}
+
+/** A near limestone pillar crosses the lens, continuing through the scene boundary. */
+function VaultPassCover({ p, entering = false }: { p: number; entering?: boolean }) {
+  const k = Easing.inOut(Easing.cubic)(Math.max(0, Math.min(1, p)));
+  return <AbsoluteFill style={{ pointerEvents: "none", background: "linear-gradient(95deg, #B8A98D, #E3D7C0 18%, #F0E7D7 80%, #C8BAA1)", transform: `translateX(${entering ? (1 - k) * 100 : (k - 1) * 100}%)`, boxShadow: "12px 0 40px #5A493530" }} />;
+}
+
+/** One stone slab continues left to right across the scene boundary. */
+function StoneSlideCover({ p, entering = false }: { p: number; entering?: boolean }) {
+  return <AbsoluteFill style={{ pointerEvents: "none", background: "linear-gradient(105deg, #17191D, #292C32 60%, #121418)", borderRight: "1px solid #756C5E", transform: `translateX(${entering ? (1 - p) * 100 : (p - 1) * 100}%)`, boxShadow: "12px 0 36px #0008" }} />;
+}
+
+/** Halo chaud qui descend du haut de l'image (course du soleil). */
+function SunGlow({ intensity, color }: { intensity: number; color: string }) {
+  if (intensity <= 0.001) return null;
+  return <AbsoluteFill style={{ pointerEvents: "none", opacity: intensity, background: `radial-gradient(ellipse 80% 60% at 70% 0%, color-mix(in srgb, #ffd9a0 70%, ${color}), transparent 70%)`, mixBlendMode: "screen" }} />;
+}
+
+/**
+ * Bande de sable ratissé (Zen) : `p` = part couverte. En sortie, elle entre par la gauche ; en entrée, elle repart par la droite.
+ * Sillons horizontaux, liseré d'ombre sur le bord qui avance, couleur du sable (fond clair de la palette, sinon sable naturel).
+ */
+function RakeCover({ p, phase, unit, palette }: { p: number; phase: "in" | "out"; unit: number; palette: VideoProps["palette"] }) {
+  if (p <= 0.001) return null;
+  const sand = /^#[0-9a-f]{6}$/i.test(palette[0]) && Number.parseInt(palette[0].slice(1, 3), 16) + Number.parseInt(palette[0].slice(3, 5), 16) + Number.parseInt(palette[0].slice(5, 7), 16) > 520 ? palette[0] : "#E7DECF";
+  const k = Easing.inOut(Easing.cubic)(Math.min(1, p));
+  // Sortie : bord droit de la bande à k × 100 % ; entrée : bord gauche qui part vers la droite
+  const left = phase === "out" ? -110 + k * 110 : (1 - k) * 110;
+  const grooves = `repeating-linear-gradient(180deg, rgb(0 0 0 / 0.07) 0 ${unit * 0.35}px, rgb(255 255 255 / 0.18) ${unit * 0.35}px ${unit * 0.6}px, transparent ${unit * 0.6}px ${unit * 1.7}px)`;
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: 0, bottom: 0, left: `${left}%`, width: "110%", background: `${grooves}, ${sand}`, boxShadow: `${phase === "out" ? "" : "-"}${unit * 2}px 0 ${unit * 4}px rgb(60 40 20 / 0.28)` }} />
+    </AbsoluteFill>
+  );
+}
 
 /** Blocs de couleur en mode différence, tirés au sort à chaque image (entrée « glitch »). */
 function GlitchBlocks({ frame, intensity, accent }: { frame: number; intensity: number; accent: string }) {

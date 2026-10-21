@@ -26,7 +26,7 @@ export function Segmented<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className={cn("relative inline-flex items-center gap-1 rounded-full border border-line bg-surface-2/70 p-1", className)}
+      className={cn("relative inline-flex max-w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-line bg-surface-2/70 p-1 scrollbar-none", className)}
     >
       {options.map((option) => {
         const active = option.value === value;
@@ -39,7 +39,7 @@ export function Segmented<T extends string>({
             disabled={option.disabled}
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative whitespace-nowrap rounded-full font-medium transition-colors disabled:opacity-40",
+              "relative min-h-9 shrink-0 whitespace-nowrap rounded-full font-medium transition-colors disabled:opacity-40",
               size === "sm" ? "px-3 py-1 text-xs" : "px-4 py-1.5 text-sm",
               active ? "text-fg" : "text-muted hover:text-fg",
             )}

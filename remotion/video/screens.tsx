@@ -8,6 +8,7 @@ import { MAX_SCREEN_COUNT, sceneFocuses, sceneScreens, type Scene, type ScreenFo
 import type { VideoProps } from "../props";
 import { BrowserFrame, MockScreen, PhoneFrame, screensDevice } from "./devices";
 import { FocusLayout } from "./focus";
+import { StageScreensTitle } from "./stage-layout";
 import { framingTransition } from "./focus-transition";
 import { AnimatedTitle } from "./titles";
 import { luminance, textColorOn, useIsPortrait, useBeat, useTitleFont, useUnit } from "./theme";
@@ -47,6 +48,9 @@ export function ScreensScene({ scene, props }: Props) {
   const { fps } = useVideoConfig();
   // Mise en avant d'une zone d'un screen : remplace la mise en page pour cette scène
   const focuses = sceneFocuses(scene).filter((focus) => props.screenUrls.includes(focus.src));
+  // Stage : l'appareil 3D du fond montre les captures et joue les mises en avant ; la scène ne pose que ses textes
+  // (sauf mise en page 2D choisie par l'utilisateur, sans mise en avant)
+  if (props.recipe.stage && (focuses.length || !scene.layout)) return <StageScreensTitle scene={scene} props={props} focuses={focuses} />;
   if (focuses.length) {
     const total = Math.max(1, Math.round(scene.duration * fps));
     const start = (index: number) => Math.round(index * total / focuses.length);

@@ -44,7 +44,9 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
   const [videoFormat, setVideoFormat] = useState<VideoFormatId>("LANDSCAPE");
   const closePreview = useCallback(() => { if (!applying) setOpen(null); }, [applying]);
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const startHover = (id: string) => setPlayingId(id);
+  const startHover = (id: string) => {
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) setPlayingId(id);
+  };
   const endHover = () => setPlayingId(null);
   // Logo motions have their own creation flow: they get their own tab, and are never offered while picking a style in the classic wizard.
   const styles = VIDEO_STYLES.filter((style) => kind === "logo" ? Boolean(getLogoMotion(style.id)) : !getLogoMotion(style.id) && (filter === "all" || style.category === filter));
@@ -54,7 +56,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
       {!onSelect && <div className="mb-6"><Segmented label={postCopy(t.locale).newContent} value={kind} onChange={(value) => { endHover(); setKind(value); }} options={[{ value: "motion", label: postCopy(t.locale).motion }, { value: "logo", label: t.styleCategories.logo }, { value: "post", label: postCopy(t.locale).posts }, { value: "store", label: storeCopy(t.locale).kind }]} /></div>}
       {kind === "store" ? <StoreTemplateGallery /> : kind === "post" ? <PostTemplateGallery /> : <>
       <div className={cn("flex flex-col gap-4", !compact && "sm:flex-row sm:items-center sm:justify-between")}>
-        {kind === "logo" ? <span /> : <div className="-mx-4 overflow-x-auto px-4 scrollbar-none sm:mx-0 sm:px-0">
+        {kind === "logo" ? <span /> : <div className="min-w-0 overflow-x-auto scrollbar-none">
           <Segmented
             label={tt.title}
             size="sm"
@@ -63,7 +65,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
             options={(["all", ...STYLE_CATEGORIES] as Filter[]).map((value) => ({ value, label: t.styleCategories[value] }))}
           />
         </div>}
-        <p className="text-sm text-subtle">{format(tt.count, { count: styles.length })}</p>
+        <p className="shrink-0 text-sm text-subtle">{format(tt.count, { count: styles.length })}</p>
       </div>
 
       <motion.ul layout className={cn("mt-6 grid grid-cols-2 gap-3 sm:gap-4", compact ? "sm:grid-cols-3" : "md:grid-cols-3 xl:grid-cols-4")}>

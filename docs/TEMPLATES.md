@@ -6,6 +6,7 @@ Règles de direction artistique des templates motion (signature, transitions th�
 Collection typographique Power, Spectra, Batch et Turn : `docs/TYPE-POSTERS.md` (signatures, architecture, vérifications).
 Extension Fanout, Block, Positive et Helix : `docs/SPATIAL-TYPE-POSTERS.md` (géométrie, signatures et prévisualisations).
 Spill et Veil : `docs/LIQUID-TYPE-POSTERS.md` (coulures en perspective, reflets et plis violets).
+Templates en vraie 3D (Stage, Array, Orbit 3D, Shoot, Aquarium, Zen, Kiosque, Obsidian, Halo 3D, Magnet, Vault ; three.js, export ×2) : `docs/STAGE-3D.md`.
 
 ## Le principe en une phrase
 

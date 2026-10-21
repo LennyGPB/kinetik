@@ -42,6 +42,11 @@ function insufficient(error: InsufficientCreditsError) {
   return { ok: false as const, error: "insufficient_credits" as const, required: error.required, available: error.available };
 }
 
+/** Le rendu passe par le plateau 3D (export plus coûteux) : même règle que buildVideoProps (style de la version, sauf pitch). */
+function isPremium3d(projectStyleId: string | null, graph: SceneGraph) {
+  return !graph.pitch && Boolean(getRecipe(graph.styleId ?? projectStyleId).stage);
+}
+
 async function ownedProject(userId: string, projectId: string) {
   return db.project.findFirst({ where: { id: projectId, userId, kind: "MOTION" } });
 }
@@ -785,7 +790,7 @@ const types = t.app.credits.types;
     if (running >= LIMITS.exportConcurrent) return { ok: false, error: "export_busy" };
     // Ré-export (le projet a déjà un rendu réussi ou en cours) : moitié prix. Décidé sous le verrou pour éviter deux « premiers » exports
     const reexport = (await db.render.count({ where: { projectId, status: { not: "FAILED" } } })) > 0;
-    cost = getExportCost({ duration, quality: options.quality, reexport });
+    cost = getExportCost({ duration, quality: options.quality, reexport, premium3d: isPremium3d(project.styleId, graph) });
     render = await db.render.create({
       data: { projectId, versionId: latest.id, status: "RENDERING", format: options.format, quality: options.quality, watermark: plan.watermark, creditCost: cost },
     });
@@ -854,7 +859,8 @@ export async function startExports(
 
   const duration = totalDuration(parseSceneGraph(latest.scenes));
   const exported = (await db.render.count({ where: { projectId, status: { not: "FAILED" } } })) > 0;
-  const required = formats.reduce((sum, _, i) => sum + getExportCost({ duration, quality: options.quality, reexport: exported || i > 0 }), 0);
+  const premium3d = isPremium3d(project.styleId, parseSceneGraph(latest.scenes));
+  const required = formats.reduce((sum, _, i) => sum + getExportCost({ duration, quality: options.quality, reexport: exported || i > 0, premium3d }), 0);
   const available = (await getCreditBalance(user.id)).total;
   if (available < required) return { ok: false, error: "insufficient_credits", required, available };
 

@@ -8,7 +8,8 @@ export type { BackgroundKind, Recipe, ScreensLayout, Typography } from "./recipe
 /** Fond animé du template (alias historique). */
 export type SceneKind = BackgroundKind;
 
-export type StyleCategory = "editorial" | "tech" | "minimal" | "typo" | "bold" | "fun" | "business";
+/** "3d" : templates rendus en vraie 3D (three.js), export facturé plus cher (docs/STAGE-3D.md). */
+export type StyleCategory = "3d" | "editorial" | "tech" | "minimal" | "typo" | "bold" | "fun" | "business";
 
 /** Fiche catalogue d'un template. Son rendu est décrit par sa recette (config/recipes.ts). */
 export type VideoStyle = {
@@ -24,7 +25,7 @@ export type VideoStyle = {
   recipe: Recipe;
 };
 
-export const STYLE_CATEGORIES: StyleCategory[] = ["editorial", "tech", "minimal", "typo", "bold", "fun", "business"];
+export const STYLE_CATEGORIES: StyleCategory[] = ["3d", "editorial", "tech", "minimal", "typo", "bold", "fun", "business"];
 
 const CATALOG: Omit<VideoStyle, "recipe">[] = [
   { id: "spill", name: "Spill", category: "typo", palette: ["#141414", "#E6E4E2", "#D5D2D0"], ratio: "9:16" },
@@ -53,6 +54,17 @@ const CATALOG: Omit<VideoStyle, "recipe">[] = [
   { id: "logo-coil", name: "Coil", category: "typo", palette: ["#0D1321", "#F0EBD8", "#FF9F1C"], ratio: "1:1" },
   { id: "logo-impact", name: "Impact", category: "typo", palette: ["#111111", "#FFFFFF", "#FF2E2E"], ratio: "1:1" },
   { id: "logo-neon", name: "Neon", category: "typo", palette: ["#0B0716", "#FFE9FF", "#FF3EC8"], ratio: "1:1" },
+  { id: "obsidian", name: "Obsidian", category: "3d", palette: ["#101114", "#F4F1EC", "#C7AD87"], ratio: "16:9" },
+  { id: "magnet", name: "Magnet", category: "3d", palette: ["#080D15", "#F2F5F8", "#43B7FF"], ratio: "16:9" },
+  { id: "vault", name: "Vault", category: "3d", palette: ["#EAE4D9", "#292820", "#A68A5C"], ratio: "16:9" },
+  { id: "halo", name: "Halo 3D", category: "3d", palette: ["#080D18", "#F3F6FF", "#A6C8FF"], ratio: "16:9" },
+  { id: "stage", name: "Stage", category: "3d", palette: ["#09090C", "#FFFFFF", "#FF5A1F"], ratio: "16:9" },
+  { id: "monument", name: "Array", category: "3d", palette: ["#0B0D12", "#F6F4EF", "#D4AE74"], ratio: "16:9" },
+  { id: "orbit-3d", name: "Orbit 3D", category: "3d", palette: ["#080E14", "#F0F7FA", "#72E5CD"], ratio: "16:9" },
+  { id: "shoot", name: "Shoot", category: "3d", palette: ["#F2F2EF", "#121214", "#2F6BFF"], ratio: "16:9" },
+  { id: "aquarium", name: "Aquarium", category: "3d", palette: ["#06324A", "#FFFFFF", "#4FE3C1"], ratio: "16:9" },
+  { id: "zen", name: "Zen", category: "3d", palette: ["#ECE4D6", "#2B2620", "#E07A8A"], ratio: "16:9" },
+  { id: "kiosk", name: "Kiosque", category: "3d", palette: ["#E9EFF4", "#1C2430", "#FF6B4A"], ratio: "16:9" },
   { id: "lucent", name: "Lucent", category: "tech", palette: ["#100D10", "#FF7B36", "#B341EB"], ratio: "9:16" },
   { id: "bold-orbit", name: "Bold Orbit", category: "minimal", palette: ["#030303", "#F8F8F5", "#FF79C8"], ratio: "9:16" },
   { id: "gold-rush", name: "Gold Rush", category: "bold", palette: ["#100707", "#F5C45B", "#EB170D"], ratio: "9:16" },

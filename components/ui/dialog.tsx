@@ -51,7 +51,7 @@ export function Dialog({
       panelRef.current?.querySelectorAll<HTMLElement>(
         "button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex=\"-1\"])",
       ) ?? [];
-    requestAnimationFrame(() => (focusables()[1] ?? focusables()[0])?.focus());
+    const focusFrame = requestAnimationFrame(() => (focusables()[0])?.focus({ preventScroll: true }));
 
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -70,9 +70,10 @@ export function Dialog({
     };
     document.addEventListener("keydown", onKey);
     return () => {
+      cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = overflow;
-      previous?.focus?.();
+      previous?.focus?.({ preventScroll: true });
     };
   }, [open, onClose]);
 
@@ -89,7 +90,7 @@ export function Dialog({
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
-          <div className={cn("relative flex w-full items-center justify-center", aside && "sm:w-auto lg:gap-8")}>
+          <div className={cn("relative flex w-full min-w-0 max-w-full items-center justify-center", aside && "sm:w-auto lg:gap-8")}>
           <motion.div
             ref={panelRef}
             role="dialog"
@@ -100,7 +101,7 @@ export function Dialog({
             exit={{ opacity: 0, y: 30, scale: 0.98, transition: { duration: 0.18 } }}
             transition={{ type: "spring", stiffness: 380, damping: 34 }}
             className={cn(
-              "relative max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl border border-line-strong bg-surface/90 p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[inset_0_1px_0_rgb(255_255_255/0.08),0_24px_80px_-24px_rgb(0_0_0/0.45)] backdrop-blur-2xl backdrop-saturate-125 sm:max-w-lg sm:rounded-3xl sm:pb-6",
+              "relative max-h-[92dvh] w-full min-w-0 max-w-full overflow-x-hidden overflow-y-auto overscroll-contain rounded-t-3xl border border-line-strong bg-surface/90 p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-[inset_0_1px_0_rgb(255_255_255/0.08),0_24px_80px_-24px_rgb(0_0_0/0.45)] backdrop-blur-2xl backdrop-saturate-125 sm:max-w-lg sm:rounded-3xl sm:pb-6",
               aside && "sm:w-[32rem] sm:shrink-0",
               className,
             )}

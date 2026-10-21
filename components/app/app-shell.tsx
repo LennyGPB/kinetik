@@ -9,7 +9,7 @@ import { motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
 import { usePathname } from "@/lib/i18n/navigation";
 import type { ReactNode } from "react";
-import { Logo } from "@/components/brand/logo";
+import { Logo, LogoMark } from "@/components/brand/logo";
 import { LanguageToggle } from "@/components/ui/language-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
@@ -93,18 +93,19 @@ export function AppShell({
       </aside>
 
       {/* Barre supérieure mobile */}
-      <header className="glass sticky top-0 z-40 flex h-14 items-center justify-between border-b border-line px-4 lg:hidden">
-        <Link href="/dashboard" aria-label={t.app.nav.dashboard} className="rounded-full">
-          <Logo />
+      <header className="glass sticky top-0 z-40 flex h-14 min-w-0 items-center justify-between gap-2 border-b border-line px-3 sm:px-4 lg:hidden">
+        <Link href="/dashboard" aria-label={t.app.nav.dashboard} className="shrink-0 rounded-full">
+          <span className="sm:hidden"><LogoMark /></span>
+          <span className="hidden sm:inline-flex"><Logo /></span>
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
           <LanguageToggle />
           <ThemeToggle />
           {mobileAccount}
         </div>
       </header>
 
-      <main className="px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-16">{children}</main>
+      <main className="min-w-0 px-4 pt-6 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-10 lg:pt-10 lg:pb-16">{children}</main>
 
       {/* Onglets mobile */}
       <nav

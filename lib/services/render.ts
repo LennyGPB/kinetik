@@ -129,6 +129,8 @@ export async function startLambdaRender({ props, quality, fileName, userId, batc
     scale: quality === "SD" ? 2 / 3 : 1,
     privacy: "private",
     maxRetries: 1,
+    // Plateau 3D (Stage) : WebGL logiciel, seul disponible sur Lambda (pas de GPU) ; les écrans peuvent mettre du temps à se peindre
+    ...(props.recipe.stage && { chromiumOptions: { gl: "swangle" as const }, timeoutInMilliseconds: 120_000 }),
     // Découpe la vidéo en morceaux rendus en parallèle, dans la part du quota AWS de ce rendu (Remotion impose 4 images minimum par morceau)
     framesPerLambda: Math.max(4, Math.ceil(durationInFrames(props.graph) / lambdasPerRender(batch))),
     downloadBehavior: { type: "download", fileName },

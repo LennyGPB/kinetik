@@ -6,6 +6,9 @@ import { AbsoluteFill, Audio, Img, getRemotionEnvironment, interpolate, Sequence
 import { EditorialBackdrop } from "./editorial-backdrop";
 import { GraphicBackdrop } from "./graphic-backdrop";
 import { ReferenceBackdrop } from "./reference-motion";
+import { StageBackdrop } from "./stage3d";
+import { stageDeviceId, stageScreens, stageShowsDevice } from "../../config/stage-motion";
+import { sceneFocuses, sceneScreens } from "../../lib/projects/scenes";
 import { beatGrid } from "../../lib/projects/scenes";
 import { musicalClock } from "../../lib/audio/beat";
 import { sceneSettings } from "../../lib/projects/scene-settings";
@@ -17,7 +20,7 @@ import { Effects } from "./effects";
 import { SCENES } from "./scenes";
 import { BeatContext, bodyFont, luminance, RecipeContext, useUnit } from "./theme";
 import { backdropMotion, SceneShell, sceneTimeline } from "./transitions";
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import { VoiceoverAudio, NarrationCaptions } from "./voiceover";
 import { PitchChartScene } from "./pitch-chart";
 import { musicDuckVolume } from "../../lib/projects/voiceover";
@@ -50,13 +53,31 @@ function MotionVideo({ input }: { input: VideoProps }) {
   const photoSrc = photoUrl?.startsWith("/post-demos/") && getRemotionEnvironment().isRendering ? staticFile(photoUrl.slice(1)) : photoUrl;
   const backdropId = `bd${useId().replace(/[^\w-]/g, "")}`;
 
-  const backdrop = (pal: VideoProps["palette"]) => recipe.referenceMotion ? <ReferenceBackdrop kind={recipe.referenceMotion} palette={palette} time={(frame - (activeScene?.from ?? 0)) / fps} aspectRatio={width / height} renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} /> : recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={pal} beatPosition={musicalClock(frame, fps, graph.bpm, phaseFrames).position} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={pal} scene={activeIndex} time={frame / fps}
+  // Plateau 3D (Stage) : un seul rendu WebGL pour toute la vidéo, la caméra voyage d'une scène à l'autre
+  const stage = useMemo(() => {
+    if (!recipe.stage) return null;
+    const screens = stageScreens(graph.scenes, props.screenUrls, (scene) => sceneScreens(graph.scenes, scene, props.screenUrls, 1));
+    const userLogoLayout = Boolean(graph.logoLayout);
+    return {
+      screens,
+      scenes: timeline.map(({ scene, from, duration }, i) => {
+        // Mises en avant (zoom / découpe) : jouées en 3D sur l'écran d'un seul appareil
+        const focus = scene.kind === "screens" ? sceneFocuses(scene).filter((item) => props.screenUrls.includes(item.src)) : [];
+        return { kind: scene.kind, transition: scene.transition, from, duration, deviceCount: focus.length ? 1 : screens[i].length, showDevice: stageShowsDevice(scene, userLogoLayout), ...(focus.length && { focus }) };
+      }),
+      deviceId: stageDeviceId(graph.deviceMockup, props.screenRatios),
+    };
+    // La timeline se déduit des scènes, du tempo et de la phase
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipe.stage, graph.scenes, graph.logoLayout, graph.deviceMockup, graph.bpm, grid.phase, props.screenUrls, props.screenRatios]);
+
+  const backdrop = (pal: VideoProps["palette"]) => stage ? <StageBackdrop kind={recipe.stage!} palette={palette} scenes={stage.scenes} screens={stage.screens} deviceId={stage.deviceId} appName={props.appName} logoUrl={props.logoUrl} font={bodyFont} bpm={graph.bpm} phaseFrames={phaseFrames} /> : recipe.referenceMotion ? <ReferenceBackdrop kind={recipe.referenceMotion} palette={palette} time={(frame - (activeScene?.from ?? 0)) / fps} aspectRatio={width / height} renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} /> : recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={pal} beatPosition={musicalClock(frame, fps, graph.bpm, phaseFrames).position} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={pal} scene={activeIndex} time={frame / fps}
     progress={activeScene ? Math.max(0, Math.min(1, (frame - activeScene.from) / activeScene.duration)) : 0}
     renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} />
     : <Background kind={recipe.background} palette={pal} energy={graph.energy} />;
   // Couleurs de marque réparties par scène : les décors passent d'une palette à l'autre en fondu autour de la frontière,
   // au lieu d'un saut visible (fonds animés et graphiques ; les fonds photo et « reference » suivent leur scène).
-  const blend = recipe.referenceMotion || recipe.photoTreatment ? undefined : paletteBlend(timeline, frame, (i) => graph.pitch ? palette : scenePalette(palette, colors, i));
+  const blend = recipe.stage || recipe.referenceMotion || recipe.photoTreatment ? undefined : paletteBlend(timeline, frame, (i) => graph.pitch ? palette : scenePalette(palette, colors, i));
   const backdropLayer = blend ? <>{backdrop(blend.from)}<AbsoluteFill style={{ opacity: blend.k }}>{backdrop(blend.to)}</AbsoluteFill></> : backdrop(activePalette);
   // Transitions qui emportent tout le cadre (whip, ripple) : le fond bouge avec la scène
   const backdropMove = backdropMotion(timeline, frame, (i) => sceneSettings(graph, timeline[i].scene).energy, u, backdropId, recipe.motion?.ease);

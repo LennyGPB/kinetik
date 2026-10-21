@@ -78,7 +78,7 @@ export function legalEn(d: LegalData): Record<LegalSlug, LegalDoc> {
               `Generating a motion design video or an animated signature: ${d.costs.generation} credits`,
               `Edit requested from the assistant: ${d.costs.edit} credits`,
               `Translating the copy: ${d.costs.translation} credit`,
-              `Exporting a video of up to ${d.costs.shortMaxSeconds} seconds: ${d.costs.exportShort} credits; longer export: ${d.costs.exportLong} credits. Re-exporting the same project costs half price.`,
+              `Exporting a video of up to ${d.costs.shortMaxSeconds} seconds: ${d.costs.exportShort} credits; longer export: ${d.costs.exportLong} credits. Real 3D templates (marked “3D” in the gallery) cost ${d.costs.export3dMultiplier} times this price to export. Re-exporting the same project costs half price.`,
               `Pitch deck to video: ${d.costs.pitchAnalysis} credits to analyze the document, then ${d.costs.pitchCreation} credits to create the motion`,
               `Voiceover: ${d.costs.voicePerUnit} credit${d.costs.voicePerUnit > 1 ? "s" : ""} per ${d.costs.voiceCharacters} characters, per scene; script suggestion: ${d.costs.voiceScript} credit${d.costs.voiceScript > 1 ? "s" : ""}`,
               `Screen demo: ${d.costs.recordingImport} credits when the recording is imported`,

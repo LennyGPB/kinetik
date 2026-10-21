@@ -21,7 +21,7 @@ export function buildVideoProps(project: VideoSource, graph: SceneGraph, waterma
     format: project.format,
     palette: graph.pitch && colors.length >= 2 ? [colors[0], colors[1], colors[2] ?? colors[1]] : palette,
     brandColors: graph.colors ?? project.colors,
-    recipe: graph.pitch ? { ...recipe, graphicTreatment: undefined, referenceMotion: undefined, photoTreatment: undefined, background: "clean", titleAnimation: "words", camera: "still", effects: [] } : recipe,
+    recipe: graph.pitch ? { ...recipe, graphicTreatment: undefined, referenceMotion: undefined, stage: undefined, photoTreatment: undefined, background: "clean", titleAnimation: "words", camera: "still", effects: [] } : recipe,
     graph,
     logoUrl: project.logoUrl,
     backgroundUrl: project.backgroundUrl ?? null,

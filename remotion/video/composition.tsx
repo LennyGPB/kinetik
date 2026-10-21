@@ -5,6 +5,7 @@ import type { Scene } from "../../lib/projects/scenes";
 import type { VideoProps } from "../props";
 import { MovableText } from "./movable-text";
 import { AnimatedTitle } from "./titles";
+import { StageTextLayout } from "./stage-layout";
 import { ReferenceTextLayout } from "./reference-layout";
 import { LogoMotionLayout } from "./logo-motion-layout";
 import { SmearLayout } from "./smear";
@@ -102,6 +103,7 @@ export function TextLayout(layout: TextLayoutProps) {
   const recipe = useRecipe();
   const composition: Composition = recipe.composition;
   if (recipe.logoMotion) return <LogoMotionLayout {...layout} />;
+  if (recipe.stage) return <StageTextLayout {...layout} />;
   if (recipe.referenceMotion) return <ReferenceTextLayout {...layout} />;
   if (recipe.graphicTreatment || recipe.editorialLayout) return <AuthoredLayout {...layout} />;
   const Layout = LAYOUTS[composition];

@@ -35,6 +35,8 @@ export const CREDIT_COSTS = {
     short: 5,
     /** Export > 30 s */
     long: 10,
+    /** Templates en vraie 3D (Stage) : rendu WebGL bien plus long sur Lambda, export facturé ce multiple */
+    premium3dMultiplier: 2,
   },
 } as const;
 
@@ -80,9 +82,10 @@ export const EXPORT_QUALITIES: ExportQuality[] = ["SD", "HD"];
 /**
  * Coût d'un export. `reexport` : le projet a déjà été exporté (rendu réussi ou en cours) → moitié prix, arrondi au supérieur.
  * Une déclinaison (autre format, version courte) est un projet à part : son premier export est plein tarif.
+ * `premium3d` : template rendu en vraie 3D (recette avec `stage`), tarif multiplié par `premium3dMultiplier`.
  */
-export function getExportCost({ duration, reexport = false }: { duration: number; quality?: ExportQuality; reexport?: boolean }) {
-  const { shortMaxSeconds, short, long } = CREDIT_COSTS.export;
-  const full = duration <= shortMaxSeconds ? short : long;
+export function getExportCost({ duration, reexport = false, premium3d = false }: { duration: number; quality?: ExportQuality; reexport?: boolean; premium3d?: boolean }) {
+  const { shortMaxSeconds, short, long, premium3dMultiplier } = CREDIT_COSTS.export;
+  const full = (duration <= shortMaxSeconds ? short : long) * (premium3d ? premium3dMultiplier : 1);
   return reexport ? Math.ceil(full / 2) : full;
 }

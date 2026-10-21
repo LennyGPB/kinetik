@@ -78,7 +78,7 @@ export function legalFr(d: LegalData): Record<LegalSlug, LegalDoc> {
               `Génération d'une vidéo motion design ou d'une signature animée : ${d.costs.generation} crédits`,
               `Modification demandée à l'assistant : ${d.costs.edit} crédits`,
               `Traduction des textes : ${d.costs.translation} crédit`,
-              `Export d'une vidéo de ${d.costs.shortMaxSeconds} secondes maximum : ${d.costs.exportShort} crédits ; export plus long : ${d.costs.exportLong} crédits. Un nouvel export du même projet coûte moitié prix.`,
+              `Export d'une vidéo de ${d.costs.shortMaxSeconds} secondes maximum : ${d.costs.exportShort} crédits ; export plus long : ${d.costs.exportLong} crédits. Les templates en vraie 3D (signalés « 3D » dans la galerie) coûtent ${d.costs.export3dMultiplier} fois ce prix à l'export. Un nouvel export du même projet coûte moitié prix.`,
               `Pitch deck en vidéo : ${d.costs.pitchAnalysis} crédits pour l'analyse du document, puis ${d.costs.pitchCreation} crédits pour la création du motion`,
               `Voix off : ${d.costs.voicePerUnit} crédit${d.costs.voicePerUnit > 1 ? "s" : ""} par tranche de ${d.costs.voiceCharacters} caractères et par scène ; suggestion de script : ${d.costs.voiceScript} crédit${d.costs.voiceScript > 1 ? "s" : ""}`,
               `Démo d'écran : ${d.costs.recordingImport} crédits à l'import de l'enregistrement`,

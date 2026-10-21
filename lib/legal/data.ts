@@ -23,7 +23,7 @@ export function legalData(locale: Locale) {
     })),
     packs: CREDIT_PACKS.map((p) => ({ credits: p.credits, price: price(p.price) })),
     costs: {
-      generation: CREDIT_COSTS.generation, edit: CREDIT_COSTS.edit, translation: CREDIT_COSTS.translation, exportShort: exp.short, exportLong: exp.long, shortMaxSeconds: exp.shortMaxSeconds,
+      generation: CREDIT_COSTS.generation, edit: CREDIT_COSTS.edit, translation: CREDIT_COSTS.translation, exportShort: exp.short, exportLong: exp.long, shortMaxSeconds: exp.shortMaxSeconds, export3dMultiplier: exp.premium3dMultiplier,
       pitchAnalysis: CREDIT_COSTS.pitch.analysis, pitchCreation: CREDIT_COSTS.pitch.creation,
       voicePerUnit: CREDIT_COSTS.voiceover.perUnit, voiceCharacters: CREDIT_COSTS.voiceover.perCharacters, voiceScript: CREDIT_COSTS.voiceover.script,
       recordingImport: CREDIT_COSTS.recordingImport,

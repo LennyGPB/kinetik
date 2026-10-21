@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
-import { CREDIT_COSTS, getPostGenerationCost, getStoreGenerationCost } from "@/config/credits";
+import { CREDIT_COSTS, getExportCost, getPostGenerationCost, getStoreGenerationCost } from "@/config/credits";
 import { postCopy } from "@/lib/posts/copy";
 
 import { cn } from "@/lib/utils";
@@ -43,6 +43,7 @@ export function CreditCosts({ className, reveal = false, includePosts = false }:
   { graphic: "chat", label: c.edit, cost: CREDIT_COSTS.edit },
   { graphic: "mp4", label: c.exportShort, cost: CREDIT_COSTS.export.short },
   { graphic: "long", label: c.exportLong, cost: CREDIT_COSTS.export.long },
+  { graphic: "mp4", label: fr ? `Export template 3D (Stage) · jusqu’à ${CREDIT_COSTS.export.shortMaxSeconds} s` : `3D template export (Stage) · up to ${CREDIT_COSTS.export.shortMaxSeconds}s`, cost: getExportCost({ duration: CREDIT_COSTS.export.shortMaxSeconds, premium3d: true }) },
   ...(includePosts ? [
     { graphic: "type", label: `${postCopy(t.locale).posts} · ${postCopy(t.locale).generationCost} (1 ${postCopy(t.locale).image.toLowerCase()})`, cost: getPostGenerationCost(1) },
     { graphic: "type", label: `${postCopy(t.locale).generationCost} · 5 ${postCopy(t.locale).pages.toLowerCase()}`, cost: getPostGenerationCost(5) },

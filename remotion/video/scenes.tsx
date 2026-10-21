@@ -84,6 +84,8 @@ function IntroScene({ scene, props }: SceneProps) {
 function LogoScene({ scene, props }: SceneProps) {
   const recipe = useRecipe();
   const u = useUnit();
+  // Stage : le logo s'affiche sur l'écran de l'appareil 3D, le nom de l'app à côté (sauf mise en scène choisie par l'utilisateur)
+  if (recipe.stage && !props.graph.logoLayout && !scene.logoLayout) return <TextLayout scene={{ ...scene, title: scene.title || props.appName }} props={props} titleSize={10} subtitle={scene.subtitle} subtitleDelay={14} />;
   const layout = props.graph.logoLayout ?? defaultLogoLayout(recipe);
   if (layout === "signature") return <SignatureLogoScene scene={scene} props={props} />;
   return <LogoLayoutScene layout={layout} scene={scene} props={props} tile={<LogoTile props={props} size={u * (props.graph.logoEmphasis ? 30 : 23)} />} />;
