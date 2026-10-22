@@ -1,3 +1,4 @@
+import { StageCollectionCover, type StageCollectionTransition } from "./stage-collection-transitions";
 import { useId, type CSSProperties, type ReactNode } from "react";
 import { AbsoluteFill, Easing, interpolate, random, useCurrentFrame, useVideoConfig } from "remotion";
 import { TypePosterCover } from "./type-poster-transitions";
@@ -35,6 +36,15 @@ type TransitionContext = {
   /** Titre de la scène qui arrive */
   title: string;
 };
+
+function collectionStageBrick(kind: StageCollectionTransition): TransitionBrick {
+  return {
+    enter: () => 28, fadeOut: false, opaque: true,
+    style: ({ inP }) => ({ opacity: Math.min(1, inP * 2) }),
+    overlay: ({ inP, accent }) => inP < 1 ? <StageCollectionCover kind={kind} amount={1 - inP} accent={accent} /> : null,
+    exit: { frames: 24, style: (t) => ({ opacity: 1 - t * t }), cover: (c) => <StageCollectionCover kind={kind} amount={c.p} accent={c.palette[2]} /> },
+  };
+}
 
 type TransitionBrick = {
   /** Durée d'entrée en images (selon l'énergie) */
@@ -497,6 +507,11 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     style: ({ inP, unit }) => ({ opacity: inP, transform: `translateX(${(1 - inP) * unit * 3}px)`, filter: `blur(${(1 - inP) * unit * 0.4}px)` }),
     exit: { frames: 20, style: (t, c) => ({ opacity: 1 - t, transform: `translateX(${-t * c.unit * 3}px)`, filter: `blur(${t * c.unit * 0.4}px)` }) },
   },
+  "satin-pass": collectionStageBrick("satin-pass"),
+  "tidal-wave": collectionStageBrick("tidal-wave"),
+  "blueprint-scan": collectionStageBrick("blueprint-scan"),
+  "solar-sweep": collectionStageBrick("solar-sweep"),
+  "arm-exchange": collectionStageBrick("arm-exchange"),
   "gyro-turn": {
     enter: () => 28,
     fadeOut: false,

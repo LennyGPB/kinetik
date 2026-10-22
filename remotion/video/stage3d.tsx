@@ -20,6 +20,11 @@ import { ZenEnvironment } from "./stage-envs/zen";
 import { ObsidianEnvironment } from "./stage-envs/obsidian";
 import { HaloEnvironment } from "./stage-envs/halo";
 import { MagnetEnvironment } from "./stage-envs/magnet";
+import { LoomEnvironment } from "./stage-envs/loom";
+import { TidalEnvironment } from "./stage-envs/tidal";
+import { BlueprintEnvironment } from "./stage-envs/blueprint";
+import { SolsticeEnvironment } from "./stage-envs/solstice";
+import { AssemblyEnvironment } from "./stage-envs/assembly";
 import { VaultEnvironment } from "./stage-envs/vault";
 import type { VideoProps } from "../props";
 import { contentKey, loadImage, paintScreen, type ScreenCamera } from "./stage-screen";
@@ -74,9 +79,9 @@ export function StageBackdrop(props: StageBackdropProps) {
 /** Univers qui emploient une carte d'ombres (un peu plus coûteuse à rendre). */
 const SHADOWS: StageKind[] = ["zen", "kiosk", "obsidian", "vault"];
 /** Exposition du rendu : le ciel physique de Kiosque se règle plus bas. */
-const EXPOSURE: Record<StageKind, number> = { orbit: 1, monument: 1, shoot: 1, aquarium: 1, zen: 1, kiosk: 0.7, obsidian: 1, halo: 1, magnet: 1, vault: 0.9, gyroscope: 1 };
+const EXPOSURE: Record<StageKind, number> = { orbit: 1, monument: 1, shoot: 1, aquarium: 1, zen: 1, kiosk: 0.7, obsidian: 1, halo: 1, magnet: 1, vault: 0.9, gyroscope: 1, loom: 1, tidal: 1, blueprint: 1, solstice: 0.9, assembly: 1 };
 /** Intensité des reflets d'environnement (cadre métallique, verre) selon la lumière de l'univers. */
-const ENV_INTENSITY: Record<StageKind, number> = { orbit: 0.55, monument: 0.85, shoot: 0.5, aquarium: 0.3, zen: 0.35, kiosk: 0.4, obsidian: 0.65, halo: 0.7, magnet: 0.85, vault: 0.45, gyroscope: 0.9 };
+const ENV_INTENSITY: Record<StageKind, number> = { orbit: 0.55, monument: 0.85, shoot: 0.5, aquarium: 0.3, zen: 0.35, kiosk: 0.4, obsidian: 0.65, halo: 0.7, magnet: 0.85, vault: 0.45, gyroscope: 0.9, loom: 0.95, tidal: 0.9, blueprint: 0.85, solstice: 0.85, assembly: 0.95 };
 
 const SIZE: Record<Kind, { dist: number; spacing: number; ring: number; target: number }> = {
   phone: { dist: 1, spacing: 1.32, ring: 1, target: 1 },
@@ -87,6 +92,11 @@ const SIZE: Record<Kind, { dist: number; spacing: number; ring: number; target: 
 /** Pose de l'appareil propre à chaque univers : hauteur au-dessus du sol, flottaison, balancement. */
 function devicePose(theme: StageKind, time: number, steady: number) {
   switch (theme) {
+    case "loom": return { y: 0.18, yaw: Math.sin(time * 0.22) * 0.035 * steady, roll: 0 };
+    case "tidal": return { y: 0.26 + Math.sin(time * 0.65) * 0.025, yaw: 0, roll: Math.sin(time * 0.5) * 0.008 * steady };
+    case "blueprint": return { y: 0.18, yaw: 0, roll: 0 };
+    case "solstice": return { y: 0.18, yaw: 0, roll: 0 };
+    case "assembly": return { y: 0.42, yaw: 0, roll: 0 };
     case "magnet": return { y: 0.55 + Math.sin(time * 0.75) * 0.035 * steady, yaw: Math.sin(time * 0.28) * 0.045 * steady, roll: 0 };
     case "vault": return { y: 0.155, yaw: 0, roll: 0 };
     case "obsidian": return { y: 0.325, yaw: 0, roll: 0 };
@@ -251,6 +261,10 @@ function StageWorld({ kind: theme, palette, scenes, screens, deviceId, appName, 
     const offset = (slot - (Math.max(1, count) - 1) / 2) * size.spacing;
     return { slot, shown, x: at[0] + offset, y: pose.y + (1 - shown) * -0.5, z: at[1] - Math.abs(offset) * 0.32, yaw: -offset * 0.16 / size.spacing + pose.yaw + spin * (slot === 0 ? 1 : 0.9), roll: pose.roll, screen: screen(slot) };
   });
+  // The support and its device follow the same deterministic mechanical handoff.
+  const handoff = theme === "assembly" && state.transition?.kind === "arm-exchange" ? Math.sin(Math.PI * state.transition.k) ** 2 : 0;
+  pose.y += handoff * 0.4;
+  pose.yaw += handoff * 0.16;
   const placed = layout(state.devices, [0, 0], screenFor, state.spin);
   // Kiosque : un appareil (une « tour ») par quartier ; celui de la scène filmée porte la mise en avant
   const district = theme === "kiosk" ? scenes.map((scene, i) => ({ i, slots: layout(scene.showDevice ? Math.max(1, Math.min(3, scene.deviceCount)) : 0, stageSpot(theme, i), (slot) => (i === state.index ? screenFor(slot) : { a: textureFor(i, slot), b: null, mix: 0 }), 0) })) : [];
@@ -263,6 +277,11 @@ function StageWorld({ kind: theme, palette, scenes, screens, deviceId, appName, 
   return (
     <>
       <primitive attach="environment" object={environment} />
+      {theme === "loom" && <LoomEnvironment base={base} glow={glow} spread={spread} time={time} passage={state.transition?.kind === "satin-pass" ? state.transition.k : 0} />}
+      {theme === "tidal" && <TidalEnvironment base={base} glow={glow} spread={spread} time={time} passage={state.transition?.kind === "tidal-wave" ? state.transition.k : 0} />}
+      {theme === "blueprint" && <BlueprintEnvironment base={base} glow={glow} spread={spread} time={time} passage={state.transition?.kind === "blueprint-scan" ? state.transition.k : 0} />}
+      {theme === "solstice" && <SolsticeEnvironment base={base} glow={glow} spread={spread} time={time} passage={state.transition?.kind === "solar-sweep" ? state.transition.k : 0} />}
+      {theme === "assembly" && <AssemblyEnvironment base={base} glow={glow} spread={spread} time={time} passage={state.transition?.kind === "arm-exchange" ? state.transition.k : 0} />}
       {theme === "magnet" && <MagnetEnvironment base={base} glow={glow} spread={spread * (kind === "phone" ? 1 : 1.3)} monitor={kind === "monitor"} pulse={pulse} passage={state.transition?.kind === "magnetic-lock" ? state.transition.k : 0} />}
       {theme === "vault" && <VaultEnvironment base={base} glow={glow} spread={spread} passage={state.transition?.kind === "vault-pass" ? state.transition.k : 0} />}
       {theme === "obsidian" && <ObsidianEnvironment base={base} glow={glow} spread={spread} passage={state.transition?.kind === "stone-slide" ? state.transition.k : 0} />}

@@ -9,7 +9,7 @@ import { deviceSpec } from "./device-mockups";
  * Guide : docs/STAGE-3D.md
  */
 
-export const STAGE_KINDS = ["orbit", "monument", "shoot", "aquarium", "zen", "kiosk", "obsidian", "halo", "magnet", "vault", "gyroscope"] as const;
+export const STAGE_KINDS = ["orbit", "monument", "shoot", "aquarium", "zen", "kiosk", "obsidian", "halo", "magnet", "vault", "gyroscope", "loom", "tidal", "blueprint", "solstice", "assembly"] as const;
 export type StageKind = (typeof STAGE_KINDS)[number];
 
 /** Old, added and reordered scenes share the template's entrance instead of a bare cut.
@@ -34,6 +34,11 @@ export const STAGE_THEMES: Record<StageKind, {
   templateId: string; name: string; signature: Transition; light: boolean; base: string;
   headline: { en: string; fr: string }; description: { en: string; fr: string };
 }> = {
+  loom: { templateId: "loom", name: "Loom", signature: "satin-pass", light: false, base: "#080B12", headline: { fr: "Le mouvement vous habille.", en: "Made to move." }, description: { fr: "Des rubans de m?tal satin? sculptent l?espace autour de votre app. Reflets de studio et pli chrom? accompagnent chaque sc?ne.", en: "Satin-metal ribbons sculpt the space around your app. Studio reflections and a chrome fold accompany each scene." } },
+  tidal: { templateId: "tidal", name: "Tidal", signature: "tidal-wave", light: false, base: "#060E17", headline: { fr: "Une nouvelle vague.", en: "A new wave." }, description: { fr: "Votre app sur une plaque de m?tal au-dessus d?une surface liquide sombre. Rides chrom?es, accents cyan et reflets contr?l?s.", en: "Your app on a metal slab above a dark liquid surface. Chrome ripples, cyan accents and controlled reflections." } },
+  blueprint: { templateId: "blueprint-3d", name: "Blueprint 3D", signature: "blueprint-scan", light: false, base: "#07101A", headline: { fr: "De l’idée au réel.", en: "From idea to reality." }, description: { fr: "Un scanner de pr?cision : cadres en titane, trac?s lumineux et volumes filaires dans un studio miroir sombre.", en: "A precision scanner: titanium frames, luminous traces and wireframe volumes in a dark mirrored studio." } },
+  solstice: { templateId: "solstice-3d", name: "Solstice 3D", signature: "solar-sweep", light: false, base: "#100D0A", headline: { fr: "Sous un nouveau jour.", en: "In a new light." }, description: { fr: "Des panneaux optiques fum?s pivotent autour de votre app. Titane, lumi?re ambr?e et reflets sur un plateau sombre.", en: "Smoked optical panels rotate around your app. Titanium, amber light and reflections on a dark stage." } },
+  assembly: { templateId: "assembly", name: "Assembly", signature: "arm-exchange", light: false, base: "#080D12", headline: { fr: "Chaque geste compte.", en: "Precision in motion." }, description: { fr: "Des bras en titane usin? pr?sentent votre app. Joints lumineux fins, plateau graphite et chor?graphie m?canique de pr?cision.", en: "Machined titanium arms present your app. Fine luminous joints, a graphite stage and precision mechanical choreography." } },
   gyroscope: {
     templateId: "orbit-3d", name: "Orbit 3D", signature: "gyro-turn", light: false, base: "#080E14",
     headline: { en: "A world around you.", fr: "Une nouvelle orbite." },
@@ -96,7 +101,7 @@ export function stageTheme(kind: StageKind | undefined) {
 }
 
 /** Transitions signatures des univers 3D (la caméra et le décor font le geste, les textes suivent). */
-export const STAGE_TRANSITIONS = ["turntable", "sunpath", "flash", "current", "rake", "district", "stone-slide", "halo-pass", "magnetic-lock", "vault-pass", "array-sweep", "gyro-turn"] as const satisfies readonly Transition[];
+export const STAGE_TRANSITIONS = ["turntable", "sunpath", "flash", "current", "rake", "district", "stone-slide", "halo-pass", "magnetic-lock", "vault-pass", "array-sweep", "gyro-turn", "satin-pass", "tidal-wave", "blueprint-scan", "solar-sweep", "arm-exchange"] as const satisfies readonly Transition[];
 
 /** Plan de caméra : orbite autour de l'appareil (degrés, unités de scène : un téléphone mesure 2 de haut). */
 export type Shot = {
@@ -137,6 +142,31 @@ const pair = (a: ShotOf, b: ShotOf): Pair => [a, b];
  */
 function shotPair(theme: StageKind, kind: Scene["kind"], side: 1 | -1): Pair {
   switch (theme) {
+    case "loom":
+      if (kind === "intro") return pair({ az: -25, el: 12, dist: 12, ty: 1.25 }, { az: -10, el: 7, dist: 8.4, ty: 1.2 });
+      if (kind === "screens") return pair({ az: 4 * side, el: 4, dist: 6.2, ty: 1.2 }, { az: 0, el: 3, dist: 5.6, ty: 1.2 });
+      if (kind === "cta") return pair({ az: -6, el: 8, dist: 8.4, ty: 1.2 }, { az: -20, el: 14, dist: 12.5, ty: 1.3 });
+      return pair({ az: 18 * side, el: 9, dist: 8.7, ty: 1.2 }, { az: 10 * side, el: 6, dist: 8, ty: 1.2 });
+    case "tidal":
+      if (kind === "intro") return pair({ az: -22, el: 15, dist: 12, ty: 1.25 }, { az: -10, el: 7, dist: 8.4, ty: 1.2 });
+      if (kind === "screens") return pair({ az: 4 * side, el: 4, dist: 6.2, ty: 1.2 }, { az: 0, el: 3, dist: 5.6, ty: 1.2 });
+      if (kind === "cta") return pair({ az: -6, el: 8, dist: 8.4, ty: 1.2 }, { az: -22, el: 16, dist: 12.5, ty: 1.3 });
+      return pair({ az: 20 * side, el: 9, dist: 8.7, ty: 1.2 }, { az: 10 * side, el: 6, dist: 8, ty: 1.2 });
+    case "blueprint":
+      if (kind === "intro") return pair({ az: -19, el: 18, dist: 12, ty: 1.25 }, { az: -10, el: 7, dist: 8.4, ty: 1.2 });
+      if (kind === "screens") return pair({ az: 4 * side, el: 4, dist: 6.2, ty: 1.2 }, { az: 0, el: 3, dist: 5.6, ty: 1.2 });
+      if (kind === "cta") return pair({ az: -6, el: 8, dist: 8.4, ty: 1.2 }, { az: -24, el: 18, dist: 12.5, ty: 1.3 });
+      return pair({ az: 22 * side, el: 9, dist: 8.7, ty: 1.2 }, { az: 10 * side, el: 6, dist: 8, ty: 1.2 });
+    case "solstice":
+      if (kind === "intro") return pair({ az: -16, el: 21, dist: 12, ty: 1.25 }, { az: -10, el: 7, dist: 8.4, ty: 1.2 });
+      if (kind === "screens") return pair({ az: 4 * side, el: 4, dist: 6.2, ty: 1.2 }, { az: 0, el: 3, dist: 5.6, ty: 1.2 });
+      if (kind === "cta") return pair({ az: -6, el: 8, dist: 8.4, ty: 1.2 }, { az: -26, el: 20, dist: 12.5, ty: 1.3 });
+      return pair({ az: 24 * side, el: 9, dist: 8.7, ty: 1.2 }, { az: 10 * side, el: 6, dist: 8, ty: 1.2 });
+    case "assembly":
+      if (kind === "intro") return pair({ az: -13, el: 24, dist: 12, ty: 1.25 }, { az: -10, el: 7, dist: 8.4, ty: 1.2 });
+      if (kind === "screens") return pair({ az: 4 * side, el: 4, dist: 6.2, ty: 1.2 }, { az: 0, el: 3, dist: 5.6, ty: 1.2 });
+      if (kind === "cta") return pair({ az: -6, el: 8, dist: 8.4, ty: 1.2 }, { az: -28, el: 22, dist: 12.5, ty: 1.3 });
+      return pair({ az: 26 * side, el: 9, dist: 8.7, ty: 1.2 }, { az: 10 * side, el: 6, dist: 8, ty: 1.2 });
     case "gyroscope":
       if (kind === "intro") return pair({ az: -26, el: 22, dist: 13, ty: 1.55 }, { az: -12, el: 10, dist: 9.6, ty: 1.4 });
       if (kind === "screens") return pair({ az: 5 * side, el: 5, dist: 7.4, ty: 1.25 }, { az: 0, el: 4, dist: 6.7, ty: 1.2 });
@@ -227,13 +257,15 @@ export function sceneShot(scene: StageScene, index: number, t: number, format: S
   const k = easeInOutSine(clamp01(t));
   return {
     az: lerp(a.az, b.az, k), el: lerp(a.el, b.el, k), ty: lerp(a.ty, b.ty, k),
-    dist: lerp(a.dist, b.dist, k) * f.zoom * spread,
-    x: f.x, y: f.y,
+    dist: lerp(a.dist, b.dist, k) * f.zoom * spread * (theme === "assembly" && format === "square" && !centered ? 1.14 : 1),
+    // Articulated arms need additional separation from the text in non-screen shots.
+    x: theme === "assembly" && !centered && format !== "portrait" ? (format === "square" ? 0.85 : 0.73) : f.x, y: f.y,
   };
 }
 
 /** Durée (images) des deux moitiés d'une transition de plateau : fin de la scène précédente, début de la suivante. */
 export function stageTransitionFrames(transition: Transition) {
+  if (["satin-pass", "tidal-wave", "blueprint-scan", "solar-sweep", "arm-exchange"].includes(transition)) return { out: 24, in: 28 };
   if (transition === "array-sweep") return { out: 20, in: 26 };
   if (transition === "gyro-turn") return { out: 22, in: 28 };
   if (transition === "magnetic-lock") return { out: 18, in: 22 };

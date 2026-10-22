@@ -260,8 +260,17 @@ test("every 3D universe is a catalogued template with its own signature transiti
   assert.equal(signatures.size, STAGE_KINDS.length, "no two universes share a signature");
 });
 
+test("new 3D names preserve the existing Blueprint and Solstice projects", () => {
+  assert.equal(getStyle("blueprint")?.category, "tech");
+  assert.equal(getStyle("solstice")?.category, "editorial");
+  assert.equal(getRecipe("blueprint").stage, undefined);
+  assert.equal(getRecipe("solstice").stage, undefined);
+  assert.equal(getRecipe("blueprint-3d").stage, "blueprint");
+  assert.equal(getRecipe("solstice-3d").stage, "solstice");
+});
+
 test("premium stages keep continuous camera paths through their signature passages in every format", () => {
-  for (const kind of ["obsidian", "halo", "magnet", "vault", "monument", "gyroscope"] as const) {
+  for (const kind of ["obsidian", "halo", "magnet", "vault", "monument", "gyroscope", "loom", "tidal", "blueprint", "solstice", "assembly"] as const) {
     const signature = STAGE_THEMES[kind].signature;
     const scenes = stage([["intro", "fade"], ["screens", signature], ["feature", signature], ["screens", "fade"], ["cta", signature]], [1, 1, 1, 3, 1]);
     for (const format of ["landscape", "portrait", "square"] as const) {

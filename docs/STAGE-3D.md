@@ -24,6 +24,28 @@ Ajouter un univers : `STAGE_KINDS` / `STAGE_THEMES` et ses plans (`shotPair`) da
 
 Array remplace Monument sans changer son identifiant `monument` dans les projets sauvegardés. L'ancienne transition `sunpath` reste prise en charge pour ces projets. Orbit 3D est distinct du template 2D `orbit` et de la valeur interne `orbit` utilisée par Stage. Array et Orbit 3D partagent le studio et le miroir de `stage-envs/studio.tsx`.
 
+## Collection Loom, Tidal, Blueprint 3D, Solstice 3D et Assembly
+
+| Template (`recipe.stage`) | Univers | Transition signature | Décor (`remotion/video/stage-envs/`) |
+| --- | --- | --- | --- |
+| Loom (`loom`) | sculpture de rubans en titane satiné, socle chanfreiné et studio miroir sombre | `satin-pass` : les rubans avancent au premier plan | `loom.tsx` |
+| Tidal (`tidal`) | eau de studio sombre à reflet planaire, trois rides chromées et micro-anneaux cyan | `tidal-wave` : un arc chromé monte au premier plan | `tidal.tsx` |
+| Blueprint 3D (`blueprint`, template `blueprint-3d`) | scanner de précision, cadres en titane et contours de construction lumineux | `blueprint-scan` : une ligne lumineuse balaie les cadres | `blueprint.tsx` |
+| Solstice 3D (`solstice`, template `solstice-3d`) | panneaux optiques fumés, cadres fins et lumière ambrée sur miroir sombre | `solar-sweep` : les panneaux pivotent | `solstice.tsx` |
+| Assembly (`assembly`) | bras métalliques sombres chanfreinés, articulations lumineuses et plateau graphite | `arm-exchange` : les pinces se relaient pour porter le plateau et soulever l’appareil | `assembly.tsx` |
+
+Ces cinq univers prolongent le moteur commun : mêmes vrais écrans, appareils, mises en avant (zoom / découpe) et formats 16:9, 9:16 et 1:1. Les identifiants catalogue `blueprint-3d` et `solstice-3d` préservent les templates 2D existants `blueprint` et `solstice` ; les valeurs `recipe.stage` restent `blueprint` et `solstice`.
+
+- **Loom** : deux rubans bouclés en titane satiné, matériau métallique anisotrope et reflets sur les deux faces. Les sommets sont déformés sur le CPU à chaque image ; normales et sphère englobante sont recalculées pour suivre la sculpture. L’ensemble avance au premier plan pendant le passage.
+- **Tidal** : vrai reflet planaire de la scène, déformé par des rides calculées dans les coordonnées du plan d’eau (repère du monde, indépendant du cadrage). La surface rejoint la couleur du studio au loin, sans ciel. Trois rides chromées et sept micro-anneaux cyan entourent le socle ; un arc chromé assure le passage.
+- **Blueprint 3D** : cadres rectangulaires en titane, repères de mesure et contours lumineux en profondeur. Deux blocs latéraux portent des enveloppes filaires discrètes ; une ligne de scanner se déplace devant les cadres. Le décor reste un scanner de studio, sans matérialisation de cubes urbains.
+- **Solstice 3D** : cinq panneaux optiques fumés, alternativement ambrés et bleutés, encadrés de métal fin et de lignes lumineuses. Leur rotation module les reflets du studio sombre ; le verre est un matériau translucide avec vernis et légère iridescence.
+- **Assembly** : bras métalliques sombres chanfreinés et fins anneaux émissifs aux articulations. Deux bras à cinématique inverse placent leurs poignets sur les bords du plateau ; des mâchoires opposées s’ouvrent lors du retrait. Le bras receveur tient le plateau avant le relâchement de l’autre. Plateau et appareil partagent la même courbe de levée et de rotation, image par image. Le cadrage carré recule davantage et décale l’ensemble pour dégager le texte.
+
+Les cinq univers sont sombres (`light: false`), dans la continuité des reflets contrôlés de Stage et Magnet. `collection-kit.tsx` partage blocs et socles chanfreinés ; `PrecisionStudio` reprend le `SculpturalStudio` d’Array et Orbit 3D pour Loom, Blueprint, Solstice et Assembly. Tidal utilise un éclairage de studio à grandes boîtes à lumière et son propre miroir liquide. Les cinq signatures ont une sortie de 24 images et une entrée de 28 images ; les poses de passage reviennent à leur état de repos aux limites de la transition.
+
+Les 15 miniatures de catalogue (cinq univers × trois formats) sont générées par le véritable moteur Three.js / Remotion, sans image de stock ni image IA. `scripts/review-stage-collection.ts` enregistre leur provenance dans les métadonnées EXIF.
+
 ## Fichiers
 
 | Fichier | Rôle |
@@ -36,6 +58,7 @@ Array remplace Monument sans changer son identifiant `monument` dans les projets
 | `remotion/video/stage-layout.tsx` | Textes par-dessus la 3D : bloc à côté de l'appareil, pastille au-dessus pour les scènes de captures |
 | `components/media/stage-thumbnail.tsx` | Miniature de galerie (images réelles du moteur, badge « 3D ») |
 | `scripts/review-stage.ts` | Revue visuelle et génération des miniatures |
+| `scripts/review-stage-collection.ts` | Revue des cinq nouveaux univers, planches de contact et 15 miniatures du moteur |
 | `lib/projects/stage-motion.test.ts` | Continuité de la caméra, tour de plateau, écrans, prix |
 
 Branchements : `Recipe.stage` (`config/recipes.ts`), fond dans `KinetikVideo.tsx`, `TextLayout` (`composition.tsx`),
@@ -74,12 +97,13 @@ Branchements : `Recipe.stage` (`config/recipes.ts`), fond dans `KinetikVideo.tsx
 ## Coût de rendu et prix
 
 - Pas de post-traitement : halos peints dans des textures additives. Reflet de Stage = copie inversée sous un sol semi-transparent ;
-  Shoot a un vrai miroir limité au disque du plateau ; Magnet, Array et Orbit 3D utilisent un miroir de 1024 px avec reflet atténué vers l'horizon (`Reflector`, un passage de rendu supplémentaire). Ombres portées (carte d'ombres 2048) pour Zen, Kiosque, Obsidian et Vault.
+  Shoot a un vrai miroir limité au disque du plateau ; Magnet, Array, Orbit 3D et les cinq nouveaux univers utilisent un miroir de 1024 px (`Reflector`, un passage de rendu supplémentaire), avec un shader d’eau propre à Tidal. Ombres portées (carte d'ombres 2048) pour Zen, Kiosque, Obsidian et Vault ; les cinq nouveaux univers n’activent pas de carte d’ombres.
   Les animations du décor (bulles, algues, pétales, caustiques) sont calculées dans des shaders à partir du temps : déterministes et légères.
+  Loom ajoute une mise à jour CPU de ses géométries et de leurs normales à chaque image.
 - Mesures historiques par image 1080p en WebGL logiciel, rendu continu (`renderFrames`, 60 images), avant le remplacement de Monument par Array ; Array et Orbit 3D restent à chronométrer : Stage 0,26 s ; Aquarium 0,30 s ;
-  Zen 0,58 s ; Monument 0,63 s ; Shoot 0,71 s ; Kiosque 1,05 s. S'y ajoutent 4 à 7 s de chargement par Lambda (textures peintes,
+  Zen 0,58 s ; Monument 0,63 s ; Shoot 0,71 s ; Kiosque 1,05 s. Les cinq nouveaux univers restent également à chronométrer. S'y ajoutent 4 à 7 s de chargement par Lambda (textures peintes,
   terrain). Ne pas chronométrer avec `renderStill` : chaque image recharge la page et repeint les textures (temps très surestimés).
-  Le ×2 couvre largement les univers les plus lourds (Kiosque ≈ 0,05 à 0,10 € d'AWS pour 30 s).
+  Le ×2 couvre largement les univers historiques mesurés les plus lourds (Kiosque ≈ 0,05 à 0,10 € d'AWS pour 30 s). Les coûts des cinq nouveaux univers restent à mesurer en WebGL logiciel / Lambda ; leur tarif configuré reste inchangé.
 - Sur Lambda (sans GPU), le rendu passe en WebGL logiciel (`chromiumOptions.gl = "swangle"`, `lib/services/render.ts`).
   Mesuré en local : environ +1,1 à 1,3 s par image en 1080p par rapport au rendu GPU.
 - L'export est facturé `CREDIT_COSTS.export.premium3dMultiplier` (×2) : `getExportCost({ premium3d })`, appliqué par
@@ -96,6 +120,8 @@ Branchements : `Recipe.stage` (`config/recipes.ts`), fond dans `KinetikVideo.tsx
 
 ## Vérifier
 
+- `node --import tsx scripts/review-stage-collection.ts` : cinq univers, trois formats, trois images par format (intro, captures, proximité de la première frontière) → `out/stage-collection/contact-<id>.png` ; régénère aussi les 15 miniatures `public/templates/<id>-{landscape,portrait,square}.jpg`. `--template=<id>` limite la revue à un univers. Ce script utilise `angle` et des images fixes : ce n’est pas un benchmark de rendu continu.
+- Dans ces planches, contrôler les reflets du titane satiné de Loom, le miroir liquide et les rides chromées de Tidal, les cadres et le scanner de Blueprint, les panneaux fumés et ambrés de Solstice et le contact pinces / plateau d’Assembly, ainsi que la lisibilité des écrans et la séparation du texte en carré. Pour la continuité complète des passages et les mises en avant, compléter avec la revue détaillée ci-dessous.
 - `node --import tsx scripts/review-stage.ts --template=<id>` : images clés de chaque scène et transition, 3 formats → `out/stage/contact-<id>.png`.
 - `node --import tsx scripts/review-stage.ts --gl=swangle --format=LANDSCAPE` : même rendu en WebGL logiciel, chronométré.
 - `node --import tsx scripts/review-stage.ts --template=<id> --thumbnails` : régénère `public/templates/<id>-*.jpg` après un changement visuel.
