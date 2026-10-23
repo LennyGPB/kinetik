@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, FileText, MousePointer2, Play } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, FileText, MousePointer2, Play, Sparkles } from "lucide-react";
+import { ProductThumbnail } from "@/components/media/product-thumbnail";
 import Link from "@/lib/i18n/navigation";
+import Image from "next/image";
+import { purpleButtonStyle } from "@/components/ui/button";
 import { PostPreview } from "@/components/posts/post-preview";
 import { demoPost } from "@/lib/posts/document";
 import { StorePreview } from "@/components/store/store-preview";
@@ -11,7 +14,7 @@ import { demoStore } from "@/lib/store/document";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import "./hero-capabilities.css";
 
-export type Format = "motion" | "stores" | "pdf" | "signature" | "post" | "demo";
+export type Format = "motion" | "stores" | "pdf" | "signature" | "post" | "demo" | "decor" | "product";
 
 // Défilement de templates réels (CSS pur : les deux copies du rail restent synchro). Chaque slide dure 2,5 s.
 function TemplateReel({ count, className, children }: { count: number; className: string; children: ReactNode[] }) {
@@ -68,10 +71,11 @@ function SignatureReel() {
 }
 
 export function Preview({ kind, fr }: { kind: Format; fr: boolean }) {
+  if (kind === "product") return <div className="hero-capabilities-preview"><ProductThumbnail templateId="product-studio" /></div>;
+  if (kind === "decor") return <div className="hero-capabilities-preview"><Image src="/decors/prepared/setup-thumb.webp" alt="" fill sizes="290px" className="object-cover" /></div>;
   if (kind === "motion") return <div className={`hero-capabilities-preview hero-capabilities-motionPreview`}>
     <video src="/medias/stage-landscape-en.mp4" autoPlay loop muted playsInline preload="metadata" tabIndex={-1} />
     <span className="hero-capabilities-play"><Play size={16} fill="currentColor" /></span>
-    <span className="hero-capabilities-timeline"><i /><i /><i /><i /><i /></span>
   </div>;
   if (kind === "stores") return <StoreReel locale={fr ? "fr" : "en"} />;
   if (kind === "pdf") return <div className={`hero-capabilities-preview hero-capabilities-pdfPreview`}>
@@ -96,7 +100,7 @@ export function resetSheen(event: PointerEvent<HTMLElement>) {
   event.currentTarget.style.removeProperty("--py");
 }
 
-export function HeroCapabilities() {
+export function HeroCapabilities({ creation = false }: { creation?: boolean }) {
   const fr = useDictionary().locale === "fr";
   const viewport = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
@@ -124,7 +128,8 @@ export function HeroCapabilities() {
     let half = element.scrollWidth / 2;
     const resize = new ResizeObserver(() => { half = element.scrollWidth / 2; });
     resize.observe(element);
-    const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 80 : 45;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const duration = 45;
     const wrap = (value: number) => half > 0 ? ((value % half) + half) % half : value;
     let x = scroller.scrollLeft, applied = x, speed = 0, last = performance.now(), frame = 0, idleUntil = performance.now() + 2500;
     let tween: { from: number; to: number; start: number } | null = null, touched = false, touching = false;
@@ -132,7 +137,7 @@ export function HeroCapabilities() {
     const centerHeroes = () => {
       const [first, second] = element.querySelectorAll("li");
       if (touched || !first || !second || half <= 0) return;
-      x = wrap((first.offsetLeft + second.offsetLeft + second.offsetWidth) / 2 - scroller.clientWidth / 2);
+      x = wrap((creation ? first.offsetLeft + first.offsetWidth / 2 : (first.offsetLeft + second.offsetLeft + second.offsetWidth) / 2) - scroller.clientWidth / 2);
       scroller.scrollLeft = x; applied = x;
     };
     centerHeroes();
@@ -178,7 +183,7 @@ export function HeroCapabilities() {
         x = tween.from + (tween.to - tween.from) * (1 - Math.pow(1 - t, 4));
         if (t === 1) { tween = null; x = wrap(x); speed = 0; idleUntil = now + 1200; }
       } else {
-        const target = active.current && now > idleUntil ? half / duration : 0;
+        const target = !reducedMotion && active.current && now > idleUntil ? half / duration : 0;
         speed += (target - speed) * Math.min(1, dt * 4);
         x += speed * dt;
       }
@@ -198,10 +203,10 @@ export function HeroCapabilities() {
       scroller.removeEventListener("touchend", onTouchEnd);
       scroller.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, []);
+  }, [creation]);
   // Motion design et Signatures (les deux features phares) ouvrent le rail et sont centrées à l'arrivée.
   // Chaque carte a sa propre inclinaison au repos (rotateX, rotateY, rotateZ en degrés)
-  const formats: { kind: Format; title: string; description: string; tilt: [number, number, number] }[] = [
+  const homeFormats: { kind: Format; title: string; description: string; tilt: [number, number, number] }[] = [
     { kind: "motion", title: "Motion design", description: fr ? "Ta marque prend vie en vidéo." : "Bring your brand to life on video.", tilt: [10, -22, -6] },
     { kind: "signature", title: fr ? "Signatures animées" : "Animated signatures", description: fr ? "Un nom. Un style. Une empreinte." : "A name. A style. A lasting impression.", tilt: [12, 24, -5] },
     { kind: "post", title: "Posts Instagram", description: fr ? "Des visuels qui arrêtent le scroll." : "Visuals that stop the scroll.", tilt: [6, -26, 5] },
@@ -209,6 +214,8 @@ export function HeroCapabilities() {
     { kind: "pdf", title: fr ? "PDF vers motion" : "PDF to motion", description: fr ? "Ton PDF ou ton site devient une vidéo." : "Turn your PDF or website into a video.", tilt: [7, -14, 3] },
     { kind: "demo", title: fr ? "Démos produit" : "Product demos", description: fr ? "Tes captures d’écran vidéo, mises en scène." : "Turn screen recordings into polished demos.", tilt: [13, 16, -3] },
   ];
+  const formats = creation ? [homeFormats[0], { kind: "product" as const, title: fr ? "Produit physique" : "Physical product", description: fr ? "Tes photos prennent vie dans trois univers 2.5D." : "Bring your product photos to life in three 2.5D worlds.", tilt: [8, 18, 4] as [number, number, number] }, homeFormats[2], homeFormats[3], { kind: "decor" as const, title: fr ? "Décors" : "Scenes", description: fr ? "Ta vidéo dans un vrai décor, prête à partager." : "Your video in a real setting, ready to share.", tilt: [8, -18, 3] as [number, number, number] }, homeFormats[5]] : homeFormats;
+  const destination = (kind: Format) => `/create?kind=${kind === "stores" ? "store" : kind === "demo" ? "recording" : kind}`;
   return <div className="relative mx-auto mt-12 w-full max-w-none pb-6 sm:mt-16">
     <button type="button" className="hero-capabilities-nav hero-capabilities-navPrev" onClick={() => go.current(-1)} aria-label={fr ? "Formats précédents" : "Previous formats"} aria-controls="hero-formats"><ChevronLeft size={20} /></button>
     <button type="button" className="hero-capabilities-nav hero-capabilities-navNext" onClick={() => go.current(1)} aria-label={fr ? "Formats suivants" : "Next formats"} aria-controls="hero-formats"><ChevronRight size={20} /></button>
@@ -216,10 +223,12 @@ export function HeroCapabilities() {
       <div ref={track} className="hero-capabilities-track">
         {[false, true].map((duplicate) => <ul key={String(duplicate)} aria-hidden={duplicate || undefined} aria-label={duplicate ? undefined : fr ? "Tous les formats de création" : "All creation formats"} className="hero-capabilities-rail">
           {formats.map((format) => <li key={format.kind} className={`hero-capabilities-cardSlot hero-capabilities-kind-${format.kind}`}>
-            <Link href="/register" className="hero-capabilities-card" tabIndex={duplicate ? -1 : undefined} onPointerMove={trackSheen} onPointerLeave={resetSheen} style={{ "--rx": `${format.tilt[0]}deg`, "--ry": `${format.tilt[1]}deg`, "--rz": `${format.tilt[2]}deg` } as CSSProperties}>
+            <Link href={creation ? destination(format.kind) : "/register"} className={`hero-capabilities-card${creation && format.kind === "motion" ? " hero-capabilities-cardPopular" : ""}`} tabIndex={duplicate ? -1 : undefined} onPointerMove={trackSheen} onPointerLeave={resetSheen} style={{ "--rx": `${format.tilt[0]}deg`, "--ry": `${format.tilt[1]}deg`, "--rz": `${format.tilt[2]}deg` } as CSSProperties}>
+              {creation && format.kind === "motion" && <span className={`absolute -top-4 left-4 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs ${purpleButtonStyle}`}><Sparkles size={13} aria-hidden />{fr ? "Le plus populaire" : "Most popular"}</span>}
               <div className="hero-capabilities-artwork" aria-hidden="true"><Preview kind={format.kind} fr={fr} /></div>
               <div className="hero-capabilities-cardContent">
                 <h3>{format.title}<span className="hero-capabilities-arrow"><ArrowRight size={15} /></span></h3>
+                {creation && <p className="mt-2 pb-2 text-sm leading-relaxed text-white/70">{format.description}</p>}
               </div>
               <span className="hero-capabilities-sheen" aria-hidden="true" />
             </Link>

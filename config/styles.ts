@@ -1,4 +1,5 @@
 import { SIGNATURE_COLLECTION } from "./logo-motion-collection";
+import { PRODUCT_TEMPLATES, isProduct3D } from "./physical-product";
 // ⚠️ Fichier aussi bundlé par Remotion : imports RELATIFS uniquement.
 import type { AspectRatio } from "./formats";
 import { getRecipe, type BackgroundKind, type Recipe } from "./recipes";
@@ -28,6 +29,7 @@ export type VideoStyle = {
 export const STYLE_CATEGORIES: StyleCategory[] = ["3d", "editorial", "tech", "minimal", "typo", "bold", "fun", "business"];
 
 const CATALOG: Omit<VideoStyle, "recipe">[] = [
+  ...PRODUCT_TEMPLATES.map((item) => ({ id: item.id, name: item.name, category: isProduct3D(item.id) ? "3d" as const : "business" as const, palette: [...item.palette] as [string, string, string], ratio: "9:16" as const })),
   { id: "spill", name: "Spill", category: "typo", palette: ["#141414", "#E6E4E2", "#D5D2D0"], ratio: "9:16" },
   { id: "veil", name: "Veil", category: "tech", palette: ["#E8E6E0", "#24241F", "#784CFF"], ratio: "1:1" },
   { id: "fanout", name: "Fanout", category: "typo", palette: ["#000000", "#FFFFFF", "#FFFFFF"], ratio: "16:9" },

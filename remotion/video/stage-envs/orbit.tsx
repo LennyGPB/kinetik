@@ -69,14 +69,14 @@ function Grid({ glow, power }: { glow: string; power: number }) {
 }
 
 /** Anneaux de lumière au sol : un cœur net et un halo peint ; une onde court vers l'horizon à chaque frontière. */
-function Rings({ glow, pulse, power, wave, ring }: { glow: string; pulse: number; power: number; wave: number; ring: number }) {
+function Rings({ glow, pulse, power, wave, ring, outer = true }: { glow: string; pulse: number; power: number; wave: number; ring: number; outer?: boolean }) {
   const halo = useMemo(() => ringGlowTexture(), []);
   const geo = useMemo(() => ({ core: new RingGeometry(0.985, 1.015, 160), halo: new PlaneGeometry(2.6, 2.6) }), []);
   const rings = [
     { r: 1.18 * ring, core: 1, halo: 0.95 + pulse * 0.35 },
     { r: 1.42 * ring, core: 0.35, halo: 0.25 },
     { r: 2.55 * ring, core: 0.55, halo: 0.4 + pulse * 0.15 },
-    { r: 7.5, core: 0.32, halo: 0.22 },
+    ...(outer ? [{ r: 7.5, core: 0.32, halo: 0.22 }] : []),
   ];
   if (wave >= 0) {
     const k = 1 - (1 - wave) ** 3;
@@ -93,6 +93,9 @@ function Rings({ glow, pulse, power, wave, ring }: { glow: string; pulse: number
     </group>
   );
 }
+
+/** The product runway uses Stage's actual visual primitives rather than a separate approximation. */
+export { Floor as StageFloor, Grid as StageGrid, Rings as StageRings, Backglow as StageBackglow, Cubes as StageCubes, Dust as StageDust };
 
 /** Lueur derrière l'appareil et voile coloré à l'horizon. */
 function Backglow({ glow, pulse, power, ring }: { glow: string; pulse: number; power: number; ring: number }) {

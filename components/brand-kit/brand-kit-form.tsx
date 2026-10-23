@@ -16,6 +16,7 @@ import { saveBrandKit } from "@/lib/account/actions";
 import { format } from "@/lib/i18n";
 import type { BrandKitData } from "@/lib/projects/queries";
 import type { UploadedFile } from "@/lib/storage/client";
+import { urlVideoCopy } from "@/lib/url-video/copy";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -50,6 +51,9 @@ export function BrandKitForm({ initial }: { initial: BrandKitData | null }) {
   const t = useDictionary();
 
   const b = t.app.brandKit;
+  const urlCopy = urlVideoCopy[t.locale];
+  const [brief, setBrief] = useState(initial?.brief ?? null);
+  const [screens, setScreens] = useState<UploadedFile[]>(initial?.screens ?? []);
 
   const [logo, setLogo] = useState<UploadedFile[]>(initial?.logo ? [initial.logo] : []);
   const [colors, setColors] = useState<string[]>(initial?.colors.length ? initial.colors : ["#7c3aed", "#f472b6"]);
@@ -61,7 +65,7 @@ export function BrandKitForm({ initial }: { initial: BrandKitData | null }) {
 
   function save() {
     startTransition(async () => {
-      const result = await saveBrandKit({ logo: logo[0] ?? null, colors, headingFont, bodyFont });
+      const result = await saveBrandKit({ logo: logo[0] ?? null, colors, headingFont, bodyFont, ...(brief && { brief }), screens });
       toast(result.ok ? { title: t.common.saved, tone: "success" } : { title: result.error ?? t.common.error, tone: "error" });
     });
   }
@@ -104,6 +108,14 @@ export function BrandKitForm({ initial }: { initial: BrandKitData | null }) {
             <FontSelect id="bodyFont" label={b.bodyFont} value={bodyFont} onChange={setBodyFont} />
           </div>
         </Section>
+
+        {brief && <Section title={urlCopy.review}>
+          <div className="space-y-4">
+            {(["company", "product", "audience"] as const).map((key) => <label key={key} className="block text-sm font-medium">{urlCopy[key]}<textarea rows={key === "product" ? 3 : 1} maxLength={key === "company" ? 40 : key === "product" ? 500 : 240} value={brief[key]} onChange={(e) => setBrief({ ...brief, [key]: e.target.value })} className="mt-2 w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm outline-none focus-visible:border-accent" /></label>)}
+            {(["benefits", "hooks"] as const).map((key) => <fieldset key={key}><legend className="text-sm font-medium">{urlCopy[key]}</legend><div className="mt-2 space-y-2">{brief[key].map((value, index) => <input key={index} aria-label={`${urlCopy[key]} ${index + 1}`} value={value} maxLength={key === "hooks" ? 100 : 180} onChange={(e) => setBrief({ ...brief, [key]: brief[key].map((v, i) => i === index ? e.target.value : v) })} className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm outline-none focus-visible:border-accent" />)}</div></fieldset>)}
+          </div>
+        </Section>}
+        {screens.length > 0 && <Section title={urlCopy.screens}><UploadZone label={urlCopy.screens} value={screens} onChange={setScreens} multiple max={8} /></Section>}
 
         <div className="flex justify-end">
           <Button variant="purple" size="lg" onClick={save} loading={pending} className="w-full sm:w-auto">

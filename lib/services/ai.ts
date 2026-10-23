@@ -251,6 +251,7 @@ function describeProject(ctx: ProjectContext) {
     `Direction de montage : ${getVideoType(ctx.videoType).direction}`,
     `Direction artistique : ${style ? style.name : "libre"}`,
     `Consignes du style : ${recipe.direction}`,
+    ctx.videoType === "physical-product" && "These are real physical product photos, not app screenshots. Preserve the current physical-product template and image fidelity. Never invent features, reviews, discounts or certifications. Keep provided prices exact. No device frames. Use one real product image per scene, short factual titles, benefits and CTA.",
     `Rythme typique du style : ${recipe.energy}`,
     `Transitions autorisées : ${recipe.transitions.join(", ")}`,
     `Animation des titres du style : ${recipe.titleAnimation} · mise en scène des screens du style : ${recipe.screens}`,

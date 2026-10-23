@@ -1,3 +1,4 @@
+import { isProduct3D } from "./physical-product";
 import { SIGNATURE_COLLECTION } from "./logo-motion-collection";
 // ⚠️ Fichier aussi bundlé par Remotion : imports RELATIFS uniquement.
 import type { Transition } from "../lib/projects/scenes";
@@ -1309,5 +1310,6 @@ export const RECIPES: Record<string, Recipe> = {
 };
 
 export function getRecipe(styleId: string | null | undefined): Recipe {
+  if (styleId?.startsWith("product-")) return { ...DEFAULT_RECIPE, typography: styleId === "product-studio" ? "serif" : styleId === "product-editorial" ? "condensed" : "sans", background: "clean", screens: "hero", camera: "still", effects: [], transitions: isProduct3D(styleId) ? ["zoom", "track", "rotary"] : ["fade", "cut"], direction: "Physical product photography in 2.5D. Images are real product photos, never app screens. Keep product proportions and labels intact; no phone or browser mockups. Use concise factual benefits and only the supplied price. Compose intro, benefits and CTA. Never invent discounts, certifications, reviews or features." };
   return (styleId && RECIPES[styleId]) || DEFAULT_RECIPE;
 }

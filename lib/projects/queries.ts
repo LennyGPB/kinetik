@@ -1,5 +1,6 @@
 import "server-only";
 import { isBrandFont } from "@/config/fonts";
+import { ProductBriefSchema } from "../url-video/brief";
 import { getPlan } from "@/config/pricing";
 import { db } from "@/lib/db";
 import { imageSize } from "@/lib/storage";
@@ -141,16 +142,18 @@ export async function getDefaultBrandKit(userId: string) {
   const kit = await db.brandKit.findFirst({
     where: { userId },
     orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }],
-    include: { assets: { where: { type: "LOGO" }, take: 1 } },
+    include: { assets: { where: { type: { in: ["LOGO", "SCREEN"] } }, orderBy: { position: "asc" } } },
   });
   if (!kit) return null;
-  const logo = kit.assets[0];
+  const logo = kit.assets.find((a) => a.type === "LOGO");
   return {
     id: kit.id,
     name: kit.name,
     colors: toColors(kit.colors),
     headingFont: kit.headingFont,
     bodyFont: kit.bodyFont,
+    brief: ProductBriefSchema.safeParse(kit.brief).data ?? null,
+    screens: kit.assets.filter((a) => a.type === "SCREEN").map((a) => ({ url: a.url, fileName: a.fileName, mimeType: a.mimeType ?? "image/png", sizeBytes: a.sizeBytes ?? 0, ...(a.width && { width: a.width }), ...(a.height && { height: a.height }) })),
     logo: logo ? { url: logo.url, fileName: logo.fileName, mimeType: logo.mimeType ?? "", sizeBytes: logo.sizeBytes ?? 0 } : null,
   };
 }

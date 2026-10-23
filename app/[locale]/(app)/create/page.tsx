@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageSkeleton } from "@/components/app/page-skeleton";
 import { MotionCreateFlow } from "@/components/create/motion-create-flow";
+import { CreatePicker } from "@/components/create/create-picker";
+import { PhysicalProductCreate } from "@/components/create/physical-product-create";
 import { RecordingCreate } from "@/components/recordings/recording-create";
 import { PostForm } from "@/components/posts/post-form";
 import { StoreForm } from "@/components/store/store-form";
@@ -18,8 +20,11 @@ export async function generateMetadata(): Promise<Metadata> { const t = await ge
 
 async function CreateContent({ searchParams }: { searchParams: PageProps<"/[locale]/create">["searchParams"] }) {
   const user = await requireUser();
-  const [params, balance, brandKit] = await Promise.all([searchParams, getCreditBalance(user.id), getDefaultBrandKit(user.id)]);
+  const params = await searchParams;
   const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+  if (!first(params.kind) && !first(params.style) && !first(params.flow) && !first(params.analysis)) return <CreatePicker />;
+  const [balance, brandKit] = await Promise.all([getCreditBalance(user.id), getDefaultBrandKit(user.id)]);
+  if (first(params.kind) === "product") return <PhysicalProductCreate balance={balance.total} initialStyleId={first(params.style)} />;
   if (first(params.kind) === "decor") return <div className="mx-auto max-w-6xl"><DecorGallery /></div>;
 
   const kind = first(params.kind) === "recording" ? "recording" : first(params.kind) === "post" ? "post" : first(params.kind) === "store" ? "store" : "motion";
@@ -31,6 +36,8 @@ async function CreateContent({ searchParams }: { searchParams: PageProps<"/[loca
       brandKit={brandKit}
       initialAppName={first(params.app)?.slice(0, 40)}
       initialStyleId={first(params.style)}
+      initialFlow={first(params.flow)}
+      initialAnalysisId={first(params.analysis)?.slice(0, 100)}
     />}
     </div>
   );

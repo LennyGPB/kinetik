@@ -314,7 +314,7 @@ export const fr = {
       subtitle:
         "Vidéos, logos animés, posts et visuels stores. Sans monteur, sans agence.",
       promptCta: "Commencer gratuitement",
-      secondaryCta: "Voir les styles",
+      secondaryCta: "Toutes les fonctionnalités",
       trust: "30 crédits offerts · Sans carte bancaire",
       previewLabel: "Aperçu généré par Kinetik",
       /** Formats du mockup qui alterne à droite du hero. */

@@ -26,9 +26,6 @@
 .hero-capabilities-motionPreview { display:flex; align-items:center; background:#100b22; }
 .hero-capabilities-motionPreview video { width:100%; height:100%; object-fit:cover; }
 .hero-capabilities-play { position:absolute; top:12px; left:12px; display:grid; place-items:center; width:30px; height:30px; background:#fff; color:#5225a6; border-radius:50%; }
-.hero-capabilities-timeline { position:absolute; bottom:14px; left:14px; right:14px; display:flex; gap:3px; padding:6px; background:#141019; border-radius:6px; }
-.hero-capabilities-timeline i { height:13px; flex:1; background:#9365eb; border-radius:2px; }
-.hero-capabilities-timeline i:nth-child(even) { background:#c6b2f5; }
 .hero-capabilities-pdfPreview { display:flex; align-items:center; background:#251c3d; color:#fff; }
 .hero-capabilities-document { position:absolute; left:19px; top:23px; width:101px; height:148px; background:#f5f0e8; color:#302640; padding:12px; transform:rotate(-8deg); box-shadow:0 9px 16px rgb(0 0 0 / .25); }
 .hero-capabilities-document strong { display:block; font-size:11px; line-height:1.2; margin:10px 0; }
@@ -167,3 +164,25 @@
 .hero-capabilities-viewport .hero-capabilities-cardContent { padding:16px 15px; }
 .hero-capabilities-viewport .hero-capabilities-cardContent h3 { margin:0; min-height:48px; }
 @media (max-width:639px) { .hero-capabilities-viewport .hero-capabilities-preview { height:310px; } .hero-capabilities-viewport .hero-capabilities-cardContent { padding:12px; } }
+
+/* Featured creation: the same violet material as the primary action buttons. */
+.hero-capabilities-viewport .hero-capabilities-card {
+  transition: transform 1.1s cubic-bezier(.22,1,.36,1), box-shadow 1.1s cubic-bezier(.22,1,.36,1), filter .3s ease-out;
+}
+.hero-capabilities-viewport .hero-capabilities-card:hover,
+.hero-capabilities-viewport .hero-capabilities-card:focus-visible {
+  filter: drop-shadow(0 10px 14px rgb(124 58 237 / .65)) drop-shadow(0 20px 24px rgb(139 92 246 / .4));
+}
+.hero-capabilities-viewport .hero-capabilities-cardContent h3 {
+  font-size: 24px;
+  line-height: 1.3;
+}
+@media (max-width:639px) {
+  .hero-capabilities-viewport .hero-capabilities-cardContent h3 { font-size: 22px; }
+}
+
+.hero-capabilities-card.hero-capabilities-cardPopular {
+  background: radial-gradient(ellipse at top, rgb(255 255 255 / .18), transparent 70%), linear-gradient(155deg, #9061f9 0%, #7c3aed 40%, #4c1d95 100%);
+}
+.hero-capabilities-cardPopular .hero-capabilities-cardContent p { color: rgb(255 255 255 / .85); }
+.hero-capabilities-cardPopular .hero-capabilities-arrow { background: rgb(255 255 255 / .12); border-color: rgb(255 255 255 / .3); color: white; }

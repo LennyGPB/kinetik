@@ -1,5 +1,6 @@
 import { getStyle, type SceneKind } from "@/config/styles";
 import { getLogoMotion } from "../../config/logo-motion";
+import { getProductTemplate } from "../../config/physical-product";
 
 /** Fond clair/sombre du template, teinté uniquement avec la couleur de marque. */
 function brandBackground(templateBackground: string, primary: string) {
@@ -17,7 +18,7 @@ export function projectVisual(project: { styleId: string | null; colors: string[
   scene: SceneKind;
 } {
   const style = getStyle(project.styleId);
-  if (getLogoMotion(project.styleId)) return { palette: [project.colors[0] ?? style!.palette[0], project.colors[1] ?? style!.palette[1], project.colors[2] ?? style!.palette[2]], scene: "clean" };
+  if (getLogoMotion(project.styleId) || getProductTemplate(project.styleId)) return { palette: [project.colors[0] ?? style!.palette[0], project.colors[1] ?? style!.palette[1], project.colors[2] ?? style!.palette[2]], scene: "clean" };
   const [primary, secondary] = project.colors;
   const defaults: [string, string, string] = style?.palette ?? ["#12062b", "#7c3aed", "#f472b6"];
   return {

@@ -67,15 +67,18 @@ export function Hero() {
           </motion.p>
 
           <motion.div
-            className="mt-9 flex flex-col items-center"
+            className="mt-9 flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: EASE, delay: 0.62 }}
           >
-            <Link href="/register" className={buttonVariants({ variant: "purple", size: "lg", className: "group h-14 gap-2.5 px-9 text-base sm:h-16 sm:px-11 sm:text-lg" })}>
+            <Link href="/register" className={buttonVariants({ variant: "purple", size: "lg", className: "group h-14 w-full max-w-sm gap-2.5 px-5 text-base sm:h-16 sm:w-auto sm:max-w-none sm:px-11 sm:text-lg" })}>
               {t.landing.hero.promptCta}
               <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
+            <a href="#features" className={buttonVariants({ variant: "outline", size: "lg", className: "h-14 w-full max-w-sm px-5 text-base sm:h-16 sm:w-auto sm:max-w-none sm:px-8 sm:text-lg" })}>
+              {t.landing.hero.secondaryCta}
+            </a>
           </motion.div>
         </div>
 

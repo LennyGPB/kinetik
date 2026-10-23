@@ -8,9 +8,12 @@ import { getReferenceMotion } from "@/config/reference-motion";
 import { stageTheme } from "@/config/stage-motion";
 import { getTypePoster } from "@/config/type-posters";
 import { getLogoMotion } from "@/config/logo-motion";
+import { getProductTemplate } from "../../config/physical-product";
+import { demoPhysicalProductProps } from "../products/demo";
 
 /** Vidéo de démonstration d'un template (app fictive, écrans factices dans un téléphone). */
 export function demoVideoProps(style: VideoStyle, format: VideoFormatId, locale: "en" | "fr" = "en"): VideoProps {
+  if (getProductTemplate(style.id)) return demoPhysicalProductProps(style.id, format, locale);
   const logo = getLogoMotion(style.id);
   if (logo) return { ...demoProps, format, locale, palette: [...logo.palette], recipe: style.recipe, screenUrls: [], backgroundUrl: null, musicSrc: null, watermark: false, graph: { schema: 1, language: locale, energy: "balanced", logoEmphasis: false, styleId: style.id, screenFrame: "none", musicTrackId: null, bpm: 120, scenes: [{ id: "wordmark", kind: "intro", title: logo.sample, duration: 6, transition: "cut" }] } };
   const energy = style.recipe.energy;

@@ -26,6 +26,8 @@ import { getReferenceMotion, type ReferenceMotionKind } from "../../config/refer
 import { ReferenceMotionThumbnail } from "./reference-motion-thumbnail";
 import { isStageTemplate, StageThumbnail } from "./stage-thumbnail";
 import { getLogoMotion } from "../../config/logo-motion";
+import { getProductTemplate } from "../../config/physical-product";
+import { ProductThumbnail } from "./product-thumbnail";
 import { LogoWordArt } from "../../remotion/video/logo-word";
 import { InspiredBackground, INSPIRED_BACKGROUNDS } from "../../remotion/video/inspired-backgrounds";
 
@@ -87,6 +89,8 @@ export function VideoPlaceholder({
   const logoMotion = getLogoMotion(templateId);
   const editorialTop = editorial ? ({ "contact-sheet": "63%", "arch-window": "66%", "press-column": "17%", "diagonal-diptych": "39%", newsprint: "14%", offset: "65%", shutters: "39%", inlay: "63%", linea: "36%", slate: "64%" } as Record<string, string>)[editorial.treatment] : undefined;
   const style = { "--vp-bg": bg, "--vp-main": main, "--vp-accent": accent } as CSSProperties;
+
+  if (getProductTemplate(templateId)) return <div className={cn("relative isolate overflow-hidden", ratio === "fill" ? "size-full" : ratioClass[ratio], className)}><ProductThumbnail templateId={templateId!} />{children}</div>;
 
   return (
     <div

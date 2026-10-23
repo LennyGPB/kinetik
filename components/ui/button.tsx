@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const base =
-  "relative inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap font-medium transition-[transform,background-color,border-color,color,box-shadow,opacity] duration-200 ease-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0";
+  "relative inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap font-medium transition-[transform,background-color,border-color,color,box-shadow,opacity] duration-200 ease-out focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0";
 
 export const purpleButtonStyle = "border border-violet-300/60 bg-[radial-gradient(ellipse_at_top,rgb(255_255_255/0.18),transparent_70%),linear-gradient(155deg,#9061f9_0%,#7c3aed_40%,#4c1d95_100%)] font-semibold text-white shadow-[inset_0_1px_1px_rgb(255_255_255/0.3),0_8px_24px_-8px_rgb(139_92_246/0.65)] hover:border-violet-200/90 hover:shadow-[inset_0_1px_1px_rgb(255_255_255/0.4),0_10px_28px_-8px_rgb(139_92_246/0.85)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-violet-400";
 

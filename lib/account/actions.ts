@@ -120,16 +120,22 @@ export async function saveBrandKit(input: BrandKitInput): Promise<FormState> {
   if (limited) return { error: limited };
   const parsed = brandKitSchema.safeParse(input);
   if (!parsed.success) return { error: t.common.error };
-  const { logo, ...data } = parsed.data;
-  if (logo && !isOwnUpload(user.id, logo.url)) return { error: t.common.error };
+  const { logo, screens, brief, ...data } = parsed.data;
+  if ([logo, ...(screens ?? [])].some((file) => file && !isOwnUpload(user.id, file.url))) return { error: t.common.error };
 
   const existing = await db.brandKit.findFirst({ where: { userId: user.id }, orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }], select: { id: true } });
-  const kit = existing
-    ? await db.brandKit.update({ where: { id: existing.id }, data })
-    : await db.brandKit.create({ data: { ...data, userId: user.id, isDefault: true } });
-
-  await db.asset.deleteMany({ where: { brandKitId: kit.id, type: "LOGO" } });
-  if (logo) await db.asset.create({ data: { type: "LOGO", brandKitId: kit.id, ...logo } });
+  await db.$transaction(async (tx) => {
+    const values = { ...data, ...(brief && { brief }) };
+    const kit = existing
+      ? await tx.brandKit.update({ where: { id: existing.id }, data: values })
+      : await tx.brandKit.create({ data: { ...values, userId: user.id, isDefault: true } });
+    await tx.asset.deleteMany({ where: { brandKitId: kit.id, type: "LOGO" } });
+    if (logo) await tx.asset.create({ data: { type: "LOGO", brandKitId: kit.id, ...logo } });
+    if (screens) {
+      await tx.asset.deleteMany({ where: { brandKitId: kit.id, type: "SCREEN" } });
+      if (screens.length) await tx.asset.createMany({ data: screens.map((file, position) => ({ ...file, type: "SCREEN" as const, brandKitId: kit.id, position })) });
+    }
+  });
 
   return { ok: true };
 }

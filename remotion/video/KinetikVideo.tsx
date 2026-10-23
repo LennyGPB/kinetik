@@ -1,6 +1,8 @@
 import { SceneClock, TextSceneContext } from "./movable-text";
 import { ScreenRecordingVideo } from "./screen-recording";
 import { DecorVideo } from "./decor";
+import { PhysicalProductVideo } from "./physical-product";
+import { getProductTemplate } from "../../config/physical-product";
 import { overlayApplies } from "../../lib/projects/overlays";
 import { OverlayLayer } from "./overlays";
 import { AbsoluteFill, Audio, Img, getRemotionEnvironment, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
@@ -32,7 +34,7 @@ import { musicDuckVolume } from "../../lib/projects/voiceover";
  * Le rendu d'un template dépend de `props.recipe` (config/recipes.ts), sauf réglages choisis par l'utilisateur dans le SceneGraph.
  */
 export function KinetikVideo(input: VideoProps) {
-  return <>{input.graph.recording?.decorId ? <DecorVideo props={input} /> : input.graph.recording ? <ScreenRecordingVideo props={input} /> : <MotionVideo input={input} />}<VoiceoverAudio graph={input.graph} /><NarrationCaptions graph={input.graph} /></>;
+  return <>{getProductTemplate(input.graph.styleId) ? <PhysicalProductVideo props={input} /> : input.graph.recording?.decorId ? <DecorVideo props={input} /> : input.graph.recording ? <ScreenRecordingVideo props={input} /> : <MotionVideo input={input} />}<VoiceoverAudio graph={input.graph} /><NarrationCaptions graph={input.graph} /></>;
 }
 
 function MotionVideo({ input }: { input: VideoProps }) {

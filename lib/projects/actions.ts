@@ -14,6 +14,7 @@ import { getTrack } from "@/config/music";
 import { getPlan } from "@/config/pricing";
 import { getRecipe } from "@/config/recipes";
 import { getStyle } from "@/config/styles";
+import { isProduct3D } from "@/config/physical-product";
 import { MAX_PROJECT_COLORS } from "@/config/colors";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { claimGeneration, getCreditBalance, InsufficientCreditsError, refundCredits, spendCredits } from "@/lib/credits/ledger";
@@ -44,7 +45,7 @@ function insufficient(error: InsufficientCreditsError) {
 
 /** Le rendu passe par le plateau 3D (export plus coûteux) : même règle que buildVideoProps (style de la version, sauf pitch). */
 function isPremium3d(projectStyleId: string | null, graph: SceneGraph) {
-  return !graph.pitch && Boolean(getRecipe(graph.styleId ?? projectStyleId).stage);
+  return !graph.pitch && Boolean(getRecipe(graph.styleId ?? projectStyleId).stage || isProduct3D(graph.styleId ?? projectStyleId));
 }
 
 async function ownedProject(userId: string, projectId: string) {

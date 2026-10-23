@@ -4,6 +4,7 @@ import { DURATIONS, FORMAT_IDS } from "@/config/formats";
 import { VIDEO_STYLES } from "@/config/styles";
 import { VIDEO_TYPE_IDS } from "@/config/video-types";
 import { MAX_PROJECT_COLORS } from "@/config/colors";
+import { ProductBriefSchema } from "../url-video/brief";
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 
@@ -76,6 +77,8 @@ export const brandKitSchema = z.object({
   colors: z.array(hex).max(6),
   headingFont: z.string().max(60).nullable(),
   bodyFont: z.string().max(60).nullable(),
+  brief: ProductBriefSchema.optional(),
+  screens: z.array(uploadedFileSchema).max(8).optional(),
 });
 
 export type BrandKitInput = z.input<typeof brandKitSchema>;

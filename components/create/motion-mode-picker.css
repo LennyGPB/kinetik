@@ -1,0 +1,54 @@
+.motion-mode-card {
+  transition: box-shadow 280ms ease-out, border-color 280ms ease-out;
+}
+.motion-mode-card:hover,
+.motion-mode-card:focus-visible {
+  border-color: rgb(167 139 250 / .85);
+  box-shadow: 0 12px 28px -8px rgb(124 58 237 / .8), 0 24px 56px -14px rgb(139 92 246 / .6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-mode-card { transition: none; }
+}
+
+.pitch-mode-preview > :first-child {
+  animation: pitch-page-float 5s cubic-bezier(.45, 0, .2, 1) infinite;
+}
+.pitch-mode-preview > :nth-child(2) {
+  animation: pitch-convert 5s ease-in-out infinite;
+}
+.pitch-mode-preview > :last-child {
+  animation: pitch-screen-float 5s cubic-bezier(.45, 0, .2, 1) infinite;
+}
+.pitch-mode-preview > :last-child > :last-child > span {
+  transform-origin: left;
+  animation: pitch-timeline 5s ease-in-out infinite;
+}
+.pitch-mode-preview > :last-child > :last-child > span:nth-child(2) { animation-delay: .2s; }
+.pitch-mode-preview > :last-child > :last-child > span:nth-child(3) { animation-delay: .4s; }
+.pitch-mode-preview > :last-child > :last-child > span:nth-child(4) { animation-delay: .6s; }
+.pitch-mode-preview > :last-child > :last-child > span:nth-child(5) { animation-delay: .8s; }
+@keyframes pitch-page-float {
+  0%, 100% { transform: translateY(3px) rotate(-6deg); }
+  50% { transform: translate(5px, -5px) rotate(-2deg); }
+}
+@keyframes pitch-screen-float {
+  0%, 100% { transform: translateY(-2px) rotate(3deg); }
+  50% { transform: translateY(5px) rotate(1deg); }
+}
+@keyframes pitch-convert {
+  0%, 25%, 75%, 100% { transform: translateX(0); }
+  45%, 55% { transform: translateX(5px); }
+}
+@keyframes pitch-timeline {
+  0%, 15%, 100% { transform: scaleX(.3); opacity: .45; }
+  45%, 80% { transform: scaleX(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pitch-mode-preview > :first-child,
+  .pitch-mode-preview > :nth-child(2),
+  .pitch-mode-preview > :last-child,
+  .pitch-mode-preview > :last-child > :last-child > span {
+    animation-duration: 5s !important;
+    animation-iteration-count: infinite !important;
+  }
+}

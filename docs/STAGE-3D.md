@@ -40,7 +40,7 @@ Ces cinq univers prolongent le moteur commun : mêmes vrais écrans, appareils, 
 - **Tidal** : vrai reflet planaire de la scène, déformé par des rides calculées dans les coordonnées du plan d’eau (repère du monde, indépendant du cadrage). La surface rejoint la couleur du studio au loin, sans ciel. Trois rides chromées et sept micro-anneaux cyan entourent le socle ; un arc chromé assure le passage.
 - **Blueprint 3D** : cadres rectangulaires en titane, repères de mesure et contours lumineux en profondeur. Deux blocs latéraux portent des enveloppes filaires discrètes ; une ligne de scanner se déplace devant les cadres. Le décor reste un scanner de studio, sans matérialisation de cubes urbains.
 - **Solstice 3D** : cinq panneaux optiques fumés, alternativement ambrés et bleutés, encadrés de métal fin et de lignes lumineuses. Leur rotation module les reflets du studio sombre ; le verre est un matériau translucide avec vernis et légère iridescence.
-- **Assembly** : bras métalliques sombres chanfreinés et fins anneaux émissifs aux articulations. Deux bras à cinématique inverse placent leurs poignets sur les bords du plateau ; des mâchoires opposées s’ouvrent lors du retrait. Le bras receveur tient le plateau avant le relâchement de l’autre. Plateau et appareil partagent la même courbe de levée et de rotation, image par image. Le cadrage carré recule davantage et décale l’ensemble pour dégager le texte.
+- **Assembly** : bras en titane effilés et chanfreinés, avec lumières traversantes, carters de servomoteurs détaillés, vis et fins anneaux émissifs aux articulations. Un vérin accompagne l’épaule et un câble fléchit autour du coude. La cinématique inverse utilise des segments rigides dont la longueur dépend seulement de l’écartement des appareils (`spread`), jamais de la pose. Un décalage d’outil de 0,32 unité garde le poignet à l’extérieur du plateau ; les mâchoires parallèles et leurs patins en caoutchouc atteignent son bord. L’approche et le retrait s’arrêtent sans vitesse résiduelle aux limites des phases (`smoothstep` pour le bras receveur, courbe sinusoïdale au carré pour l’autre). Le bras receveur tient le plateau avant le relâchement de l’autre. Plateau et appareil partagent la même courbe de levée et de rotation, image par image. Le cadrage carré recule davantage et décale l’ensemble pour dégager le texte.
 
 Les cinq univers sont sombres (`light: false`), dans la continuité des reflets contrôlés de Stage et Magnet. `collection-kit.tsx` partage blocs et socles chanfreinés ; `PrecisionStudio` reprend le `SculpturalStudio` d’Array et Orbit 3D pour Loom, Blueprint, Solstice et Assembly. Tidal utilise un éclairage de studio à grandes boîtes à lumière et son propre miroir liquide. Les cinq signatures ont une sortie de 24 images et une entrée de 28 images ; les poses de passage reviennent à leur état de repos aux limites de la transition.
 
@@ -51,6 +51,7 @@ Les 15 miniatures de catalogue (cinq univers × trois formats) sont générées 
 | Fichier | Rôle |
 | --- | --- |
 | `config/stage-motion.ts` | Logique pure, testée : univers, plans de caméra, transitions, horloge du décor, quartiers, contenu des écrans, couleurs |
+| `config/assembly-motion.ts` | Cinématique inverse à segments rigides, décalage de l’outil et ouverture des pinces d’Assembly |
 | `remotion/video/stage3d.tsx` | Moteur commun : appareils (téléphone, portable, écran), écrans, caméra, mises en avant, choix du décor |
 | `remotion/video/stage-envs/*.tsx` | Un décor par univers (lumières, sol, ciel, effets) |
 | `remotion/video/stage-kit.tsx` | Briques partagées : formes arrondies, textures peintes, ciel en dégradé (`SkyDome`) |
@@ -60,6 +61,7 @@ Les 15 miniatures de catalogue (cinq univers × trois formats) sont générées 
 | `scripts/review-stage.ts` | Revue visuelle et génération des miniatures |
 | `scripts/review-stage-collection.ts` | Revue des cinq nouveaux univers, planches de contact et 15 miniatures du moteur |
 | `lib/projects/stage-motion.test.ts` | Continuité de la caméra, tour de plateau, écrans, prix |
+| `lib/projects/assembly-motion.test.ts` | Cinématique directe : contact des pinces, longueurs fixes, prise continue et arrêt des phases d’Assembly |
 
 Branchements : `Recipe.stage` (`config/recipes.ts`), fond dans `KinetikVideo.tsx`, `TextLayout` (`composition.tsx`),
 `ScreensScene` (`screens.tsx`), `LogoScene` (`scenes.tsx`), transition `turntable` (`TRANSITIONS`, `TRANSITION_BRICKS`, `SYSTEM` de `ai.ts`, libellés FR/EN).
@@ -125,4 +127,4 @@ Branchements : `Recipe.stage` (`config/recipes.ts`), fond dans `KinetikVideo.tsx
 - `node --import tsx scripts/review-stage.ts --template=<id>` : images clés de chaque scène et transition, 3 formats → `out/stage/contact-<id>.png`.
 - `node --import tsx scripts/review-stage.ts --gl=swangle --format=LANDSCAPE` : même rendu en WebGL logiciel, chronométré.
 - `node --import tsx scripts/review-stage.ts --template=<id> --thumbnails` : régénère `public/templates/<id>-*.jpg` après un changement visuel.
-- `node --import tsx --conditions=react-server --test lib/projects/stage-motion.test.ts`.
+- `node --import tsx --conditions=react-server --test lib/projects/stage-motion.test.ts lib/projects/assembly-motion.test.ts`. Les tests purs d’Assembly reconstruisent le contact par cinématique directe sur 101 phases, trois écartements et deux bras ; ils vérifient les longueurs fixes, la prise continue du plateau et la vitesse nulle aux limites des phases.
