@@ -4,7 +4,7 @@ import { getProductTemplate, isProduct3D } from "@/config/physical-product";
 export function ProductThumbnail({ templateId }: { templateId: string }) {
   const template = getProductTemplate(templateId)!;
   const [background, foreground, accent] = template.palette;
-  if (isProduct3D(templateId)) return <div className="absolute inset-0 overflow-hidden" style={{ background, color: foreground }}><Image src={`/templates/${template.id}-portrait.jpg`} alt="" fill sizes="(max-width: 640px) 220px, 300px" className="object-cover" /><span className="absolute bottom-[5%] left-[8%] rounded-lg bg-black/80 px-3 py-2 text-sm font-semibold">{template.name} · Demo</span></div>;
+  if (isProduct3D(templateId)) return <div className="absolute inset-0 overflow-hidden" style={{ background, color: foreground }}><Image src={`/templates/${template.id}-portrait.jpg`} alt="" fill sizes="(max-width: 640px) 220px, 300px" className="object-cover" /></div>;
   return <div className="absolute inset-0 overflow-hidden" style={{ background, color: foreground }}>
     {template.id === "product-floating" && <span className="absolute left-1/3 top-1/4 size-64 rounded-full opacity-50" style={{ background: `radial-gradient(circle at 30% 25%,${accent},transparent 75%)` }} />}
     {template.id === "product-editorial" && <span className="absolute right-0 top-0 h-full w-1/3" style={{ background: foreground }} />}
