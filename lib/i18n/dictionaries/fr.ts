@@ -713,6 +713,8 @@ export const fr = {
       undoHelp: "Annuler la dernière modification, sans crédit",
       undone: "Dernière modification annulée",
       proposalReady: "Aperçu proposé : applique les changements pour les enregistrer.",
+      editCharged: "Cette modification a coûté {count} crédits.",
+      unchangedCharged: "Cette demande n'a rien modifié mais a demandé plusieurs étapes : elle a coûté 1 crédit.",
       sceneTag: "Scène {n}",
       logoLayouts: {
         orbit: "Orbite",
@@ -733,7 +735,7 @@ export const fr = {
       thinking: "Kinetik réfléchit…",
       inputPlaceholder: "Demande une modification…",
       send: "Envoyer",
-      editCost: "{count} crédits par modification",
+      editCost: "{min} à {max} crédits par modification, selon la complexité",
       restore: "Restaurer",
       current: "Actuelle",
       previousVersions: "Versions plus récentes",

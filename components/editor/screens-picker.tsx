@@ -5,7 +5,7 @@ import { purpleButtonStyle } from "@/components/ui/button";
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { Images } from "lucide-react";
+import { Check, ImagePlus, Wand2 } from "lucide-react";
 import { useState } from "react";
 import { format } from "@/lib/i18n";
 import { MAX_SCREEN_COUNT } from "@/lib/projects/scenes";
@@ -44,51 +44,82 @@ export function ScreensPicker({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Images className="size-4 text-accent-text" />
-        <p className="text-sm font-semibold">{tl.screensPickTitle}</p>
-        <p className="text-xs text-muted">{limit === 1 ? tl.mockupScreenHint : tl.screensPickHint}</p>
-        {onManage && <button type="button" disabled={disabled} onClick={onManage} className="ml-auto min-h-9 rounded-lg border border-line px-3 text-xs font-medium hover:bg-surface-2 disabled:opacity-40">{t.copy["14e155156f7c"]}</button>}
+    <div className="flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm leading-relaxed text-muted">{limit === 1 ? tl.mockupScreenHint : tl.screensPickHint}</p>
+        {limit > 1 && (
+          <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums", picked.length ? "bg-accent-soft text-accent-text" : "bg-surface-2 text-muted")}>
+            {picked.length}/{limit}
+          </span>
+        )}
       </div>
-      {/* Wrapping grid, not a hidden horizontal scroller: every screenshot stays reachable with a mouse (8 at most). */}
-      <ul className="flex max-h-[50vh] flex-wrap gap-2 overflow-y-auto p-0.5">
+
+      {/* Grille régulière (pas de défilement horizontal caché) : chaque capture reste atteignable à la souris. */}
+      <ul className="grid max-h-[55vh] grid-cols-3 gap-3 overflow-y-auto p-1 sm:grid-cols-4">
         {screens.map((screen, i) => {
           const order = picked.indexOf(screen.url);
+          const selected = order >= 0;
           return (
-            <li key={screen.url} className="shrink-0">
+            <li key={screen.url}>
               <button
                 type="button"
                 disabled={disabled}
                 onClick={() => toggle(screen.url)}
-                aria-pressed={order >= 0}
+                aria-pressed={selected}
                 aria-label={format(tl.screenItem, { n: i + 1 })}
-                className={cn("relative h-24 max-w-full overflow-hidden rounded-lg border-2 bg-black transition-[border-color,opacity] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-28", order >= 0 ? "border-accent" : "border-transparent opacity-55 hover:opacity-100")}
-                style={{ aspectRatio: `${screen.ratio ?? 9 / 19.5}` }}
+                className={cn(
+                  "relative block aspect-[9/16] w-full overflow-hidden rounded-xl border-2 bg-black transition-[border-color,opacity,transform] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] disabled:opacity-40 motion-reduce:transition-none",
+                  selected ? "border-accent shadow-[0_0_0_4px_rgb(139_92_246/0.18)]" : "border-line opacity-70 hover:border-line-strong hover:opacity-100",
+                )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- fichier uploadé servi par /api/uploads */}
                 <img src={screen.url} alt="" className="size-full object-contain" />
-                {order >= 0 && <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-accent text-[11px] font-bold text-white">{order + 1}</span>}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute top-2 left-2 grid size-6 place-items-center rounded-full text-xs font-bold",
+                    selected ? "bg-accent text-white" : "border border-white/40 bg-black/40",
+                  )}
+                >
+                  {selected ? (limit === 1 ? <Check className="size-3.5" /> : order + 1) : null}
+                </span>
               </button>
             </li>
           );
         })}
+        {onManage && (
+          <li>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={onManage}
+              className="flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line-strong px-2 text-center text-xs font-medium text-muted transition-colors hover:border-accent/60 hover:bg-accent-soft hover:text-accent-text disabled:opacity-40"
+            >
+              <span className="grid size-9 place-items-center rounded-full bg-surface-2"><ImagePlus className="size-4" aria-hidden /></span>
+              {t.copy["14e155156f7c"]}
+            </button>
+          </li>
+        )}
       </ul>
-      <div className="flex flex-wrap justify-end gap-2">
-        <button type="button" disabled={disabled} onClick={() => onApply(null)} className="h-10 rounded-xl px-3 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg">
+
+      <div className="-mx-6 mt-1 flex flex-wrap items-center gap-2 border-t border-line px-6 pt-4">
+        <button type="button" disabled={disabled} onClick={() => onApply(null)} className="inline-flex h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-40">
+          <Wand2 className="size-4" aria-hidden />
           {tl.screensAuto}
         </button>
-        <button type="button" onClick={onCancel} className="h-10 rounded-xl px-3 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg">
-          {tl.cancel}
-        </button>
-        <button
-          type="button"
-          disabled={disabled || !picked.length}
-          onClick={() => onApply(picked)}
-          className={cn("h-10 rounded-xl px-4 text-sm transition-[opacity,box-shadow] disabled:opacity-40", purpleButtonStyle)}
-        >
-          {tl.apply}
-        </button>
+        <div className="ml-auto flex gap-2">
+          <button type="button" onClick={onCancel} className="h-11 rounded-xl px-4 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg">
+            {tl.cancel}
+          </button>
+          <button
+            type="button"
+            disabled={disabled || !picked.length}
+            onClick={() => onApply(picked)}
+            className={cn("h-11 rounded-xl px-5 text-sm font-semibold transition-[opacity,box-shadow] disabled:opacity-40", purpleButtonStyle)}
+          >
+            {tl.apply}
+          </button>
+        </div>
       </div>
     </div>
   );

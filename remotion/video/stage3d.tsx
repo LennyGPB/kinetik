@@ -28,6 +28,7 @@ import { AssemblyEnvironment } from "./stage-envs/assembly";
 import { VaultEnvironment } from "./stage-envs/vault";
 import type { VideoProps } from "../props";
 import { contentKey, loadImage, paintScreen, type ScreenCamera } from "./stage-screen";
+import { RushBlur } from "./product-signature-fx";
 
 /**
  * Templates en vraie 3D (docs/STAGE-3D.md) : scène three.js rendue par @remotion/three.
@@ -49,6 +50,8 @@ export type StageBackdropProps = {
   scenes: StageScene[];
   screens: ScreenContent[][];
   deviceId: string;
+  /** Couleur de coque demandée (#rrggbb) ; absente = couleur du modèle */
+  deviceColor?: string;
   appName: string;
   logoUrl: string | null;
   font: string;
@@ -58,9 +61,13 @@ export type StageBackdropProps = {
 
 export function StageBackdrop(props: StageBackdropProps) {
   const { width, height } = useVideoConfig();
+  const frame = useCurrentFrame();
   const u = Math.min(width, height) / 100;
+  // Flou de vitesse au pic du geste de caméra, le long de son axe (quelques images par transition)
+  const { lens } = stageState(props.scenes, frame, stageFormat(width / height), props.kind);
   return (
     <>
+      <RushBlur id={`stage-rush-${props.kind}`} rush={lens.rush} axis={lens.blur}>
       <ThreeCanvas
         width={width} height={height} style={{ position: "absolute", inset: 0 }} shadows={SHADOWS.includes(props.kind) ? "soft" : false}
         onCreated={({ gl }) => { gl.toneMappingExposure = EXPOSURE[props.kind]; }}
@@ -68,6 +75,7 @@ export function StageBackdrop(props: StageBackdropProps) {
       >
         <StageWorld {...props} width={width} height={height} />
       </ThreeCanvas>
+      </RushBlur>
       {/* Kiosque : flou de bascule en haut et en bas de l'image (effet maquette) */}
       {props.kind === "kiosk" && ["top", "bottom"].map((edge) => (
         <div key={edge} style={{ position: "absolute", left: 0, right: 0, [edge]: 0, height: "30%", backdropFilter: `blur(${u * 0.55}px)`, WebkitBackdropFilter: `blur(${u * 0.55}px)`, maskImage: `linear-gradient(${edge === "top" ? "180deg" : "0deg"}, black 15%, transparent)`, WebkitMaskImage: `linear-gradient(${edge === "top" ? "180deg" : "0deg"}, black 15%, transparent)`, pointerEvents: "none" }} />
@@ -112,11 +120,14 @@ function devicePose(theme: StageKind, time: number, steady: number) {
   }
 }
 
-function StageWorld({ kind: theme, palette, scenes, screens, deviceId, appName, logoUrl, font, bpm, phaseFrames, width, height }: StageBackdropProps & { width: number; height: number }) {
+function StageWorld({ kind: theme, palette, scenes, screens, deviceId, deviceColor, appName, logoUrl, font, bpm, phaseFrames, width, height }: StageBackdropProps & { width: number; height: number }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const { gl, camera, advance } = useThree();
-  const spec = deviceSpec(deviceId) ?? deviceSpec("iphone-pro")!;
+  const spec = useMemo(() => {
+    const model = deviceSpec(deviceId) ?? deviceSpec("iphone-pro")!;
+    return deviceColor && /^#[0-9a-f]{6}$/i.test(deviceColor) ? { ...model, color: deviceColor } : model;
+  }, [deviceId, deviceColor]);
   const kind = spec.kind as Kind;
   const size = SIZE[kind];
   const format = stageFormat(width / height);
@@ -156,9 +167,11 @@ function StageWorld({ kind: theme, palette, scenes, screens, deviceId, appName, 
   // Caméra : orbite autour de l'appareil (au quartier `spot` pour Kiosque), décalage de l'image pour le placer à côté du texte,
   // puis plongée vers la zone mise en avant (zoom) ou rangement de l'appareil pour laisser la place à la découpe
   const portraitWide = format === "portrait" && kind !== "phone" ? 1.3 : 1;
-  const { shot, spot } = state;
+  const { shot, spot, lens } = state;
   useLayoutEffect(() => {
     const cam = camera as PerspectiveCamera;
+    // Champ de base 30°, élargi au pic du geste de caméra (sensation de vitesse)
+    cam.setFocalLength(cam.getFilmHeight() / (2 * Math.tan(((30 + lens.fov) * Math.PI) / 360)));
     const az = (shot.az * Math.PI) / 180, el = (shot.el * Math.PI) / 180;
     const dist = shot.dist * size.dist * portraitWide;
     const ty = shot.ty * size.target;
@@ -194,6 +207,8 @@ function StageWorld({ kind: theme, palette, scenes, screens, deviceId, appName, 
     }
     cam.position.copy(position);
     cam.lookAt(target);
+    // Inclinaison de caméra (dutch angle) pendant le geste
+    if (lens.bank) cam.rotateZ(lens.bank);
     cam.setViewOffset(width, height, (0.5 - ox) * width, (0.5 - oy) * height, width, height);
     cam.updateProjectionMatrix();
     cam.updateMatrixWorld();
@@ -235,7 +250,11 @@ function StageWorld({ kind: theme, palette, scenes, screens, deviceId, appName, 
   };
 
   // L'appareil se stabilise pendant une mise en avant (pas de balancement sous la caméra)
-  const pose = devicePose(theme, time, 1 - Math.max(zoomK, popK));
+  // Pose du template, puis pose demandée pour la scène (bascule, rotation, inclinaison, élévation, taille)
+  const pose = { ...devicePose(theme, time, 1 - Math.max(zoomK, popK)), tilt: state.pose.tilt, scale: state.pose.scale };
+  pose.y += state.pose.lift * 1.6 * size.target;
+  pose.yaw += state.pose.turn;
+  pose.roll += state.pose.roll;
   // Écran du cadrage en cours (fondu si deux cadrages montrent des captures différentes)
   const focusTexture = (src: string) => textures?.get(contentKey({ kind: "image", src })) ?? null;
   const inFocusScene = Boolean(focus && state.focus?.scene === state.index && state.screen.a === state.index && state.screen.b === state.index);
@@ -259,7 +278,7 @@ function StageWorld({ kind: theme, palette, scenes, screens, deviceId, appName, 
   const layout = (count: number, at: [number, number], screen: (slot: number) => { a: Texture | null; b: Texture | null; mix: number }, spin: number) => [0, 1, 2].map((slot) => {
     const shown = Math.max(0, Math.min(1, count - slot));
     const offset = (slot - (Math.max(1, count) - 1) / 2) * size.spacing;
-    return { slot, shown, x: at[0] + offset, y: pose.y + (1 - shown) * -0.5, z: at[1] - Math.abs(offset) * 0.32, yaw: -offset * 0.16 / size.spacing + pose.yaw + spin * (slot === 0 ? 1 : 0.9), roll: pose.roll, screen: screen(slot) };
+    return { slot, shown, x: at[0] + offset, y: pose.y + (1 - shown) * -0.5, z: at[1] - Math.abs(offset) * 0.32, yaw: -offset * 0.16 / size.spacing + pose.yaw + spin * (slot === 0 ? 1 : 0.9), roll: pose.roll, pitch: pose.tilt, size: pose.scale, screen: screen(slot) };
   });
   // The support and its device follow the same deterministic mechanical handoff.
   const handoff = theme === "assembly" && state.transition?.kind === "arm-exchange" ? Math.sin(Math.PI * state.transition.k) ** 2 : 0;
@@ -305,7 +324,7 @@ function StageWorld({ kind: theme, palette, scenes, screens, deviceId, appName, 
 
 /** Appareils posés sur le plateau (ou leur reflet, inversé sous le sol) ; l'ancre d'écran n'est posée que sur l'appareil principal. */
 function DeviceSlots({ slots, spec, mirror = false, anchorRef, overlay, castShadow = false }: {
-  slots: { slot: number; shown: number; x: number; y: number; z: number; yaw: number; roll?: number; screen: { a: Texture | null; b: Texture | null; mix: number } }[];
+  slots: { slot: number; shown: number; x: number; y: number; z: number; yaw: number; roll?: number; pitch?: number; size?: number; screen: { a: Texture | null; b: Texture | null; mix: number } }[];
   spec: DeviceSpec; mirror?: boolean; anchorRef?: Ref<Group>; overlay?: ReactNode; castShadow?: boolean;
 }) {
   // Ombres portées (univers ensoleillés) : chaque maillage de l'appareil projette son ombre
@@ -316,9 +335,9 @@ function DeviceSlots({ slots, spec, mirror = false, anchorRef, overlay, castShad
   return (
     <group ref={group}>
       {slots.filter((s) => s.shown > 0.001).map((s) => {
-        const k = easeOutBack(s.shown);
+        const k = easeOutBack(s.shown) * (s.size ?? 1);
         return (
-          <group key={s.slot} position={[s.x, s.y * (mirror ? -1 : 1), s.z]} rotation={[0, s.yaw, s.roll ?? 0]} scale={[k, k * (mirror ? -1 : 1), k]}>
+          <group key={s.slot} position={[s.x, s.y * (mirror ? -1 : 1), s.z]} rotation={[(s.pitch ?? 0) * (mirror ? -1 : 1), s.yaw, s.roll ?? 0]} scale={[k, k * (mirror ? -1 : 1), k]}>
             <Device spec={spec} {...screenProps(s.screen)} {...(!mirror && s.slot === 0 ? { anchorRef, overlay } : {})} />
           </group>
         );

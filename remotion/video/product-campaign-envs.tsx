@@ -5,12 +5,13 @@ import { Reflector } from "three/examples/jsm/objects/Reflector.js";
 import { fbm, hash, radialTexture } from "./stage-kit";
 import { CampaignLights, Mist, organicTexture } from "./product-campaign-kit";
 
-type EnvProps = { base: string; accent: string; time: number; narrow?: boolean };
+type EnvProps = { base: string; accent: string; time: number; narrow?: boolean; swing?: number; burst?: number; sweep?: number };
 
 export { FlutedGlassEnvironment as NocturneEnvironment } from "./product-fluted-glass";
 
 /** Warm braided-rope campaign; legacy template ID remains compatible with saved projects. */
-export function CordeEnvironment({ base, accent, time, narrow = false }: EnvProps) {
+/** `swing` (0 → 1) : pendant une transition, les cordes se tendent et balancent plus fort. */
+export function CordeEnvironment({ base, accent, time, narrow = false, swing = 0 }: EnvProps) {
   const braid = useMemo(() => organicTexture("rope"), []);
   const glow = useMemo(() => radialTexture([[0, "#FFD596"], [.23, "#F49B43"], [.58, base], [1, "#240703"]]), [base]);
   const ropes = useMemo(() => {
@@ -30,13 +31,14 @@ export function CordeEnvironment({ base, accent, time, narrow = false }: EnvProp
     <CampaignLights accent={accent} />
     <mesh position={[0,3,-9]}><planeGeometry args={[35,27]} /><meshBasicMaterial map={glow} toneMapped={false} /></mesh>
     <rectAreaLight position={[1,5,1]} rotation={[-.3,0,.3]} width={3} height={7} intensity={7} color="#FFC273" />
-    <group rotation={[0,Math.sin(time*.4)*.035,Math.sin(time*.28)*.025]}>
+    <group rotation={[swing*.05,Math.sin(time*.4)*.035+swing*.14,Math.sin(time*.28)*.025-swing*.09]} scale={[1+swing*.04,1-swing*.03,1]}>
       {ropes.map((geometry,i) => <mesh key={i} geometry={geometry}><meshPhysicalMaterial map={braid} bumpMap={braid} bumpScale={.018} color="#CE3015" roughness={.59} sheen={.7} sheenColor="#F48339" sheenRoughness={.6} /></mesh>)}
     </group>
   </>;
 }
 
-export function SorbetEnvironment({ base, accent, time, narrow = false }: EnvProps) {
+/** `burst` (0 → 1 → 0) : pendant une transition, les glaçons s'écartent du produit en tournoyant, puis reviennent. */
+export function SorbetEnvironment({ base, accent, time, narrow = false, burst = 0 }: EnvProps) {
   const cube = useMemo(() => {
     const geometry = new RoundedBoxGeometry(1, 1, 1, 5, .055), positions = geometry.attributes.position, normals = geometry.attributes.normal;
     for (let i = 0; i < positions.count; i++) {
@@ -54,7 +56,10 @@ export function SorbetEnvironment({ base, accent, time, narrow = false }: EnvPro
     {Array.from({ length: 9 }, (_, i) => {
       const side = i % 2 ? 1 : -1, phase = time * (.15 + i * .006) + i;
       const near = i < 2, scale = near ? 1.2 : .55 + hash(i, 1) * .45;
-      return <group key={i} position={[(side * (near ? 3.35 : 2 + hash(i, 2) * 1.9) + Math.sin(phase) * .2) * (narrow ? .58 : 1), .3 + hash(i, 4) * 4.5 + Math.sin(phase * .7) * .3, near ? 2.1 : -1.5 - hash(i, 6) * 3]} rotation={[phase * .22, phase * .3, i * .5]} scale={scale}>
+      const x = (side * (near ? 3.35 : 2 + hash(i, 2) * 1.9) + Math.sin(phase) * .2) * (narrow ? .58 : 1), y = .3 + hash(i, 4) * 4.5 + Math.sin(phase * .7) * .3, z = near ? 2.1 : -1.5 - hash(i, 6) * 3;
+      // Éclatement : chaque glaçon s'éloigne du centre du produit (≈ 0, 2,4, 0) puis revient
+      const dx = x, dy = y - 2.4, dz = z, d = Math.max(.5, Math.hypot(dx, dy, dz)), push = burst * 1.8;
+      return <group key={i} position={[x + dx / d * push, y + dy / d * push, z + dz / d * push]} rotation={[phase * .22 + burst * 1.6, phase * .3 + burst * 1.1, i * .5]} scale={scale}>
         <mesh geometry={cube}><meshPhysicalMaterial color="#E9F8FF" roughness={near ? .23 : .12} metalness={0} transmission={1} thickness={1.2} ior={1.31} clearcoat={1} clearcoatRoughness={.04} bumpMap={frost} bumpScale={.035} /></mesh>
         <mesh geometry={cube} scale={.58}><meshStandardMaterial color="#F0FAFF" roughness={.85} transparent opacity={.17} depthWrite={false} /></mesh>
         {[0, 1, 2].map(bubble => <mesh key={bubble} position={[hash(i, bubble + 20) * .5 - .25, hash(i, bubble + 30) * .5 - .25, hash(i, bubble + 40) * .4 - .2]}><sphereGeometry args={[.025 + hash(i, bubble + 50) * .02, 10, 8]} /><meshPhysicalMaterial color="#FFFFFF" transparent opacity={.22} roughness={.1} depthWrite={false} /></mesh>)}
@@ -64,7 +69,8 @@ export function SorbetEnvironment({ base, accent, time, narrow = false }: EnvPro
   </>;
 }
 
-export function IonEnvironment({ base, accent, time }: EnvProps) {
+/** `sweep` (0 → 1, -1 hors transition) : les panneaux s'allument en balayage pendant que les produits tournent en carrousel. */
+export function IonEnvironment({ base, accent, time, sweep = -1 }: EnvProps) {
   const floor = useMemo(() => {
     const mirror = new Reflector(new PlaneGeometry(100, 100), { textureWidth: 1024, textureHeight: 1024, clipBias: .003 });
     mirror.rotation.x = -Math.PI / 2;
@@ -81,11 +87,15 @@ export function IonEnvironment({ base, accent, time }: EnvProps) {
     <color attach="background" args={[base]} /><fog attach="fog" args={[base, 15, 35]} />
     <CampaignLights accent={accent} />
     <primitive object={floor} />
-    {[-1, 0, 1].map(i => <group key={i} position={[i * 2.35, 3.1, -3.7 - Math.abs(i) * .25]} rotation={[0, i * -.22, 0]}>
-      <mesh><boxGeometry args={[i === 0 ? 2.5 : 1.55, 6.2, .16]} /><meshStandardMaterial color="#151F2A" metalness={.8} roughness={.25} /></mesh>
-      <mesh position={[0, 0, .088]}><planeGeometry args={[i === 0 ? 2.35 : 1.4, 5.95]} /><meshBasicMaterial color="#F0F7FF" toneMapped={false} /></mesh>
-      <rectAreaLight position={[0, 0, .2]} width={1.5} height={5.8} intensity={4} color={accent} />
-    </group>)}
+    {[-1, 0, 1].map(i => {
+      // Balayage : chaque panneau s'illumine à son tour (gauche → droite), courbe en cloche continue
+      const flare = sweep >= 0 ? Math.exp(-(((sweep - (.25 + (i + 1) * .25)) / .12) ** 2)) : 0;
+      return <group key={i} position={[i * 2.35, 3.1, -3.7 - Math.abs(i) * .25]} rotation={[0, i * -.22, 0]}>
+        <mesh><boxGeometry args={[i === 0 ? 2.5 : 1.55, 6.2, .16]} /><meshStandardMaterial color="#151F2A" metalness={.8} roughness={.25} /></mesh>
+        <mesh position={[0, 0, .088]}><planeGeometry args={[i === 0 ? 2.35 : 1.4, 5.95]} /><meshBasicMaterial color={flare > .01 ? `#${new Color("#F0F7FF").lerp(new Color(accent), flare * .55).getHexString()}` : "#F0F7FF"} toneMapped={false} /></mesh>
+        <rectAreaLight position={[0, 0, .2]} width={1.5} height={5.8} intensity={4 + flare * 14} color={accent} />
+      </group>;
+    })}
     {[-1, 1].map(side => <mesh key={side} position={[side * 3.65, 3.3, -.4]}><boxGeometry args={[.18, 7, .15]} /><meshBasicMaterial color="#F2F8FF" toneMapped={false} /></mesh>)}
     <Mist time={time} color="#E7F2FF" low opacity={.13} />
   </>;

@@ -1,4 +1,5 @@
 import { HEADLINE_MAX, type SceneGraph } from "./scenes";
+import { LAYER_TEXT_MAX } from "./motion-layers";
 
 export type TranslationLanguage = "fr" | "en";
 export type TranslationEntry = { key: string; text: string; maxLength: number };
@@ -21,6 +22,10 @@ export function translationEntries(graph: SceneGraph): TranslationEntry[] {
     scene.focuses?.forEach((focus, step) => {
       if (focus.label?.trim()) entries.push({ key: `scene-${index}-focus-${step}`, text: focus.label, maxLength: Math.max(80, focus.label.length) });
       if (focus.title?.trim()) entries.push({ key: `scene-${index}-focus-${step}-title`, text: focus.title, maxLength: Math.max(80, focus.title.length) });
+    });
+    // Calques animés libres de la scène
+    scene.layers?.forEach((layer) => {
+      if (layer.type === "text" && layer.text?.trim()) entries.push({ key: `scene-${index}-layer-${layer.id}`, text: layer.text, maxLength: Math.max(LAYER_TEXT_MAX, layer.text.length) });
     });
   });
   graph.overlays?.forEach((layer, index) => {
@@ -58,6 +63,7 @@ export function applyTranslation(graph: SceneGraph, translated: { key: string; t
       const translatedTitle = byKey.get(`scene-${index}-focus-${step}-title`);
       if (translatedTitle) focus.title = translatedTitle;
     });
+    scene.layers?.forEach((layer) => { const text = byKey.get(`scene-${index}-layer-${layer.id}`); if (text && layer.type === "text") layer.text = text; });
   });
   next.overlays?.forEach((layer, index) => { const text = byKey.get(`overlay-${index}`); if (text) layer.text = text; });
   return next;

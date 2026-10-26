@@ -1,7 +1,7 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type ReactNode, type TextareaHTMLAttributes } from "react";
-import { Check, ChevronDown, Globe, ImagePlus, Loader2, Maximize2, Music2, Pencil, SlidersHorizontal, Sparkles, Upload, X } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { Check, ChevronDown, Globe, ImagePlus, Images, Loader2, Maximize2, MessageSquareText, Palette, Pencil, SlidersHorizontal, Sparkles, Upload, X } from "lucide-react";
 import { Player } from "@remotion/player";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -52,32 +52,56 @@ function GrowingTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea {...props} ref={ref} className={cn(urlField, "block resize-none overflow-hidden", props.className)} />;
 }
 
-export function UrlSourceStep({ locale, url, onUrl, preferences, onPreferences, onUploading, disabled }: {
-  locale: Locale; url: string; onUrl: (value: string) => void; preferences: UrlPreferences;
-  onPreferences: (value: UrlPreferences) => void; onUploading: (busy: boolean) => void; disabled: boolean;
+export function UrlSourceStep({ locale, url, onUrl, disabled }: {
+  locale: Locale; url: string; onUrl: (value: string) => void; disabled: boolean;
 }) {
   const c = urlVideoCopy[locale], f = urlFlowCopy[locale];
-  return <div className="mx-auto max-w-2xl space-y-9">
-    <label className="block" htmlFor="product-url">
-      <span className="mb-3 block text-sm font-medium">{c.url}</span>
-      <span className="relative block"><Globe className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted" aria-hidden />
-        <input id="product-url" autoComplete="url" inputMode="url" value={url} disabled={disabled} onChange={(e) => onUrl(e.target.value)} placeholder={locale === "fr" ? "https://ton-site.com" : "https://your-website.com"} className={cn(urlField, "h-14 pl-12 text-base")} />
-      </span>
-    </label>
-    <section className="border-t border-line pt-7" aria-labelledby="url-music-title">
-      <div className="mb-4 flex items-center gap-2"><Music2 className="size-4 text-muted" aria-hidden /><h2 id="url-music-title" className="text-base font-semibold">{f.music}</h2><span className="ml-auto text-xs text-muted">{f.optional}</span></div>
-      <p className="mb-4 max-w-lg text-sm leading-relaxed text-muted">{f.musicHelp}</p>
-      <UrlMusicPicker preferences={preferences} onChange={onPreferences} onUploading={onUploading} disabled={disabled} />
-      {(preferences.music || preferences.musicTrackId) && <p className="mt-4 text-xs text-muted">{f.musicReady}</p>}
+  const gatherIcons = [MessageSquareText, Images, Palette];
+  return <div className="space-y-8">
+    <div>
+      <label className="mb-3 block text-sm font-medium" htmlFor="product-url">{c.url}</label>
+      <div className="relative">
+        <Globe className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-muted" aria-hidden />
+        <input id="product-url" autoComplete="url" inputMode="url" autoFocus value={url} disabled={disabled} onChange={(e) => onUrl(e.target.value)} placeholder={locale === "fr" ? "https://ton-site.com" : "https://your-website.com"} aria-describedby="product-url-hint" className={cn(urlField, "h-16 rounded-2xl pl-13 text-base sm:text-lg")} />
+      </div>
+      <p id="product-url-hint" className="mt-3 text-xs leading-relaxed text-muted">{f.sourceHint}</p>
+    </div>
+    <section aria-labelledby="url-gather-title">
+      <h2 id="url-gather-title" className="mb-3 text-xs font-semibold tracking-[0.1em] text-subtle uppercase">{f.gatherTitle}</h2>
+      <ul className="grid gap-3 sm:grid-cols-3">{f.gather.map((item, index) => {
+        const Icon = gatherIcons[index] ?? Sparkles;
+        return <li key={item.title} className="flex items-start gap-3 rounded-2xl border border-line bg-surface p-4 sm:flex-col">
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-text" aria-hidden><Icon className="size-4" /></span>
+          <span className="min-w-0"><span className="block text-sm font-semibold">{item.title}</span><span className="mt-1 block text-xs leading-relaxed text-muted">{item.text}</span></span>
+        </li>;
+      })}</ul>
     </section>
-    <p className="flex items-start gap-2 text-xs leading-relaxed text-muted"><Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />{c.free}</p>
+    <p className="flex items-start gap-2 text-xs leading-relaxed text-muted"><Sparkles className="mt-0.5 size-3.5 shrink-0 text-accent-text" aria-hidden />{c.free}</p>
   </div>;
+}
+
+export function UrlMusicStep({ locale, preferences, onPreferences, onUploading, disabled }: {
+  locale: Locale; preferences: UrlPreferences; onPreferences: (value: UrlPreferences) => void; onUploading: (busy: boolean) => void; disabled: boolean;
+}) {
+  const f = urlFlowCopy[locale];
+  return <section aria-label={f.music}>
+    <UrlMusicPicker preferences={preferences} onChange={onPreferences} onUploading={onUploading} disabled={disabled} />
+    {(preferences.music || preferences.musicTrackId) && <p className="mt-4 flex items-center gap-2 text-xs text-muted"><Check className="size-3.5 text-success" aria-hidden />{f.musicReady}</p>}
+  </section>;
 }
 
 export function UrlAnalysisProgress({ locale, busy, ready, milestones, failed = false }: { locale: Locale; busy: boolean; ready: boolean; milestones: Milestone[]; failed?: boolean }) {
   const c = urlVideoCopy[locale], f = urlFlowCopy[locale];
   const current = milestones.at(-1);
   const interrupted = failed && !ready && !busy;
+  // « Analysé » : affiché quelques secondes quand l'analyse se termine sous les yeux, jamais si elle l'était déjà
+  const [readyHidden, setReadyHidden] = useState(ready);
+  useEffect(() => {
+    if (!ready || readyHidden) return;
+    const timer = setTimeout(() => setReadyHidden(true), 4000);
+    return () => clearTimeout(timer);
+  }, [ready, readyHidden]);
+  if (ready && readyHidden) return null;
   if (!busy && !ready && !milestones.length) return null;
   return <div className="mt-7 rounded-xl border border-line bg-surface px-5 py-4">
     <div role="status" className="flex items-center gap-3">
@@ -181,17 +205,37 @@ export function UrlFinalStep({ locale, review, onChange, analysis, onEdit }: Rev
     <div className="flex items-start gap-4 rounded-xl bg-surface p-5 sm:p-6">
       {review.logo && <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-bg p-2">{/* eslint-disable-next-line @next/next/no-img-element -- private logo */}<img src={review.logo.url} alt="" className="h-full w-full object-contain" /></div>}
       <div className="min-w-0 flex-1"><h2 className="text-lg font-semibold">{review.brief.company}</h2><p className="mt-2 text-sm leading-relaxed text-muted">{review.brief.product}</p></div>
-      <button type="button" onClick={() => onEdit(2)} aria-label={`${f.edit} ${c.product}`} className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"><Pencil className="size-4" /></button>
+      <button type="button" onClick={() => onEdit(3)} aria-label={`${f.edit} ${c.product}`} className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"><Pencil className="size-4" /></button>
     </div>
     <dl className="divide-y divide-line">
-      {[{ label: f.template, value: review.templateId ? getStyle(review.templateId)?.name : f.aiTemplates, step: 1 }, { label: f.audio, value: review.music?.fileName ?? getTrack(review.musicTrackId)?.title ?? f.noMusic, step: 0 }, { label: c.screens, value: `${review.screens.length} ${f.selected}`, step: 3 }].map((row) => <div key={row.label} className="flex items-center gap-4 py-4"><dt className="w-24 shrink-0 text-sm text-muted">{row.label}</dt><dd className="min-w-0 flex-1 truncate text-sm font-medium">{row.value}</dd><button type="button" onClick={() => onEdit(row.step)} className="min-h-10 cursor-pointer text-sm text-accent-text hover:underline">{f.edit}</button></div>)}
+      {[{ label: f.template, value: review.templateId ? getStyle(review.templateId)?.name : f.aiTemplates, step: 1 }, { label: f.audio, value: review.music?.fileName ?? getTrack(review.musicTrackId)?.title ?? f.noMusic, step: 2 }, { label: c.screens, value: `${review.screens.length} ${f.selected}`, step: 4 }].map((row) => <div key={row.label} className="flex items-center gap-4 py-4"><dt className="w-24 shrink-0 text-sm text-muted">{row.label}</dt><dd className="min-w-0 flex-1 truncate text-sm font-medium">{row.value}</dd><button type="button" onClick={() => onEdit(row.step)} className="min-h-10 cursor-pointer text-sm text-accent-text hover:underline">{f.edit}</button></div>)}
     </dl>
     <div className={cn("grid gap-3", styles.length === 3 ? "grid-cols-3" : "grid-cols-1 sm:max-w-xs")}>
       {styles.map((id) => { const style = getStyle(id); if (!style) return null; return <div key={id}><div className="relative aspect-video overflow-hidden rounded-xl bg-surface"><VideoPlaceholder ratio="fill" templateId={id} palette={style.palette} scene={style.recipe.background} label={style.name} /></div><p className="mt-2 text-xs text-muted">{style.name}</p></div>; })}
     </div>
     {review.music && <audio controls preload="metadata" src={review.music.url} aria-label={review.music.fileName} className="h-10 w-full" />}
     <fieldset className="border-t border-line pt-6"><legend className="text-sm font-semibold">{f.output}</legend>
-      <div className="mt-4 grid gap-5 sm:grid-cols-2"><label className="text-sm text-muted">{c.format}<select className={cn(urlField, "mt-2")} value={review.format} onChange={(e) => onChange({ ...review, format: e.target.value as UrlReview["format"] })}>{([["PORTRAIT", `${c.portrait} · 9:16`], ["LANDSCAPE", `${c.landscape} · 16:9`], ["SQUARE", `${c.square} · 1:1`]] as const).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><label className="text-sm text-muted">{c.duration}<select className={cn(urlField, "mt-2")} value={review.duration} onChange={(e) => onChange({ ...review, duration: Number(e.target.value) as UrlReview["duration"] })}>{[10, 15, 30].map((n) => <option key={n} value={n}>{n} s</option>)}</select></label></div>
+      <div className="mt-4 space-y-5">
+        <div role="radiogroup" aria-label={c.format} className="grid grid-cols-3 gap-2">
+          {([["PORTRAIT", c.portrait, "9:16", "h-7 w-4"], ["LANDSCAPE", c.landscape, "16:9", "h-4 w-7"], ["SQUARE", c.square, "1:1", "size-5"]] as const).map(([id, label, ratio, shape]) => {
+            const selected = review.format === id;
+            return <button key={id} type="button" role="radio" aria-checked={selected} onClick={() => onChange({ ...review, format: id })} className={cn("flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border px-2 py-3 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent", selected ? "border-accent bg-accent-soft" : "border-line-strong bg-surface hover:border-muted")}>
+              <span className="grid h-8 place-items-center" aria-hidden><span className={cn("rounded-[3px] border-2", shape, selected ? "border-accent-text" : "border-muted")} /></span>
+              <span className={cn("text-sm font-medium", selected ? "text-fg" : "text-muted")}>{label}</span>
+              <span className="text-[11px] tabular-nums text-subtle">{ratio}</span>
+            </button>;
+          })}
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-muted">{c.duration}</span>
+          <div role="radiogroup" aria-label={c.duration} className="inline-flex gap-1 rounded-xl bg-surface p-1">
+            {([10, 15, 30] as const).map((n) => {
+              const selected = review.duration === n;
+              return <button key={n} type="button" role="radio" aria-checked={selected} onClick={() => onChange({ ...review, duration: n as UrlReview["duration"] })} className={cn("min-h-10 min-w-16 rounded-lg px-3 text-sm font-medium tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent", selected ? "bg-accent-soft text-accent-text" : "text-muted hover:text-fg")}>{n} s</button>;
+            })}
+          </div>
+        </div>
+      </div>
     </fieldset>
     {styles.some((id) => getStyle(id)?.category === "3d") && <p className="text-xs leading-relaxed text-muted">{f.premium}</p>}
     <label className="flex cursor-pointer items-start gap-3 border-t border-line pt-5"><input type="checkbox" className="mt-1 size-4 shrink-0 accent-accent" checked={review.saveBrand} onChange={(e) => onChange({ ...review, saveBrand: e.target.checked })} /><span className="text-sm font-medium">{f.savedKit}<span className="mt-1 block text-xs font-normal leading-relaxed text-muted">{f.savedKitHelp}</span></span></label>

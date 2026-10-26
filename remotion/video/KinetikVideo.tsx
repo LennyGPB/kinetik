@@ -5,6 +5,7 @@ import { PhysicalProductVideo } from "./physical-product";
 import { getProductTemplate } from "../../config/physical-product";
 import { overlayApplies } from "../../lib/projects/overlays";
 import { OverlayLayer } from "./overlays";
+import { SceneLayers } from "./motion-layers";
 import { AbsoluteFill, Audio, Img, getRemotionEnvironment, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { EditorialBackdrop } from "./editorial-backdrop";
 import { GraphicBackdrop } from "./graphic-backdrop";
@@ -67,7 +68,7 @@ function MotionVideo({ input }: { input: VideoProps }) {
       scenes: timeline.map(({ scene, from, duration }, i) => {
         // Mises en avant (zoom / découpe) : jouées en 3D sur l'écran d'un seul appareil
         const focus = scene.kind === "screens" ? sceneFocuses(scene).filter((item) => props.screenUrls.includes(item.src)) : [];
-        return { kind: scene.kind, transition: scene.transition, from, duration, deviceCount: focus.length ? 1 : screens[i].length, showDevice: stageShowsDevice(scene, userLogoLayout), ...(focus.length && { focus }) };
+        return { kind: scene.kind, transition: scene.transition, from, duration, deviceCount: focus.length ? 1 : screens[i].length, showDevice: stageShowsDevice(scene, userLogoLayout), ...(focus.length && { focus }), ...(scene.camera && { camera: scene.camera }), ...(scene.pose && { pose: scene.pose }) };
       }),
       deviceId: stageDeviceId(graph.deviceMockup, props.screenRatios),
     };
@@ -75,7 +76,15 @@ function MotionVideo({ input }: { input: VideoProps }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recipe.stage, graph.scenes, graph.logoLayout, graph.deviceMockup, graph.bpm, grid.phase, props.screenUrls, props.screenRatios]);
 
-  const backdrop = (pal: VideoProps["palette"]) => stage ? <StageBackdrop kind={recipe.stage!} palette={palette} scenes={stage.scenes} screens={stage.screens} deviceId={stage.deviceId} appName={props.appName} logoUrl={props.logoUrl} font={bodyFont} bpm={graph.bpm} phaseFrames={phaseFrames} /> : recipe.referenceMotion ? <ReferenceBackdrop kind={recipe.referenceMotion} palette={palette} time={(frame - (activeScene?.from ?? 0)) / fps} aspectRatio={width / height} renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} /> : recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={pal} beatPosition={musicalClock(frame, fps, graph.bpm, phaseFrames).position} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={pal} scene={activeIndex} time={frame / fps}
+  // Coupe de montage de Crosscut : les plans photo sortent pendant les 12 dernières images, les suivants entrent en 16 images
+  const montageCut = (() => {
+    if (!activeScene) return { out: 0, in: 0 };
+    const local = frame - activeScene.from, nextScene = timeline[activeIndex + 1];
+    const out = nextScene?.scene.transition === "scissor" ? Math.max(0, Math.min(1, (local - (activeScene.duration - 12)) / 12)) : 0;
+    const enter = activeIndex > 0 && activeScene.scene.transition === "scissor" ? Math.max(0, Math.min(1, 1 - local / 16)) : 0;
+    return { out: out ** 3, in: enter ** 3 };
+  })();
+  const backdrop = (pal: VideoProps["palette"]) => stage ? <StageBackdrop kind={recipe.stage!} palette={palette} scenes={stage.scenes} screens={stage.screens} deviceId={stage.deviceId} deviceColor={graph.deviceColor} appName={props.appName} logoUrl={props.logoUrl} font={bodyFont} bpm={graph.bpm} phaseFrames={phaseFrames} /> : recipe.referenceMotion ? <ReferenceBackdrop kind={recipe.referenceMotion} palette={palette} time={(frame - (activeScene?.from ?? 0)) / fps} scene={activeIndex} remaining={activeScene && timeline[activeIndex + 1] ? (activeScene.from + activeScene.duration - frame) / fps : Infinity} aspectRatio={width / height} renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} /> : recipe.graphicTreatment ? <GraphicBackdrop kind={recipe.graphicTreatment} palette={pal} beatPosition={musicalClock(frame, fps, graph.bpm, phaseFrames).position} aspectRatio={width / height} /> : recipe.photoTreatment ? <EditorialBackdrop treatment={recipe.photoTreatment} palette={pal} scene={activeIndex} time={frame / fps} cut={montageCut}
     progress={activeScene ? Math.max(0, Math.min(1, (frame - activeScene.from) / activeScene.duration)) : 0}
     renderPhoto={(style) => photoSrc ? <Img src={photoSrc} style={style} /> : null} />
     : <Background kind={recipe.background} palette={pal} energy={graph.energy} />;
@@ -107,9 +116,10 @@ function MotionVideo({ input }: { input: VideoProps }) {
                 <BeatContext value={{ bpm: graph.bpm, phaseFrames: phaseFrames - from }}>
                   <RecipeContext value={sceneRecipe}>
                     <SceneShell transition={scene.transition} next={timeline[i + 1]?.scene.transition} energy={sceneGraph.energy} accent={curtainColor(localPalette)} nextAccent={curtainColor(nextPalette)} palette={localPalette} nextPalette={nextPalette} title={scene.title} nextTitle={timeline[i + 1]?.scene.title}>
-                      <CameraMove index={i} energy={sceneGraph.energy}>
+                      {!scene.hideTemplate && <CameraMove index={i} energy={sceneGraph.energy}>
                         <TextSceneContext value={scene}><SceneClock><Scene scene={scene} props={sceneProps} /></SceneClock></TextSceneContext>
-                      </CameraMove>
+                      </CameraMove>}
+                      {scene.layers?.length ? <SceneLayers layers={scene.layers} props={sceneProps} durationInFrames={duration} /> : null}
                     </SceneShell>
                   </RecipeContext>
                 </BeatContext>

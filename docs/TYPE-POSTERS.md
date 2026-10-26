@@ -19,7 +19,15 @@ Les SVG reçoivent la palette et la famille de police en paramètres. Power et B
 - `<nom>-art.tsx` : SVG pur sans contexte ni hooks Remotion, importable côté serveur.
 - `<nom>.tsx` et `type-poster-layout.tsx` : intégration au moteur et aux textes déplaçables ; priorité aux polices de marque.
 - `type-poster-art.tsx` : ajustement typographique et silhouette déterministe des brosses.
-- `type-poster-transitions.tsx` : quatre couvertures plein cadre ; enregistrement dans les transitions, le prompt IA et les libellés FR/EN.
+- `type-poster-transitions.tsx` : couvertures plein cadre des dix affiches et `POSTER_MOTION`, le geste du contenu sous la couverture
+  (chute, mise au point, pli 3D, cube, écrasement sur l'horizon, rotation, secousse, étirement RVB, effondrement, bascule 3D).
+  `posterBrick()` (`transitions.tsx`) branche couverture, mouvement et filtres SVG. Les détails des couvertures (ombres, liserés, rayures)
+  s'effacent quand la couverture est pleine : sortie et entrée dessinent la même image à la coupe.
+- Chaque recette propose sa signature et deux transitions thématiques d'autres familles (fade / cut en secours) :
+  Spill `ripple` `ink`, Veil `defocus` `glass`, Fanout `whip` `scissor`, Block `cube` `tessellate`,
+  Positive `smudge` `hairline`, Helix `whirl` `streak`, Power `press` `slash`, Spectra `glitch` `prism`,
+  Batch `mirror` `strata`, Turn `shear` `fold`. La démo et la génération IA font tourner signature → secondaires
+  (`posterTransitionAt`, `ensurePosterVariety` dans `config/type-posters.ts`) : une vidéo par défaut en montre au moins trois.
 - Recettes, catalogue, dictionnaires, composition et miniatures utilisent les identifiants `power`, `spectra`, `batch`, `turn`.
 
 Les déformations de lettres et le spectre coloré sont intentionnels, issus des références. Aucun filtre plein cadre coûteux, animation CSS ou hasard par frame. Après les entrées, Power anime ses rangées et ses brosses ; Spectra fait onduler l'étirement et l'inclinaison de ses lignes ; Batch fait respirer la largeur de ses bandes ; Turn fait glisser ses fragments autour du mot central. Ces mouvements continus sont calculés depuis le temps de la frame avec des sinusoïdes lentes, sans remise à zéro visible ni flash.

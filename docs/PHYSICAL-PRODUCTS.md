@@ -27,6 +27,14 @@ La création utilise le tarif de génération existant. Elle est transactionnell
 - **Floating** : fond bleu profond, volume lumineux, orbite et suspension avec faible inclinaison.
 - **Editorial** : aplat vermillon, réserve crème, grande typographie condensée et produit au premier plan.
 
+Raccords des trois univers 2.5D (`product2DSwap`, `config/product-2d-transition.ts`), sans aplat qui cache le produit :
+- **Studio** : travelling latéral avec mise au point (la photo sortante part floue à gauche, la suivante arrive nette de la droite)
+  et reflet de lumière qui balaie le cadre ; le texte sort du flou en resserrant son approche.
+- **Floating** : échange en orbite, l'ancien produit part en arrière d'un côté pendant que le nouveau revient de l'autre ;
+  l'anneau tourne d'un cran à chaque scène (`product2DTurns`) ; le texte s'élève avec un léger rebond.
+- **Editorial** : page tournée, la bande crème traverse le cadre et une nouvelle arrive par la droite, la photo est découpée au cutter
+  et le mot géant file ; le texte apparaît et disparaît par découpe.
+
 Le produit reste une image réelle sur un plan, avec des calques indépendants de décor, d’ombre et de texte. Aucun faux tour à 360° ni reconstruction des faces cachées. Les dix templates utilisent la composition Remotion partagée par l’aperçu, l’éditeur et les exports. Ils prennent en charge les textes déplaçables, couleurs et polices de l’éditeur, calques, narration et musique.
 
 Les miniatures `public/templates/product-gallery-3d-*.jpg` et `public/templates/product-runway-3d-*.jpg` sont des rendus locaux des templates utilisant le packshot fictif FORME décrit ci-dessous. La géométrie et l’éclairage de Runway sont procéduraux ; aucun nouvel asset photographique n’est généré pour ce décor.
@@ -67,7 +75,44 @@ Direction à conserver pour les prochains templates produit : chaque univers doi
 
 ### Raccords 3D naturels
 
-Les raccords reposent sur les mouvements de caméra continus. Les objets du décor ne balayent pas l’objectif et ne se déforment pas au changement de scène. Les animations d’ambiance restent actives.
+Les raccords reposent sur les mouvements de caméra continus. Les animations d’ambiance restent actives.
+Règle assouplie (validée le 25/10/2026) : des éléments du décor peuvent traverser le premier plan pendant une transition
+(gouttes, glaçons, cordes), à condition de ne jamais masquer entièrement le produit.
+
+### Chorégraphies signature des sept templates 3D
+
+`config/product-signature-motion.ts` porte la caméra des sept templates 3D (les cinq campagnes via `productCampaignMotion`,
+Runway et Gallery directement). Logique pure, testée (`lib/products/signature-motion.test.ts`, `runway-motion.test.ts`).
+Splash et Corde ont servi de pilote (validé le 25/10/2026), puis la méthode a été étendue aux cinq autres.
+
+- **Transitions** : 0,22 s + 0,42 s (≈ 0,64 s, au lieu de 0,94 s), courbe « whoosh » (expo in-out mêlée de cubique :
+  pointe ≈ 5 fois la vitesse moyenne, départ et arrivée immobiles). Les textes s’effacent sur la même fenêtre
+  (`productTransitionWindows(templateId)`, `productGalleryMotion(..., windows)`).
+- **Gestes de caméra variés** : six gestes (`whip` fouet latéral, `spiral`, `plunge` plongée, `orbit` ≈ 90°, `rise` envolée,
+  `push` poussée vers le produit) ; chaque univers enchaîne trois gestes différents sur ses trois transitions (`SEQUENCES`) :
+
+  | Template | Transitions 1 → 2 → 3 | Effet propre |
+  | --- | --- | --- |
+  | Splash | fouet → plongée → orbite | traînées d’eau devant l’objectif, ruban qui accélère |
+  | Corde | spirale → poussée → fouet | corde tressée qui fouette devant l’objectif, cordes qui se tendent |
+  | Nocturne | poussée → orbite → envolée | réfraction qui culmine (« dissolution »), fines stries lumineuses devant l’objectif |
+  | Sorbet | envolée → poussée → spirale | glaçons qui s’écartent puis reviennent, éclats de glace qui frôlent l’objectif |
+  | Ion | orbite → plongée → fouet | panneaux qui s’allument en balayage, carrousel des trois exemplaires (un cran de 120° par transition) |
+  | Runway | fouet → envolée → orbite | trajet fouetté entre stations (cible visée hors station ≤ 7 images), traînées de lumière, anneaux qui s’embrasent |
+  | Gallery | orbite → poussée → envolée | colonnes du premier plan balayées par l’orbite, incrustations dorées qui s’embrasent |
+
+- **Pendant le trajet** : inclinaison de caméra (jusqu’à ~9°), champ élargi de 4 à 10° selon le geste, flou de vitesse au pic
+  le long de l’axe du geste (horizontal pour fouet / orbite / spirale, vertical pour plongée / envolée ; `RushBlur`, filtre SVG
+  sur le canvas, quelques images), produit qui se rétracte légèrement et pivote dans le plan de l’image.
+- **Arrivée** : le produit se pose avec un rebond amorti (≈ 0,5 s) ; pulsation continue et légère sur le tempo.
+- **Plans** (cycle de 4 par univers) : approche, gros plan d’inspection sur le haut du produit, plan haut ou bas, héros final
+  (effet vertigo : recul + champ qui se resserre, ou grue qui s’élève).
+- **Effets** : `remotion/video/product-signature-fx.tsx` (dans le repère de la caméra) et réactions des décors
+  (`whip`, `swing`, `burst`, `sweep`, `boost` de `FlutedProduct`).
+- **Coût mesuré** (rendu continu, WebGL logiciel, portrait 1080p, transition comprise) : Ion ≈ 0,33 s, Splash ≈ 0,61 s,
+  Sorbet ≈ 0,98 s par image (transmission de la glace). Couvert par le tarif d’export 3D (×2).
+- Aperçus : `out/product-probe/<univers>-{portrait,landscape}.mp4` (scripts locaux `out/product-probe/*.ts`).
+- Limite connue : en paysage, les grands gestes d’Ion laissent le trio hors champ 3 à 4 images au milieu de certaines transitions.
 
 ### Transitions continues de Studio, Floating et Editorial
 

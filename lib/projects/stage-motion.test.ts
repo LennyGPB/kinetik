@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { CREDIT_COSTS, getExportCost } from "../../config/credits";
 import { getRecipe } from "../../config/recipes";
-import { popoutTarget, resolveStageTransitions, STAGE_KINDS, STAGE_THEMES, stageColors, stageDeviceId, stageFocusState, stageScreens, stageShowsDevice, stageSpot, stageState, type StageScene } from "../../config/stage-motion";
+import { popoutTarget, resolveStageTransitions, STAGE_KINDS, STAGE_SEQUENCES, STAGE_THEMES, stageColors, stageDeviceId, stageFocusState, stageScreens, stageShowsDevice, stageSpot, stageState, type StageScene } from "../../config/stage-motion";
 import { buildVideoProps } from "./video-props";
 import { getStyle } from "../../config/styles";
 import { getDictionary } from "../i18n";
@@ -53,10 +53,10 @@ test("camera path is continuous: no jump between consecutive frames except on a 
     for (let frame = 1; frame < 360; frame++) {
       const state = stageState(scenes, frame, format);
       if (frame !== 270) {
-        // Glissement de caméra entre deux plans : au plus ~4,5° par image
-        assert.ok(Math.abs(state.shot.az - previous.shot.az) < 4.5, `${format} az @${frame}`);
-        assert.ok(Math.abs(state.shot.dist - previous.shot.dist) / previous.shot.dist < 0.08, `${format} dist @${frame}`);
-        assert.ok(Math.abs(state.shot.x - previous.shot.x) < 0.05, `${format} x @${frame}`);
+        // Geste de caméra entre deux plans : vif au milieu (courbe « whoosh »), mais jamais de saut (≤ 10° par image)
+        assert.ok(Math.abs(state.shot.az - previous.shot.az) < 10, `${format} az @${frame}`);
+        assert.ok(Math.abs(state.shot.dist - previous.shot.dist) / previous.shot.dist < 0.14, `${format} dist @${frame}`);
+        assert.ok(Math.abs(state.shot.x - previous.shot.x) < 0.08, `${format} x @${frame}`);
         // Un tour complet revient à 0 : même orientation, comparée modulo 2π
         const turn = Math.abs(state.spin - previous.spin) % (Math.PI * 2);
         assert.ok(Math.min(turn, Math.PI * 2 - turn) < 0.35, `${format} spin @${frame}`);
@@ -278,8 +278,9 @@ test("premium stages keep continuous camera paths through their signature passag
       for (let frame = 1; frame < 450; frame++) {
         const state = stageState(scenes, frame, format, kind);
         assert.ok(Number.isFinite(state.shot.dist) && state.shot.dist > 0, `${kind} ${format} distance @${frame}`);
-        assert.ok(Math.abs(state.shot.dist - previous.shot.dist) / previous.shot.dist < 0.08, `${kind} ${format} camera @${frame}`);
-        assert.ok(Math.abs(state.shot.az - previous.shot.az) < 4.5, `${kind} ${format} angle @${frame}`);
+        assert.ok(Math.abs(state.shot.dist - previous.shot.dist) / previous.shot.dist < 0.14, `${kind} ${format} camera @${frame}`);
+        assert.ok(Math.abs(state.shot.az - previous.shot.az) < 10, `${kind} ${format} angle @${frame}`);
+        assert.ok(Math.abs(state.shot.az) < 80, `${kind} ${format} stays in front of the décor @${frame}`);
         assert.ok(state.clock >= previous.clock, `${kind} clock @${frame}`);
         assert.ok(state.screen.a >= 0 && state.screen.b < scenes.length);
         previous = state;
@@ -307,7 +308,7 @@ test("Kiosque districts are spread out and the flight between them is continuous
   assert.ok(higher > 50, "the camera climbs during the flight");
 });
 
-test("the décor clock runs forward without jumps and speeds up during transitions; flash and rake cut cleanly", () => {
+test("the décor clock runs forward without jumps and speeds up during transitions; flash and rake are camera moves", () => {
   const scenes = stage([["intro", "fade"], ["feature", "sunpath"], ["cta", "sunpath"]]);
   let previous = stageState(scenes, 0, "landscape", "monument").clock;
   let fastest = 0, slowest = 1;
@@ -319,9 +320,29 @@ test("the décor clock runs forward without jumps and speeds up during transitio
     previous = clock;
   }
   assert.ok(fastest > slowest * 4, "time-lapse during transitions");
-  for (const transition of ["flash", "rake"] as const) {
-    const cut = stage([["feature", "fade"], ["screens", transition]]);
-    assert.notEqual(stageState(cut, 89, "landscape", "shoot").shot.dist, stageState(cut, 90, "landscape", "shoot").shot.dist);
+  for (const [transition, kind] of [["flash", "shoot"], ["rake", "zen"]] as const) {
+    const scenes = stage([["feature", "fade"], ["screens", transition]]);
+    assert.ok(Math.abs(stageState(scenes, 89, "landscape", kind).shot.dist - stageState(scenes, 90, "landscape", kind).shot.dist) < 1, `${transition} is continuous`);
+    assert.ok(stageState(scenes, 90, "landscape", kind).lens.rush > 0.4, `${transition} has a camera gesture`);
+  }
+});
+
+test("each universe chains three different camera gestures, with a speed peak, tilt and blur only during transitions", () => {
+  for (const kind of STAGE_KINDS) {
+    assert.equal(new Set(STAGE_SEQUENCES[kind]).size, 3, kind);
+    if (kind === "kiosk") continue;
+    const signature = STAGE_THEMES[kind].signature;
+    const scenes = stage([["intro", "fade"], ["screens", signature], ["feature", signature], ["cta", signature]]);
+    const seen: string[] = [];
+    for (const boundary of [90, 180, 270]) {
+      const around = Array.from({ length: 30 }, (_, i) => stageState(scenes, boundary - 15 + i, "landscape", kind).lens);
+      assert.ok(Math.max(...around.map((lens) => lens.rush)) > 0.25, `${kind} rush @${boundary}`);
+      seen.push(stageState(scenes, boundary, "landscape", kind).lens.gesture!);
+    }
+    assert.deepEqual(seen, STAGE_SEQUENCES[kind], kind);
+    // Plan tenu : caméra droite, champ de base, pas de flou
+    const held = stageState(scenes, 135, "landscape", kind).lens;
+    assert.deepEqual([held.bank, held.fov, held.rush], [0, 0, 0], kind);
   }
 });
 

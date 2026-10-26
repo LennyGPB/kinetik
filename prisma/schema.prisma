@@ -56,6 +56,7 @@ model User {
   urlVideoAnalyses   UrlVideoAnalysis[]
   projects           Project[]
   creditTransactions CreditTransaction[]
+  aiUsages           AiUsage[]
 }
 
 /// Comptes OAuth liés (Google, Discord…). Prévu pour plus tard.
@@ -342,6 +343,31 @@ model CreditTransaction {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, createdAt])
+}
+
+/// Coût réel des demandes IA facturées selon leur complexité (chat de l’éditeur) : suivi de la rentabilité du barème.
+model AiUsage {
+  id               String   @id @default(cuid())
+  userId           String
+  projectId        String?
+  operation        String
+  plan             Plan
+  turns            Int
+  previews         Int
+  inputTokens      Int
+  cacheReadTokens  Int
+  cacheWriteTokens Int
+  outputTokens     Int
+  /// Coût réel estimé, en millionièmes de dollar
+  costMicroUsd     Int
+  /// Crédits finalement débités (0 si rien n’a changé)
+  credits          Int
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
   @@index([userId, createdAt])
 }
 

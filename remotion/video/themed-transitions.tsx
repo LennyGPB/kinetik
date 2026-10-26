@@ -551,26 +551,6 @@ export function SurgeCover(c: CoverContext) {
   </svg>;
 }
 
-// ───────── Crosscut : les ciseaux ─────────
-
-/**
- * Deux pans séparés par la diagonale de Crosscut (pente de 10 % de la hauteur) : le pan du haut arrive par la gauche, celui du bas
- * par la droite ; ils se rejoignent sur la diagonale puis continuent dans le même sens pour découvrir la scène (jamais de retour).
- */
-export function ScissorCover(c: CoverContext) {
-  if (c.p <= 0) return null;
-  const [bg, , accent] = c.palette;
-  const k = c.phase === "out" ? Easing.in(Easing.cubic)(clamp01(c.p)) : Easing.out(Easing.cubic)(1 - clamp01(c.p));
-  // Sortie : de ±101 % à 0 ; entrée : de 0 à ∓101 % (le pan du haut continue vers la droite, celui du bas vers la gauche)
-  const offset = c.phase === "out" ? (1 - k) * 101 : k * 101;
-  const topX = c.phase === "out" ? -offset : offset, bottomX = -topX;
-  return <div style={fill}>
-    <div style={{ ...fill, background: accent, clipPath: "polygon(0 0,100% 0,100% 47%,0 57.5%)", transform: `translateX(${topX}%)` }} />
-    <div style={{ ...fill, background: bg, clipPath: "polygon(0 56.5%,100% 46%,100% 100%,0 100%)", transform: `translateX(${bottomX}%)` }} />
-    <div style={{ ...fill, background: "#ffffff", clipPath: "polygon(0 56.6%,100% 46.1%,100% 46.6%,0 57.1%)", opacity: c.phase === "out" ? k : 1 - k }} />
-  </div>;
-}
-
 // ───────── Hollow, Cursive, Overlap, Bloom ─────────
 
 /** Aplat du fond bordé de trois filets d'accent : monte du bas (sortie) puis continue vers le haut (entrée). */

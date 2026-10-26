@@ -51,3 +51,35 @@ test("every poster artwork keeps animating after its entrance and renders determ
     assert.doesNotMatch(render(1000), /NaN|Infinity/, `${id} stays finite`);
   }
 });
+
+test("each poster offers its signature plus at least two themed transitions, and default videos use three of them", async () => {
+  const { ensurePosterVariety, themedTransitions } = await import("../../config/type-posters");
+  for (const [id, poster] of Object.entries(TYPE_POSTERS)) {
+    const recipe = getStyle(id)!.recipe;
+    const themed = themedTransitions(recipe.transitions);
+    assert.equal(themed[0], poster.transition);
+    assert.ok(themed.length >= 3, `${id} needs 2+ themed transitions besides its signature`);
+    assert.equal(new Set(recipe.transitions).size, recipe.transitions.length, `${id} has no duplicate`);
+    for (const t of recipe.transitions) assert.ok(TRANSITIONS.includes(t), `${id} ${t}`);
+    const demo = demoVideoProps(getStyle(id)!, "PORTRAIT", "fr").graph.scenes.slice(1).map((s) => s.transition);
+    assert.ok(new Set(demo).size >= 3, `${id} demo shows 3 transitions`);
+    // L'IA répète la signature partout : le garde-fou fait tourner les transitions
+    const repeated = Array.from({ length: 6 }, (_, i) => ({ id: String(i), transition: poster.transition }));
+    assert.ok(new Set(ensurePosterVariety(repeated, recipe.transitions).slice(1).map((s) => s.transition)).size >= 3);
+    // Des choix déjà variés sont conservés
+    const varied = [poster.transition, ...themed].map((transition, i) => ({ id: String(i), transition }));
+    assert.deepEqual(ensurePosterVariety(varied, recipe.transitions), varied);
+  }
+});
+
+test("Lucent, Echo Frame, Folio and Broadsheet offer three themed transitions and show them by default", async () => {
+  const { themedTransitions, variesTransitions } = await import("../../config/type-posters");
+  for (const id of ["lucent", "echo-frame", "folio", "broadsheet"]) {
+    const style = getStyle(id)!;
+    assert.ok(variesTransitions(style.recipe), id);
+    assert.ok(themedTransitions(style.recipe.transitions).length >= 3, id);
+    for (const t of style.recipe.transitions) assert.ok(TRANSITIONS.includes(t), `${id} ${t}`);
+    const demo = demoVideoProps(style, "PORTRAIT", "fr").graph.scenes.slice(1).map((s) => s.transition);
+    assert.ok(new Set(demo).size >= 3, `${id} demo: ${demo.join(", ")}`);
+  }
+});

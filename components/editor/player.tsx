@@ -337,6 +337,17 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           )}
           {/* Textes : placement à la main dans l'aperçu, puis retour à la position du template */}
           <div className={cn(GROUP, "flex flex-wrap items-center gap-2")}>
+            <button type="button" disabled={!editable} aria-pressed={panel === "text" || panel === "logo"} onClick={() => {
+              playerRef.current?.pause();
+              const next = selected.kind === "logo" ? "logo" : "text";
+              // Texte : on affiche la scène, ce qui relève aussi la couleur actuelle de ses textes
+              const timing = timeline.find((item) => item.scene.id === selected.id);
+              if (next === "text" && panel !== "text" && timing) seek(timing.from + Math.min(Math.round(FPS * 0.8), Math.floor(selected.duration * FPS * 0.6)));
+              setPanel((v) => (v === next ? null : next));
+            }} className={cn(TOOL, (panel === "text" || panel === "logo") && purpleButtonStyle)}>
+              <Type aria-hidden />
+              {selected.kind === "logo" ? t.copy["61918df1ac56"] : tl.editText}
+            </button>
             <button type="button" disabled={!editable} aria-pressed={positioning} onClick={() => {
               const next = !positioning;
               setPositioning(next);

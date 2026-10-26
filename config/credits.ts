@@ -11,7 +11,7 @@ export const CREDIT_COSTS = {
   decor: { preview: 5, exportShort: 2, exportLong: 4 },
   /** Premier jet d'une vidéo */
   generation: 10,
-  /** Une modification demandée via le chat */
+  /** Une modification demandée via le chat : prix de départ (voir EDIT_PRICING pour le complément selon la complexité) */
   edit: 2,
   /** Traduction des textes FR ↔ EN (sans images, bien moins coûteuse qu'une modification) */
   translation: 1,
@@ -91,4 +91,26 @@ export function getExportCost({ duration, reexport = false, premium3d = false, d
   const { shortMaxSeconds, short, long, premium3dMultiplier } = CREDIT_COSTS.export;
   const full = decor ? (duration <= shortMaxSeconds ? CREDIT_COSTS.decor.exportShort : CREDIT_COSTS.decor.exportLong) : (duration <= shortMaxSeconds ? short : long) * (premium3d ? premium3dMultiplier : 1);
   return reexport ? Math.ceil(full / 2) : full;
+}
+
+/**
+ * Modification via le chat : 2 crédits débités à l’envoi, puis un complément selon le coût réel (Claude + aperçus),
+ * jusqu’à 5 crédits au total (toujours moins qu’une génération). Un crédit couvre environ usdPerCredit de coût réel.
+ */
+export const EDIT_PRICING = { base: CREDIT_COSTS.edit, max: 5, usdPerCredit: 0.12, unchanged: 1 } as const;
+
+/**
+ * Demande qui ne modifie pas la vidéo (question, hors sujet) : gratuite si elle reste courte (une étape, coût réel sous les crédits de départ),
+ * sinon EDIT_PRICING.unchanged crédit, pour que le chat ne serve pas d’assistant gratuit.
+ */
+export function unchangedEditCredits(usage: { turns: number; costUsd: number } | undefined) {
+  if (!usage) return 0;
+  // Seuil de coût au niveau des crédits de départ : une première étape à cache froid (≈ 0,15 $) reste gratuite
+  return usage.turns > 1 || usage.costUsd >= EDIT_PRICING.base * EDIT_PRICING.usdPerCredit ? EDIT_PRICING.unchanged : 0;
+}
+
+/** Crédits d’une modification au coût réel `usd` : entre base et max. */
+export function editCreditsForCost(usd: number) {
+  if (!Number.isFinite(usd) || usd <= 0) return EDIT_PRICING.base;
+  return Math.min(EDIT_PRICING.max, Math.max(EDIT_PRICING.base, Math.ceil(usd / EDIT_PRICING.usdPerCredit - 1e-9)));
 }

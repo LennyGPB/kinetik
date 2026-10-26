@@ -5,7 +5,7 @@ import { VoiceoverDialog } from "./voiceover-dialog";
 import { Mic2 } from "lucide-react";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { ArrowLeft, ChevronDown, Coins, Copy, Download, History, Images, Languages, Layers, MessageSquare, MoreHorizontal, Music2, Palette, Share2, Undo2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, Coins, Download, History, Images, Languages, Layers, MessageSquare, MoreHorizontal, Music2, Palette, Share2, Undo2 } from "lucide-react";
 import Link, { useRouter } from "@/lib/i18n/navigation";
 import { uploadFile } from "@/lib/storage/client";
 import { useState, useTransition, type ReactNode } from "react";
@@ -41,7 +41,6 @@ import { QuickSettings } from "./quick-settings";
 import { ShareDialog } from "./share-dialog";
 import { SoundDialog } from "./sound-dialog";
 import { StyleDialog } from "./style-dialog";
-import { VariantsDialog } from "./variants-dialog";
 import { TranslationDialog } from "./translation-dialog";
 import { VersionsPanel } from "./versions-panel";
 
@@ -73,7 +72,6 @@ export function Editor({
   const [translationOpen, setTranslationOpen] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [variantsOpen, setVariantsOpen] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);
   const router = useRouter();
   /** Ajoute une capture aux médias du projet depuis une fenêtre de l'éditeur (ex. Focus), sans passer par la fenêtre Médias. */
@@ -236,7 +234,6 @@ export function Editor({
           { key: "layers", label: t.copy["eaa1ecaa099b"], icon: <Layers />, onClick: () => setOverlaysOpen(true) },
           { key: "sound", label: t.app.sound.music, icon: <Music2 />, onClick: () => setSoundOpen(true) },
           { key: "voiceover", label: t.voiceover.title, icon: <Mic2 />, onClick: () => setVoiceoverOpen(true) },
-          { key: "variants", label: t.app.variants.button, icon: <Copy />, onClick: () => setVariantsOpen(true) },
           { key: "share", label: t.app.share.button, icon: <Share2 />, onClick: () => setShareOpen(true) },
         ]
       : [];
@@ -387,12 +384,6 @@ export function Editor({
 
         {/* Chat (desktop : colonne ; mobile : feuille, voir plus bas) */}
         <aside className="flex min-h-0 flex-1 flex-col border-t border-line bg-bg max-lg:hidden lg:w-[400px] lg:flex-none lg:border-t-0 lg:border-l">
-          <div className="hidden items-center justify-between border-b border-line px-4 py-3 lg:flex">
-            <p className="text-sm font-semibold">{e.chat}</p>
-            <span className="font-mono text-xs text-subtle">
-              {format(e.versionLabel, { number: latest?.number ?? 1 })} · {formatSeconds(totalDuration(current.graph), t.locale)}
-            </span>
-          </div>
           <ChatPanel
             messages={messages}
             thinking={thinking}
@@ -500,7 +491,6 @@ export function Editor({
         setSelected(version.number);
       }} />}
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} projectId={project.id} token={shareToken} onToken={setShareToken} />
-      {latest && <VariantsDialog open={variantsOpen} onClose={() => setVariantsOpen(false)} projectId={project.id} format={project.format} graph={latest.graph} variants={project.variants} />}
 
       <ExportDialog
         open={exportOpen}

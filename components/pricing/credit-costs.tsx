@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
-import { CREDIT_COSTS, getExportCost, getPostGenerationCost, getStoreGenerationCost } from "@/config/credits";
+import { CREDIT_COSTS, EDIT_PRICING, getExportCost, getPostGenerationCost, getStoreGenerationCost } from "@/config/credits";
 import { postCopy } from "@/lib/posts/copy";
 
 import { cn } from "@/lib/utils";
@@ -40,7 +40,8 @@ export function CreditCosts({ className, reveal = false, includePosts = false }:
   const fr = t.locale === "fr";
   const ROWS = [
   { graphic: "type", label: c.generation, cost: CREDIT_COSTS.generation },
-  { graphic: "chat", label: c.edit, cost: CREDIT_COSTS.edit },
+  // Prix selon la complexité de la demande
+  { graphic: "chat", label: c.edit, cost: `${EDIT_PRICING.base}–${EDIT_PRICING.max}` as number | string },
   { graphic: "mp4", label: c.exportShort, cost: CREDIT_COSTS.export.short },
   { graphic: "long", label: c.exportLong, cost: CREDIT_COSTS.export.long },
   { graphic: "mp4", label: fr ? `Export template 3D (Stage) · jusqu’à ${CREDIT_COSTS.export.shortMaxSeconds} s` : `3D template export (Stage) · up to ${CREDIT_COSTS.export.shortMaxSeconds}s`, cost: getExportCost({ duration: CREDIT_COSTS.export.shortMaxSeconds, premium3d: true }) },
@@ -84,7 +85,7 @@ export function CreditCosts({ className, reveal = false, includePosts = false }:
             viewport={{ once: true, amount: 0.6 }}
             transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 16, delay: 0.45 + index * 0.12 }}
           >
-            {cost} <span className="font-sans font-normal text-subtle">{cost > 1 ? t.common.credits : t.common.credit}</span>
+            {cost} <span className="font-sans font-normal text-subtle">{typeof cost === "string" || cost > 1 ? t.common.credits : t.common.credit}</span>
           </motion.span>
         </motion.li>
       ))}

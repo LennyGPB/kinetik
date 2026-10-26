@@ -1,14 +1,14 @@
-import { StageCollectionCover, type StageCollectionTransition } from "./stage-collection-transitions";
 import { useId, type CSSProperties, type ReactNode } from "react";
 import { AbsoluteFill, Easing, interpolate, random, useCurrentFrame, useVideoConfig } from "remotion";
-import { TypePosterCover } from "./type-poster-transitions";
+import { POSTER_MOTION, TypePosterCover } from "./type-poster-transitions";
+import type { TypePosterKind } from "../../config/type-posters";
 import { GlitchSlices } from "./glitch-fx";
 import type { Scene, Transition } from "../../lib/projects/scenes";
 import type { MotionEase, MotionExit } from "../../config/recipes";
 import type { VideoProps } from "../props";
 import { useRecipe } from "./theme";
 import { CollectionTransitionCover, isCollectionTransition } from "./collection-transitions";
-import { BurnCover, CapsuleCover, DripCover, ScissorCover, ScanCover, ScrawlCover, SmudgeGlow, StrataCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
+import { BurnCover, CapsuleCover, DripCover, ScanCover, ScrawlCover, SmudgeGlow, StrataCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
 
 /**
  * BRIQUES « transitions » (scene.transition, choisie par Claude parmi recipe.transitions).
@@ -37,12 +37,23 @@ type TransitionContext = {
   title: string;
 };
 
-function collectionStageBrick(kind: StageCollectionTransition): TransitionBrick {
+/**
+ * Univers 3D (stage3d.tsx) : la caméra fait le geste (fouet, spirale, orbite, poussée…, config/stage-motion.ts), sans cache plein écran.
+ * Les textes partent en flou de vitesse dans le sens du geste et reviennent avec le plan suivant, sur la même fenêtre (12 + 18 images).
+ */
+function cameraBrick(motion: "slide" | "rise" | "push"): TransitionBrick {
+  // `t` 0 → 1 : 1 = texte le plus éloigné de sa place
+  const move = (t: number, unit: number, phase: "out" | "in") => {
+    const sign = phase === "out" ? -1 : 1;
+    if (motion === "slide") return `translateX(${sign * t * unit * 6}px)`;
+    if (motion === "rise") return `translateY(${sign * t * unit * 5}px)`;
+    // Poussée : le texte sortant grossit (la caméra avance), le suivant arrive de plus loin
+    return `scale(${1 - sign * t * 0.07})`;
+  };
   return {
-    enter: () => 28, fadeOut: false, opaque: true,
-    style: ({ inP }) => ({ opacity: Math.min(1, inP * 2) }),
-    overlay: ({ inP, accent }) => inP < 1 ? <StageCollectionCover kind={kind} amount={1 - inP} accent={accent} /> : null,
-    exit: { frames: 24, style: (t) => ({ opacity: 1 - t * t }), cover: (c) => <StageCollectionCover kind={kind} amount={c.p} accent={c.palette[2]} /> },
+    enter: () => 18, fadeOut: false,
+    style: ({ inP, unit }) => (inP < 1 ? { opacity: inP, transform: move((1 - inP) ** 2, unit, "in"), filter: `blur(${(1 - inP) * unit * 0.8}px)` } : {}),
+    exit: { frames: 12, style: (t, c) => ({ opacity: 1 - t * t, transform: move(t * t, c.unit, "out"), filter: `blur(${t * c.unit * 0.8}px)` }) },
   };
 }
 
@@ -110,17 +121,48 @@ function filtered(children: ReactNode, id: string, amount: number, filter: (id: 
   return <>{filter(id)}<AbsoluteFill style={{ filter: `url(#${id})` }}>{children}</AbsoluteFill></>;
 }
 
+/**
+ * Affiches typographiques : la couverture du thème cache la frontière, et le contenu fait le même geste
+ * (chute, mise au point, pli, rotation, étirement…) pour que tout le cadre suive la transition.
+ */
+function posterBrick(kind: TypePosterKind): TransitionBrick {
+  const m = POSTER_MOTION[kind];
+  const ctx = (c: TransitionContext) => ({ unit: c.unit, frame: c.frame });
+  // Fenêtre en images (et non `inP < 1`) : une courbe « back » dépasse 1 puis y revient, le rebond doit rester visible
+  const entering = (c: TransitionContext) => c.frame < m.enter;
+  const withFilter = (children: ReactNode, s: number, c: TransitionContext, id: string) => {
+    if (!m.filter) return children;
+    const f = m.filter(s, ctx(c), id);
+    return filtered(children, id, f.amount, () => f.node);
+  };
+  return {
+    enter: () => m.enter,
+    fadeOut: false,
+    opaque: true,
+    style: (c) => (entering(c) ? m.in(1 - c.inP, ctx(c)) : {}),
+    wrap: m.filter ? (children, c, id) => withFilter(children, clamp01(1 - c.inP), c, id) : undefined,
+    overlay: (c) => <TypePosterCover kind={kind} {...coverIn(c)} p={m.linearCover ? 1 - Math.min(1, c.frame / m.enter) : 1 - c.inP} />,
+    exit: {
+      frames: m.exit,
+      cover: (c) => <TypePosterCover kind={kind} {...c} />,
+      style: (t, c) => m.out(t, ctx(c)),
+      wrap: m.filter ? (children, t, c, id) => withFilter(children, t * t, c, id) : undefined,
+    },
+    backdrop: m.backdrop ? ({ phase, t, unit }) => ({ style: m.backdrop!(phase === "out" ? t * t : 1 - t, unit) }) : undefined,
+  };
+}
+
 const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
-  "gravity-pull": { enter: () => 24, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="spill" {...coverIn(c)} p={1 - Math.min(1, c.frame / 24)} />, exit: { frames: 22, cover: c => <TypePosterCover kind="spill" {...c} /> } },
-  "violet-fold": { enter: () => 24, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="veil" {...coverIn(c)} p={1 - Math.min(1, c.frame / 24)} />, exit: { frames: 22, cover: c => <TypePosterCover kind="veil" {...c} /> } },
-  "fan-fold": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="fanout" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="fanout" {...c} /> } },
-  "block-pivot": { enter: () => 16, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="blocktype" {...coverIn(c)} p={1 - Math.min(1, c.frame / 16)} />, exit: { frames: 14, cover: c => <TypePosterCover kind="blocktype" {...c} /> } },
-  "mirror-horizon": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="positive" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="positive" {...c} /> } },
-  "helix-wind": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="helix" {...coverIn(c)} p={1 - Math.min(1, c.frame / 22)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="helix" {...c} /> } },
-  "paint-sweep": { enter: () => 20, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="power" {...coverIn(c)} />, exit: { frames: 18, cover: c => <TypePosterCover kind="power" {...c} /> } },
-  "type-stretch": { enter: () => 18, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="spectra" {...coverIn(c)} />, exit: { frames: 16, cover: c => <TypePosterCover kind="spectra" {...c} /> } },
-  "stack-collapse": { enter: () => 24, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="batch" {...coverIn(c)} />, exit: { frames: 20, cover: c => <TypePosterCover kind="batch" {...c} /> } },
-  "ribbon-turn": { enter: () => 22, fadeOut: false, opaque: true, style: () => ({}), overlay: c => <TypePosterCover kind="turn" {...coverIn(c)} />, exit: { frames: 18, cover: c => <TypePosterCover kind="turn" {...c} /> } },
+  "gravity-pull": posterBrick("spill"),
+  "violet-fold": posterBrick("veil"),
+  "fan-fold": posterBrick("fanout"),
+  "block-pivot": posterBrick("blocktype"),
+  "mirror-horizon": posterBrick("positive"),
+  "helix-wind": posterBrick("helix"),
+  "paint-sweep": posterBrick("power"),
+  "type-stretch": posterBrick("spectra"),
+  "stack-collapse": posterBrick("batch"),
+  "ribbon-turn": posterBrick("turn"),
   mosaic: { enter: () => 25, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent, aspectRatio }) => <CollectionTransitionCover kind="mosaic" progress={inP} color={accent} aspectRatio={aspectRatio} /> },
   rotary: { enter: () => 22, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent }) => <CollectionTransitionCover kind="rotary" progress={inP} color={accent} /> },
   shutter: { enter: () => 12, fadeOut: false, style: () => ({ opacity: 1 }), overlay: ({ inP, accent }) => <CollectionTransitionCover kind="shutter" progress={inP} color={accent} /> },
@@ -428,14 +470,21 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     overlay: (c) => <SurgeCover {...coverIn(c)} />,
     exit: { frames: 16, cover: (c) => <SurgeCover {...c} /> },
   },
-  // Ciseaux (Crosscut) : deux pans arrivent de côtés opposés, se croisent sur la diagonale, puis poursuivent leur course
+  // Ciseaux (Crosscut) : coupe de montage dans le décor (editorial-backdrop.tsx) — les deux plans photo filent en sens contraires
+  // le long de la diagonale, le titre suit le plan du haut ; aucun aplat plein écran
   scissor: {
     enter: (energy) => (energy === "high" ? 12 : 16),
     fadeOut: false,
-    opaque: true,
-    style: () => ({}),
-    overlay: (c) => <ScissorCover {...coverIn(c)} />,
-    exit: { frames: 12, cover: (c) => <ScissorCover {...c} /> },
+    style: ({ inP, unit, width, height }) => {
+      if (inP >= 1) return {};
+      // Entre par la gauche le long de la diagonale (pente de 10 % de la hauteur), comme le plan du haut
+      const dx = -((1 - inP) ** 3) * unit * 16;
+      return { opacity: Math.min(1, inP * 1.6), transform: `translate(${dx}px, ${(-dx * 0.1 * height) / width}px) skewX(${(1 - inP) * 8}deg)`, filter: `blur(${(1 - inP) * unit * 0.6}px)` };
+    },
+    exit: { frames: 12, style: (t, c) => {
+      const dx = t ** 3 * c.unit * 16;
+      return { opacity: 1 - t * t, transform: `translate(${dx}px, ${(-dx * 0.1 * c.height) / c.width}px) skewX(${-t * 8}deg)`, filter: `blur(${t * c.unit * 0.6}px)` };
+    } },
   },
   // Strates (Hollow) : un aplat bordé de filets en contour monte du bas, couvre, puis continue vers le haut
   strata: { enter: (energy) => (energy === "high" ? 12 : 16), fadeOut: false, opaque: true, style: () => ({}), overlay: (c) => <StrataCover {...coverIn(c)} />, exit: { frames: 12, cover: (c) => <StrataCover {...c} /> } },
@@ -476,15 +525,8 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     overlay: ({ inP, palette }) => (inP < 1 ? <SunGlow intensity={(1 - inP) * 0.55} color={palette[2]} /> : null),
     exit: { frames: 16, style: (t, c) => ({ opacity: 1 - t, filter: `brightness(${1 + t * 0.8}) blur(${t * c.unit * 0.7}px)`, transform: `translateY(${-t * c.unit * 2}px)` }), cover: (c) => <SunGlow intensity={c.p * 0.55} color={c.palette[2]} /> },
   },
-  // Flash (Shoot) : un flash de studio éclate, le plan change sous la lumière (un seul éclair : bien sous 3 flashs/s)
-  flash: {
-    enter: () => 9,
-    fadeOut: false,
-    opaque: true,
-    style: () => ({}),
-    overlay: ({ inP }) => (inP < 1 ? <AbsoluteFill style={{ background: "#ffffff", opacity: (1 - inP) ** 2 * 0.95, pointerEvents: "none" }} /> : null),
-    exit: { frames: 5, cover: (c) => <AbsoluteFill style={{ background: "#ffffff", opacity: c.p * c.p * 0.95, pointerEvents: "none" }} /> },
-  },
+  // Flash (Shoot) : la caméra change d'angle d'un geste vif ; le flash éclate dans le studio (stage3d.tsx), sans voile blanc sur l'image
+  flash: cameraBrick("push"),
   // Courant (Aquarium) : l'appareil tourne dans un nuage de bulles ; les textes remontent comme des bulles
   current: {
     enter: (energy) => (energy === "high" ? 13 : 18),
@@ -492,56 +534,28 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     style: ({ inP, unit }) => (inP < 1 ? { opacity: inP, transform: `translateY(${(1 - inP) * unit * 7}px)`, filter: `blur(${(1 - inP) * unit * 0.7}px)` } : {}),
     exit: { frames: 14, style: (t, c) => ({ opacity: 1 - t * t, transform: `translateY(${-t * t * c.unit * 7}px)`, filter: `blur(${t * c.unit * 0.7}px)` }) },
   },
-  // Râteau (Zen) : une bande de sable ratissé balaie l'écran et emporte la scène ; la suivante se découvre derrière
-  rake: {
-    enter: (energy) => (energy === "high" ? 14 : 18),
-    fadeOut: false,
-    opaque: true,
-    style: () => ({}),
-    overlay: (c) => (c.inP < 1 ? <RakeCover p={1 - c.inP} phase="in" unit={c.unit} palette={c.palette} /> : null),
-    exit: { frames: 16, cover: (c) => <RakeCover p={c.p} phase="out" unit={c.unit} palette={c.palette} /> },
-  },
+  // Râteau (Zen) : la caméra glisse au-dessus du sable ratissé jusqu'au plan suivant
+  rake: cameraBrick("slide"),
   "array-sweep": {
     enter: () => 26,
     fadeOut: false,
     style: ({ inP, unit }) => ({ opacity: inP, transform: `translateX(${(1 - inP) * unit * 3}px)`, filter: `blur(${(1 - inP) * unit * 0.4}px)` }),
     exit: { frames: 20, style: (t, c) => ({ opacity: 1 - t, transform: `translateX(${-t * c.unit * 3}px)`, filter: `blur(${t * c.unit * 0.4}px)` }) },
   },
-  "satin-pass": collectionStageBrick("satin-pass"),
-  "tidal-wave": collectionStageBrick("tidal-wave"),
-  "blueprint-scan": collectionStageBrick("blueprint-scan"),
-  "solar-sweep": collectionStageBrick("solar-sweep"),
-  "arm-exchange": collectionStageBrick("arm-exchange"),
+  "satin-pass": cameraBrick("slide"),
+  "tidal-wave": cameraBrick("rise"),
+  "blueprint-scan": cameraBrick("push"),
+  "solar-sweep": cameraBrick("slide"),
+  "arm-exchange": cameraBrick("slide"),
   "gyro-turn": {
     enter: () => 28,
     fadeOut: false,
     style: ({ inP, unit }) => ({ opacity: inP, transform: `perspective(${unit * 180}px) rotateY(${(1 - inP) * -10}deg)`, filter: `blur(${(1 - inP) * unit * 0.3}px)` }),
     exit: { frames: 22, style: (t, c) => ({ opacity: 1 - t, transform: `perspective(${c.unit * 180}px) rotateY(${t * 10}deg)`, filter: `blur(${t * c.unit * 0.3}px)` }) },
   },
-  "magnetic-lock": {
-    enter: () => 22,
-    fadeOut: false,
-    opaque: true,
-    style: ({ inP }) => ({ opacity: inP }),
-    overlay: ({ inP, accent }) => inP < 1 ? <MagneticCover p={1 - inP} glow={accent} /> : null,
-    exit: { frames: 18, style: (t) => ({ opacity: 1 - t }), cover: (c) => <MagneticCover p={c.p} glow={c.palette[2]} /> },
-  },
-  "vault-pass": {
-    enter: () => 26,
-    fadeOut: false,
-    opaque: true,
-    style: ({ inP, unit }) => ({ opacity: inP, transform: `translateX(${(1 - inP) * unit * 2}px)` }),
-    overlay: ({ inP }) => inP < 1 ? <VaultPassCover p={1 - inP} entering /> : null,
-    exit: { frames: 22, style: (t) => ({ opacity: 1 - t }), cover: (c) => <VaultPassCover p={c.p} /> },
-  },
-  "stone-slide": {
-    enter: () => 22,
-    fadeOut: false,
-    opaque: true,
-    style: ({ inP, unit }) => ({ opacity: inP, transform: `translateX(${(1 - inP) * unit * 3}px)` }),
-    overlay: ({ inP }) => inP < 1 ? <StoneSlideCover p={1 - inP} entering /> : null,
-    exit: { frames: 18, style: (t) => ({ opacity: 1 - t }), cover: (c) => <StoneSlideCover p={c.p} /> },
-  },
+  "magnetic-lock": cameraBrick("push"),
+  "vault-pass": cameraBrick("push"),
+  "stone-slide": cameraBrick("slide"),
   "halo-pass": {
     enter: () => 24,
     fadeOut: false,
@@ -557,47 +571,10 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
   },
 };
 
-/** Facing metal poles meet at the scene boundary, then release the new screen. */
-function MagneticCover({ p, glow }: { p: number; glow: string }) {
-  const k = Easing.inOut(Easing.cubic)(Math.max(0, Math.min(1, p)));
-  return <AbsoluteFill style={{ pointerEvents: "none", overflow: "hidden" }}>
-    {[-1, 1].map((side) => <div key={side} style={{ position: "absolute", left: 0, right: 0, [side < 0 ? "top" : "bottom"]: 0, height: "50.1%", transform: `translateY(${side * (1 - k) * 101}%)`, background: side < 0 ? "linear-gradient(175deg, #2D3B4E, #101A29 75%, #060C15)" : "linear-gradient(5deg, #2D3B4E, #101A29 75%, #060C15)", boxShadow: `${side < 0 ? "0 1px" : "0 -1px"} 0 ${glow}, 0 0 24px #0006` }} />)}
-  </AbsoluteFill>;
-}
-
-/** A near limestone pillar crosses the lens, continuing through the scene boundary. */
-function VaultPassCover({ p, entering = false }: { p: number; entering?: boolean }) {
-  const k = Easing.inOut(Easing.cubic)(Math.max(0, Math.min(1, p)));
-  return <AbsoluteFill style={{ pointerEvents: "none", background: "linear-gradient(95deg, #B8A98D, #E3D7C0 18%, #F0E7D7 80%, #C8BAA1)", transform: `translateX(${entering ? (1 - k) * 100 : (k - 1) * 100}%)`, boxShadow: "12px 0 40px #5A493530" }} />;
-}
-
-/** One stone slab continues left to right across the scene boundary. */
-function StoneSlideCover({ p, entering = false }: { p: number; entering?: boolean }) {
-  return <AbsoluteFill style={{ pointerEvents: "none", background: "linear-gradient(105deg, #17191D, #292C32 60%, #121418)", borderRight: "1px solid #756C5E", transform: `translateX(${entering ? (1 - p) * 100 : (p - 1) * 100}%)`, boxShadow: "12px 0 36px #0008" }} />;
-}
-
 /** Halo chaud qui descend du haut de l'image (course du soleil). */
 function SunGlow({ intensity, color }: { intensity: number; color: string }) {
   if (intensity <= 0.001) return null;
   return <AbsoluteFill style={{ pointerEvents: "none", opacity: intensity, background: `radial-gradient(ellipse 80% 60% at 70% 0%, color-mix(in srgb, #ffd9a0 70%, ${color}), transparent 70%)`, mixBlendMode: "screen" }} />;
-}
-
-/**
- * Bande de sable ratissé (Zen) : `p` = part couverte. En sortie, elle entre par la gauche ; en entrée, elle repart par la droite.
- * Sillons horizontaux, liseré d'ombre sur le bord qui avance, couleur du sable (fond clair de la palette, sinon sable naturel).
- */
-function RakeCover({ p, phase, unit, palette }: { p: number; phase: "in" | "out"; unit: number; palette: VideoProps["palette"] }) {
-  if (p <= 0.001) return null;
-  const sand = /^#[0-9a-f]{6}$/i.test(palette[0]) && Number.parseInt(palette[0].slice(1, 3), 16) + Number.parseInt(palette[0].slice(3, 5), 16) + Number.parseInt(palette[0].slice(5, 7), 16) > 520 ? palette[0] : "#E7DECF";
-  const k = Easing.inOut(Easing.cubic)(Math.min(1, p));
-  // Sortie : bord droit de la bande à k × 100 % ; entrée : bord gauche qui part vers la droite
-  const left = phase === "out" ? -110 + k * 110 : (1 - k) * 110;
-  const grooves = `repeating-linear-gradient(180deg, rgb(0 0 0 / 0.07) 0 ${unit * 0.35}px, rgb(255 255 255 / 0.18) ${unit * 0.35}px ${unit * 0.6}px, transparent ${unit * 0.6}px ${unit * 1.7}px)`;
-  return (
-    <AbsoluteFill style={{ pointerEvents: "none", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, bottom: 0, left: `${left}%`, width: "110%", background: `${grooves}, ${sand}`, boxShadow: `${phase === "out" ? "" : "-"}${unit * 2}px 0 ${unit * 4}px rgb(60 40 20 / 0.28)` }} />
-    </AbsoluteFill>
-  );
 }
 
 /** Blocs de couleur en mode différence, tirés au sort à chaque image (entrée « glitch »). */

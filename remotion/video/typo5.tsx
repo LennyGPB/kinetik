@@ -27,7 +27,9 @@ export function Typo5Layout({ kind, ...l }: TextLayoutProps & { kind: Typo5Kind 
   const art = <Typo5Title kind={kind} text={l.scene.title} time={frame / fps} enter={enter} palette={l.props.palette} fontFamily={fontFamily} scriptFamily={scriptFont} subtitle={kind === "cursive" ? l.subtitle : undefined} />;
   // L’enveloppe déplaçable n’a pas de hauteur propre : Reflect, qui remplit son parent, reçoit celle du cadre
   const title = <MovableText target="title">{kind === "reflect" ? <div style={{ position: "relative", height }}>{art}</div> : art}</MovableText>;
-  return <AbsoluteFill>
+  // Le cadre est le conteneur des tailles en cqw / cqh des titres : sans lui, elles suivraient la fenêtre du navigateur
+  // (juste à l'export, où la fenêtre a la taille de la vidéo, mais démesurées dans le lecteur de l'éditeur)
+  return <AbsoluteFill style={{ containerType: "size" }}>
     <div style={{ ...caps, position: "absolute", left: 0, right: 0, top: "6%", textAlign: "center" }}>{l.props.appName}</div>
     {kind === "reflect"
       ? <div style={{ position: "absolute", inset: 0 }}>{title}</div>

@@ -1,4 +1,5 @@
 import type { VideoOverlay } from "./overlays";
+import type { MotionLayer } from "./motion-layers";
 import type { BrandFont } from "../../config/fonts";
 import type { LogoLayout, ScreensLayout, TitleAnimation } from "../../config/recipes";
 import type { ScenePresentation } from "../../config/scene-presentations";
@@ -65,6 +66,14 @@ export type Scene = {
   lines?: string[];
   /** Scènes "headlines" : couleur de chaque titre (#rrggbb), dans l'ordre de sceneHeadlines ; null = couleur du template */
   lineColors?: (string | null)[];
+  /** Calques animés libres (texte, formes, images) posés par-dessus la scène, avec images clés (lib/projects/motion-layers.ts). */
+  layers?: MotionLayer[];
+  /** true = le contenu du template (textes, mockups) n'est pas rendu : la scène n'affiche que le fond et ses calques libres. */
+  hideTemplate?: boolean;
+  /** Templates en vraie 3D : plan de caméra de la scène (lib/projects/scene-camera.ts). Absent = celui du template. */
+  camera?: import("./scene-camera").SceneCamera;
+  /** Templates en vraie 3D : pose de l’appareil ou de la photo produit pendant la scène. */
+  pose?: import("./scene-camera").ObjectPose;
 };
 
 /** Scène "headlines" : 2 à 5 gros titres enchaînés, courts. */
@@ -158,6 +167,8 @@ export type SceneGraph = {
   pitch?: import("../pitch/model").PitchMetadata;
   voiceover?: import("./voiceover").Voiceover;
   deviceMockup?: import("../../config/device-mockups").DeviceMockup;
+  /** Couleur de la coque de l’appareil 3D (#rrggbb). Absente = couleur du modèle. */
+  deviceColor?: string;
   recording?: import("../recordings/model").ScreenRecording;
   language?: "fr" | "en";
   overlays?: VideoOverlay[];

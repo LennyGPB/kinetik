@@ -13,7 +13,11 @@ import { normalizeSiteUrl, reviewFromAnalysis, validUrlStep } from "@/lib/url-vi
 import { urlVideoCopy } from "@/lib/url-video/copy";
 import { urlFlowCopy } from "@/lib/url-video/flow-copy";
 import { cn } from "@/lib/utils";
-import { UrlSourceStep, UrlTemplateStep, UrlMessageStep, UrlAssetsStep, UrlFinalStep, UrlProposalResults, UrlAnalysisProgress, type Milestone, type UrlResult } from "./url-video-steps";
+import { UrlSourceStep, UrlTemplateStep, UrlMusicStep, UrlMessageStep, UrlAssetsStep, UrlFinalStep, UrlProposalResults, UrlAnalysisProgress, type Milestone, type UrlResult } from "./url-video-steps";
+
+/** Ordre des étapes. L'analyse du site tourne pendant le choix du style et de la musique. */
+const STEP = { source: 0, template: 1, music: 2, message: 3, assets: 4, final: 5 } as const;
+const LAST_STEP = STEP.final;
 
 async function readEvents(response: Response, receive: (event: Record<string, unknown>) => void) {
   if (!response.ok) throw new Error((await response.json()).error ?? "default");
@@ -107,7 +111,7 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
     void restore(id).then(() => {
       if (!alive.current) return;
       const saved = Number(params.get("urlStep") ?? 1);
-      const next = Number.isInteger(saved) && saved >= 0 && saved <= 4 ? saved : 1;
+      const next = Number.isInteger(saved) && saved >= 0 && saved <= LAST_STEP ? saved : 1;
       setStep(next); setFurthest(next);
     }).catch((e) => { if (alive.current) setError(e.message); }).finally(() => { if (alive.current) setRestoring(false); });
   }, [initialAnalysisId, restore]);
@@ -137,6 +141,7 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
   async function analyze() {
     if (busy) return;
     setBusy("analysis"); setError(""); setMilestones([]); abort.current = new AbortController();
+    const startedWith = JSON.stringify(preferencesRef.current);
     try {
       const normalized = normalizeSiteUrl(url);
       await readEvents(await fetch("/api/url-video/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: normalized, locale, preferences: preferencesRef.current, ...(pendingId && { analysisId: pendingId }) }), signal: abort.current.signal }), (event) => {
@@ -149,6 +154,10 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
           setPendingId(null); setAnalysis(found); setUrl(found.url); setResult(null);
           setReview(reviewFromAnalysis(String(event.analysisId), found, preferencesRef.current));
           remember(String(event.analysisId), 1);
+          // Style ou musique changés pendant l'analyse : on les enregistre pour la reprise
+          if (JSON.stringify(preferencesRef.current) !== startedWith) {
+            void fetch("/api/url-video/analyze", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ analysisId: String(event.analysisId), preferences: preferencesRef.current }) }).catch(() => {});
+          }
         }
       });
     } catch (e) { if (alive.current) setError(e instanceof TypeError ? "network" : e instanceof Error ? e.message : "default"); }
@@ -175,15 +184,25 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
     } catch (e) { if (alive.current) setError(e instanceof Error ? e.message : "network"); }
     finally { if (alive.current) { setBusy(null); void restore(review.analysisId).catch(() => {}); } }
   }
+  /** L'étape est-elle complète ? Le style et la musique n'attendent pas la fin de l'analyse. */
+  function stepValid(index: number) {
+    if (index === STEP.source) return Boolean(url.trim());
+    if (index === STEP.template) return !manual || Boolean(preferences.templateId);
+    if (index === STEP.music) return true;
+    if (index === STEP.message) return validUrlStep(2, review, manual, preferences);
+    if (index === STEP.assets) return validUrlStep(3, review, manual, preferences);
+    return validUrlStep(4, review, manual, preferences);
+  }
   async function next() {
     if (uploading || saving || busy === "generation") return;
-    if (step === 0) {
+    if (busy === "analysis" && step === STEP.source) return;
+    if (step === STEP.source) {
       if (!url.trim() || busy) return;
       try { normalizeSiteUrl(url); } catch { setError("invalid_url"); return; }
-      if (!analysis) { go(1); void analyze(); return; }
-    } else if (!validUrlStep(step, review, manual, preferences)) return;
-    if (step === 4) { void generate(); return; }
-    if (step <= 1 && analysis) {
+      if (!analysis) { go(STEP.template); void analyze(); return; }
+    } else if (!stepValid(step)) return;
+    if (step === LAST_STEP) { void generate(); return; }
+    if (step <= STEP.music && analysis) {
       setSaving(true); setError("");
       try { await savePreferences(); go(step + 1); }
       catch (e) { setError(e instanceof Error ? e.message : "default"); }
@@ -209,43 +228,47 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
   }
 
   const remaining = 3 - (result?.occupiedSlots ?? 0), cost = remaining * CREDIT_COSTS.generation;
-  const disabled = uploading || saving || Boolean(busy) || (step === 0 ? !url.trim() : !validUrlStep(step, review, manual, preferences)) || (step === 4 && balance < cost);
+  // L'analyse en cours ne bloque que l'étape du site : elle tourne en fond pendant le style et la musique
+  const disabled = uploading || saving || busy === "generation" || (busy === "analysis" && step === STEP.source) || !stepValid(step) || (step === LAST_STEP && balance < cost);
+  const noMusic = !preferences.music && !preferences.musicTrackId;
+  const nextLabel = saving ? f.saving : step === STEP.music && noMusic ? f.skipMusic : f.nextLabels[step] ?? f.next;
   const common = review ? { locale, review, onChange: setReview } : null;
   const errorMessage = c.errors[error as keyof typeof c.errors] ?? c.errors.default;
   const readyCount = result?.proposals.filter((proposal) => proposal.status === "READY").length ?? 0;
 
   if (restoring) return <div role="status" className="mx-auto flex max-w-4xl items-center gap-3 py-16 text-sm text-muted"><Loader2 className="size-5 animate-spin motion-reduce:animate-none" />{c.restoring}</div>;
   return <div className="mx-auto max-w-4xl pb-4 pt-2 sm:pt-5" onKeyDown={(e) => { if (step === 0 && e.key === "Enter" && e.target instanceof HTMLInputElement && e.target.type !== "file") { e.preventDefault(); void next(); } }}>
-    {!locked && <UrlStepNavigation locale={locale} step={step} furthest={furthest} disabled={Boolean(busy) || saving || uploading} onSelect={go} />}
-    <div className={cn(!locked && [0, 2, 4].includes(step) && "mx-auto max-w-2xl")}>
+    {!locked && <UrlStepNavigation locale={locale} step={step} furthest={furthest} disabled={busy === "generation" || saving || uploading} onSelect={go} />}
+    <div className={cn(!locked && step !== STEP.template && step !== STEP.assets && "mx-auto max-w-2xl")}>
     <header className="mb-7 sm:mb-9">
       <h1 ref={heading} tabIndex={-1} className="scroll-mt-8 text-balance text-2xl font-semibold leading-tight tracking-tight outline-none sm:text-3xl">{locked ? generating || busy === "generation" ? f.generating : c.choices : f.titles[step]}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">{locked ? generating || busy === "generation" ? f.generatingHelp : f.resultsHelp : f.descriptions[step]}</p>
-      {analysis && !locked && step >= 2 && <div className="mt-4 flex items-center gap-2 text-xs text-muted"><Globe className="size-3.5" aria-hidden /><span>{new URL(analysis.url).hostname}</span></div>}
+      {analysis && !locked && step >= STEP.message && <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-muted"><Globe className="size-3.5" aria-hidden /><span>{new URL(analysis.url).hostname}</span></div>}
     </header>
-    {error && <div role="alert" className="mb-6 rounded-xl border border-danger/35 bg-surface px-5 py-4"><p className="text-sm leading-relaxed text-fg">{errorMessage}</p>{!analysis && !busy && step > 0 && <Button variant="outline" size="sm" className="mt-3" onClick={() => void analyze()}>{pendingId ? c.retryBrief : f.retryAnalysis}</Button>}</div>}
+    {error && <div role="alert" className="mb-6 rounded-xl border border-danger/35 bg-surface px-5 py-4"><p className="text-sm leading-relaxed text-fg">{errorMessage}</p>{!analysis && !busy && step > STEP.source && <Button variant="outline" size="sm" className="mt-3" onClick={() => void analyze()}>{pendingId ? c.retryBrief : f.retryAnalysis}</Button>}</div>}
 
     {locked && result && review ? <>
       <div className="mb-5 flex items-center justify-between text-sm"><span className="text-muted">{f.three}</span><span className="font-medium">{readyCount}/3 {f.done.toLowerCase()}</span></div>
       <UrlProposalResults locale={locale} result={result} review={review} />
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-5"><Button variant="ghost" disabled={Boolean(busy) || generating} onClick={reset}><RotateCcw className="size-4" />{f.startOver}</Button>{remaining > 0 && <Button variant="purple" loading={busy === "generation"} disabled={Boolean(busy) || generating || balance < cost} onClick={() => void generate()}>{f.resume} · {cost} {c.credits}</Button>}</div>
     </> : <>
-      {step === 0 && <UrlSourceStep locale={locale} url={url} onUrl={changeUrl} preferences={preferences} onPreferences={changePreferences} onUploading={setUploading} disabled={Boolean(busy)} />}
-      {step === 1 && <><UrlTemplateStep locale={locale} preferences={preferences} manual={manual} onManual={setManual} onPreferences={changePreferences} analysis={analysis} /><UrlAnalysisProgress locale={locale} busy={busy === "analysis"} ready={Boolean(analysis)} milestones={milestones} failed={Boolean(error)} /></>}
-      {step === 2 && common && <UrlMessageStep {...common} />}
-      {step === 3 && common && analysis && <UrlAssetsStep {...common} analysis={analysis} onAddScreens={addScreens} onLogoUpload={(file) => void addLogo(file)} uploading={uploading} onUploading={setUploading} />}
-      {step === 4 && common && analysis && (busy === "generation" ? <div role="status" className="flex min-h-64 flex-col items-center justify-center gap-4 rounded-xl bg-surface p-7 text-center"><Loader2 className="size-8 animate-spin text-accent-text motion-reduce:animate-none" /><p className="font-medium">{f.generating}</p><p className="max-w-md text-sm leading-relaxed text-muted">{f.generatingHelp}</p></div> : <UrlFinalStep {...common} analysis={analysis} onEdit={go} />)}
-      {step >= 2 && !review && <><UrlAnalysisProgress locale={locale} busy={busy === "analysis"} ready={false} milestones={milestones} /><Button className="mt-5" variant="outline" onClick={() => go(1)}>{f.back}</Button></>}
+      {step === STEP.source && <UrlSourceStep locale={locale} url={url} onUrl={changeUrl} disabled={Boolean(busy)} />}
+      {step === STEP.template && <><UrlAnalysisProgress locale={locale} busy={busy === "analysis"} ready={Boolean(analysis)} milestones={milestones} failed={Boolean(error)} /><UrlTemplateStep locale={locale} preferences={preferences} manual={manual} onManual={setManual} onPreferences={changePreferences} analysis={analysis} /></>}
+      {step === STEP.music && <><UrlAnalysisProgress locale={locale} busy={busy === "analysis"} ready={Boolean(analysis)} milestones={milestones} failed={Boolean(error)} /><UrlMusicStep locale={locale} preferences={preferences} onPreferences={changePreferences} onUploading={setUploading} disabled={busy === "generation"} /></>}
+      {step === STEP.message && common && <UrlMessageStep {...common} />}
+      {step === STEP.assets && common && analysis && <UrlAssetsStep {...common} analysis={analysis} onAddScreens={addScreens} onLogoUpload={(file) => void addLogo(file)} uploading={uploading} onUploading={setUploading} />}
+      {step === STEP.final && common && analysis && (busy === "generation" ? <div role="status" className="flex min-h-64 flex-col items-center justify-center gap-4 rounded-xl bg-surface p-7 text-center"><Loader2 className="size-8 animate-spin text-accent-text motion-reduce:animate-none" /><p className="font-medium">{f.generating}</p><p className="max-w-md text-sm leading-relaxed text-muted">{f.generatingHelp}</p></div> : <UrlFinalStep {...common} analysis={analysis} onEdit={go} />)}
+      {step >= STEP.message && !review && <><UrlAnalysisProgress locale={locale} busy={busy === "analysis"} ready={false} milestones={milestones} failed={Boolean(error)} /><Button className="mt-5" variant="outline" onClick={() => go(STEP.music)}>{f.back}</Button></>}
       <footer className="sticky bottom-0 z-20 mt-9 border-t border-line bg-bg py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:mt-10 sm:py-5">
-        {step === 4 && <div className="mb-4 flex flex-wrap items-end justify-between gap-2"><p className="text-sm font-semibold">{f.three} · {cost} {c.credits}</p><p className="text-xs text-muted">{balance} {c.credits} {f.creditBalance}</p></div>}
+        {step === LAST_STEP && <div className="mb-4 flex flex-wrap items-end justify-between gap-2"><p className="text-sm font-semibold">{f.three} · {cost} {c.credits}</p><p className="text-xs text-muted">{balance} {c.credits} {f.creditBalance}</p></div>}
         <div className="flex items-center justify-between gap-3">
-          <Button variant="ghost" disabled={step === 0 || Boolean(busy) || saving || uploading} onClick={() => go(step - 1)} className={cn("min-h-11", step === 0 && "invisible")}><ArrowLeft className="size-4" />{f.back}</Button>
-          <Button variant="purple" disabled={disabled} loading={saving || busy === "analysis" || busy === "generation"} className="group h-auto min-h-12 max-w-[75%] whitespace-normal px-6 py-3 text-center" onClick={() => void next()}>{saving ? f.saving : busy === "analysis" ? f.wait : step === 4 ? f.create : step === 1 ? f.messageNext : f.next}{!busy && !saving && step < 4 && <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />}</Button>
+          <Button variant="ghost" disabled={step === STEP.source || busy === "generation" || saving || uploading} onClick={() => go(step - 1)} className={cn("min-h-11", step === STEP.source && "invisible")}><ArrowLeft className="size-4" />{f.back}</Button>
+          <Button variant="purple" disabled={disabled} loading={saving || (busy === "analysis" && step === STEP.source) || busy === "generation"} className="group h-auto min-h-12 max-w-[75%] whitespace-normal px-6 py-3 text-center" onClick={() => void next()}>{nextLabel}{!saving && busy !== "generation" && step < LAST_STEP && <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />}</Button>
         </div>
-        {step === 1 && manual && !preferences.templateId && <p className="mt-3 text-right text-xs text-muted">{f.chooseTemplate}</p>}
-        {step === 2 && review && !validUrlStep(2, review, manual, preferences) && <p className="mt-3 text-right text-xs text-danger">{f.checkMessage}</p>}
-        {step === 3 && review?.screens.length === 0 && <p className="mt-3 text-right text-xs text-danger">{f.noScreens}</p>}
-        {step === 4 && <p className={cn("mt-3 text-xs leading-relaxed", balance < cost ? "text-danger" : "text-muted")}>{balance < cost ? c.noCredit : f.exportNote}</p>}
+        {step === STEP.template && manual && !preferences.templateId && <p className="mt-3 text-right text-xs text-muted">{f.chooseTemplate}</p>}
+        {step === STEP.message && review && !stepValid(STEP.message) && <p className="mt-3 text-right text-xs text-danger">{f.checkMessage}</p>}
+        {step === STEP.assets && review?.screens.length === 0 && <p className="mt-3 text-right text-xs text-danger">{f.noScreens}</p>}
+        {step === LAST_STEP && <p className={cn("mt-3 text-xs leading-relaxed", balance < cost ? "text-danger" : "text-muted")}>{balance < cost ? c.noCredit : f.exportNote}</p>}
       </footer>
     </>}
     </div>

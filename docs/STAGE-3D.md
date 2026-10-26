@@ -7,15 +7,15 @@ est posé dans un univers ; une seule caméra filme toute la vidéo et voyage d'
 | Template (`recipe.stage`) | Univers | Transition signature | Décor (`remotion/video/stage-envs/`) |
 | --- | --- | --- | --- |
 | Stage (`orbit`) | plateau sombre, sol miroir, anneaux néon | `turntable` : l'appareil fait un tour complet, l'écran change quand il montre son dos | `orbit.tsx` |
-| Obsidian (`obsidian`) | socle de pierre noire chanfreinée, parois sculpturales, lumière rasante et joints métalliques | `stone-slide` : les parois coulissent ; une plaque de pierre traverse l'image et révèle le nouveau plan | `obsidian.tsx` |
+| Obsidian (`obsidian`) | socle de pierre noire chanfreinée, parois sculpturales, lumière rasante et joints métalliques | `stone-slide` : les parois coulissent pendant un geste de caméra (fouet, plongée, orbite) | `obsidian.tsx` |
 | Halo 3D (`halo`) | plateau graphite suspendu, grand anneau lumineux dans un espace bleu nuit | `halo-pass` : l'anneau avance autour du produit et la caméra plonge doucement vers le nouveau plan | `halo.tsx` |
-| Magnet (`magnet`) | plateau miroir sombre, blocs en métal usiné, bobines lumineuses et lignes de champ magnétique | `magnetic-lock` : les blocs se rapprochent, deux plaques métalliques masquent le changement puis s'écartent | `magnet.tsx` |
-| Vault (`vault`) | galerie d'arches en calcaire clair, sol satiné, lumière naturelle latérale | `vault-pass` : une arche avance et un pilier proche traverse le cadre pour révéler le plan suivant | `vault.tsx` |
+| Magnet (`magnet`) | plateau miroir sombre, blocs en métal usiné, bobines lumineuses et lignes de champ magnétique | `magnetic-lock` : les blocs se rapprochent puis s'écartent pendant un geste de caméra (spirale, poussée, fouet) | `magnet.tsx` |
+| Vault (`vault`) | galerie d'arches en calcaire clair, sol satiné, lumière naturelle latérale | `vault-pass` : la caméra avance sous les arches (poussée, orbite, envolée) | `vault.tsx` |
 | Array (`monument`, identifiant historique) | lames métalliques en demi-cercle, socle graphite et plateau miroir | `array-sweep` : les lames pivotent en vague et balaient les reflets | `array.tsx` |
 | Orbit 3D (`gyroscope`, template `orbit-3d`) | deux arcs de gyroscope en métal poli, incrustations lumineuses et plateau miroir | `gyro-turn` : les orbites accélèrent et accompagnent le changement de plan | `gyroscope.tsx` |
-| Shoot (`shoot`) | studio photo : fond infini aux couleurs de la marque, plateau tournant miroir | `flash` : flash de studio, nouveau cadrage net | `shoot.tsx` |
+| Shoot (`shoot`) | studio photo : fond infini aux couleurs de la marque, plateau tournant miroir | `flash` : geste de caméra vif (fouet, poussée, orbite) et flash dans le studio, sans voile blanc | `shoot.tsx` |
 | Aquarium (`aquarium`) | eau turquoise, rayons, caustiques, algues, bulles | `current` : l'appareil tourne dans une gerbe de bulles | `aquarium.tsx` |
-| Zen (`zen`) | jardin japonais à l'heure dorée, sable ratissé, cerisier | `rake` : une bande de sable ratissé balaie l'écran | `zen.tsx` |
+| Zen (`zen`) | jardin japonais à l'heure dorée, sable ratissé, cerisier | `rake` : la caméra glisse au-dessus du sable (poussée, orbite, envolée, gestes adoucis) | `zen.tsx` |
 | Kiosque (`kiosk`) | ville miniature photographiée en bascule : façades à fenêtres, rues marquées, parcs, ombres longues ; un quartier par scène | `district` : la caméra survole la ville jusqu'au quartier suivant | `kiosk.tsx` |
 
 Ajouter un univers : `STAGE_KINDS` / `STAGE_THEMES` et ses plans (`shotPair`) dans `config/stage-motion.ts`, un décor dans
@@ -42,7 +42,7 @@ Ces cinq univers prolongent le moteur commun : mêmes vrais écrans, appareils, 
 - **Solstice 3D** : cinq panneaux optiques fumés, alternativement ambrés et bleutés, encadrés de métal fin et de lignes lumineuses. Leur rotation module les reflets du studio sombre ; le verre est un matériau translucide avec vernis et légère iridescence.
 - **Assembly** : bras en titane effilés et chanfreinés, avec lumières traversantes, carters de servomoteurs détaillés, vis et fins anneaux émissifs aux articulations. Un vérin accompagne l’épaule et un câble fléchit autour du coude. La cinématique inverse utilise des segments rigides dont la longueur dépend seulement de l’écartement des appareils (`spread`), jamais de la pose. Un décalage d’outil de 0,32 unité garde le poignet à l’extérieur du plateau ; les mâchoires parallèles et leurs patins en caoutchouc atteignent son bord. L’approche et le retrait s’arrêtent sans vitesse résiduelle aux limites des phases (`smoothstep` pour le bras receveur, courbe sinusoïdale au carré pour l’autre). Le bras receveur tient le plateau avant le relâchement de l’autre. Plateau et appareil partagent la même courbe de levée et de rotation, image par image. Le cadrage carré recule davantage et décale l’ensemble pour dégager le texte.
 
-Les cinq univers sont sombres (`light: false`), dans la continuité des reflets contrôlés de Stage et Magnet. `collection-kit.tsx` partage blocs et socles chanfreinés ; `PrecisionStudio` reprend le `SculpturalStudio` d’Array et Orbit 3D pour Loom, Blueprint, Solstice et Assembly. Tidal utilise un éclairage de studio à grandes boîtes à lumière et son propre miroir liquide. Les cinq signatures ont une sortie de 24 images et une entrée de 28 images ; les poses de passage reviennent à leur état de repos aux limites de la transition.
+Les cinq univers sont sombres (`light: false`), dans la continuité des reflets contrôlés de Stage et Magnet. `collection-kit.tsx` partage blocs et socles chanfreinés ; `PrecisionStudio` reprend le `SculpturalStudio` d’Array et Orbit 3D pour Loom, Blueprint, Solstice et Assembly. Tidal utilise un éclairage de studio à grandes boîtes à lumière et son propre miroir liquide. Les cinq signatures sont des gestes de caméra de 12 + 18 images (voir « Gestes de caméra ») ; les poses de passage reviennent à leur état de repos aux limites de la transition.
 
 Les 15 miniatures de catalogue (cinq univers × trois formats) sont générées par le véritable moteur Three.js / Remotion, sans image de stock ni image IA. `scripts/review-stage-collection.ts` enregistre leur provenance dans les métadonnées EXIF.
 
@@ -78,7 +78,15 @@ Branchements : `Recipe.stage` (`config/recipes.ts`), fond dans `KinetikVideo.tsx
   recul et élévation (cta). Le côté alterne d'une scène à l'autre.
 - **Formats** : l'appareil est décalé dans l'image (`setViewOffset`, sans fausser la perspective) : à droite du texte en 16:9 et 1:1,
   sous le texte en 9:16, au centre pour les scènes de captures.
-- **Transitions** : après la première scène, toute transition absente ou `cut` est remplacée automatiquement par la signature de l'univers (`resolveStageTransitions`). La règle est partagée par le montage, l'aperçu et l'export, y compris pour les projets existants et les scènes déplacées/ajoutées. Les autres transitions choisies sont conservées ; les coupes sèches ne sont plus proposées entre scènes 3D. Le moteur de plateau bas niveau prend toujours en charge `cut` pour les transitions signatures masquées par un flash ou un rideau.
+- **Transitions** : après la première scène, toute transition absente ou `cut` est remplacée automatiquement par la signature de l'univers (`resolveStageTransitions`). La règle est partagée par le montage, l'aperçu et l'export, y compris pour les projets existants et les scènes déplacées/ajoutées. Les autres transitions choisies sont conservées ; les coupes sèches ne sont plus proposées entre scènes 3D. Le moteur de plateau bas niveau prend toujours en charge `cut`.
+- **Gestes de caméra** (25/10/2026) : plus aucune transition 3D ne pose de cache plein écran (rideaux, plaques, voile blanc, bande de sable).
+  Chaque transition est un geste de caméra (`stageState` → `lens`, `config/stage-motion.ts`) : six gestes (`whip` fouet latéral, `spiral`,
+  `plunge` plongée au ras du plateau, `orbit`, `rise` envolée en grue, `push` poussée) ; chaque univers en enchaîne trois différents
+  (`STAGE_SEQUENCES`). Courbe « whoosh » (pointe ≈ 5 fois la vitesse moyenne, départ et arrivée immobiles), inclinaison de caméra,
+  champ élargi de 4 à 10° et flou de vitesse le long de l'axe du geste (`RushBlur` autour du canvas). L'orbite traverse toujours l'avant
+  du décor (|angle| < 80°). Zen joue ses gestes à 60 %, Vault à 80 % ; sur un tour de plateau (Stage, Aquarium), le geste est à moitié.
+  Kiosque garde son survol. Les anciennes signatures à cache durent 12 + 18 images ; les effets du décor (blocs, rubans, arc chromé…)
+  restent dans la scène 3D. Les textes partent en flou de vitesse dans le sens du geste (`cameraBrick`, `transitions.tsx`).
 - **Mises en avant (zoom / découpe)** : jouées en vraie 3D sur l'écran de l'appareil, avec le même calendrier que la version 2D
   (`stageFocusState` : repère à 16 images, action de 30 à 56). Un repère (`anchorRef`) posé au centre de l'écran de chaque modèle
   donne la position exacte de la zone, quel que soit l'appareil ou l'angle.
@@ -128,3 +136,10 @@ Branchements : `Recipe.stage` (`config/recipes.ts`), fond dans `KinetikVideo.tsx
 - `node --import tsx scripts/review-stage.ts --gl=swangle --format=LANDSCAPE` : même rendu en WebGL logiciel, chronométré.
 - `node --import tsx scripts/review-stage.ts --template=<id> --thumbnails` : régénère `public/templates/<id>-*.jpg` après un changement visuel.
 - `node --import tsx --conditions=react-server --test lib/projects/stage-motion.test.ts lib/projects/assembly-motion.test.ts`. Les tests purs d’Assembly reconstruisent le contact par cinématique directe sur 101 phases, trois écartements et deux bras ; ils vérifient les longueurs fixes, la prise continue du plateau et la vitesse nulle aux limites des phases.
+
+## Prévisu au survol dans la galerie
+
+Calculer la 3D en direct au survol d'une carte prenait plusieurs secondes avant la première image. La galerie joue donc une boucle
+pré-rendue par le vrai moteur (`public/templates/<id>-preview-<fr|en>.mp4`, 360 px, ~700 Ko), avec la miniature carrée en attendant ;
+si le fichier manque, elle retombe sur le lecteur en direct (`components/media/template-hover-preview.tsx`).
+À régénérer quand un décor, une caméra ou une démo 3D change : `node --import tsx scripts/render-stage-previews.ts [ids…]`.

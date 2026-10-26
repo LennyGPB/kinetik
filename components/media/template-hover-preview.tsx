@@ -2,7 +2,8 @@
 
 import { Player, type PlayerRef } from "@remotion/player";
 import { motion } from "motion/react";
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { isStageTemplate } from "@/components/media/stage-thumbnail";
 import type { VideoFormatId } from "@/config/formats";
 import type { VideoStyle } from "@/config/styles";
 import { demoVideoProps } from "@/lib/projects/demo-video";
@@ -13,16 +14,22 @@ import { DIMENSIONS, durationInFrames, FPS } from "@/remotion/props";
  * One immediately playing, muted demo, cropped to the thumbnail without stretching.
  * `grow` (> 1): the preview leaves the card and widens smoothly to `grow` × its width, centred, revealing more of the video
  * (the video keeps the card's height, so it is never distorted). The parent must not clip it (no overflow-hidden).
+ * 3D templates play a loop pre-rendered by the real engine (scripts/render-stage-previews.ts): computing Three.js live on hover
+ * took seconds before the first frame. Their square thumbnail shows instantly meanwhile; a missing file falls back to the live player.
  */
 export function TemplateHoverPreview({ style, locale, format = "SQUARE", frameRatio = 2 / 3, grow }: {
   style: VideoStyle; locale: "fr" | "en"; format?: VideoFormatId; frameRatio?: number; grow?: number;
 }) {
   const props = useMemo(() => demoVideoProps(style, format, locale), [style, format, locale]);
   const playerRef = useRef<PlayerRef>(null);
-  useLayoutEffect(() => { playerRef.current?.play(); }, []);
-  const { width, height } = DIMENSIONS[format];
+  const [clipFailed, setClipFailed] = useState(false);
+  const clip = isStageTemplate(style.id) && !clipFailed;
+  useLayoutEffect(() => { playerRef.current?.play(); }, [clip]);
+  const { width, height } = clip ? DIMENSIONS.SQUARE : DIMENSIONS[format];
   const ratio = width / height;
-  const player = <Player ref={playerRef} component={KinetikVideo} inputProps={props} compositionWidth={width} compositionHeight={height} durationInFrames={durationInFrames(props.graph)} fps={FPS} autoPlay loop controls={false} clickToPlay={false} initiallyMuted style={{ width: "100%", height: "100%" }} />;
+  const player = clip
+    ? <video src={`/templates/${style.id}-preview-${locale}.mp4`} poster={`/templates/${style.id}-square.jpg`} autoPlay muted loop playsInline preload="auto" onError={() => setClipFailed(true)} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+    : <Player ref={playerRef} component={KinetikVideo} inputProps={props} compositionWidth={width} compositionHeight={height} durationInFrames={durationInFrames(props.graph)} fps={FPS} autoPlay loop controls={false} clickToPlay={false} initiallyMuted style={{ width: "100%", height: "100%" }} />;
   if (grow && grow > 1) {
     return <motion.div
       aria-hidden

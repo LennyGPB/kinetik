@@ -76,7 +76,7 @@ export function legalEn(d: LegalData): Record<LegalSlug, LegalDoc> {
             "The service runs on credits, used for each paid action:",
             { list: [
               `Generating a motion design video or an animated signature: ${d.costs.generation} credits`,
-              `Edit requested from the assistant: ${d.costs.edit} credits`,
+              `Edit requested from the assistant: ${d.costs.edit} to ${d.costs.editMax} credits depending on the complexity of the request (processing steps and previews needed). ${d.costs.edit} credits are reserved when sending; the final amount is shown in the assistant's reply. A request that does not change the video (question, off-topic request) is free if the assistant answers it in a single short step; otherwise it costs ${d.costs.editUnchanged} credit, shown in its reply`,
               `Translating the copy: ${d.costs.translation} credit`,
               `Exporting a video of up to ${d.costs.shortMaxSeconds} seconds: ${d.costs.exportShort} credits; longer export: ${d.costs.exportLong} credits. Real 3D templates (marked “3D” in the gallery) cost ${d.costs.export3dMultiplier} times this price to export. Re-exporting the same project costs half price.`,
               `Pitch deck to video: ${d.costs.pitchAnalysis} credits to analyze the document, then ${d.costs.pitchCreation} credits to create the motion`,

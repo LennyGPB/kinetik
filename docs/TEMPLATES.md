@@ -485,8 +485,15 @@ Identifiants conservés. Offprint et Patina ne sont plus des templates photo (tr
 
 ### Crosscut (refonte)
 
-Montage alterné : deux plans de la photo en diagonale (pente de 10 % de la hauteur) qui travellent en sens opposés, une bande d’accent avec un défilant de clap (« SCENE 01 — TAKE 01 — CUT »), plans A / B qui échangent couleur et noir et blanc à chaque scène, titre aligné sur la diagonale. Transition signature `scissor` : deux pans se croisent sur la diagonale puis poursuivent leur course. `EditorialBackdrop` reçoit désormais `time` pour les mouvements continus entre scènes.
+Montage alterné : deux plans de la photo en diagonale (pente de 10 % de la hauteur) qui travellent en sens opposés, une bande d’accent avec un défilant de clap (« SCENE 01 — TAKE 01 — CUT »), plans A / B qui échangent couleur et noir et blanc à chaque scène, titre aligné sur la diagonale. Transition signature `scissor` (refaite le 25/10/2026, sans aplat plein écran) : coupe de montage dans le décor — les deux plans photo filent en sens contraires le long de la diagonale (sortie 12 images, entrée 16), avec flou de vitesse ; la bande reste en place comme ligne de coupe, un filet clair court sur son bord et le défilant bondit d'un cran ; le titre suit le plan du haut le long de la diagonale. Chaque scène a ses propres cadrages A / B (`CROSSCUT_CROPS`), le voile du plan du haut est limité à la gauche (photo visible), filets de calage tracés le long de la bande et repères de calage dans les coins. `EditorialBackdrop` reçoit désormais `time` pour les mouvements continus entre scènes.
 
 ### Hollow, Cursive, Overlap, Bloom, Reflect (affiches typographiques)
 
 `remotion/video/typo5-art.tsx` (titres et fonds, sans contexte React) et `typo5.tsx` (mise en page commune). Mouvements continus et à sens unique : copies en contour qui défilent (Hollow), rayures qui défilent et mot manuscrit qui s’écrit (Cursive, police Allura : `scriptFont` côté vidéo, `--font-script` côté site), bande pleine qui balaie le mot (Overlap), traînées émises vers la droite (Bloom), mot courbé et reflet qui défilent en sens contraires (Reflect). Transitions signatures : `strata`, `scrawl`, `scan`, `smudge`, `mirror`.
+
+### Folio et Broadsheet : décors par scène (editorial-backdrop.tsx)
+
+- **Folio** (`arch-window`) : signet d'accent qui pend du haut de page et oscille, double filet autour de l'arche, l'arche se referme
+  en fin de scène dans l'axe où elle s'est ouverte. Transitions : `fold`, `hairline`, `ink`, `fade`.
+- **Broadsheet** (`press-column`) : chaque scène est une nouvelle édition (autres cadrages), trame de points sur les photos,
+  calque d'impression décalé qui se recale à l'arrivée, filet pointillé qui défile. Transitions : `track`, `press`, `stencil`, `fold`.

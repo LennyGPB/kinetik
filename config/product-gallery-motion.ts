@@ -2,7 +2,8 @@ import { productShotProgress } from "./product-shot-motion";
 /** Stage-inspired camera choreography. The product and architecture remain visible throughout. */
 export const PRODUCT_GALLERY_TRANSITIONS = ["zoom", "track", "rotary"] as const;
 export function productGalleryTextOpacity(strength: number) { return Math.max(0, Math.min(1, 1 - Math.max(0, strength - .08) / .52)); }
-export function productGalleryMotion(durations: number[], frame: number, fps: number, transitions?: string[]) {
+/** `windows` (secondes) : durée des deux moitiés de chaque transition ; absent = rythme historique (0,36 s + 0,58 s). */
+export function productGalleryMotion(durations: number[], frame: number, fps: number, transitions?: string[], windows: { incoming: number; outgoing: number } = { incoming: .58, outgoing: .36 }) {
   const clamp = (value: number) => Math.max(0, Math.min(1, value));
   const ease = (value: number) => { const t = clamp(value); return t * t * (3 - 2 * t); };
   const shot = (index: number, progress: number) => {
@@ -18,8 +19,8 @@ export function productGalleryMotion(durations: number[], frame: number, fps: nu
   const at = Math.max(0, Math.min(total - 1, frame));
   const index = Math.max(0, starts.findLastIndex((start) => at >= start));
   const local = at - starts[index], length = lengths[index] ?? fps;
-  const incoming = (i: number) => i > 0 ? Math.min(fps * .58, lengths[i] * .24) : 0;
-  const outgoing = (i: number) => i < lengths.length - 1 ? Math.min(fps * .36, lengths[i] * .2) : 0;
+  const incoming = (i: number) => i > 0 ? Math.min(fps * windows.incoming, lengths[i] * .24) : 0;
+  const outgoing = (i: number) => i < lengths.length - 1 ? Math.min(fps * windows.outgoing, lengths[i] * .2) : 0;
   const holdProgress = clamp((local - incoming(index)) / Math.max(1, length - incoming(index) - outgoing(index)));
   let a = index, b = index, mix = 0, strength = 0;
   if (index > 0 && local < incoming(index)) {

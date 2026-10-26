@@ -5,6 +5,9 @@ export type AiCaller = { userId: string; plan: "FREE" | "STARTER" | "PRO" };
 export const AI_TIMEOUT_MS = 90_000;
 export const AI_MAX_OUTPUT_TOKENS = 8_000;
 export const AI_MAX_INPUT_TOKENS = 24_000;
+/** Agent du chat : chaque tour renvoie la conversation (plan, images, aperçus), mise en cache par l'API. */
+export const AI_AGENT_MAX_INPUT_TOKENS = 64_000;
+export const AI_AGENT_MAX_OUTPUT_TOKENS = 16_000;
 const DAY = 86_400_000;
 
 // Invalid configuration disables paid calls rather than removing a limit.
@@ -30,9 +33,9 @@ export async function allowAiAttempt(caller: AiCaller): Promise<boolean> {
   return (await rateLimitAll([["ai:global", { limit: daily, windowMs: DAY, strict: true }]])).ok;
 }
 
-export function reserveAiTokens(inputTokens: number): Promise<boolean> {
+export function reserveAiTokens(inputTokens: number, { maxInput = AI_MAX_INPUT_TOKENS, maxOutput = AI_MAX_OUTPUT_TOKENS } = {}): Promise<boolean> {
   // Token counts are estimates: keep headroom, reserve the entire possible output.
-  if (!Number.isSafeInteger(inputTokens) || inputTokens < 0 || inputTokens > AI_MAX_INPUT_TOKENS) return Promise.resolve(false);
-  return reserveBudget("ai:tokens", Math.ceil(inputTokens * 1.1) + 1024 + AI_MAX_OUTPUT_TOKENS,
+  if (!Number.isSafeInteger(inputTokens) || inputTokens < 0 || inputTokens > maxInput) return Promise.resolve(false);
+  return reserveBudget("ai:tokens", Math.ceil(inputTokens * 1.1) + 1024 + maxOutput,
     positiveInteger(process.env.AI_GLOBAL_DAILY_TOKENS, 1_000_000), DAY);
 }

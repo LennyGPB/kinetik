@@ -17,7 +17,8 @@ import { PostEditor } from "@/components/posts/post-editor";
 import { getStoreEditor } from "@/lib/store/queries";
 import { StoreEditor } from "@/components/store/store-editor";
 
-export const maxDuration = 180;
+/** Server Actions de l'éditeur : l'agent du chat enchaîne plusieurs appels à Claude et des aperçus Lambda. */
+export const maxDuration = 300;
 
 export async function generateMetadata(): Promise<Metadata> { const t = await getServerDictionary(); return { title: t.app.editor.title }; }
 

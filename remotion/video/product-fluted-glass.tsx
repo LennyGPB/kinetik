@@ -4,8 +4,9 @@ const vertex = `varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
 
 /** Optical displacement of the supplied photo, never a reconstruction of its label or sides. */
-export function FlutedProduct({ texture, width, height, opacity, time }: { texture: Texture; width: number; height: number; opacity: number; time: number }) {
-  const strength = .48 + .44 * Math.sin(time * 1.35);
+/** `boost` (0 → 1) : au pic d'une transition, la réfraction culmine et « dissout » le produit d'un plan à l'autre. */
+export function FlutedProduct({ texture, width, height, opacity, time, boost = 0 }: { texture: Texture; width: number; height: number; opacity: number; time: number; boost?: number }) {
+  const strength = .48 + .44 * Math.sin(time * 1.35) + boost * .55;
   return <mesh>
     <planeGeometry args={[width * 1.6, height * 1.18]} />
     <shaderMaterial transparent depthWrite={opacity > .99} toneMapped={false}

@@ -14,7 +14,8 @@ export function signProposal(payload: ProposalPayload, secret: string): string {
 }
 
 export function verifyProposal(token: unknown, secret: string, now = Date.now()): ProposalPayload | null {
-  if (typeof token !== "string" || token.length > 180_000) return null;
+  // Plans avec calques animés : jusqu’à ~670 Ko de JSON, sous la limite de 1 Mo des Server Actions
+  if (typeof token !== "string" || token.length > 900_000) return null;
   const [body, signature, extra] = token.split(".");
   if (!body || !signature || extra) return null;
   const expected = createHmac("sha256", secret).update(body).digest();

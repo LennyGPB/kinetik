@@ -24,7 +24,7 @@ export function UrlMusicPicker({ preferences, onChange, onUploading, disabled }:
     </div>
     <div className="mt-4">
       {mode === "library" ? <>
-        <div className="max-h-72 overflow-y-auto overscroll-contain rounded-xl border border-line p-2">
+        <div className="max-h-[26rem] overflow-y-auto overscroll-contain rounded-xl border border-line p-2">
           {MUSIC_LIBRARY.map((item) => <label key={item.id} className={cn("flex min-h-16 cursor-pointer items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-surface-2", track?.id === item.id && "bg-accent-soft")}>
             <input type="radio" name="url-music-track" value={item.id} checked={track?.id === item.id} onChange={() => onChange({ ...preferences, music: null, musicTrackId: item.id })} className="size-4 shrink-0 accent-accent" />
             <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{item.title}</span><span className="mt-1 block text-xs text-muted">{item.bpm} BPM · {Math.floor(item.length / 60)}:{String(Math.floor(item.length % 60)).padStart(2, "0")}</span></span>

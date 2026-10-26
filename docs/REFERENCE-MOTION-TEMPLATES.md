@@ -18,3 +18,17 @@ New IDs: `lucent`, `bold-orbit`, `gold-rush`, `echo-frame`. All support portrait
 Validation: `node --import tsx --test lib/projects/reference-motion.test.ts`, TypeScript, ESLint and production build. Local QA includes three aspect ratios, early/middle/late frames and a short MP4 for each template. Source clips and generated QA files remain in ignored local cache directories.
 
 Deploy the app and run `npm.cmd run video:deploy` for cloud exports to include the new components. No database migration is needed.
+
+## Recomposition par scène et transitions (Lucent, Echo Frame)
+
+`ReferenceBackdrop` reçoit l'index de scène et le temps restant avant la scène suivante : le décor sort par le même geste qu'il entre,
+sans saut à la frontière.
+
+- **Lucent** : les tuiles basculent une à une sur leur axe vertical (de face après l'entrée, sur la tranche à la frontière) ;
+  éclair, éclipse, prisme et comète changent de tuile à chaque scène ; reflet de verre en biais et halo qui alterne orange / violet.
+  Transitions : `mosaic` (signature), `prism`, `ignite`, `fade`.
+- **Echo Frame** : la fenêtre photo se recompose à chaque scène (portrait, panoramique, haute) avec son propre cadrage ;
+  l'écho de zoom joue à l'entrée et à la sortie, vertical ou horizontal selon la scène ; repères de coupe aux coins.
+  Transitions : `zoom` (signature), `whip`, `stencil`, `shutter`, `cut`.
+
+La démo et la génération IA font tourner ces transitions (`variesTransitions`, `config/type-posters.ts`).

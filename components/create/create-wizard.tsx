@@ -4,17 +4,17 @@ import { DeviceShell } from "@/components/media/device-shell";
 import { deviceGeometry, deviceSpec } from "@/config/device-mockups";
 import type { DeviceMockup } from "@/config/device-mockups";
 
-
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { ArrowRight, Coins, Pause, Play, Plus, Sparkles, VolumeX } from "lucide-react";
+import { AppWindow, ArrowRight, Clapperboard, Coins, Images, LayoutTemplate, Music2, Palette, Pause, Play, Plus, Sparkles, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
-import { useState, useTransition, type ReactNode } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { TemplatesGallery } from "@/components/templates/templates-gallery";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { Badge } from "@/components/ui/badge";
 import { AnimatedNavigation } from "./animated-navigation";
+import { StepProgress } from "./step-progress";
 import { Button, purpleButtonStyle } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
@@ -37,8 +37,28 @@ import { VideoTypePreview } from "./video-type-preview";
 import { WebsiteAnalysisStatus, WebsiteSuggestions } from "./website-suggestions";
 import { CreationVoicePicker, type CreationVoice } from "./voiceover-picker";
 
-const STEPS = ["app", "assets", "colors", "style", "videoType", "format", "music", "brief", "review"] as const;
+/** 7 étapes : les réglages proches sont regroupés (logo + couleurs, type + format + durée, brief dans le récap). */
+const STEPS = ["app", "screens", "brand", "style", "video", "sound", "review"] as const;
 type StepId = (typeof STEPS)[number];
+
+const STEP_ICONS: Record<StepId, typeof AppWindow> = { app: AppWindow, screens: Images, brand: Palette, style: LayoutTemplate, video: Clapperboard, sound: Music2, review: Sparkles };
+
+const LOCAL_COPY = {
+  fr: {
+    steps: { app: "Projet", screens: "Captures", brand: "Marque", style: "Style", video: "Vidéo", sound: "Son", review: "Création" },
+    screens: { heading: "Tes captures d’écran", help: "Elles sont animées dans la vidéo, jamais déformées. Fortement recommandées." },
+    brand: { heading: "Ton identité visuelle", help: "Ton logo et tes couleurs guident toute la vidéo." },
+    videoTitle: "Type de vidéo", optional: "facultatif",
+    nav: "Étapes de création",
+  },
+  en: {
+    steps: { app: "Project", screens: "Screens", brand: "Brand", style: "Style", video: "Video", sound: "Sound", review: "Create" },
+    screens: { heading: "Your screenshots", help: "They’re animated in the video, never distorted. Strongly recommended." },
+    brand: { heading: "Your visual identity", help: "Your logo and colours guide the whole video." },
+    videoTitle: "Video type", optional: "optional",
+    nav: "Creation steps",
+  },
+} as const;
 
 type WizardState = {
   deviceMockup: DeviceMockup;
@@ -66,8 +86,8 @@ function validate(step: StepId, s: WizardState, t: ReturnType<typeof useDictiona
     if (s.websiteUrl && !/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(s.websiteUrl)) return c.errors.invalidUrl;
   }
   if (step === "style" && !s.styleId) return c.errors.styleRequired;
-  if (step === "music" && (s.musicMode === "library" ? !s.musicTrackId : s.musicMode === "upload" && s.music.length === 0)) return c.errors.musicRequired;
-  if (step === "music" && s.voiceover && !s.voiceover.voiceId) return t.voiceover.voiceRequired;
+  if (step === "sound" && (s.musicMode === "library" ? !s.musicTrackId : s.musicMode === "upload" && s.music.length === 0)) return c.errors.musicRequired;
+  if (step === "sound" && s.voiceover && !s.voiceover.voiceId) return t.voiceover.voiceRequired;
   return null;
 }
 
@@ -85,12 +105,15 @@ export function CreateWizard({
   const t = useDictionary();
 
   const c = t.app.create;
+  const l = LOCAL_COPY[t.locale === "fr" ? "fr" : "en"];
 
   const [stepIndex, setStepIndex] = useState(0);
+  const [furthest, setFurthest] = useState(0);
   const [direction, setDirection] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
+  const heading = useRef<HTMLHeadingElement>(null);
   const [uploads, setUploads] = useState<Record<string, boolean>>({});
   const uploading = Object.values(uploads).some(Boolean);
   const onUploading = (key: string, busy: boolean) => setUploads((current) => ({ ...current, [key]: busy }));
@@ -119,6 +142,14 @@ export function CreateWizard({
     setError(null);
   };
 
+  // À chaque étape : focus sur le titre (lecteurs d'écran) et retour en haut
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    heading.current?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+  }, [stepIndex]);
+
   function go(delta: number) {
     if (uploading) return;
     if (delta > 0) {
@@ -127,14 +158,24 @@ export function CreateWizard({
     }
     setError(null);
     setDirection(delta);
-    setStepIndex((i) => Math.min(STEPS.length - 1, Math.max(0, i + delta)));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const next = Math.min(STEPS.length - 1, Math.max(0, stepIndex + delta));
+    setStepIndex(next);
+    setFurthest((n) => Math.max(n, next));
   }
 
   function jumpTo(target: StepId) {
     if (uploading) return;
-    setDirection(-1);
-    setStepIndex(STEPS.indexOf(target));
+    const next = STEPS.indexOf(target);
+    // On ne saute en avant que si les étapes intermédiaires sont valides
+    if (next > stepIndex) {
+      for (const id of STEPS.slice(stepIndex, next)) {
+        const problem = validate(id, state, t);
+        if (problem) return setError(problem);
+      }
+    }
+    setError(null);
+    setDirection(next > stepIndex ? 1 : -1);
+    setStepIndex(next);
   }
 
   function submit() {
@@ -165,45 +206,42 @@ export function CreateWizard({
     });
   }
 
-  const progress = (stepIndex + 1) / STEPS.length;
   const visual = projectVisual({ styleId: state.styleId, colors: state.colors });
   const canAfford = balance >= CREDIT_COSTS.generation;
+  const titles: Record<StepId, { title: string; help?: string }> = {
+    app: { title: c.app.heading, help: c.app.help },
+    screens: { title: l.screens.heading, help: l.screens.help },
+    brand: { title: l.brand.heading, help: l.brand.help },
+    style: { title: c.style.heading, help: c.style.help },
+    video: { title: c.videoType.heading, help: c.videoType.help },
+    sound: { title: t.voiceover.soundStep, help: c.music.help },
+    review: { title: c.review.heading, help: c.review.help },
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
-      {/* En-tête + progression */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-accent-text">{format(c.step, { current: stepIndex + 1, total: STEPS.length })}</p>
-          <h1 className="mt-1 text-xl font-semibold sm:text-2xl">{step === "music" ? t.voiceover.soundStep : c.steps[step]}</h1>
-        </div>
-        <Badge tone="accent" className="hidden py-1 sm:inline-flex">
-          <Coins className="size-3.5" /> {CREDIT_COSTS.generation} {t.common.credits}
-        </Badge>
-      </div>
-      <div className="mt-5 flex gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuenow={stepIndex + 1} aria-label={c.title}>
-        {STEPS.map((id, i) => (
-          <button
-            key={id}
-            type="button"
-            disabled={i > stepIndex}
-            onClick={() => i < stepIndex && jumpTo(id)}
-            aria-label={id === "music" ? t.voiceover.soundStep : c.steps[id]}
-            className="group h-1.5 flex-1 overflow-hidden rounded-full bg-surface-3 disabled:cursor-default"
-          >
-            <motion.span
-              className="block h-full origin-left rounded-full bg-accent-gradient"
-              initial={false}
-              animate={{ scaleX: i <= stepIndex ? 1 : 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 30 }}
-            />
-          </button>
-        ))}
-      </div>
-      <span className="sr-only">{Math.round(progress * 100)}%</span>
+      <StepProgress
+        label={l.nav}
+        steps={STEPS.map((id) => ({ label: l.steps[id], icon: STEP_ICONS[id] }))}
+        step={stepIndex}
+        furthest={furthest}
+        disabled={uploading || pending}
+        onSelect={(index) => jumpTo(STEPS[index])}
+        counter={format(c.step, { current: stepIndex + 1, total: STEPS.length })}
+      />
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0">
+          <header className="mb-7 flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 ref={heading} tabIndex={-1} className="scroll-mt-8 text-balance text-2xl font-semibold leading-tight tracking-tight outline-none sm:text-3xl">{titles[step].title}</h1>
+              {titles[step].help && <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">{titles[step].help}</p>}
+            </div>
+            <Badge tone="accent" className="hidden shrink-0 py-1 sm:inline-flex">
+              <Coins className="size-3.5" /> {CREDIT_COSTS.generation} {t.common.credits}
+            </Badge>
+          </header>
+
           <AnimatePresence mode="wait" custom={direction} initial={false}>
             <motion.div
               key={step}
@@ -238,7 +276,6 @@ export function CreateWizard({
 
           {/* Navigation */}
           <div className="glass sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 mt-8 flex items-center justify-between gap-3 rounded-full border border-line p-1.5 shadow-[var(--shadow-lift)] lg:bottom-6">
-
             <AnimatedNavigation
               key={step}
               first={stepIndex === 0}
@@ -262,10 +299,10 @@ export function CreateWizard({
           <div className="sticky top-10 flex flex-col gap-4">
             <p className="text-sm font-medium text-muted">{t.app.editor.preview}</p>
             <motion.div layout className="mx-auto w-full overflow-hidden rounded-3xl border border-line-strong bg-surface p-1.5 shadow-[var(--shadow-lift)]" style={{ maxWidth: state.format === "PORTRAIT" ? 240 : "100%" }}>
-              {/* Étape « Type de vidéo » : exemple animé du montage choisi à la place de l'aperçu statique */}
-              {step === "assets" && state.screens[0] ? (
+              {step === "screens" && state.screens[0] ? (
                 <ScreenDevicePreview model={state.deviceMockup} screen={state.screens[0]} ratio={VIDEO_FORMATS[state.format].ratio} background={visual.palette[0]} />
-              ) : step === "videoType" ? (
+              ) : step === "video" ? (
+                // Étape « Vidéo » : exemple animé du montage choisi à la place de l'aperçu statique
                 <VideoTypePreview
                   className="rounded-[1.25rem]"
                   type={state.videoType}
@@ -291,7 +328,7 @@ export function CreateWizard({
                 </VideoPlaceholder>
               )}
             </motion.div>
-            {step === "videoType" && <p className="text-xs text-muted">{c.videoType.previewHint}</p>}
+            {step === "video" && <p className="text-xs text-muted">{c.videoType.previewHint}</p>}
             <div className="flex flex-wrap gap-2">
               <Badge>{VIDEO_FORMATS[state.format].ratio}</Badge>
               <Badge>{state.duration} s</Badge>
@@ -322,18 +359,21 @@ function ScreenDevicePreview({ model, screen, ratio, background }: { model: Devi
   </div>;
 }
 
-
-function StepHeading({ title, help }: { title: string; help?: string }) {
-  return (
-    <div className="mb-6">
-      <h2 className="text-xl font-semibold sm:text-2xl">{title}</h2>
-      {help && <p className="mt-1 text-muted">{help}</p>}
-    </div>
-  );
-}
-
 function Panel({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn("rounded-3xl border border-line bg-bg-subtle p-4 sm:p-6", className)}>{children}</div>;
+}
+
+/** Titre de section à l'intérieur d'une étape */
+function SectionTitle({ children, aside, help }: { children: ReactNode; aside?: ReactNode; help?: string }) {
+  return (
+    <div className="mb-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-sm font-semibold">{children}</h2>
+        {aside}
+      </div>
+      {help && <p className="mt-1 text-xs leading-relaxed text-muted">{help}</p>}
+    </div>
+  );
 }
 
 function StepContent({
@@ -360,12 +400,12 @@ function StepContent({
   const t = useDictionary();
 
   const c = t.app.create;
+  const l = LOCAL_COPY[t.locale === "fr" ? "fr" : "en"];
 
   switch (step) {
     case "app":
       return (
         <Panel>
-          <StepHeading title={c.app.heading} help={c.app.help} />
           <div className="flex flex-col gap-6">
             <Field label={c.app.name} htmlFor="appName">
               <Input
@@ -387,137 +427,93 @@ function StepContent({
               htmlFor="websiteUrl"
               hint={c.app.urlHelp}
             >
-              <div className="flex gap-2">
-                <Input
-                  id="websiteUrl"
-                  type="url"
-                  inputMode="url"
-                  value={state.websiteUrl}
-                  onChange={(e) => set("websiteUrl", e.target.value)}
-                  placeholder={c.app.urlPlaceholder}
-                />
-              </div>
+              <Input
+                id="websiteUrl"
+                type="url"
+                inputMode="url"
+                value={state.websiteUrl}
+                onChange={(e) => set("websiteUrl", e.target.value)}
+                placeholder={c.app.urlPlaceholder}
+              />
             </Field>
           </div>
         </Panel>
       );
 
-    case "assets":
+    case "screens":
       return (
         <Panel>
-          <StepHeading title={c.assets.heading} help={c.assets.help} />
-          <div className="flex flex-col gap-7">
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium">
-                {c.assets.screens}
-              </p>
-              <WebsiteSuggestions analysis={analysis} retry={retryAnalysis} screens={state.screens} onScreens={(v) => set("screens", v)} />
-              <UploadZone onBusyChange={(busy) => onUploading("screens", busy)} label={c.assets.screens} value={state.screens} onChange={(v) => set("screens", v)} multiple max={8} reorderable hint={c.assets.screensHint} />
-              {state.screens.length > 0 && <div className="mt-5 border-t border-line pt-6"><DeviceMockupPicker value={state.deviceMockup} onChange={(model) => set("deviceMockup", model)} screenSrc={state.screens[0].url} /></div>}
-            </div>
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium">{c.assets.logo}</p>
-              {brandKit?.logo && state.logo.length === 0 && (
-                <Button variant="soft" size="sm" className="self-start" onClick={() => set("logo", [brandKit.logo!])}>
-                  <Sparkles /> {c.assets.useBrandKit}
-                </Button>
-              )}
-              <UploadZone onBusyChange={(busy) => onUploading("logo", busy)} label={c.assets.logo} value={state.logo} onChange={(v) => set("logo", v)} hint={c.assets.logoHint} />
-            </div>
+          <div className="flex flex-col gap-3">
+            <SectionTitle aside={<span className="text-xs tabular-nums text-muted">{state.screens.length}/8</span>}>{c.assets.screens}</SectionTitle>
+            <WebsiteSuggestions analysis={analysis} retry={retryAnalysis} screens={state.screens} onScreens={(v) => set("screens", v)} />
+            <UploadZone onBusyChange={(busy) => onUploading("screens", busy)} label={c.assets.screens} value={state.screens} onChange={(v) => set("screens", v)} multiple max={8} reorderable hint={c.assets.screensHint} />
+            {state.screens.length > 0 && <div className="mt-4 border-t border-line pt-6"><DeviceMockupPicker value={state.deviceMockup} onChange={(model) => set("deviceMockup", model)} screenSrc={state.screens[0].url} /></div>}
           </div>
         </Panel>
       );
 
-    case "colors":
+    case "brand":
       return (
-        <Panel>
-          <StepHeading title={c.colors.heading} help={c.colors.help} />
-          {analysis.status !== "idle" && (
-            <section className="mb-6 flex flex-col gap-3 rounded-xl border border-line-strong bg-surface p-3" aria-label={t.copy["4e627a34c64d"]}>
-              <h3 className="text-sm font-semibold">{t.copy["cedfd79ca2ed"]}</h3>
-              <WebsiteAnalysisStatus analysis={analysis} retry={retryAnalysis} />
-              {analysis.status === "ready" && (analysis.colors.length > 0 ? <>
-                <div className="flex flex-wrap gap-2">{analysis.colors.map((color) => <span key={color} className="flex items-center gap-2 rounded-lg border border-line px-2 py-1.5 font-mono text-xs text-muted"><span className="size-6 rounded border border-line-strong" style={{ backgroundColor: color }} />{color.toUpperCase()}</span>)}</div>
-                <Button variant="outline" size="sm" className="cursor-pointer self-start" onClick={() => set("colors", [...analysis.colors])}>{t.copy["e7ed9a185c78"]}</Button>
-              </> : <p className="text-xs text-muted">{t.copy["359b67495ddd"]}</p>)}
-            </section>
-          )}
-          <div className="flex flex-col gap-6">
-            <ColorInput large label={c.colors.primary} value={state.colors[0]} onChange={(v) => set("colors", [v, ...state.colors.slice(1)])} />
-            <div className="flex flex-col gap-3">
-              <p className="text-sm font-medium">{c.colors.secondary}</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {state.colors.slice(1).map((color, i) => (
-                  <ColorInput
-                    key={i}
-                    label={format(c.colors.secondaryItem, { n: i + 1 })}
-                    value={color}
-                    onChange={(v) => set("colors", state.colors.map((col, j) => (j === i + 1 ? v : col)))}
-                    onRemove={() => set("colors", state.colors.filter((_, j) => j !== i + 1))}
-                  />
-                ))}
-                {state.colors.length < 5 && (
-                  <button
-                    type="button"
-                    onClick={() => set("colors", [...state.colors, "#0ea5e9"])}
-                    className="flex h-[58px] items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line-strong text-sm font-medium text-muted transition-colors hover:border-accent/50 hover:text-accent-text"
-                  >
-                    <Plus className="size-4" /> {c.colors.add}
-                  </button>
-                )}
-              </div>
-            </div>
-            {brandKit && brandKit.colors.length > 0 && (
-              <Button variant="soft" size="sm" className="self-start" onClick={() => set("colors", brandKit.colors.slice(0, 5))}>
+        <div className="flex flex-col gap-4">
+          <Panel>
+            <SectionTitle help={c.assets.logoHint}>{c.assets.logo}</SectionTitle>
+            {brandKit?.logo && state.logo.length === 0 && (
+              <Button variant="soft" size="sm" className="mb-3" onClick={() => set("logo", [brandKit.logo!])}>
                 <Sparkles /> {c.assets.useBrandKit}
               </Button>
             )}
-          </div>
-        </Panel>
-      );
-
-    case "videoType":
-      return (
-        <div>
-          <StepHeading title={c.videoType.heading} help={c.videoType.help} />
-          {/* Mobile (pas de colonne Aperçu) : l'exemple au-dessus des choix, pour le voir changer au toucher */}
-          <figure className="mb-5 flex flex-col gap-2 lg:hidden">
-            <VideoTypePreview
-              className={cn("mx-auto rounded-2xl border border-line", state.format === "PORTRAIT" ? "max-w-[15rem]" : state.format === "SQUARE" ? "max-w-sm" : "")}
-              type={state.videoType}
-              appName={state.appName}
-              styleId={state.styleId}
-              colors={state.colors}
-              format={state.format}
-              logoUrl={state.logo[0]?.url ?? null}
-              screens={state.screens}
-            />
-            <figcaption className="text-center text-xs text-muted">{c.videoType.previewHint}</figcaption>
-          </figure>
-          <fieldset className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
-            <legend className="sr-only">{c.videoType.heading}</legend>
-            {VIDEO_TYPE_IDS.map((id) => {
-              const type = VIDEO_TYPES[id];
-              return (
-                <label key={id} className={cn("flex cursor-pointer items-start gap-4 p-4 transition-colors sm:p-5", state.videoType === id ? "bg-accent-soft" : "bg-surface hover:bg-surface-2")}>
-                  <input type="radio" name="videoType" value={id} checked={state.videoType === id} onChange={() => set("videoType", id)} className="mt-1 size-4 shrink-0 accent-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent" />
-                  <span className="min-w-0">
-                    <span className="block font-medium">{localizeText(type.label, t)}</span>
-                    <span className="mt-1 block text-sm text-muted">{localizeText(type.description, t)}</span>
-                    <span className="mt-2 block text-xs leading-relaxed text-muted">{localizeText(type.outline, t)}</span>
-                  </span>
-                </label>
-              );
-            })}
-          </fieldset>
-          {state.videoType === "demo" && state.screens.length === 0 && <p className="mt-3 text-sm text-muted">{c.videoType.demoHint}</p>}
+            <UploadZone onBusyChange={(busy) => onUploading("logo", busy)} label={c.assets.logo} value={state.logo} onChange={(v) => set("logo", v)} hint={c.assets.logoHint} />
+          </Panel>
+          <Panel>
+            <SectionTitle help={c.colors.help}>{c.colors.heading}</SectionTitle>
+            {analysis.status !== "idle" && (
+              <section className="mb-6 flex flex-col gap-3 rounded-xl border border-line-strong bg-surface p-3" aria-label={t.copy["4e627a34c64d"]}>
+                <h3 className="text-sm font-semibold">{t.copy["cedfd79ca2ed"]}</h3>
+                <WebsiteAnalysisStatus analysis={analysis} retry={retryAnalysis} />
+                {analysis.status === "ready" && (analysis.colors.length > 0 ? <>
+                  <div className="flex flex-wrap gap-2">{analysis.colors.map((color) => <span key={color} className="flex items-center gap-2 rounded-lg border border-line px-2 py-1.5 font-mono text-xs text-muted"><span className="size-6 rounded border border-line-strong" style={{ backgroundColor: color }} />{color.toUpperCase()}</span>)}</div>
+                  <Button variant="outline" size="sm" className="cursor-pointer self-start" onClick={() => set("colors", [...analysis.colors])}>{t.copy["e7ed9a185c78"]}</Button>
+                </> : <p className="text-xs text-muted">{t.copy["359b67495ddd"]}</p>)}
+              </section>
+            )}
+            <div className="flex flex-col gap-6">
+              <ColorInput large label={c.colors.primary} value={state.colors[0]} onChange={(v) => set("colors", [v, ...state.colors.slice(1)])} />
+              <div className="flex flex-col gap-3">
+                <p className="text-sm font-medium">{c.colors.secondary}</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {state.colors.slice(1).map((color, i) => (
+                    <ColorInput
+                      key={i}
+                      label={format(c.colors.secondaryItem, { n: i + 1 })}
+                      value={color}
+                      onChange={(v) => set("colors", state.colors.map((col, j) => (j === i + 1 ? v : col)))}
+                      onRemove={() => set("colors", state.colors.filter((_, j) => j !== i + 1))}
+                    />
+                  ))}
+                  {state.colors.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => set("colors", [...state.colors, "#0ea5e9"])}
+                      className="flex h-[58px] items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line-strong text-sm font-medium text-muted transition-colors hover:border-accent/50 hover:text-accent-text"
+                    >
+                      <Plus className="size-4" /> {c.colors.add}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {brandKit && brandKit.colors.length > 0 && (
+                <Button variant="soft" size="sm" className="self-start" onClick={() => set("colors", brandKit.colors.slice(0, 5))}>
+                  <Sparkles /> {c.assets.useBrandKit}
+                </Button>
+              )}
+            </div>
+          </Panel>
         </div>
       );
 
     case "style":
       return (
         <div>
-          <StepHeading title={c.style.heading} help={c.style.help} />
           {/* Les références perso arriveront quand le moteur saura s'en inspirer fidèlement. */}
           <Segmented
             label={c.style.heading}
@@ -543,90 +539,99 @@ function StepContent({
         </div>
       );
 
-    case "format":
+    case "video":
       return (
-        <Panel>
-          <StepHeading title={c.format.heading} />
-          <p className="mb-3 text-sm font-medium">{c.format.format}</p>
-          <div className="grid grid-cols-3 gap-3">
-            {FORMAT_IDS.map((id) => {
-              const f = VIDEO_FORMATS[id];
-              const selected = state.format === id;
-              const shape = id === "LANDSCAPE" ? "w-16 h-9" : id === "PORTRAIT" ? "w-7 h-12" : "w-11 h-11";
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => set("format", id)}
-                  className={cn(
-                    "flex flex-col items-center gap-3 rounded-2xl border-2 bg-surface p-4 transition-[border-color,box-shadow] sm:p-5",
-                    selected ? "border-accent shadow-[var(--shadow-glow)]" : "border-line hover:border-line-strong",
-                  )}
-                >
-                  <span className="grid h-14 place-items-center">
-                    <span className={cn("rounded-md border-2 transition-colors", shape, selected ? "border-accent bg-accent-soft" : "border-line-strong")} />
-                  </span>
-                  <span className="text-center">
-                    <span className="block font-mono text-sm font-semibold">{f.ratio}</span>
-                    <span className="block text-xs text-muted">{t.landing.formats.items[id].label}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="mt-8 mb-3 text-sm font-medium">{c.format.duration}</p>
-          <Segmented
-            label={c.format.duration}
-            value={String(state.duration)}
-            onChange={(v) => set("duration", Number(v))}
-            options={DURATIONS.map((d) => ({ value: String(d), label: format(c.format.seconds, { count: d }) }))}
-            className="w-full [&>button]:flex-1"
-          />
-        </Panel>
-      );
-
-    case "music":
-      return <><MusicStep state={state} set={set} /><CreationVoicePicker value={state.voiceover} onChange={(value) => set("voiceover", value)} /></>;
-
-    case "brief":
-      return (
-        <Panel>
-          <StepHeading title={c.brief.heading} help={c.brief.help} />
-          <Field label={c.brief.label} htmlFor="brief" aside={<span className="text-xs text-subtle">{state.brief.length}{"/1000"}</span>}>
-            <Textarea
-              id="brief"
-              value={state.brief}
-              onChange={(e) => set("brief", e.target.value.slice(0, 1000))}
-              placeholder={c.brief.placeholder}
-              rows={5}
+        <div className="flex flex-col gap-4">
+          {/* Mobile (pas de colonne Aperçu) : l'exemple au-dessus des choix, pour le voir changer au toucher */}
+          <figure className="flex flex-col gap-2 lg:hidden">
+            <VideoTypePreview
+              className={cn("mx-auto rounded-2xl border border-line", state.format === "PORTRAIT" ? "max-w-[15rem]" : state.format === "SQUARE" ? "max-w-sm" : "")}
+              type={state.videoType}
+              appName={state.appName}
+              styleId={state.styleId}
+              colors={state.colors}
+              format={state.format}
+              logoUrl={state.logo[0]?.url ?? null}
+              screens={state.screens}
             />
-          </Field>
-          <p className="mt-5 mb-2.5 text-xs font-medium tracking-wide text-subtle uppercase">{c.brief.examplesLabel}</p>
-          <div className="flex flex-wrap gap-2">
-            {c.brief.examples.map((example) => (
-              <button
-                key={example}
-                type="button"
-                onClick={() => set("brief", state.brief ? `${state.brief.trimEnd()}\n${example}` : example)}
-                className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm text-muted transition-colors hover:border-accent/50 hover:text-fg"
-              >
-                + {example}
-              </button>
-            ))}
-          </div>
-        </Panel>
+            <figcaption className="text-center text-xs text-muted">{c.videoType.previewHint}</figcaption>
+          </figure>
+          <Panel>
+            <SectionTitle>{l.videoTitle}</SectionTitle>
+            <fieldset className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
+              <legend className="sr-only">{c.videoType.heading}</legend>
+              {VIDEO_TYPE_IDS.map((id) => {
+                const type = VIDEO_TYPES[id];
+                const selected = state.videoType === id;
+                return (
+                  <label key={id} className={cn("flex cursor-pointer items-start gap-4 p-4 transition-colors sm:p-5", selected ? "bg-accent-soft" : "bg-surface hover:bg-surface-2")}>
+                    <input type="radio" name="videoType" value={id} checked={selected} onChange={() => set("videoType", id)} className="mt-1 size-4 shrink-0 accent-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent" />
+                    <span className="min-w-0">
+                      <span className="block font-medium">{localizeText(type.label, t)}</span>
+                      <span className="mt-1 block text-sm text-muted">{localizeText(type.description, t)}</span>
+                      {selected && <span className="mt-2 block text-xs leading-relaxed text-muted">{localizeText(type.outline, t)}</span>}
+                    </span>
+                  </label>
+                );
+              })}
+            </fieldset>
+            {state.videoType === "demo" && state.screens.length === 0 && <p className="mt-3 text-sm text-muted">{c.videoType.demoHint}</p>}
+          </Panel>
+          <Panel>
+            <SectionTitle>{c.format.format}</SectionTitle>
+            <div className="grid grid-cols-3 gap-3">
+              {FORMAT_IDS.map((id) => {
+                const f = VIDEO_FORMATS[id];
+                const selected = state.format === id;
+                const shape = id === "LANDSCAPE" ? "w-16 h-9" : id === "PORTRAIT" ? "w-7 h-12" : "w-11 h-11";
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => set("format", id)}
+                    className={cn(
+                      "flex flex-col items-center gap-3 rounded-2xl border-2 bg-surface p-4 transition-[border-color,box-shadow] sm:p-5",
+                      selected ? "border-accent shadow-[var(--shadow-glow)]" : "border-line hover:border-line-strong",
+                    )}
+                  >
+                    <span className="grid h-14 place-items-center">
+                      <span className={cn("rounded-md border-2 transition-colors", shape, selected ? "border-accent bg-accent-soft" : "border-line-strong")} />
+                    </span>
+                    <span className="text-center">
+                      <span className="block font-mono text-sm font-semibold">{f.ratio}</span>
+                      <span className="block text-xs text-muted">{t.landing.formats.items[id].label}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-7">
+              <SectionTitle>{c.format.duration}</SectionTitle>
+              <Segmented
+                label={c.format.duration}
+                value={String(state.duration)}
+                onChange={(v) => set("duration", Number(v))}
+                options={DURATIONS.map((d) => ({ value: String(d), label: format(c.format.seconds, { count: d }) }))}
+                className="w-full [&>button]:flex-1"
+              />
+            </div>
+          </Panel>
+        </div>
       );
+
+    case "sound":
+      return <div className="flex flex-col gap-4"><MusicStep state={state} set={set} /><CreationVoicePicker value={state.voiceover} onChange={(value) => set("voiceover", value)} /></div>;
 
     case "review": {
       const style = getStyle(state.styleId);
       const track = getTrack(state.musicTrackId);
       const rows: { step: StepId; label: string; value: ReactNode }[] = [
         { step: "app", label: c.app.name, value: state.appName },
-        { step: "assets", label: c.assets.logo, value: state.logo[0]?.fileName ?? c.review.none },
-        { step: "assets", label: c.assets.screens, value: state.screens.length || c.review.none },
+        { step: "screens", label: c.assets.screens, value: state.screens.length || c.review.none },
+        { step: "brand", label: c.assets.logo, value: state.logo[0]?.fileName ?? c.review.none },
         {
-          step: "colors",
+          step: "brand",
           label: c.steps.colors,
           value: (
             <span className="flex gap-1">
@@ -637,10 +642,10 @@ function StepContent({
           ),
         },
         { step: "style", label: c.steps.style, value: style?.name },
-        { step: "videoType", label: c.steps.videoType, value: localizeText(VIDEO_TYPES[state.videoType].label, t) },
-        { step: "format", label: c.steps.format, value: `${VIDEO_FORMATS[state.format].ratio} · ${state.duration} s` },
-        { step: "music", label: c.steps.music, value: state.musicMode === "library" ? track?.title : state.musicMode === "upload" ? state.music[0]?.fileName ?? c.review.noMusic : c.music.none },
-        { step: "music", label: t.voiceover.title, value: state.voiceover?.voiceName || t.voiceover.withoutVoice },
+        { step: "video", label: c.steps.videoType, value: localizeText(VIDEO_TYPES[state.videoType].label, t) },
+        { step: "video", label: c.steps.format, value: `${VIDEO_FORMATS[state.format].ratio} · ${state.duration} s` },
+        { step: "sound", label: c.steps.music, value: state.musicMode === "library" ? track?.title : state.musicMode === "upload" ? state.music[0]?.fileName ?? c.review.noMusic : c.music.none },
+        { step: "sound", label: t.voiceover.title, value: state.voiceover?.voiceName || t.voiceover.withoutVoice },
       ];
       const after = balance - CREDIT_COSTS.generation;
       return (
@@ -652,7 +657,7 @@ function StepContent({
                   <dt className="text-sm text-muted">{row.label}</dt>
                   <dd className="flex min-w-0 items-center gap-3 text-sm font-medium">
                     <span className="truncate">{row.value}</span>
-                    <button type="button" onClick={() => onJump(row.step)} className="shrink-0 text-xs text-accent-text hover:underline">
+                    <button type="button" onClick={() => onJump(row.step)} className="min-h-9 shrink-0 rounded-md px-1 text-xs text-accent-text hover:underline">
                       {c.review.edit}
                     </button>
                   </dd>
@@ -660,6 +665,34 @@ function StepContent({
               ))}
             </dl>
           </Panel>
+
+          {/* Brief facultatif : dernière précision avant de lancer la génération */}
+          <Panel>
+            <SectionTitle help={c.brief.help} aside={<span className="text-xs text-subtle">{l.optional}</span>}>{c.brief.heading}</SectionTitle>
+            <Field label={<span className="sr-only">{c.brief.label}</span>} htmlFor="brief" aside={<span className="text-xs tabular-nums text-subtle">{state.brief.length}{"/1000"}</span>}>
+              <Textarea
+                id="brief"
+                value={state.brief}
+                onChange={(e) => set("brief", e.target.value.slice(0, 1000))}
+                placeholder={c.brief.placeholder}
+                rows={4}
+              />
+            </Field>
+            <p className="mt-4 mb-2.5 text-xs font-medium tracking-wide text-subtle uppercase">{c.brief.examplesLabel}</p>
+            <div className="flex flex-wrap gap-2">
+              {c.brief.examples.map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => set("brief", state.brief ? `${state.brief.trimEnd()}\n${example}` : example)}
+                  className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm text-muted transition-colors hover:border-accent/50 hover:text-fg"
+                >
+                  + {example}
+                </button>
+              ))}
+            </div>
+          </Panel>
+
           <div className="relative overflow-hidden rounded-3xl border border-accent/30 bg-accent-soft p-5 sm:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -701,7 +734,6 @@ function MusicStep({ state, set }: { state: WizardState; set: <K extends keyof W
 
   return (
     <Panel>
-      <StepHeading title={c.music.heading} help={c.music.help} />
       {state.musicMode === "library" && playing && (
         <audio
           key={playing}

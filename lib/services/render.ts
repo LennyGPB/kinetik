@@ -7,7 +7,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { MUSIC_LIBRARY } from "@/config/music";
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
-import { getRenderProgress, presignUrl, renderMediaOnLambda, type AwsRegion } from "@remotion/lambda/client";
+import { getRenderProgress, presignUrl, renderMediaOnLambda, renderStillOnLambda, type AwsRegion } from "@remotion/lambda/client";
+import sharp from "sharp";
 import { isOwnUpload, mimeFromKey, storage } from "@/lib/storage";
 import { durationInFrames, type VideoProps } from "@/remotion/props";
 import type { ExportQuality } from "@/config/credits";
@@ -103,8 +104,10 @@ export async function inlineAssets(props: VideoProps, userId: string): Promise<V
         const focus = scene.focus ? byUrl.get(scene.focus.src) ?? await inline(scene.focus.src) : null;
         const focuses = scene.focuses ? await Promise.all(scene.focuses.map(async (f) => { const src = byUrl.get(f.src) ?? await inline(f.src); return src ? { ...f, src } : null; })) : null;
         const screens = scene.screens ? await Promise.all(scene.screens.map((url) => byUrl.get(url) ?? inline(url))) : null;
+        const layers = scene.layers ? await Promise.all(scene.layers.map(async (layer) => layer.src ? { ...layer, src: byUrl.get(layer.src) ?? await inline(layer.src) ?? layer.src } : layer)) : null;
         return {
           ...scene,
+          ...(layers && { layers }),
           ...(focuses && { focuses: focuses.filter((f): f is NonNullable<typeof f> => Boolean(f)) }),
           ...(scene.focus && { focus: focus ? { ...scene.focus, src: focus } : undefined }),
           ...(screens && { screens: screens.filter((url): url is string => Boolean(url)) }),
@@ -154,6 +157,35 @@ export async function getLambdaProgress(renderId: string, bucketName: string) {
     failed: progress.fatalErrorEncountered,
     error: progress.errors.at(-1)?.message ?? null,
   };
+}
+
+/**
+ * Images fixes d'une vidéo (aperçu pour l'agent du chat), en WebP base64 réduit à 768 px, dans l'ordre des images demandées.
+ * Une Lambda par image, en parallèle ; les fichiers de travail sont supprimés aussitôt lus.
+ */
+export async function renderPreviewStills(props: VideoProps, userId: string, frames: number[]): Promise<string[]> {
+  if (!functionName || !serveUrl) throw new Error("Remotion Lambda n'est pas configuré");
+  const inputProps = await inlineAssets(props, userId);
+  return Promise.all(frames.map(async (frame) => {
+    const still = await renderStillOnLambda({
+      region, functionName, serveUrl,
+      composition: "Kinetik",
+      inputProps,
+      frame,
+      imageFormat: "jpeg",
+      privacy: "private",
+      maxRetries: 1,
+      ...(props.recipe.stage && { chromiumOptions: { gl: "swangle" as const }, timeoutInMilliseconds: 120_000 }),
+    });
+    try {
+      const response = await fetch(await presignUrl({ region, bucketName: still.bucketName, objectKey: still.outKey, expiresInSeconds: 300 }), { signal: AbortSignal.timeout(30_000) });
+      if (!response.ok) throw new Error(`Aperçu illisible (${response.status})`);
+      const image = await sharp(Buffer.from(await response.arrayBuffer())).resize({ width: 768, height: 768, fit: "inside" }).webp({ quality: 80 }).toBuffer();
+      return image.toString("base64");
+    } finally {
+      await deleteLambdaRenders([{ renderId: still.renderId, bucketName: still.bucketName }]).catch(() => undefined);
+    }
+  }));
 }
 
 /** Lien de téléchargement signé (le fichier reste privé sur S3). */

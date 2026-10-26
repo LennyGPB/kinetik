@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { AnimatedApply } from "@/components/ui/animated-apply";
@@ -57,18 +58,18 @@ export function FocusSequenceEditor({ screens, sceneScreens, onAddScreen, value,
 
   return <Dialog open onClose={onCancel} title={tl.focusSequenceTitle} description={tl.focusSequenceHint}>
     <div className="flex flex-col gap-4">
-      <ol className="flex flex-col divide-y divide-line">
-        {steps.map((step, index) => <li key={index} className="flex items-center gap-3 py-3">
-          <span className="w-5 shrink-0 text-sm tabular-nums text-muted">{index + 1}</span>
-          <button type="button" disabled={locked} onClick={() => setEditing(index)} className="min-w-0 flex-1 cursor-pointer text-left text-sm focus-visible:outline-2 focus-visible:outline-accent">
-            <span className="block font-medium">{tl.focusModes[step.mode]}{step.mode === "popout" ? ` · ${tl.focusAnimations[step.animation ?? "lift"]}` : ""}</span>
+      <ol className="flex flex-col gap-1.5">
+        {steps.map((step, index) => <li key={index} className={cn("group flex items-center gap-3 rounded-xl border border-transparent px-3 py-3 transition-colors motion-reduce:transition-none", !locked && "hover:border-line-strong hover:bg-surface-2")}>
+          <span className={cn("w-5 shrink-0 text-sm tabular-nums text-muted transition-colors", !locked && "group-hover:text-accent-text")}>{index + 1}</span>
+          <button type="button" disabled={locked} onClick={() => setEditing(index)} className="min-w-0 flex-1 cursor-pointer rounded-md text-left text-sm focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-default">
+            <span className={cn("block font-medium transition-colors", !locked && "group-hover:text-accent-text")}>{tl.focusModes[step.mode]}{step.mode === "popout" ? ` · ${tl.focusAnimations[step.animation ?? "lift"]}` : ""}</span>
             <span className="block truncate text-xs">{step.title || sceneTitle}</span>
             <span className="block truncate text-xs text-muted">{step.label || `${Math.round(step.w * 100)} % × ${Math.round(step.h * 100)} %`} · {(duration / steps.length).toFixed(1)} s</span>
           </button>
           <div className="flex shrink-0 gap-1">
             <button type="button" disabled={locked || index === 0} aria-label={tl.focusMoveUp} onClick={() => move(index, -1)} className="rounded-md p-2 hover:bg-bg-subtle disabled:opacity-30"><ArrowUp className="size-4" /></button>
             <button type="button" disabled={locked || index === steps.length - 1} aria-label={tl.focusMoveDown} onClick={() => move(index, 1)} className="rounded-md p-2 hover:bg-bg-subtle disabled:opacity-30"><ArrowDown className="size-4" /></button>
-            <button type="button" disabled={locked} aria-label={tl.focusEditStep} onClick={() => setEditing(index)} className="rounded-md p-2 hover:bg-bg-subtle disabled:opacity-30"><Pencil className="size-4" /></button>
+            <button type="button" disabled={locked} aria-label={tl.focusEditStep} onClick={() => setEditing(index)} className="rounded-md p-2 hover:bg-surface-3 group-hover:text-accent-text disabled:opacity-30"><Pencil className="size-4" /></button>
             <button type="button" disabled={locked} aria-label={tl.focusRemove} onClick={() => setSteps((current) => current.filter((_, i) => i !== index))} className="rounded-md p-2 text-danger hover:bg-danger/10 disabled:opacity-30"><Trash2 className="size-4" /></button>
           </div>
         </li>)}

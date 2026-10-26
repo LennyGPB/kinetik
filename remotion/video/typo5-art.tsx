@@ -39,9 +39,11 @@ function Cursive({ text, time, enter, palette: [, main, accent], fontFamily, scr
   const words = text.trim().split(/\s+/), script = words.length > 1 ? words.pop()! : "", first = words.join(" ");
   const stripes: CSSProperties = { color: "transparent", backgroundImage: `repeating-linear-gradient(0deg, ${main} 0 0.035em, transparent 0.035em 0.085em)`, backgroundPosition: `0 ${(time * 0.04) % 0.085}em`, WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextStroke: `0.006em ${main}` };
   const reveal = Math.min(1, Math.max(0, (enter - 0.25) / 0.75));
+  // Largeur du mot manuscrit (Allura), lettre par lettre : les capitales sont bien plus larges que les minuscules
+  const scriptEm = [...script].reduce((sum, c) => sum + (/[A-ZÀ-Ý]/.test(c) ? 0.62 : /[a-zà-ÿ]/.test(c) ? 0.4 : 0.28), 0);
   return <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", fontSize: fit(first ?? "", 88, 26, 0.95) }}>
     <span style={{ ...nowrap, ...stripes, fontFamily, fontWeight: 800, letterSpacing: "0.02em", textTransform: "uppercase", opacity: Math.min(1, enter * 1.5) }}>{first}</span>
-    {script && <span style={{ ...nowrap, position: "absolute", left: "50%", top: "50%", transform: "translate(-42%, -58%) rotate(-8deg)", fontFamily: scriptFamily, fontSize: `min(1.25em, ${(80 / Math.max(3, [...script].length * 0.38)).toFixed(2)}cqw)`, color: accent, textShadow: `0 0 0.08em color-mix(in srgb, ${accent}, transparent 50%)`, clipPath: `inset(-20% ${(1 - reveal) * 100}% -20% -5%)` }}>{script}</span>}
+    {script && <span style={{ ...nowrap, position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -58%) rotate(-8deg)", fontFamily: scriptFamily, fontSize: `min(1.25em, ${(84 / Math.max(1.2, scriptEm)).toFixed(2)}cqw)`, color: accent, textShadow: `0 0 0.08em color-mix(in srgb, ${accent}, transparent 50%)`, clipPath: `inset(-20% ${(1 - reveal) * 100}% -20% -5%)` }}>{script}</span>}
     {subtitle && <span style={{ ...nowrap, marginTop: "0.18em", fontFamily: scriptFamily, fontSize: "0.24em", color: main, opacity: reveal }}>— {subtitle} —</span>}
   </div>;
 }

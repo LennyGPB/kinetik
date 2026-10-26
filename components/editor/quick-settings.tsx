@@ -1,13 +1,12 @@
 "use client";
 
-import { purpleButtonStyle } from "@/components/ui/button";
 import { DeviceMockupPicker } from "@/components/media/device-mockup-picker";
 import { LOGO_MOTIONS, type LogoMotionId } from "@/config/logo-motion";
 
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { ChevronDown, ChevronRight, Hash, LayoutPanelTop, RotateCcw, SlidersHorizontal, Type, WholeWord } from "lucide-react";
+import { ChevronDown, ChevronRight, Hash, LayoutPanelTop, MonitorSmartphone, Shapes, RotateCcw, SlidersHorizontal, Type, WholeWord } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import { BRAND_FONTS, googleFontsHref, TEMPLATE_FONTS, type BrandFont } from "@/config/fonts";
 import { SCREENS_LAYOUTS, TITLE_ANIMATIONS, type Recipe, type ScreensLayout } from "@/config/recipes";
@@ -55,13 +54,11 @@ export function QuickSettings({
   const animations = t.app.editor.titleAnimations;
   const layouts = t.app.editor.screensLayouts;
 
-  // null = pas encore touché : ouvert sur desktop, replié sur mobile (place limitée sous l'aperçu)
-  const [open, setOpen] = useState<boolean | null>(initiallyOpen ? true : null);
+  const id = useId();
   const [row, setRow] = useState<RowId | null>(null);
   // Mobile : les réglages s'ouvrent dans une feuille (sauf déjà affichés dans une modale, ex. réglages du logo)
   const sheetMode = !initiallyOpen;
   const [sheet, setSheet] = useState(false);
-  const id = useId();
   const scene = graph.scenes.find((item) => item.id === sceneId);
   const current = currentSettings(scene ? { ...graph, ...scene, scenes: [scene] } : graph);
   const showScreenCount = videoProps.format === "LANDSCAPE"
@@ -71,17 +68,28 @@ export function QuickSettings({
   const title = scene ? t.copy["419a7e80c9a5"] : s.title;
   const modified = [current.titleAnimation, current.fonts, current.screensLayout, current.screenCount, current.logoLayout, current.logoBackground !== null, graph.deviceMockup && graph.deviceMockup !== "none"].filter(Boolean).length;
 
+  const toggle = (next: RowId) => setRow((value) => (value === next ? null : next));
+  // Desktop : chaque groupe s'ouvre dans une modale. Dans une feuille/modale existante : dépliage sur place.
+  const [modalGroup, setModalGroup] = useState<string | null>(null);
+  const groupProps = (key: string, modal: boolean) => ({
+    modal,
+    open: modalGroup === key,
+    onOpenChange: (next: boolean) => {
+      setModalGroup(next ? key : null);
+      setRow(null);
+    },
+  });
   const apply = (setting: QuickSetting) => {
     onApply(setting);
     setRow(null);
     setSheet(false); // mobile : on referme la feuille pour voir le résultat dans l'aperçu
+    setModalGroup(null);
   };
-  const toggle = (next: RowId) => setRow((value) => (value === next ? null : next));
 
-  const groups = (
+  const renderGroups = (modal: boolean) => (
     <>
           {recipe.logoMotion && <div className="px-2 pb-3"><label htmlFor={`${id}-logo-animation`} className="mb-2 block text-sm font-medium">{t.locale === "fr" ? "Animation du texte" : "Text animation"}</label><select id={`${id}-logo-animation`} disabled={disabled} value={recipe.logoMotion} onChange={(event) => apply({ kind: "logoMotion", value: event.target.value as LogoMotionId })} className="h-11 w-full rounded-xl border border-line-strong bg-surface px-3 text-sm focus-visible:outline-2 focus-visible:outline-accent">{LOGO_MOTIONS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>}
-          {!logoOnly && !recipe.logoMotion && <Group initiallyOpen={Boolean(scene)} key={sceneId ?? "global"} label={s.groupText}>
+          {!logoOnly && !recipe.logoMotion && <Group {...groupProps("text", modal)} initiallyOpen={Boolean(scene)} key={sceneId ?? "global"} label={s.groupText} icon={<Type />} summary={animations[current.titleAnimation ?? recipe.titleAnimation]} custom={Boolean(current.titleAnimation || current.fonts)}>
             <Row
               icon={<Type />}
               label={s.rowAnimation}
@@ -97,7 +105,7 @@ export function QuickSettings({
                 onChange={(value) => apply({ kind: "titleAnimation", value: scene ? value : value === recipe.titleAnimation ? null : value })}
               />
             </Row>
-            <FontDisclosure label={t.copy["1473558a0745"]}><Row
+            <FontDisclosure><Row
               staticOnMobile
               icon={<WholeWord />}
               label={s.rowFonts}
@@ -126,7 +134,7 @@ export function QuickSettings({
           </Group>}
 
           {(current.hasLogo || logoOnly) && (
-            <Group initiallyOpen={Boolean(scene)} key={`logo-${sceneId}`} label="Logo">
+            <Group {...groupProps("logo", modal)} initiallyOpen={Boolean(scene)} key={`logo-${sceneId}`} label="Logo" icon={<Shapes />} summary={t.app.editor.logoLayouts[current.logoLayout ?? defaultLogoLayout(recipe)]} custom={Boolean(current.logoLayout) || current.logoBackground !== null}>
               {(!scene || scene.kind === "logo") && <Row
                 icon={<span className="font-mono text-xs">{"Aa"}</span>}
                 label={t.copy["2945e0bae765"]}
@@ -165,11 +173,12 @@ export function QuickSettings({
 
           {/* Réglages des mockups : seulement si la vidéo a des scènes de mockups */}
           {!logoOnly && current.hasScreens && (
-            <Group initiallyOpen={Boolean(scene)} key={`screens-${sceneId}`} label={s.groupMockups}>
+            <Group {...groupProps("screens", modal)} initiallyOpen={Boolean(scene)} key={`screens-${sceneId}`} label={s.groupMockups} icon={<MonitorSmartphone />} summary={layouts[current.screensLayout ?? recipe.screens]} custom={Boolean(current.screensLayout || current.screenCount || (graph.deviceMockup && graph.deviceMockup !== "none"))}>
               {videoProps.screenUrls.length > 0 && <li className="p-3"><DeviceMockupPicker value={graph.deviceMockup} disabled={disabled} onChange={(value) => apply({ kind: "deviceMockup", value })} screenSrc={videoProps.screenUrls[0]} /><p className="mt-2 text-xs text-muted">{t.locale === "fr" ? "Appliqué à tous les screens de la vidéo." : "Applied to every screen in the video."}</p></li>}
               <Row
                 icon={<LayoutPanelTop />}
                 label={s.rowLayout}
+                expanded={modal}
                 value={layouts[current.screensLayout ?? recipe.screens]}
                 custom={Boolean(current.screensLayout)}
                 open={row === "layout"}
@@ -185,6 +194,7 @@ export function QuickSettings({
               {showScreenCount && <Row
                 icon={<Hash />}
                 label={s.rowCount}
+                expanded={modal}
                 value={current.screenCount ? countLabel(current.screenCount, t) : s.auto}
                 custom={Boolean(current.screenCount)}
                 open={row === "count"}
@@ -205,41 +215,30 @@ export function QuickSettings({
 
   return (
     <div className="border-b border-line p-2 max-lg:border-b-0 max-lg:p-0">
-      <button
-        type="button"
-        onClick={() => {
-          const desktop = window.matchMedia("(min-width: 64rem)").matches;
-          if (sheetMode && !desktop) setSheet(true);
-          else setOpen((v) => !(v ?? desktop));
-        }}
-        aria-expanded={open ?? undefined}
-        aria-controls={id}
-        title={s.hint}
-        className={cn(purpleButtonStyle, "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition-[filter,box-shadow,background-color,border-color,transform] max-lg:min-h-16 max-lg:border-line-strong max-lg:bg-none max-lg:bg-surface-2 max-lg:text-fg max-lg:shadow-sm max-lg:hover:border-accent/50 max-lg:hover:bg-surface-3 max-lg:hover:shadow-sm max-lg:active:scale-[0.98] max-lg:active:bg-surface-3")}
-      >
-        <span className="shrink-0 max-lg:grid max-lg:size-9 max-lg:place-items-center max-lg:rounded-lg max-lg:bg-accent-soft max-lg:text-accent-text"><SlidersHorizontal className="size-4" aria-hidden /></span>
-        <span className="min-w-0 flex-1">
-          <span className="block max-lg:font-semibold">{title}</span>
-          {modified > 0 && <span className="mt-1 block text-[11px] font-medium text-accent-text lg:hidden">{format(modified > 1 ? s.modifiedMany : s.modifiedOne, { count: modified })}</span>}
-          <span className="mt-0.5 block text-[11px] font-normal text-accent-fg/80 max-lg:hidden">
-            {open === null ? (
-              <><span className="lg:hidden">{t.copy["57091951bccb"]}</span><span className="hidden lg:inline">{t.copy["5888cb0b1e81"]}</span></>
-            ) : open ? t.copy["5888cb0b1e81"] : t.copy["57091951bccb"]}
+      {/* Mobile uniquement : ouvre la feuille de réglages. Sur desktop, les groupes sont affichés directement. */}
+      {sheetMode && (
+        <button
+          type="button"
+          onClick={() => setSheet(true)}
+          aria-haspopup="dialog"
+          title={s.hint}
+          className="flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-xl border border-line-strong bg-surface-2 px-3 py-3 text-left text-sm text-fg shadow-sm transition-[background-color,border-color,transform] hover:border-accent/50 hover:bg-surface-3 active:scale-[0.98] lg:hidden"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-text"><SlidersHorizontal className="size-4" aria-hidden /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">{title}</span>
+            {modified > 0 && <span className="mt-1 block text-[11px] font-medium text-accent-text">{format(modified > 1 ? s.modifiedMany : s.modifiedOne, { count: modified })}</span>}
           </span>
-        </span>
-        {modified > 0 && <span className="shrink-0 rounded-full bg-accent-fg/15 px-2 py-0.5 text-[11px] font-medium max-lg:hidden">{format(modified > 1 ? s.modifiedMany : s.modifiedOne, { count: modified })}</span>}
-        <ChevronDown className={cn("size-4 shrink-0 transition-transform", sheetMode && "max-lg:hidden", open === null ? "lg:rotate-180" : open && "rotate-180")} />
-        {sheetMode && <span className="grid size-8 shrink-0 place-items-center rounded-full border border-line-strong bg-surface lg:hidden"><ChevronRight className="size-4" aria-hidden /></span>}
-      </button>
-
-      {open !== false && (
-        <div id={id} className={cn("mt-5 flex flex-col gap-3 px-2 pb-3", (open === null || sheetMode) && "max-lg:hidden")}>
-          {groups}
-        </div>
+          <span className="grid size-8 shrink-0 place-items-center rounded-full border border-line-strong bg-surface"><ChevronRight className="size-4" aria-hidden /></span>
+        </button>
       )}
+
+      <div className={cn("flex flex-col gap-3 px-2 py-3", sheetMode && "max-lg:hidden")}>
+        {renderGroups(sheetMode)}
+      </div>
       {sheetMode && (
         <Dialog open={sheet} onClose={() => setSheet(false)} title={title}>
-          <div className="flex flex-col gap-3">{groups}</div>
+          <div className="flex flex-col gap-3">{renderGroups(false)}</div>
         </Dialog>
       )}
     </div>
@@ -252,23 +251,74 @@ function countLabel(count: number, t: ReturnType<typeof useDictionary>) {
   return count === 1 ? s.oneScreen : format(s.screens, { count });
 }
 
-function Group({ label, children, initiallyOpen = false }: { label: string; children: ReactNode; initiallyOpen?: boolean }) {
-
-  const [open, setOpen] = useState(initiallyOpen);
+function Group({
+  label,
+  icon,
+  summary,
+  custom = false,
+  modal,
+  open: modalOpen,
+  onOpenChange,
+  children,
+  initiallyOpen = false,
+}: {
+  label: string;
+  icon: ReactNode;
+  /** Valeur principale du groupe, affichée sous le libellé */
+  summary?: string;
+  /** Un réglage du groupe a été modifié */
+  custom?: boolean;
+  /** true : les réglages s'ouvrent dans une modale ; false : dépliage sur place (déjà dans une modale) */
+  modal: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: ReactNode;
+  initiallyOpen?: boolean;
+}) {
+  const [inlineOpen, setInlineOpen] = useState(initiallyOpen);
   const id = useId();
+  const open = modal ? modalOpen : inlineOpen;
+  const button = (
+    <button
+      type="button"
+      onClick={() => (modal ? onOpenChange(true) : setInlineOpen((value) => !value))}
+      aria-expanded={modal ? undefined : open}
+      aria-haspopup={modal ? "dialog" : undefined}
+      aria-controls={modal ? undefined : id}
+      className={cn(
+        "group flex min-h-12 w-full cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-2.5 py-2 text-left shadow-sm transition-[background-color,border-color,transform] hover:border-accent/50 hover:bg-surface-3 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none",
+        !modal && open && "border-accent/50 bg-surface-3",
+      )}
+    >
+      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-text [&_svg]:size-3.5" aria-hidden>{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-semibold text-fg">{label}</span>
+        {summary && (
+          <span className={cn("flex min-w-0 items-center gap-1.5 text-[11px]", custom ? "font-medium text-accent-text" : "text-muted")}>
+            {custom && <span className="size-1.5 shrink-0 rounded-full bg-accent" aria-hidden />}
+            <span className="truncate">{summary}</span>
+          </span>
+        )}
+      </span>
+      <span className="grid size-7 shrink-0 place-items-center rounded-full border border-line-strong bg-surface text-muted transition-colors group-hover:text-fg">
+        <ChevronRight aria-hidden className={cn("size-3.5 transition-transform motion-reduce:transition-none", !modal && open && "rotate-90")} />
+      </span>
+    </button>
+  );
+  if (modal) {
+    return (
+      <div>
+        {button}
+        <Dialog open={open} onClose={() => onOpenChange(false)} title={label}>
+          <ul className="flex flex-col">{open && children}</ul>
+        </Dialog>
+      </div>
+    );
+  }
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        aria-controls={id}
-        className="flex min-h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 text-left text-[11px] font-semibold tracking-[0.1em] text-muted uppercase transition-colors hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
-      >
-        {label}
-        <ChevronRight aria-hidden className={cn("size-4 shrink-0 transition-transform motion-reduce:transition-none", open && "rotate-90")} />
-      </button>
-      <ul id={id} hidden={!open} className={cn(open && "flex flex-col")}>{open && children}</ul>
+      {button}
+      <ul id={id} hidden={!open} className={cn(open && "mt-1 flex flex-col")}>{open && children}</ul>
     </div>
   );
 }
@@ -284,6 +334,7 @@ function Row({
   onToggle,
   children,
   staticOnMobile = false,
+  expanded = false,
 }: {
   icon: ReactNode;
   label: string;
@@ -295,12 +346,25 @@ function Row({
   onToggle: () => void;
   children: ReactNode;
   staticOnMobile?: boolean;
+  /** Choix toujours visibles, sans dépliage (dans une modale) */
+  expanded?: boolean;
 }) {
   const t = useDictionary();
 
   const s = t.app.editor.settings;
 
   const id = useId();
+  if (expanded) {
+    return (
+      <li className="pt-2">
+        <p className="flex items-center gap-3 px-2 py-2 text-sm font-medium">
+          <span className="text-muted [&_svg]:size-4">{icon}</span>
+          {label}
+        </p>
+        <div className={cn("px-2 pt-1 pb-2", disabled && "pointer-events-none opacity-50")}>{children}</div>
+      </li>
+    );
+  }
   return (
     <li>
       <button
@@ -330,9 +394,9 @@ function Row({
   );
 }
 
-function FontDisclosure({ label, children }: { label: string; children: ReactNode }) {
+function FontDisclosure({ children }: { children: ReactNode }) {
   const { locale } = useDictionary();
-  return <li><div className="lg:hidden"><p className="px-2 pt-4 text-xs text-muted">{locale === "fr" ? "Polices de toute la vidéo" : "Fonts for the whole video"}</p><ul>{children}</ul></div><details className="hidden lg:block"><summary className="cursor-pointer px-2 py-2 text-xs text-muted">{label}</summary><ul>{children}</ul></details></li>;
+  return <li><p className="px-2 pt-3 text-xs text-muted">{locale === "fr" ? "Police de toute la vidéo" : "Font for the whole video"}</p><ul>{children}</ul></li>;
 }
 
 function sameFonts(a: { heading: string; body: string } | null, b: { heading: string; body: string } | null) {

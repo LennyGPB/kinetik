@@ -21,6 +21,7 @@
     "video:render": "remotion render remotion/index.ts Kinetik out/kinetik.mp4",
     "video:deploy": "remotion lambda sites create remotion/index.ts --site-name=kinetik",
     "video:deploy-function": "remotion lambda functions deploy --memory=3008 --disk=10240 --timeout=900",
+    "ai:usage": "tsx --conditions=react-server --env-file=.env scripts/ai-usage-report.ts",
     "admin:password": "tsx --conditions=react-server scripts/admin-password.ts",
     "admin:promote": "tsx --conditions=react-server --env-file=.env scripts/admin-promote.ts",
     "storage:purge-orphans": "tsx --conditions=react-server --env-file=.env scripts/purge-orphan-files.ts",

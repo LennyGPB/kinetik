@@ -133,11 +133,11 @@ export function HeroCapabilities({ creation = false }: { creation?: boolean }) {
     const wrap = (value: number) => half > 0 ? ((value % half) + half) % half : value;
     let x = scroller.scrollLeft, applied = x, speed = 0, last = performance.now(), frame = 0, idleUntil = performance.now() + 2500;
     let tween: { from: number; to: number; start: number } | null = null, touched = false, touching = false;
-    // Position de départ : le milieu entre les deux premières cartes (Motion design, Signatures) au centre de l'écran
+    // Position de départ : la carte Motion design au centre de l'écran (Produit physique à sa gauche sur la landing)
     const centerHeroes = () => {
-      const [first, second] = element.querySelectorAll("li");
-      if (touched || !first || !second || half <= 0) return;
-      x = wrap((creation ? first.offsetLeft + first.offsetWidth / 2 : (first.offsetLeft + second.offsetLeft + second.offsetWidth) / 2) - scroller.clientWidth / 2);
+      const hero = element.querySelector<HTMLElement>(".hero-capabilities-kind-motion");
+      if (touched || !hero || half <= 0) return;
+      x = wrap(hero.offsetLeft + hero.offsetWidth / 2 - scroller.clientWidth / 2);
       scroller.scrollLeft = x; applied = x;
     };
     centerHeroes();
@@ -204,9 +204,11 @@ export function HeroCapabilities({ creation = false }: { creation?: boolean }) {
       scroller.removeEventListener("touchcancel", onTouchEnd);
     };
   }, [creation]);
-  // Motion design et Signatures (les deux features phares) ouvrent le rail et sont centrées à l'arrivée.
+  // Motion design (feature phare) est centrée à l'arrivée, entre Produit physique et Signatures.
   // Chaque carte a sa propre inclinaison au repos (rotateX, rotateY, rotateZ en degrés)
+  const product = { kind: "product" as const, title: fr ? "Produit physique" : "Physical product", description: fr ? "Tes photos prennent vie dans trois univers 2.5D." : "Bring your product photos to life in three 2.5D worlds.", tilt: [8, 18, 4] as [number, number, number] };
   const homeFormats: { kind: Format; title: string; description: string; tilt: [number, number, number] }[] = [
+    { ...product, tilt: [9, 20, 5] },
     { kind: "motion", title: "Motion design", description: fr ? "Ta marque prend vie en vidéo." : "Bring your brand to life on video.", tilt: [10, -22, -6] },
     { kind: "signature", title: fr ? "Signatures animées" : "Animated signatures", description: fr ? "Un nom. Un style. Une empreinte." : "A name. A style. A lasting impression.", tilt: [12, 24, -5] },
     { kind: "post", title: "Posts Instagram", description: fr ? "Des visuels qui arrêtent le scroll." : "Visuals that stop the scroll.", tilt: [6, -26, 5] },
@@ -214,7 +216,8 @@ export function HeroCapabilities({ creation = false }: { creation?: boolean }) {
     { kind: "pdf", title: fr ? "PDF vers motion" : "PDF to motion", description: fr ? "Ton PDF ou ton site devient une vidéo." : "Turn your PDF or website into a video.", tilt: [7, -14, 3] },
     { kind: "demo", title: fr ? "Démos produit" : "Product demos", description: fr ? "Tes captures d’écran vidéo, mises en scène." : "Turn screen recordings into polished demos.", tilt: [13, 16, -3] },
   ];
-  const formats = creation ? [homeFormats[0], { kind: "product" as const, title: fr ? "Produit physique" : "Physical product", description: fr ? "Tes photos prennent vie dans trois univers 2.5D." : "Bring your product photos to life in three 2.5D worlds.", tilt: [8, 18, 4] as [number, number, number] }, homeFormats[2], homeFormats[3], { kind: "decor" as const, title: fr ? "Décors" : "Scenes", description: fr ? "Ta vidéo dans un vrai décor, prête à partager." : "Your video in a real setting, ready to share.", tilt: [8, -18, 3] as [number, number, number] }, homeFormats[5]] : homeFormats;
+  const byKind = (kind: Format) => homeFormats.find((item) => item.kind === kind)!;
+  const formats = creation ? [byKind("motion"), product, byKind("post"), byKind("stores"), { kind: "decor" as const, title: fr ? "Décors" : "Scenes", description: fr ? "Ta vidéo dans un vrai décor, prête à partager." : "Your video in a real setting, ready to share.", tilt: [8, -18, 3] as [number, number, number] }, byKind("demo")] : homeFormats;
   const destination = (kind: Format) => `/create?kind=${kind === "stores" ? "store" : kind === "demo" ? "recording" : kind}`;
   return <div className="relative mx-auto mt-12 w-full max-w-none pb-6 sm:mt-16">
     <button type="button" className="hero-capabilities-nav hero-capabilities-navPrev" onClick={() => go.current(-1)} aria-label={fr ? "Formats précédents" : "Previous formats"} aria-controls="hero-formats"><ChevronLeft size={20} /></button>

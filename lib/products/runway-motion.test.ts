@@ -1,34 +1,50 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { productRunwayMotion, runwayStation } from "../../config/product-runway-motion";
+import { runwayStation } from "../../config/product-runway-motion";
+import { productSignatureMotion } from "../../config/product-signature-motion";
 
-test("runway camera travels through one fixed set without a jump or reversal", () => {
-  const durations = [3.75, 3.75, 3.75, 3.75];
-  let previous = productRunwayMotion(durations, 0, 30);
+const durations = [3.75, 3.75, 3.75, 3.75];
+const runway = (frame: number) => productSignatureMotion("runway", durations, frame, 30);
+
+test("runway camera whips through one fixed set without reversing, and settles on every station", () => {
+  let previous = runway(0);
   for (let frame = 1; frame < 450; frame++) {
-    const state = productRunwayMotion(durations, frame, 30);
-    assert.ok(state.target.x >= previous.target.x);
-    assert.ok(Math.abs(state.position.x - previous.position.x) < .8);
-    assert.ok(Object.values(state.position).every(Number.isFinite));
-    assert.deepEqual(productRunwayMotion(durations, frame, 30), state);
+    const state = runway(frame);
+    assert.ok(state.target.x >= previous.target.x, `forward @${frame}`);
+    assert.ok(Object.values(state.camera).every(Number.isFinite));
+    assert.deepEqual(runway(frame), state);
     previous = state;
   }
   for (const [frame, index] of [[55, 0], [168, 1], [280, 2], [393, 3]]) {
-    const state = productRunwayMotion(durations, frame, 30);
+    const state = runway(frame);
     assert.equal(state.target.x, runwayStation(index).x);
     assert.equal(state.target.z, runwayStation(index).z);
   }
+  // Continu de part et d'autre de chaque frontière de scène
   for (const boundary of [113, 225, 338]) {
-    const before = productRunwayMotion(durations, boundary - .001, 30), after = productRunwayMotion(durations, boundary, 30);
-    for (const key of ["x", "y", "z"] as const) assert.ok(Math.abs(before.position[key] - after.position[key]) < .001);
+    const before = runway(boundary - 0.001), after = runway(boundary);
+    for (const key of ["az", "distance", "height"] as const) assert.ok(Math.abs(before.camera[key] - after.camera[key]) < 0.001);
+    assert.ok(Math.abs(before.target.x - after.target.x) < 0.001);
   }
 });
 
-test("runway holds retain Stage-like crane and orbit movement while the product station stays fixed", () => {
-  const durations = [3.75, 3.75, 3.75, 3.75];
+test("the trip between stations is short: the product is away from the frame centre only briefly", () => {
+  for (const boundary of [113, 225, 338]) {
+    // Images pendant lesquelles la caméra vise à plus d'1 unité de toute station
+    let away = 0;
+    for (let frame = boundary - 15; frame < boundary + 20; frame++) {
+      const { target } = runway(frame);
+      const near = [0, 1, 2, 3].some((i) => Math.abs(target.x - runwayStation(i).x) < 1);
+      if (!near) away++;
+    }
+    assert.ok(away <= 7, `away for ${away} frames at ${boundary}`);
+  }
+});
+
+test("runway holds keep a crane / orbit while the product station stays fixed", () => {
   for (const [start, end] of [[30, 85], [140, 195], [255, 310], [370, 425]]) {
-    const a = productRunwayMotion(durations, start, 30), b = productRunwayMotion(durations, end, 30);
+    const a = runway(start), b = runway(end);
     assert.deepEqual(a.target, b.target);
-    assert.ok(Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y, a.position.z - b.position.z) > .1);
+    assert.ok(Math.abs(a.camera.az - b.camera.az) + Math.abs(a.camera.distance - b.camera.distance) + Math.abs(a.camera.height - b.camera.height) > 0.1);
   }
 });

@@ -9,7 +9,7 @@ import { UrlAnalysisSchema } from "../../lib/url-video/model";
 import { reviewFromAnalysis } from "../../lib/url-video/flow";
 import { MUSIC_LIBRARY } from "../../config/music";
 
-test("guided URL screens separate source, template, message and assets with an optional audio upload", () => {
+test("guided URL screens separate source, template, music, message and assets", () => {
   const require = createRequire(path.join(process.cwd(), "components/create/url-video-ui.test.ts"));
   const mocks = {
     "../../lib/i18n/use-dictionary": { useDictionary: () => getDictionary("fr") },
@@ -22,18 +22,20 @@ test("guided URL screens separate source, template, message and assets with an o
   const originals = new Map<string, NodeJS.Module | undefined>();
   for (const [name, exports] of Object.entries(mocks)) { const key = require.resolve(name); originals.set(key, require.cache[key]); require.cache[key] = { id: key, filename: key, loaded: true, exports } as NodeJS.Module; }
   try {
-    const { UrlSourceStep, UrlTemplateStep, UrlMessageStep, UrlAssetsStep } = require("./url-video-steps");
+    const { UrlSourceStep, UrlTemplateStep, UrlMusicStep, UrlMessageStep, UrlAssetsStep } = require("./url-video-steps");
     const { UrlVideoCreate } = require("./url-video-create");
     const initial = renderToStaticMarkup(createElement(UrlVideoCreate, { balance: 100 }));
-    assert.match(initial, /Site &amp; son/); assert.match(initial, /Template/);
-    assert.match(initial, /Ta musique/); assert.doesNotMatch(initial, /Les trois bénéfices/);
-    assert.ok(initial.indexOf('id="product-url"') < initial.indexOf('name="url-music-track"'));
-    assert.match(initial, /BPM/);
+    assert.match(initial, /Musique/); assert.match(initial, /id="product-url"/);
+    // Le premier écran ne demande que l'URL : la musique a sa propre étape
+    assert.doesNotMatch(initial, /BPM/); assert.doesNotMatch(initial, /Les trois bénéfices/);
+    assert.match(initial, /Analyser mon site/);
     const music = { url: "/api/uploads/owner/audio/music.mp3", fileName: "my-sound.mp3", mimeType: "audio/mpeg", sizeBytes: 100 };
     const preferences = { templateId: null, music };
-    const source = renderToStaticMarkup(createElement(UrlSourceStep, { locale: "fr", url: "https://example.com", preferences, onUrl() {}, onPreferences() {}, onUploading() {}, disabled: false }));
+    const source = renderToStaticMarkup(createElement(UrlMusicStep, { locale: "fr", preferences, onPreferences() {}, onUploading() {}, disabled: false }));
+    assert.match(renderToStaticMarkup(createElement(UrlSourceStep, { locale: "fr", url: "https://example.com", onUrl() {}, disabled: false })), /value="https:\/\/example\.com"/);
     assert.match(source, /<audio[^>]*controls/); assert.match(source, /my-sound.mp3/);
-    const library = renderToStaticMarkup(createElement(UrlSourceStep, { locale: "fr", url: "https://example.com", preferences: { templateId: null, music: null, musicTrackId: MUSIC_LIBRARY[0].id }, onUrl() {}, onPreferences() {}, onUploading() {}, disabled: false }));
+    const library = renderToStaticMarkup(createElement(UrlMusicStep, { locale: "fr", preferences: { templateId: null, music: null, musicTrackId: MUSIC_LIBRARY[0].id }, onPreferences() {}, onUploading() {}, disabled: false }));
+    assert.match(library, /BPM/);
     assert.ok(library.includes(MUSIC_LIBRARY[0].src));
     const template = (manual: boolean) => renderToStaticMarkup(createElement(UrlTemplateStep, { locale: "fr", preferences, manual, onManual() {}, onPreferences() {}, analysis: null }));
     assert.match(template(false), /Laisser l’IA choisir/); assert.doesNotMatch(template(false), /Template gallery/);

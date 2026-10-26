@@ -9,7 +9,7 @@ import { ArrowUp, Coins } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LogoMark } from "@/components/brand/logo";
-import { CREDIT_COSTS } from "@/config/credits";
+import { EDIT_PRICING } from "@/config/credits";
 import { format } from "@/lib/i18n";
 import { MAX_CHAT_MESSAGE_LENGTH, type EditorMessage } from "@/lib/projects/types";
 import type { Scene } from "@/lib/projects/scenes";
@@ -169,7 +169,7 @@ export function ChatPanel({
           </button>
         </form>
         <p className="mt-2 flex items-center justify-center gap-1 text-[11px] text-subtle">
-          <Coins className="size-3" /> {format(e.editCost, { count: CREDIT_COSTS.edit })}
+          <Coins className="size-3" /> {format(e.editCost, { min: EDIT_PRICING.base, max: EDIT_PRICING.max })}
         </p>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { CREDIT_COSTS, SIGNUP_BONUS_CREDITS } from "@/config/credits";
+import { CREDIT_COSTS, EDIT_PRICING, SIGNUP_BONUS_CREDITS } from "@/config/credits";
 import { LEGAL_PLACEHOLDER, legalConfig } from "@/config/legal";
 import { CREDIT_PACKS, PLANS, formatPrice } from "@/config/pricing";
 import { intlLocale, type Locale } from "@/lib/i18n";
@@ -23,7 +23,7 @@ export function legalData(locale: Locale) {
     })),
     packs: CREDIT_PACKS.map((p) => ({ credits: p.credits, price: price(p.price) })),
     costs: {
-      generation: CREDIT_COSTS.generation, edit: CREDIT_COSTS.edit, translation: CREDIT_COSTS.translation, exportShort: exp.short, exportLong: exp.long, shortMaxSeconds: exp.shortMaxSeconds, export3dMultiplier: exp.premium3dMultiplier,
+      generation: CREDIT_COSTS.generation, edit: CREDIT_COSTS.edit, editMax: EDIT_PRICING.max, editUnchanged: EDIT_PRICING.unchanged, translation: CREDIT_COSTS.translation, exportShort: exp.short, exportLong: exp.long, shortMaxSeconds: exp.shortMaxSeconds, export3dMultiplier: exp.premium3dMultiplier,
       pitchAnalysis: CREDIT_COSTS.pitch.analysis, pitchCreation: CREDIT_COSTS.pitch.creation,
       voicePerUnit: CREDIT_COSTS.voiceover.perUnit, voiceCharacters: CREDIT_COSTS.voiceover.perCharacters, voiceScript: CREDIT_COSTS.voiceover.script,
       recordingImport: CREDIT_COSTS.recordingImport,

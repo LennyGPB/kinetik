@@ -8,7 +8,8 @@ import { signProposal, verifyProposal, type EditProposal } from "./edit-proposal
 import { OverlaySchema, normalizeOverlays } from "./overlays";
 import { refresh } from "next/cache";
 import { localizedRedirect } from "@/lib/i18n/redirect";
-import { CREDIT_COSTS, EXPORT_QUALITIES, getExportCost, type ExportQuality } from "@/config/credits";
+import { CREDIT_COSTS, EDIT_PRICING, editCreditsForCost, EXPORT_QUALITIES, getExportCost, unchangedEditCredits, type ExportQuality } from "@/config/credits";
+import type { AiUsageTotals } from "@/lib/services/ai-cost";
 import { FORMAT_IDS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import { getTrack } from "@/config/music";
 import { getPlan } from "@/config/pricing";
@@ -24,8 +25,9 @@ import { format } from "@/lib/i18n";
 import { acquireLock, releaseLock } from "@/lib/rate-limit";
 import { LIMITS, limitKey } from "@/lib/security/limits";
 import { isOwnUpload } from "@/lib/storage";
-import { AiRefusalError, applyEdit, generateVideo, welcomeMessage, type EditResult, type ProjectContext } from "@/lib/services/ai";
-import { exportFileName, getDownloadUrl, getLambdaProgress, isLambdaConfigured, mockRenderUrl, simulateProgress, startLambdaRender } from "@/lib/services/render";
+import { AiRefusalError, applyEdit, generateVideo, welcomeMessage, type EditResult, type ProjectContext, type StillRenderer } from "@/lib/services/ai";
+import { exportFileName, getDownloadUrl, getLambdaProgress, isLambdaConfigured, mockRenderUrl, renderPreviewStills, simulateProgress, startLambdaRender } from "@/lib/services/render";
+import { FPS } from "@/remotion/props";
 import { getBrandFonts, getProjectVariants, getVideoSource } from "./queries";
 import { buildVideoProps } from "./video-props";
 import { parseSceneGraph, totalDuration, type SceneGraph } from "./scenes";
@@ -233,6 +235,36 @@ const types = t.app.credits.types;
 
 // ───────────── Chat & versions ─────────────
 
+/** Coût réel d'une demande au chat (table AiUsage) ; un échec d'écriture ne bloque jamais la demande. */
+async function recordAiUsage(userId: string, plan: "FREE" | "STARTER" | "PRO", projectId: string, usage: AiUsageTotals | undefined, credits: number) {
+  if (!usage) return;
+  console.info("[edit-cost]", { costUsd: Math.round(usage.costUsd * 10000) / 10000, credits, turns: usage.turns, previews: usage.previews });
+  try {
+    await db.aiUsage.create({ data: {
+      userId, plan, projectId, operation: "edit", turns: usage.turns, previews: usage.previews,
+      inputTokens: usage.inputTokens, cacheReadTokens: usage.cacheReadTokens, cacheWriteTokens: usage.cacheWriteTokens, outputTokens: usage.outputTokens,
+      costMicroUsd: Math.round(usage.costUsd * 1_000_000), credits,
+    } });
+  } catch (error) {
+    console.warn("[edit-cost] journal indisponible (migration AiUsage appliquée ?)", error instanceof Error ? error.message.slice(0, 200) : error);
+  }
+}
+
+/** Aperçu en images fixes pour l'agent du chat (Remotion Lambda) ; undefined sans Lambda configuré. */
+async function previewRenderer(projectId: string, userId: string): Promise<StillRenderer | undefined> {
+  if (!isLambdaConfigured()) return undefined;
+  const source = await getVideoSource(projectId);
+  if (!source) return undefined;
+  return (graph, shots) => {
+    const frames = shots.map((shot) => {
+      const index = graph.scenes.findIndex((scene) => scene.id === shot.sceneId);
+      const start = graph.scenes.slice(0, Math.max(0, index)).reduce((sum, scene) => sum + scene.duration, 0);
+      return Math.max(0, Math.round((start + shot.time) * FPS));
+    });
+    return renderPreviewStills(buildVideoProps(source, graph, false), userId, frames);
+  };
+}
+
 export async function sendEditRequest(
   projectId: string,
   content: string,
@@ -244,7 +276,7 @@ const types = t.app.credits.types;
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "unauthorized" };
 
-  const lock = await acquireLock(`ai-user:${user.id}`, 180_000, true);
+  const lock = await acquireLock(`ai-user:${user.id}`, 300_000, true);
   if (!lock) return { ok: false, error: "busy" };
   try {
     const message = typeof content === "string" ? content.trim().slice(0, MAX_CHAT_MESSAGE_LENGTH) : "";
@@ -285,9 +317,11 @@ const types = t.app.credits.types;
         sceneId ?? undefined,
         user.id,
         user.plan,
+        await previewRenderer(projectId, user.id),
       );
     } catch (error) {
-      console.error("[edit]", error instanceof Error ? error.name : "UnknownError");
+      // Nom et message (ex. crédit API épuisé, quota atteint) : jamais le contenu de la demande
+      console.error("[edit]", error instanceof Error ? `${error.name}: ${error.message.slice(0, 300)}` : "UnknownError");
       await db.chatMessage.delete({ where: { id: userMessage.id } });
       // Un refus n'est pas remboursé (évite les boucles gratuites) ; une panne l'est.
       if (error instanceof AiRefusalError) return { ok: false, error: "refused" };
@@ -305,16 +339,34 @@ const types = t.app.credits.types;
     // Réponse sans modification (hors sujet, question, plan identique) : aucune version, et le crédit est rendu.
     // Les abus restent bornés par la limite de fréquence ; seuls les refus des garde-fous ne sont pas remboursés.
     if (!result.graph || JSON.stringify(result.graph) === JSON.stringify(sourceGraph)) {
-      const assistantMessage = await db.chatMessage.create({ data: { projectId, role: "ASSISTANT", content: result.reply } });
-      await refundCredits(user.id, { amount: CREDIT_COSTS.edit, description: `${types.REFUND} · ${project.name}`, reference: operationId });
+      // Rien ne change : remboursement complet si la réponse est restée courte, sinon un crédit est conservé
+      const kept = unchangedEditCredits(result.usage);
+      const assistantMessage = await db.chatMessage.create({ data: { projectId, role: "ASSISTANT", content: kept ? `${result.reply} ${t.app.editor.unchangedCharged}` : result.reply } });
+      await refundCredits(user.id, { amount: CREDIT_COSTS.edit - kept, description: `${types.REFUND} · ${project.name}`, reference: operationId });
       balance = (await getCreditBalance(user.id)).total;
+      await recordAiUsage(user.id, user.plan, projectId, result.usage, kept);
       return { ok: true, balance, userMessage: toMessage(userMessage), assistantMessage: toMessage(assistantMessage), version: null };
     }
 
     const session = await readSession();
     const signingSession = session ? await db.session.findUnique({ where: { id: session.sessionId }, select: { tokenHash: true } }) : null;
     if (!signingSession) return { ok: false, error: "unauthorized" };
-    const assistantMessage = await db.chatMessage.create({ data: { projectId, role: "ASSISTANT", content: `${result.reply} ${t.app.editor.proposalReady}` } });
+    // Prix selon la complexité : complément au-delà des crédits de départ, d'après le coût réel, dans la limite du solde
+    let charged: number = EDIT_PRICING.base;
+    const extra = (result.usage ? editCreditsForCost(result.usage.costUsd) : EDIT_PRICING.base) - EDIT_PRICING.base;
+    if (extra > 0) {
+      const amount = Math.min(extra, Math.max(0, balance));
+      try {
+        if (amount > 0) {
+          balance = (await spendCredits(user.id, { amount, type: "EDIT", description: `${types.EDIT} · ${project.name}`, reference: `${operationId}:complexity` })).total;
+          charged += amount;
+        }
+      } catch (error) {
+        if (!(error instanceof InsufficientCreditsError)) throw error;
+      }
+    }
+    await recordAiUsage(user.id, user.plan, projectId, result.usage, charged);
+    const assistantMessage = await db.chatMessage.create({ data: { projectId, role: "ASSISTANT", content: `${result.reply} ${format(t.app.editor.editCharged, { count: charged })} ${t.app.editor.proposalReady}` } });
     const proposal: EditProposal = {
       graph: result.graph, label: result.label,
       token: signProposal({ projectId, baseVersionId: latest.id, messageId: userMessage.id, graph: result.graph, label: result.label, expiresAt: Date.now() + 20 * 60_000 }, signingSession.tokenHash),

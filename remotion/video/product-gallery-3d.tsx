@@ -3,9 +3,10 @@ import { ThreeCanvas } from "@remotion/three";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import { CanvasTexture, PCFShadowMap, SRGBColorSpace, TextureLoader, type Mesh, type PerspectiveCamera } from "three";
-import { productGalleryMotion } from "../../config/product-gallery-motion";
+import { productSignatureMotion, productViewOffset, type SceneDirection } from "../../config/product-signature-motion";
+import { RushBlur } from "./product-signature-fx";
 
-type Props = { sources: string[]; durations: number[]; transitions: string[]; palette: readonly string[] };
+type Props = { sources: string[]; durations: number[]; transitions: string[]; palette: readonly string[]; bpm?: number; directions?: SceneDirection[] };
 
 function stoneGrain() {
   const canvas = document.createElement("canvas"); canvas.width = canvas.height = 128;
@@ -37,8 +38,12 @@ export function cutoutTexture(image: HTMLImageElement) {
   return texture;
 }
 
-/** Real architectural geometry; the photo stays camera-facing so no invented side is revealed. */
-function GalleryWorld({ sources, palette, durations, transitions }: Props) {
+/**
+ * Real architectural geometry; the photo stays camera-facing so no invented side is revealed.
+ * Signature choreography (config/product-signature-motion.ts): the orbit sweeps the foreground ribs across the lens,
+ * the camera pushes in and rises over the arch, and the golden inlays flare at full speed.
+ */
+function GalleryWorld({ sources, palette, durations, bpm, directions }: Props) {
   const frame = useCurrentFrame(), { fps, width, height } = useVideoConfig();
   const { camera } = useThree();
   const photoA = useRef<Mesh>(null), photoB = useRef<Mesh>(null);
@@ -47,7 +52,7 @@ function GalleryWorld({ sources, palette, durations, transitions }: Props) {
   const stone = useMemo(() => stoneGrain(), []);
   useEffect(() => () => { textures.forEach((texture) => texture.dispose()); }, [textures]);
   useEffect(() => () => stone.dispose(), [stone]);
-  const motion = productGalleryMotion(durations, frame, fps, transitions);
+  const motion = productSignatureMotion("gallery", durations, frame, fps, bpm, directions);
   const samePhoto = sources[motion.screen.a] === sources[motion.screen.b];
   const photographs = [{ texture: textures[motion.screen.a % textures.length], ref: photoA, opacity: samePhoto ? 1 : 1 - motion.screen.mix }, { texture: textures[motion.screen.b % textures.length], ref: photoB, opacity: samePhoto ? 0 : motion.screen.mix }];
   const time = frame / fps;
@@ -57,11 +62,15 @@ function GalleryWorld({ sources, palette, durations, transitions }: Props) {
     const portrait = height > width;
     const distance = motion.camera.distance + (portrait ? .4 : 0);
     cam.position.set(Math.sin(motion.camera.az) * distance, motion.camera.height, Math.cos(motion.camera.az) * distance);
-    cam.lookAt(0, 2, 0);
-    cam.setViewOffset(width, height, (portrait ? 0 : -.22) * width, .025 * height, width, height);
+    cam.setFocalLength(cam.getFilmHeight() / 2 / Math.tan((motion.fov * Math.PI) / 360));
+    cam.lookAt(0, motion.look, 0);
+    cam.rotateZ(motion.bank);
+    cam.setViewOffset(width, height, ...productViewOffset(motion, width, height), width, height);
     cam.updateProjectionMatrix(); cam.updateMatrixWorld();
-    for (const photo of [photoA.current, photoB.current]) if (photo) photo.quaternion.copy(cam.quaternion);
-  }, [camera, width, height, motion.camera.az, motion.camera.distance, motion.camera.height]);
+    for (const photo of [photoA.current, photoB.current]) if (photo) { photo.quaternion.copy(cam.quaternion); photo.rotateZ(motion.product.roll + motion.pose.roll); photo.rotateX(motion.pose.tilt); photo.rotateY(motion.pose.turn); }
+  });
+  // Les incrustations dorées s'embrasent au pic de vitesse
+  const flare = 1 + 2.2 * motion.rush;
   return <>
     <color attach="background" args={[background]} />
     <fog attach="fog" args={[background, 12, 26]} />
@@ -81,7 +90,7 @@ function GalleryWorld({ sources, palette, durations, transitions }: Props) {
     {/* Recessed light channels trace the two levels of the plinth. */}
     {[{ radius: 1.87, y: .09 }, { radius: 1.56, y: .30 }].map(({ radius, y }) => <group key={radius}>
       <mesh position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[radius, .045, 12, 120]} /><meshStandardMaterial color="#080F15" metalness={.8} roughness={.3} /></mesh>
-      <mesh position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[radius + .014, .018, 12, 120]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={3} toneMapped={false} /></mesh>
+      <mesh position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[radius + .014, .018, 12, 120]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={3 * flare} toneMapped={false} /></mesh>
     </group>)}
     <pointLight position={[0, .22, 1.65]} color={accent} intensity={7} distance={3.5} decay={2} />
     {[-1, 1].map(side => <pointLight key={side} position={[side * 1.5, .2, -.6]} color={accent} intensity={4} distance={2.5} decay={2} />)}
@@ -89,10 +98,10 @@ function GalleryWorld({ sources, palette, durations, transitions }: Props) {
       {/* Deep portal with a dark housing, metallic edges and an inset luminous ribbon. */}
       <mesh position={[0, 1.55, -1.35]} castShadow receiveShadow><torusGeometry args={[2.2, .15, 20, 120, Math.PI]} /><meshStandardMaterial color="#202B34" metalness={.8} roughness={.28} /></mesh>
       {[2.08, 2.32].map(radius => <mesh key={radius} position={[0, 1.55, -1.23]} castShadow><torusGeometry args={[radius, .023, 12, 120, Math.PI]} /><meshStandardMaterial color={accent} metalness={.9} roughness={.2} /></mesh>)}
-      <mesh position={[0, 1.55, -1.19]}><torusGeometry args={[2.2, .025, 12, 120, Math.PI]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2.6} toneMapped={false} /></mesh>
+      <mesh position={[0, 1.55, -1.19]}><torusGeometry args={[2.2, .025, 12, 120, Math.PI]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2.6 * flare} toneMapped={false} /></mesh>
       {[-1, 1].map((side) => <group key={side}>
         <mesh position={[side * 2.2, .8, -1.35]} castShadow receiveShadow><boxGeometry args={[.3, 1.55, .3]} /><meshStandardMaterial color="#202B34" metalness={.8} roughness={.28} /></mesh>
-        <mesh position={[side * 2.2, .8, -1.19]}><boxGeometry args={[.045, 1.55, .018]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2.6} toneMapped={false} /></mesh>
+        <mesh position={[side * 2.2, .8, -1.19]}><boxGeometry args={[.045, 1.55, .018]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2.6 * flare} toneMapped={false} /></mesh>
         <mesh position={[side * 2.2, .12, -1.35]} castShadow><cylinderGeometry args={[.26, .32, .24, 32]} /><meshStandardMaterial color="#263039" metalness={.75} roughness={.3} /></mesh>
       </group>)}
       {/* A second offset rib gives the arch depth during the camera orbit. */}
@@ -105,13 +114,14 @@ function GalleryWorld({ sources, palette, durations, transitions }: Props) {
     {/* Fixed foreground ribs establish depth as the camera travels past them. */}
     {[-1, 1].map(side => <group key={`wing-${side}`} position={[side * 3.5, 0, 1.6]} rotation={[0, side * .25, 0]}>
       <mesh position={[0, 2.5, 0]} castShadow receiveShadow><boxGeometry args={[.12, 5, .55]} /><meshStandardMaterial color="#263039" metalness={.85} roughness={.27} /></mesh>
-      <mesh position={[-side * .065, 2.5, .23]}><boxGeometry args={[.018, 4.8, .035]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2.4} toneMapped={false} /></mesh>
+      <mesh position={[-side * .065, 2.5, .23]}><boxGeometry args={[.018, 4.8, .035]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2.4 * flare} toneMapped={false} /></mesh>
     </group>)}
     {photographs.map(({ texture, ref, opacity }, index) => {
       const image = texture.image as { width: number; height: number };
       const aspect = image.width / Math.max(1, image.height);
       const photoHeight = aspect > 1 ? 3 / aspect : 3;
-      return <mesh key={index} ref={ref} position={[0, .5 + photoHeight / 2, .03 + index * .002]} visible={opacity > .0001} castShadow={opacity >= .5} renderOrder={index + 1}>
+      const hero = motion.product.scale * motion.pose.scale;
+      return <mesh key={index} ref={ref} position={[0, .5 + photoHeight / 2 * hero + motion.product.lift + motion.pose.lift * photoHeight, .03 + index * .002]} scale={hero} visible={opacity > .0001} castShadow={opacity >= .5} renderOrder={index + 1}>
         <planeGeometry args={[photoHeight * aspect, photoHeight]} />
         <meshBasicMaterial map={texture} transparent opacity={opacity} depthWrite={false} alphaTest={.005} toneMapped={false} />
       </mesh>;
@@ -122,6 +132,10 @@ function GalleryWorld({ sources, palette, durations, transitions }: Props) {
 }
 
 export function ProductGallery3D(props: Props) {
-  const { width, height } = useVideoConfig();
-  return <ThreeCanvas width={width} height={height} style={{ position: "absolute", inset: 0 }} shadows={{ type: PCFShadowMap }} camera={{ fov: 36, near: .1, far: 100, position: [0, 3, 9] }} gl={{ antialias: true, alpha: false }}><GalleryWorld {...props} /></ThreeCanvas>;
+  const { width, height, fps } = useVideoConfig();
+  const frame = useCurrentFrame();
+  const motion = productSignatureMotion("gallery", props.durations, frame, fps, props.bpm, props.directions);
+  return <RushBlur id="product-rush-gallery" rush={motion.rush} axis={motion.blur}>
+    <ThreeCanvas width={width} height={height} style={{ position: "absolute", inset: 0 }} shadows={{ type: PCFShadowMap }} camera={{ fov: 36, near: .1, far: 100, position: [0, 3, 9] }} gl={{ antialias: true, alpha: false }}><GalleryWorld {...props} /></ThreeCanvas>
+  </RushBlur>;
 }

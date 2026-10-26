@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { PRODUCT_CAMPAIGNS, getProductCampaign, isProduct3D } from "../../config/physical-product";
 import { productCampaignMotion } from "../../config/product-campaign-motion";
+import { isSignatureKind } from "../../config/product-signature-motion";
 import { getStyle } from "../../config/styles";
 import { getRecipe } from "../../config/recipes";
 
@@ -25,9 +26,11 @@ test("campaign cameras remain continuous and deterministic across fractional sce
     for (let frame = 1; frame < total; frame++) {
       const state = productCampaignMotion(kind, durations, frame, fps);
       assert.deepEqual(productCampaignMotion(kind, durations, frame, fps), state);
+      // Splash et Corde : coup de fouet volontaire pendant les transitions (bornes propres testées dans signature-motion.test.ts)
+      const whip = isSignatureKind(kind) && (state.screen.a !== state.screen.b || previous.screen.a !== previous.screen.b);
       for (const key of ["az", "distance", "height"] as const) {
         assert.ok(Number.isFinite(state.camera[key]));
-        assert.ok(Math.abs(state.camera[key] - previous.camera[key]) < .4, `${kind} ${key} ${frame}`);
+        if (!whip) assert.ok(Math.abs(state.camera[key] - previous.camera[key]) < .4, `${kind} ${key} ${frame}`);
       }
       assert.ok(state.camera.distance > 0);
       assert.ok(state.screen.a >= 0 && state.screen.b < durations.length);

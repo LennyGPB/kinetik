@@ -2,31 +2,87 @@ import React, { type CSSProperties, type ReactNode } from "react";
 import { outlineText } from "../../lib/posts/outline-text";
 import { metalTitleHeight, referenceMotionTiming, type ReferenceMotionKind } from "../../config/reference-motion";
 
-/** Geometry shared by static catalogue art and frame-driven compositions. */
-export function ReferenceBackdrop({ kind, palette: [bg, main, accent], time, aspectRatio, renderPhoto }: { kind: ReferenceMotionKind; palette: [string, string, string]; time: number; aspectRatio: number; renderPhoto?: (style: CSSProperties) => ReactNode }) {
-  const { settle, burst, phase } = referenceMotionTiming(time);
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+/** Ralenti avec léger dépassement (peut dépasser 1 avant d'y revenir). */
+const backOut = (t: number) => { const c = 1.6, x = clamp01(t) - 1; return 1 + (c + 1) * x ** 3 + c * x ** 2; };
+
+/** Lucent : quatre motifs lumineux qui changent de tuile à chaque scène. */
+const LUCENT_SHAPES = ["bolt", "eclipse", "prism", "comet"] as const;
+/** Echo Frame : la fenêtre photo se recompose à chaque scène (portrait, panoramique, haute) ; l'écho alterne vertical / horizontal. */
+const ECHO_FRAMES = [
+  { tall: { left: 27, top: 30, width: 46, height: 41 }, wide: { left: 35, top: 30, width: 30, height: 41 }, crop: "center" },
+  { tall: { left: 12, top: 34, width: 76, height: 33 }, wide: { left: 24, top: 33, width: 52, height: 35 }, crop: "50% 35%" },
+  { tall: { left: 31, top: 27, width: 38, height: 47 }, wide: { left: 39, top: 26, width: 22, height: 48 }, crop: "40% 60%" },
+];
+
+/**
+ * Geometry shared by static catalogue art and frame-driven compositions.
+ * `scene` recompose le décor ; `remaining` (secondes avant la scène suivante, Infinity sinon) déclenche la sortie :
+ * le décor quitte la scène par le même geste qui l'a fait entrer, sans saut à la frontière.
+ */
+export function ReferenceBackdrop({ kind, palette: [bg, main, accent], time, aspectRatio, renderPhoto, scene = 0, remaining = Infinity }: { kind: ReferenceMotionKind; palette: [string, string, string]; time: number; aspectRatio: number; renderPhoto?: (style: CSSProperties) => ReactNode; scene?: number; remaining?: number }) {
+  const { settle, burst } = referenceMotionTiming(time);
   const wide = aspectRatio > 1.15;
+  // Sortie (0 → 1) pendant les 0,35 dernières secondes de la scène
+  const leave = clamp01((0.35 - remaining) / 0.35);
   return <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: bg, containerType: "size" }}>
-    {kind === "lucent" && <div style={{ position: "absolute", width: wide ? "51cqmin" : "min(78cqmin, 49cqh)", height: wide ? "51cqmin" : "min(78cqmin, 49cqh)", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gridTemplateRows: "repeat(2, 1fr)", gap: "3cqmin", ...(wide ? { right: "8%", top: "23%" } : { left: "50%", top: "39%", transform: "translateX(-50%)" }) }}>
-      {[0, 1, 2, 3].map((i) => <div key={i} style={{ position: "relative", overflow: "hidden", borderRadius: "19%", background: "linear-gradient(135deg, #252025, #0d0b10 50%, #1c151b)", boxShadow: "inset 0 1px 2px rgba(255,255,255,.4), inset 1px 0 2px rgba(255,255,255,.12), 0 12px 25px rgba(0,0,0,.22)", transform: `translateY(${Math.sin(time * .8 + i) * 1.1}cqmin)` }}>
-        <div style={{ position: "absolute", inset: "-20%", background: `conic-gradient(from ${time * 22 + i * 90}deg, ${main}, ${accent}, #ffd57b, ${main})`, filter: "blur(3cqmin)", opacity: .12, transform: `translate(${Math.sin(time + i) * 12}%, ${Math.cos(time + i) * 12}%)` }} />
-        {i === 1 ? <><div style={{ position: "absolute", inset: "19% 5% -15% 12%", borderRadius: "50%", background: `conic-gradient(from ${-45 + time * 12}deg, transparent 5%, ${accent} 23%, ${main} 47%, #ffd57b 57%, transparent 75%)`, filter: "blur(1cqmin)", transform: `rotate(${time * 8}deg)` }} /><div style={{ position: "absolute", inset: "29% -2% -24% 24%", borderRadius: "50%", background: bg, boxShadow: "inset 2px 1px 3px rgba(255,255,255,.1)" }} /></> : <div style={{ position: "absolute", inset: i === 2 ? "12% 14% 5%" : "-7% 3% -4%", clipPath: i === 2 ? "polygon(50% 0,100% 100%,0 100%)" : "polygon(66% 0,22% 54%,51% 54%,35% 100%,87% 39%,57% 39%)", background: `linear-gradient(${115 + Math.sin(time + i) * 35}deg, #fff4bc 3%, ${main} 32%, ${accent} 65%, #ffdc78 93%)`, filter: `blur(${i === 2 ? .7 : .25}cqmin) drop-shadow(0 0 1.8cqmin ${main})`, transform: `rotate(${i === 3 ? -75 : -8}deg) translateY(${Math.sin(time * 1.1 + i) * 3}%)` }} />}
-      </div>)}
-    </div>}
+    {kind === "lucent" && <>
+      {/* Halo qui change de couleur d'une scène à l'autre derrière la grille */}
+      <div style={{ position: "absolute", width: "90cqmin", height: "90cqmin", borderRadius: "50%", background: `radial-gradient(circle, ${scene % 2 ? accent : main}30, transparent 65%)`, filter: "blur(6cqmin)", ...(wide ? { right: "-6%", top: "5%" } : { left: "50%", top: "30%", transform: "translateX(-50%)" }), opacity: (.8 + Math.sin(time * .7) * .2) * (1 - leave * .6) }} />
+      <div style={{ position: "absolute", width: wide ? "51cqmin" : "min(78cqmin, 49cqh)", height: wide ? "51cqmin" : "min(78cqmin, 49cqh)", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gridTemplateRows: "repeat(2, 1fr)", gap: "3cqmin", perspective: "120cqmin", ...(wide ? { right: "8%", top: "23%" } : { left: "50%", top: "39%", transform: "translateX(-50%)" }) }}>
+        {[0, 1, 2, 3].map((i) => {
+          // Les tuiles basculent une à une sur leur axe vertical : de face après l'entrée, sur la tranche à la frontière
+          const order = (i + scene) % 4;
+          const enter = backOut((time - order * 0.07) / 0.55);
+          const out = clamp01(leave * 1.3 - order * 0.08);
+          const turn = (1 - enter) * -90 + out * 90;
+          const sweep = ((time * 0.45 + order * 0.12) % 1.6) - 0.3;
+          return <div key={i} style={{ position: "relative", overflow: "hidden", borderRadius: "19%", background: "linear-gradient(135deg, #252025, #0d0b10 50%, #1c151b)", boxShadow: "inset 0 1px 2px rgba(255,255,255,.4), inset 1px 0 2px rgba(255,255,255,.12), 0 12px 25px rgba(0,0,0,.22)", transform: `translateY(${Math.sin(time * .8 + i) * 1.1}cqmin) rotateY(${turn}deg)`, opacity: Math.abs(turn) > 89 ? 0 : 1 }}>
+            <div style={{ position: "absolute", inset: "-20%", background: `conic-gradient(from ${time * 22 + i * 90}deg, ${main}, ${accent}, #ffd57b, ${main})`, filter: "blur(3cqmin)", opacity: .12, transform: `translate(${Math.sin(time + i) * 12}%, ${Math.cos(time + i) * 12}%)` }} />
+            <LucentShape shape={LUCENT_SHAPES[(i + scene) % 4]} bg={bg} main={main} accent={accent} time={time} i={i} />
+            {/* Reflet de verre qui traverse la tuile en biais */}
+            {sweep > -0.2 && sweep < 1.2 && <div style={{ position: "absolute", top: "-30%", bottom: "-30%", left: `${sweep * 100 - 20}%`, width: "22%", transform: "skewX(-20deg)", background: "linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent)", mixBlendMode: "screen" }} />}
+          </div>;
+        })}
+      </div>
+    </>}
     {kind === "bold-orbit" && <BoldOrbit palette={[bg, main, accent]} time={time} aspectRatio={aspectRatio} />}
     {kind === "gold-rush" && <>
       <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at ${40 + Math.sin(time * .6) * 15}% 100%, ${accent} 0%, ${accent} 25%, transparent 72%)` }} />
       <div style={{ position: "absolute", left: "-20%", right: "-20%", top: "38%", height: "4%", transform: `rotate(${-26 + Math.sin(time * .5) * 8}deg)`, background: `linear-gradient(90deg, transparent, ${main}55, transparent)`, filter: "blur(4cqmin)" }} />
       <div style={{ position: "absolute", left: "9%", right: "9%", bottom: "11%", borderBottom: `1px solid ${main}66` }} />
     </>}
-    {kind === "echo-frame" && <>
-      <div style={{ position: "absolute", left: wide ? "35%" : "27%", top: "30%", width: wide ? "30%" : "46%", height: "41%", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, transform: `scale(${1 + burst * .8}) translateY(${(1 - settle) * 28}%)`, filter: `blur(${burst * 14}px)` }}>{renderPhoto?.({ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${1 + Math.sin(time * .5) * .04})` })}</div>
-      </div>
-      {burst > .002 && [-1, 1].map((i) => <div key={i} style={{ position: "absolute", left: wide ? "35%" : "27%", top: `${30 + i * 11 * burst}%`, width: wide ? "30%" : "46%", height: "41%", opacity: burst * .25, transform: `scaleY(${1 + burst * .6})`, filter: `blur(${4 + burst * 12}px)`, overflow: "hidden" }}>{renderPhoto?.({ width: "100%", height: "100%", objectFit: "cover" })}</div>)}
-      {["6%", "94%"].map((left) => <div key={left} style={{ position: "absolute", left, top: "49%", width: "1.2cqmin", height: "1.2cqmin", background: main, borderRadius: "50%" }} />)}
-    </>}
+    {kind === "echo-frame" && (() => {
+      const frame = ECHO_FRAMES[scene % ECHO_FRAMES.length];
+      const box = wide ? frame.wide : frame.tall;
+      // L'écho d'entrée et celui de sortie sont le même geste : zoom, flou et copies décalées dans l'axe de la scène
+      const echo = Math.max(burst, leave ** 2);
+      const vertical = scene % 2 === 0;
+      const slide = (1 - settle) * 28 - leave * 20;
+      const rect = (dx = 0, dy = 0): CSSProperties => ({ position: "absolute", left: `${box.left + dx}%`, top: `${box.top + dy}%`, width: `${box.width}%`, height: `${box.height}%`, overflow: "hidden" });
+      return <>
+        <div style={rect()}>
+          <div style={{ position: "absolute", inset: 0, transform: `scale(${1 + echo * .8}) ${vertical ? `translateY(${slide}%)` : `translateX(${slide}%)`}`, filter: echo > .002 ? `blur(${echo * 14}px)` : undefined }}>{renderPhoto?.({ width: "100%", height: "100%", objectFit: "cover", objectPosition: frame.crop, transform: `scale(${1 + Math.sin(time * .5) * .04})` })}</div>
+        </div>
+        {echo > .002 && [-1, 1].map((k) => <div key={k} style={{ ...rect(vertical ? 0 : k * 11 * echo, vertical ? k * 11 * echo : 0), opacity: echo * .25, transform: vertical ? `scaleY(${1 + echo * .6})` : `scaleX(${1 + echo * .6})`, filter: `blur(${4 + echo * 12}px)` }}>{renderPhoto?.({ width: "100%", height: "100%", objectFit: "cover", objectPosition: frame.crop })}</div>)}
+        {/* Repères de coupe aux quatre coins de la fenêtre : écartés pendant l'écho, ils se resserrent quand l'image se pose */}
+        {[[0, 0], [1, 0], [0, 1], [1, 1]].map(([x, y]) => {
+          const gap = 1.6 + echo * 3;
+          const line = `1.5px solid ${main}`;
+          return <div key={`${x}${y}`} style={{ position: "absolute", left: `calc(${box.left + x * box.width}% + ${(x ? 1 : -1) * gap}cqmin)`, top: `calc(${box.top + y * box.height}% + ${(y ? 1 : -1) * gap}cqmin)`, width: "2.6cqmin", height: "2.6cqmin", transform: "translate(-50%, -50%)", ...(x ? { borderRight: line } : { borderLeft: line }), ...(y ? { borderBottom: line } : { borderTop: line }), opacity: .55 * settle }} />;
+        })}
+        {["6%", "94%"].map((left) => <div key={left} style={{ position: "absolute", left, top: "49%", width: "1.2cqmin", height: "1.2cqmin", background: main, borderRadius: "50%" }} />)}
+      </>;
+    })()}
   </div>;
+}
+
+/** Motifs lumineux de Lucent : éclair, éclipse, prisme, comète. */
+function LucentShape({ shape, bg, main, accent, time, i }: { shape: (typeof LUCENT_SHAPES)[number]; bg: string; main: string; accent: string; time: number; i: number }) {
+  const molten = `linear-gradient(${115 + Math.sin(time + i) * 35}deg, #fff4bc 3%, ${main} 32%, ${accent} 65%, #ffdc78 93%)`;
+  if (shape === "eclipse") return <><div style={{ position: "absolute", inset: "19% 5% -15% 12%", borderRadius: "50%", background: `conic-gradient(from ${-45 + time * 12}deg, transparent 5%, ${accent} 23%, ${main} 47%, #ffd57b 57%, transparent 75%)`, filter: "blur(1cqmin)", transform: `rotate(${time * 8}deg)` }} /><div style={{ position: "absolute", inset: "29% -2% -24% 24%", borderRadius: "50%", background: bg, boxShadow: "inset 2px 1px 3px rgba(255,255,255,.1)" }} /></>;
+  if (shape === "comet") return <div style={{ position: "absolute", left: "8%", right: "8%", top: "42%", height: "16%", background: molten, filter: `blur(.4cqmin) drop-shadow(0 0 1.8cqmin ${main})`, transform: `rotate(${-32 + Math.sin(time * .9 + i) * 6}deg) translateX(${Math.sin(time * 1.1 + i) * 8}%)`, clipPath: "polygon(0 46%, 88% 0, 100% 50%, 88% 100%, 0 54%)" }} />;
+  return <div style={{ position: "absolute", inset: shape === "prism" ? "12% 14% 5%" : "-7% 3% -4%", clipPath: shape === "prism" ? "polygon(50% 0,100% 100%,0 100%)" : "polygon(66% 0,22% 54%,51% 54%,35% 100%,87% 39%,57% 39%)", background: molten, filter: `blur(${shape === "prism" ? .7 : .25}cqmin) drop-shadow(0 0 1.8cqmin ${main})`, transform: `rotate(${i % 2 ? -75 : -8}deg) translateY(${Math.sin(time * 1.1 + i) * 3}%)` }} />;
 }
 
 /**

@@ -76,7 +76,7 @@ export function legalFr(d: LegalData): Record<LegalSlug, LegalDoc> {
             "Le service fonctionne avec des crédits, consommés à chaque action payante :",
             { list: [
               `Génération d'une vidéo motion design ou d'une signature animée : ${d.costs.generation} crédits`,
-              `Modification demandée à l'assistant : ${d.costs.edit} crédits`,
+              `Modification demandée à l'assistant : de ${d.costs.edit} à ${d.costs.editMax} crédits selon la complexité de la demande (étapes de calcul et aperçus nécessaires). ${d.costs.edit} crédits sont réservés à l'envoi ; le montant final est affiché dans la réponse de l'assistant. Une demande qui ne modifie pas la vidéo (question, demande hors sujet) est gratuite si l'assistant y répond en une seule étape courte ; sinon elle coûte ${d.costs.editUnchanged} crédit, indiqué dans sa réponse`,
               `Traduction des textes : ${d.costs.translation} crédit`,
               `Export d'une vidéo de ${d.costs.shortMaxSeconds} secondes maximum : ${d.costs.exportShort} crédits ; export plus long : ${d.costs.exportLong} crédits. Les templates en vraie 3D (signalés « 3D » dans la galerie) coûtent ${d.costs.export3dMultiplier} fois ce prix à l'export. Un nouvel export du même projet coûte moitié prix.`,
               `Pitch deck en vidéo : ${d.costs.pitchAnalysis} crédits pour l'analyse du document, puis ${d.costs.pitchCreation} crédits pour la création du motion`,

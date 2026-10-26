@@ -6,7 +6,7 @@ import { applyTranslation, translationEntries, type TranslationLanguage } from "
 import { OverlaySchema, normalizeOverlays, overlayApplies } from "@/lib/projects/overlays";
 import { applyPinnedLogoRequest } from "@/lib/projects/logo-overlay-request";
 import sharp from "sharp";
-import { allowAiAttempt, reserveAiTokens, AI_TIMEOUT_MS, AI_MAX_OUTPUT_TOKENS, type AiCaller } from "@/lib/security/ai-guard";
+import { allowAiAttempt, reserveAiTokens, AI_TIMEOUT_MS, AI_MAX_OUTPUT_TOKENS, AI_AGENT_MAX_INPUT_TOKENS, AI_AGENT_MAX_OUTPUT_TOKENS, type AiCaller } from "@/lib/security/ai-guard";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
@@ -14,7 +14,7 @@ import { VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import { getTrack, MUSIC_LIBRARY } from "@/config/music";
 import { getRecipe, SCREENS_LAYOUTS, TITLE_ANIMATIONS, type Recipe } from "@/config/recipes";
 import { getStyle } from "@/config/styles";
-import { FOCUS_ANIMATIONS, FOCUS_MODES, HEADLINES_SEPARATOR, MAX_SCREEN_COUNT, sceneFocuses, sceneHeadlines, sceneScreens, toHeadlines, TRANSITIONS, type Scene, type SceneGraph, type ScreenFocus } from "@/lib/projects/scenes";
+import { FOCUS_ANIMATIONS, FOCUS_MODES, MAX_SCREEN_COUNT, sceneFocuses, sceneScreens, toHeadlines, totalDuration, TRANSITIONS, type Scene, type SceneGraph, type ScreenFocus } from "@/lib/projects/scenes";
 import { storage } from "@/lib/storage";
 import { SCENE_MAX_SECONDS, SCENE_MIN_SECONDS } from "@/lib/projects/timeline";
 import * as mock from "./ai-mock";
@@ -22,7 +22,13 @@ import { LOGO_LAYOUTS } from "@/config/recipes";
 import { SCENE_PRESENTATIONS, isScenePresentation } from "@/config/scene-presentations";
 import { mergeSceneEdit } from "@/lib/projects/scene-edit";
 import { sceneSettings } from "@/lib/projects/scene-settings";
-import { BRAND_FONTS, isBrandFont } from "@/config/fonts";
+import { BRAND_FONTS } from "@/config/fonts";
+import { EditOpError, finalizeGraph, sceneForModel, type EditEnv } from "@/lib/projects/edit-ops";
+import { EDIT_TOOLS, isEditTool, parseToolInput, runEditTool } from "./edit-tools";
+import { compatibleTransitions } from "@/config/transition-compat";
+import { addPreviews, addTurnUsage, emptyUsage, type AiUsageTotals } from "./ai-cost";
+import { isProduct3D } from "@/config/physical-product";
+import { ensurePosterVariety, themedTransitions, variesTransitions } from "@/config/type-posters";
 
 /**
  * Service IA — Claude écrit et modifie le JSON des scènes (SceneGraph) lu par la composition Remotion.
@@ -69,7 +75,8 @@ export type ProjectContext = {
 };
 
 /** `graph: null` = demande hors sujet : aucune nouvelle version n'est créée. */
-export type EditResult = { graph: SceneGraph | null; reply: string; label: string };
+/** `usage` : coût réel de la demande (agent uniquement), pour la facturer selon sa complexité. */
+export type EditResult = { graph: SceneGraph | null; reply: string; label: string; usage?: AiUsageTotals };
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
@@ -120,50 +127,6 @@ const GraphOutput = z.object({
   scenes: z.array(SceneOutput),
 });
 
-/**
- * Marque, son et position des textes : modifiables seulement depuis le chat. Comme les calques, passés en chaîne JSON
- * validée ici, car des champs typés en plus font dépasser la taille de grammaire acceptée par l'API.
- */
-const TextOffset = z.object({ x: z.number(), y: z.number() });
-const BrandSchema = z.object({
-  colors: z.array(z.string()).optional(),
-  fonts: z.union([z.object({ heading: z.enum(BRAND_FONTS), body: z.enum(BRAND_FONTS) }), z.literal("template")]).optional(),
-  audio: z.object({ volume: z.number(), trimStart: z.number(), fadeIn: z.boolean(), fadeOut: z.boolean() }).partial().optional(),
-  textOffsets: z.record(z.string(), z.object({ title: TextOffset.nullable(), subtitle: TextOffset.nullable() }).partial()).optional(),
-});
-type BrandEdit = z.infer<typeof BrandSchema>;
-
-/**
- * Modification : Claude ne renvoie que ce qui change (scènes touchées, ordre, réglages globaux), pas tout le plan.
- * La réponse est ainsi 3 à 5 fois plus courte (c'est elle qui coûte le plus) ; le plan complet est reconstruit ici
- * puis validé par `normalize()` comme avant.
- */
-const EditOutput = z.object({
-  relevant: z
-    .boolean()
-    .describe("true si la demande porte sur la vidéo ; false si elle est hors sujet (question générale, rédaction, code…), dans ce cas rien ne change"),
-  reply: z.string().describe("Réponse courte dans la langue de l’interface demandée (anglais ou français), qui décrit ce qui a changé (ou, si hors sujet, explique poliment que tu ne peux modifier que la vidéo)"),
-  label: z.string().describe("Résumé de la modification en 2 à 5 mots, pour l'historique des versions"),
-  changedScenes: z.array(SceneOutput).describe("UNIQUEMENT les scènes modifiées ou ajoutées, chacune complète (recopie ses champs non concernés). id de la scène existante, ou null pour une nouvelle scène. [] si aucune scène ne change."),
-  order: z.array(z.string()).nullable().describe("Seulement si tu ajoutes, supprimes ou réordonnes des scènes : liste complète et ordonnée des scènes finales, avec les id existants et \"new:0\", \"new:1\"… pour les nouvelles scènes (dans leur ordre dans changedScenes). Une scène absente est supprimée. null sinon."),
-  settings: z.string().nullable().describe("Objet JSON sérialisé des réglages globaux à changer, avec uniquement les clés concernées parmi energy, logoEmphasis, screenFrame, musicTrackId, titleAnimation, logoLayout, logoBackground (titleAnimation, logoLayout ou logoBackground à null = revenir au choix du template). null si aucun ne change."),
-  overlays: z.string().nullable().describe("Tableau JSON sérialisé de TOUS les calques si les calques changent (mêmes champs qu'à la génération ; la chaîne [] les retire tous). null s'ils ne changent pas."),
-  brand: z.string().nullable().describe("Objet JSON sérialisé des réglages de marque, de son et de position des textes à changer (voir les consignes), avec uniquement les clés concernées. null si aucun de ces réglages ne change."),
-});
-type SceneOut = z.infer<typeof SceneOutput>;
-type GraphOut = z.infer<typeof GraphOutput>;
-
-/** Réglages globaux demandés dans une modification, validés ici (comme brand, passés en chaîne pour limiter la grammaire). */
-const SettingsSchema = z.object({
-  energy: z.enum(["calm", "balanced", "high"]),
-  logoEmphasis: z.boolean(),
-  screenFrame: z.enum(["phone", "browser", "none"]),
-  musicTrackId: z.string().nullable(),
-  titleAnimation: z.enum(TITLE_ANIMATIONS).nullable(),
-  logoLayout: z.enum(LOGO_LAYOUTS).nullable(),
-  logoBackground: z.boolean().nullable(),
-}).partial();
-
 // ───────────── Prompt ─────────────
 
 const SYSTEM = `Tu es le directeur artistique de Kinetik, un outil qui génère des vidéos de motion design pour présenter des SaaS et des apps (lancements produit, démos, réseaux sociaux).
@@ -199,9 +162,9 @@ Transitions (chaque style n'en autorise que certaines) :
 - cube : les deux scènes sont les faces d'un cube qui tourne en 3D (ludique, dynamique)
 - shutter : deux volets s’ouvrent, minimal et franc ; iris : ouverture circulaire et mise au point ; prism : lamelles diagonales colorées ; fold : feuille pliée ; track : bandes horizontales comme un passage express ; mosaic : tuiles carrées qui se replient en cascade ; rotary : volet circulaire rotatif.
 - press : deux mâchoires de presse se referment et frappent (lourd, industriel) ; cog : ouverture dentée qui tourne cran par cran (mécanique) ; stitch : une aiguille coud l'écran puis la couture s'ouvre ; clasp : deux pièces crantées s'emboîtent puis se déverrouillent ; tessellate : tuiles géométriques qui pivotent en vague.
-- gravity-pull : les lettres se prolongent en coulures qui couvrent le cadre puis se retirent (Spill) ; violet-fold : des plis violets au premier plan montent puis redescendent (Veil).
-- fan-fold : deux lignes typographiques se replient en un eventail plein cadre (Fanout) ; block-pivot : un cube de lettres pivote et remplit le cadre (Blocktype) ; mirror-horizon : des mots et leurs reflets convergent vers un horizon qui se rouvre (Positive) ; helix-wind : un ruban de lettres se bobine et se debobine entre deux anneaux (Helix).
-- paint-sweep : des coups de brosse acides couvrent le cadre (Power) ; type-stretch : une affiche se comprime en ruban chromatique (Spectra) ; stack-collapse : des bandes se rassemblent au centre et se déploient (Batch) ; ribbon-turn : un ruban oblique se retourne (Turn).
+- gravity-pull : des colonnes de liquide tombent en gouttes et couvrent le cadre, le contenu s'étire vers le bas puis la scène suivante tombe d'en haut (Spill) ; violet-fold : des plis violets flous montent du premier plan pendant que l'image se défocalise (Veil).
+- fan-fold : des lames s'ouvrent en éventail autour d'une charnière pendant que l'image se replie en perspective (Fanout) ; block-pivot : un cube portant le titre suivant pivote et remplit le cadre (Blocktype) ; mirror-horizon : deux plaques de métal se referment sur l'horizon où l'image s'écrase, puis se rouvrent (Positive) ; helix-wind : deux brins s'enroulent pendant que l'image tourne vers le centre (Helix).
+- paint-sweep : des coups de brosse acides arrivent en alternance et secouent le cadre (Power) ; type-stretch : l'image s'étire en séparation RVB sous des barres spectrales (Spectra) ; stack-collapse : l'image s'écrase en bande et la suivante rebondit (Batch) ; ribbon-turn : l'image bascule en 3D sous un ruban qui se tord (Turn).
 - whip : panoramique filé, toute l'image part en flou de vitesse (énergique) ; stencil : la scène apparaît à travers les lettres géantes de son titre (idéal avec un premier mot fort) ; ink : l'encre s'étale puis se retire (organique, artisanal) ; burn : brûlure de pellicule chaude (cinéma, rétro) ; ripple : l'image ondule comme une surface d'eau (fluide, apaisé) ; eclipse : un anneau de lumière se trace et remplit l'écran, une couronne lumineuse découvre la scène (lumineux, affirmé) ; train : une rame de métro traverse l'écran (trajet, étape suivante) ; shear : un pan incliné traverse l'écran comme un rail (industriel, tendu) ; hairline : un filet fin balaie l'écran à l'horizontale (sobre, précis) ; lift : le même filet, de bas en haut (sobre, élégant) ; capsule : un point devient une pilule qui remplit l'écran (moderne, ludique) ; smear : l'image s'étire en traînée lumineuse verticale (néon, énergique) ; flare : une bande de lumière blanche s'ouvre et remplit l'écran (typographique, contrasté) ; ignite : un éclat chaud part du centre et remplit l'écran (intense, cinématographique) ; whirl : l'image tourne en flou de rotation dans un anneau de lumière (énergique, typographique) ; defocus : l'image se dissout dans un flou lumineux ambré puis la suivante fait sa mise au point (cinématographique, mystérieux) ; drip : des coulures liquides descendent jusqu'à couvrir l'écran puis s'écoulent (psychédélique) ; slash : des bandes diagonales s'élargissent jusqu'à couvrir l'écran (tranchant, futuriste) ; streak : des colonnes de lumière s'élargissent jusqu'à couvrir l'écran (néon, onirique) ; surge : un liquide brillant monte jusqu'à couvrir l'écran puis redescend (fluide, glamour) ; scissor : deux pans se croisent en diagonale comme des ciseaux (montage alterné, cinéma) ; strata : un aplat bordé de filets monte puis continue vers le haut (typographique) ; scrawl : un trait de feutre en diagonale couvre l'écran (manuscrit) ; scan : une bande pleine descend et balaie l'écran (graphique) ; smudge : l'image s'étale en flou lumineux (doux, onirique) ; mirror : l'image se replie sur la ligne médiane puis la suivante se déplie (symétrie) ; turntable : l'appareil 3D fait un tour complet sur son socle et change d'écran quand il montre son dos, les textes partent dans le sens de la rotation (template Stage, lancement produit) ; sunpath : le soleil traverse le ciel et les ombres du monolithe tournent (template Monument, solennel) ; flash : un flash de studio éclate et le cadrage change (template Shoot, net et rythmé) ; current : l'appareil tourne dans un nuage de bulles (template Aquarium, fluide) ; rake : une bande de sable ratissé balaie l'écran (template Zen, calme) ; array-sweep : les lames métalliques pivotent en vague autour du produit et balaient les reflets (template Array, sculptural) ; gyro-turn : deux arcs métalliques accélèrent autour de l’appareil comme un gyroscope (template Orbit 3D) ; magnetic-lock : deux blocs de métal se rapprochent puis s’écartent pour révéler le produit en lévitation (template Magnet, précision industrielle) ; vault-pass : la caméra avance au travers d’une arche de pierre claire (template Vault, architectural et lumineux) ; stone-slide : les parois de pierre noire coulissent pour révéler le nouveau plan (template Obsidian, architectural et sobre) ; halo-pass : la caméra avance pendant que le grand anneau lumineux passe autour du produit (template Halo, lancement premium) ; satin-pass : un ruban de satin passe devant le produit (Loom) ; tidal-wave : une vague passe devant le produit (Tidal) ; blueprint-scan : un balayage matérialise les volumes (Blueprint) ; solar-sweep : des panneaux colorés pivotent (Solstice) ; arm-exchange : des bras articulés échangent le support du produit (Assembly) ; district : la caméra survole la ville jusqu'au quartier suivant (template Kiosque, trajet, étape suivante).
 Utiliser uniquement les transitions autorisées par le template.
 
@@ -254,6 +217,7 @@ function describeProject(ctx: ProjectContext) {
     ctx.videoType === "physical-product" && "These are real physical product photos, not app screenshots. Preserve the current physical-product template and image fidelity. Never invent features, reviews, discounts or certifications. Keep provided prices exact. No device frames. Use one real product image per scene, short factual titles, benefits and CTA.",
     `Rythme typique du style : ${recipe.energy}`,
     `Transitions autorisées : ${recipe.transitions.join(", ")}`,
+    variesTransitions(recipe) && `Varie les transitions : au moins trois différentes parmi ${themedTransitions(recipe.transitions).join(", ")} (la première est la signature) ; fade et cut en secours seulement.`,
     `Animation des titres du style : ${recipe.titleAnimation} · mise en scène des screens du style : ${recipe.screens}`,
     `Couleurs de marque : ${ctx.colors.join(", ")}`,
     `Musique : ${track ? `${track.id} (${track.title}, ${track.bpm} BPM)` : ctx.noMusic ? "aucune, vidéo sans son choisie par l'utilisateur (musicTrackId à null, sauf s'il demande une musique)" : "fichier uploadé par l'utilisateur"}`,
@@ -346,7 +310,8 @@ function allowedTransition(transition: Scene["transition"], recipe: Recipe, inde
 }
 
 function withRecipeTransitions(graph: SceneGraph, recipe: Recipe): SceneGraph {
-  return { ...graph, scenes: graph.scenes.map((s, i) => ({ ...s, transition: allowedTransition(s.transition, recipe, i) })) };
+  const scenes = graph.scenes.map((s, i) => ({ ...s, transition: allowedTransition(s.transition, recipe, i) }));
+  return { ...graph, scenes: variesTransitions(recipe) ? ensurePosterVariety(scenes, recipe.transitions) : scenes };
 }
 
 /** Applique les règles que le schéma ne peut pas exprimer (durées, bornes, identifiants). */
@@ -385,79 +350,6 @@ function headlinesFromOutput(text: string): Pick<Scene, "title" | "lines"> {
 function toScreens(numbers: number[] | null, screenUrls: string[]) {
   const urls = [...new Set((numbers ?? []).map((n) => screenUrls[Math.round(n)]).filter((u): u is string => Boolean(u)))].slice(0, MAX_SCREEN_COUNT);
   return urls.length ? urls : undefined;
-}
-
-/** Une scène du plan actuel dans le format de sortie de Claude (screens et zones désignés par leur numéro). */
-function sceneToOutput(s: Scene, screenUrls: string[]): SceneOut {
-  const focusOut = (f: ScreenFocus) => ({ screen: screenUrls.indexOf(f.src), x: f.x, y: f.y, w: f.w, h: f.h, mode: f.mode, animation: f.animation ?? null, label: f.label ?? null });
-  return {
-    id: s.id, presentation: s.presentation ?? null, kind: s.kind, title: s.kind === "headlines" ? sceneHeadlines(s).join(HEADLINES_SEPARATOR) : s.title, subtitle: s.subtitle ?? null, duration: s.duration, transition: s.transition,
-    layout: s.layout ?? null, screenCount: s.screenCount ?? null,
-    screens: s.screens ? s.screens.map((url) => screenUrls.indexOf(url)).filter((n) => n >= 0) : null,
-    focus: s.focus ? focusOut(s.focus) : null,
-    focuses: s.focuses ? s.focuses.map(focusOut) : null,
-  };
-}
-
-/**
- * Reconstruit le plan complet à partir des seuls changements renvoyés par Claude.
- * Renvoie aussi les id des scènes touchées : les autres sont reprises telles quelles après `normalize()`.
- */
-export function applyEditPatch(graph: SceneGraph, patch: z.infer<typeof EditOutput>, ctx: ProjectContext, scoped: boolean): { output: GraphOut; touched: Set<string> } {
-  let settings: z.infer<typeof SettingsSchema> = {};
-  if (patch.settings !== null) {
-    try { settings = SettingsSchema.parse(JSON.parse(patch.settings)); }
-    catch { throw new AiUnavailableError("Réglages de la vidéo invalides"); }
-  }
-  const existing = new Set(graph.scenes.map((s) => s.id));
-  const touched = new Set<string>();
-  const changed = new Map<string, SceneOut>();
-  const added: SceneOut[] = [];
-  const stamp = Date.now().toString(36);
-  for (const scene of patch.changedScenes) {
-    if (scene.id && existing.has(scene.id)) {
-      changed.set(scene.id, scene);
-      touched.add(scene.id);
-    } else if (!scoped) {
-      // Nouvelle scène : un id unique, pour qu'elle ne soit jamais confondue avec une scène existante
-      const id = `${scene.kind}-${stamp}${added.length}`;
-      added.push({ ...scene, id });
-      touched.add(id);
-    }
-  }
-
-  const current = graph.scenes.map((s) => changed.get(s.id) ?? sceneToOutput(s, ctx.screenUrls));
-  let scenes: SceneOut[];
-  if (!scoped && patch.order) {
-    const byId = new Map(current.map((s) => [s.id!, s]));
-    const seen = new Set<string>();
-    scenes = patch.order.flatMap((ref) => {
-      const scene = /^new:\d+$/.test(ref) ? added[Number(ref.slice(4))] : byId.get(ref);
-      if (!scene || seen.has(scene.id!)) return [];
-      seen.add(scene.id!);
-      return [scene];
-    });
-    if (!scenes.length) scenes = current;
-  } else {
-    // Nouvelles scènes sans ordre indiqué : avant l'appel à l'action final
-    const end = current.at(-1)?.kind === "cta" ? current.length - 1 : current.length;
-    scenes = [...current.slice(0, end), ...added, ...current.slice(end)];
-  }
-
-  return {
-    touched,
-    output: {
-      overlays: patch.overlays,
-      logoLayout: settings.logoLayout !== undefined ? settings.logoLayout : graph.logoLayout ?? null,
-      logoBackground: settings.logoBackground !== undefined ? settings.logoBackground : graph.logoBackground ?? null,
-      energy: settings.energy ?? graph.energy,
-      logoEmphasis: settings.logoEmphasis ?? graph.logoEmphasis,
-      screenFrame: settings.screenFrame ?? graph.screenFrame ?? "none",
-      musicTrackId: settings.musicTrackId !== undefined ? settings.musicTrackId : graph.musicTrackId,
-      titleAnimation: settings.titleAnimation !== undefined ? settings.titleAnimation : graph.titleAnimation ?? null,
-      scenes,
-    },
-  };
 }
 
 function normalize(output: z.infer<typeof GraphOutput>, targetDuration: number | null, fallbackTrackId: string | null, recipe: Recipe, ctx: ProjectContext, kept: Kept = {}): SceneGraph {
@@ -541,23 +433,218 @@ Les réglages du template définissent déjà les animations : conserve titleAni
   return prepareFirstVideo(ctx.noMusic ? { ...graph, musicTrackId: null, bpm: 120 } : graph, ctx);
 }
 
-export async function applyEdit(graph: SceneGraph, message: string, ctx: ProjectContext, history: ChatTurn[], sceneId?: string, userId = "", plan: AiCaller["plan"] = "FREE"): Promise<EditResult> {
+/** Rendu d'images fixes d'un plan (aperçu pour l'agent) : base64 WebP, dans l'ordre des prises demandées. */
+export type StillRenderer = (graph: SceneGraph, shots: { sceneId: string; time: number }[]) => Promise<string[]>;
+
+export async function applyEdit(graph: SceneGraph, message: string, ctx: ProjectContext, history: ChatTurn[], sceneId?: string, userId = "", plan: AiCaller["plan"] = "FREE", renderStills?: StillRenderer): Promise<EditResult> {
   const direct = applyPinnedLogoRequest(graph, message, Boolean(ctx.logoUrl), sceneId, ctx.interfaceLocale);
   if (direct) return direct;
-  if (!sceneId) return applyGraphEdit(graph, message, ctx, history, { userId, plan });
-  const target = graph.scenes.find((scene) => scene.id === sceneId);
-  if (!target) throw new AiUnavailableError("Scène introuvable");
-  const scoped = { ...sceneSettings(graph, target), scenes: [target], overlays: (graph.overlays ?? []).filter((layer) => overlayApplies(layer, sceneId)).map((layer) => ({ ...layer, sceneIds: [sceneId] })) };
-  // Édition ciblée : seulement les screens que la scène montre ou cadre (aucun pour une scène sans screens)
-  const visuals = target.kind === "screens" ? [...new Set([...sceneScreens(graph.scenes, target, ctx.screenUrls, MAX_SCREEN_COUNT), ...sceneFocuses(target).map((focus) => focus.src)])] : [];
-  const result = await applyGraphEdit(scoped, message, { ...ctx, duration: target.duration }, history, { userId, plan }, true, visuals);
-  if (!result.graph) return result;
+  const target = sceneId ? graph.scenes.find((scene) => scene.id === sceneId) : undefined;
+  if (sceneId && !target) throw new AiUnavailableError("Scène introuvable");
+  const result = hasKey() ? await runEditAgent(graph, message, ctx, history, { userId, plan }, target, renderStills) : await mockEdit(graph, message, ctx, target);
+  if (!result.graph || !target) return result;
+  const n = graph.scenes.indexOf(target) + 1;
   return {
     ...result,
-    graph: mergeSceneEdit(graph, result.graph, sceneId),
-    label: `${ctx.interfaceLocale === "en" ? "Scene" : "Scène"} ${graph.scenes.indexOf(target) + 1} · ${result.label}`.slice(0, 60),
-    reply: `${result.reply} ${ctx.interfaceLocale === "en" ? `Only scene ${graph.scenes.indexOf(target) + 1} was edited.` : `Seule la scène ${graph.scenes.indexOf(target) + 1} est modifiée.`}`,
+    label: `${ctx.interfaceLocale === "en" ? "Scene" : "Scène"} ${n} · ${result.label}`.slice(0, 60),
+    reply: `${result.reply} ${ctx.interfaceLocale === "en" ? `Only scene ${n} was edited.` : `Seule la scène ${n} est modifiée.`}`,
   };
+}
+
+/** Sans clé API : règles simples du mock (dev hors ligne). */
+async function mockEdit(graph: SceneGraph, message: string, ctx: ProjectContext, target?: Scene): Promise<EditResult> {
+  const source = target ? { ...sceneSettings(graph, target), scenes: [target], overlays: (graph.overlays ?? []).filter((layer) => overlayApplies(layer, target.id)).map((layer) => ({ ...layer, sceneIds: [target.id] })) } : graph;
+  const result = await mock.applyEdit(source, message, { hasLogo: Boolean(ctx.logoUrl) });
+  const edited = result.graph ? withRecipeTransitions(result.graph, getRecipe(ctx.styleId)) : null;
+  return {
+    ...result,
+    ...(ctx.interfaceLocale === "en" ? { reply: edited ? "Your preview has been updated. Apply it to save a new version." : "Add your logo in Media before placing it over the video.", label: edited ? "Updated preview" : "" } : {}),
+    graph: edited && target ? mergeSceneEdit(graph, edited, target.id) : edited,
+  };
+}
+
+// ───────────── Agent d'édition ─────────────
+
+/** Tours de conversation maximum par demande, et appels à l'aperçu. */
+const AGENT_MAX_TURNS = 8;
+/** Comptes gratuits : moins d'étapes et pas d'aperçu en images (coût borné). */
+const AGENT_FREE_MAX_TURNS = 4;
+const AGENT_MAX_PREVIEWS = 2;
+/** Échéances (depuis le début de la demande) : plus de nouveau tour, plus d'aperçu. La page éditeur autorise 300 s. */
+const AGENT_TURN_DEADLINE_MS = 200_000;
+const AGENT_PREVIEW_DEADLINE_MS = 150_000;
+
+const EDIT_GUIDE = `
+
+MODE MODIFICATION (chat de l'éditeur)
+Tu modifies le plan existant avec des outils, au lieu de renvoyer un objet. Les formats de sortie décrits plus haut (chaîne JSON des calques, etc.) ne concernent que la génération : ici, chaque outil prend de vrais objets JSON.
+- Enchaîne autant d'appels d'outils que nécessaire ; tu peux en faire plusieurs en parallèle dans un même tour. Chaque outil renvoie l'état à jour ou une erreur à corriger.
+- Ne change que ce que la demande implique. La durée totale ne change que si l'utilisateur le demande (en raccourcissant une scène, rallonge-en une autre).
+- Termine TOUJOURS par l'outil finish (reply + label), une seule fois, en dernier. Demande hors sujet ou impossible : appelle seulement finish en l'expliquant poliment.
+
+Liberté créative : tu n'es pas limité aux réglages du template.
+- update_scene donne accès à TOUS les champs d'une scène (textes, couleurs, tailles, positions, disparition des textes, surtitre, bouton, réglages propres à une scène).
+- set_layers pose des calques animés libres sur une scène : texte, rect, ellipse (avec dégradé via colors), image (capture du projet), logo. Chaque propriété (x, y, w, h, scale, scaleX, scaleY, rotation, rotateX, rotateY, skewX, opacity, blur, clipLeft/Right/Top/Bottom, letterSpacing, color) peut être animée par keyframes ; ease choisit la courbe (linear, in, out, inOut, back, elastic, bounce, spring, step). Une propriété animée suit seulement ses keyframes (tenue avant la première et après la dernière) ; sinon sa valeur de base s'applique. loop ajoute un mouvement continu ; textReveal + revealEffect font apparaître un texte mot par mot, lettre par lettre ou ligne par ligne.
+- Repères : x, y = CENTRE du calque en fraction du cadre ; w = fraction de la largeur, h = fraction de la hauteur (un carré n'a donc pas w = h hors format carré) ; fontSize, radius, strokeWidth, blur = fraction du plus petit côté ; temps en secondes depuis le début de la scène (0 → durée de la scène). Les calques sont empilés dans l'ordre de la liste, du fond vers l'avant, au-dessus du contenu de la scène.
+- Scène 100 % sur mesure : hideTemplate true (le contenu du template disparaît, le fond animé du template reste ; un rect plein cadre x 0.5, y 0.5, w 1, h 1 en premier calque le remplace). Sur les templates 3D, le décor 3D reste visible derrière.
+- Recettes utiles : volet = animer clipRight de 1 à 0 ; arrivée = x hors cadre puis keyframe vers sa place avec ease back ou spring ; zoom d'impact = scale de 3 à 1 avec ease out et blur de 0.03 à 0 ; mots qui se succèdent = plusieurs calques texte avec start / end ; soulignement = rect fin dont scaleX va de 0 à 1.
+- Qualité : textes lisibles (contraste, fontSize d'au moins 0.035), dans une marge de 6 % du cadre, sans chevaucher les textes du template sauf intention ; mouvements cohérents avec le rythme (energy) et la musique ; pas plus d'éléments que nécessaire.
+- Briques supplémentaires : path (tracé SVG libre dans sa grille viewBox, étiré sur w × h) et icon (pictogramme parmi la liste) se dessinent en animant draw de 0 à 1 ; particles remplit sa boîte de particules (rise, fall, burst, float, snow, confetti, orbit) ; un texte prend un dégradé (colors) ou une capture (screen) dans ses lettres ; rect / ellipse avec knockout true évident leur texte ; un texte avec countFrom / countTo devient un compteur animé ({n} dans text marque sa place, formaté dans la langue de la vidéo ; uniquement avec un chiffre réel).
+- Templates 3D : update_scene.camera règle le plan de chaque scène (start / end : angle de -65 à 65°, height de -20 à 70°, zoom ; frameX / frameY = place de l'objet dans l'image ; gesture + gestureAmount = geste de la transition qui mène à la scène) et update_scene.pose la pose de l'objet (tilt, turn, roll en degrés, lift, scale, spins pour les appareils, float). Laisse la place aux textes du template : en paysage le texte est à gauche, l'objet vers frameX 0.7 ; en portrait le texte est en haut. update_video change l'appareil (deviceMockup) et la couleur de sa coque (deviceColor, Stage uniquement).
+- Après avoir posé ou déplacé des calques, ou pour une composition délicate, appelle preview sur 1 à 3 instants clés et corrige ce qui ne va pas avant finish. Si l'aperçu est indisponible, vérifie les coordonnées avec soin.
+- Les règles de fond restent valables : aucun fait, chiffre, citation ou fonctionnalité inventés, langue de la vidéo respectée, pas de tiret long ni moyen.`;
+
+const SYSTEM_BLOCKS: Anthropic.Beta.BetaTextBlockParam[] = [{ type: "text", text: SYSTEM + EDIT_GUIDE, cache_control: { type: "ephemeral" } }];
+
+function editEnv(ctx: ProjectContext, graph: SceneGraph, scopeSceneId?: string): EditEnv {
+  const recipe = getRecipe(graph.styleId ?? ctx.styleId);
+  const styleId = graph.styleId ?? ctx.styleId;
+  return { screenUrls: ctx.screenUrls, hasLogo: Boolean(ctx.logoUrl), transitions: compatibleTransitions(styleId), stage: Boolean(recipe.stage), product3d: isProduct3D(styleId), ...(scopeSceneId && { scopeSceneId }) };
+}
+
+function planForModel(graph: SceneGraph, ctx: ProjectContext) {
+  return {
+    video: {
+      energy: graph.energy, logoEmphasis: graph.logoEmphasis, screenFrame: graph.screenFrame ?? "none", musicTrackId: graph.musicTrackId,
+      titleAnimation: graph.titleAnimation ?? null, logoLayout: graph.logoLayout ?? null, logoBackground: graph.logoBackground ?? null, deviceMockup: graph.deviceMockup ?? null, deviceColor: graph.deviceColor ?? null,
+      colors: graph.colors?.length ? graph.colors : ctx.colors, fonts: graph.fonts ?? "template",
+      audio: { volume: graph.audio?.volume ?? 1, trimStart: graph.audio?.trimStart ?? 0, fadeIn: graph.audio?.fadeIn ?? false, fadeOut: graph.audio?.fadeOut ?? false },
+    },
+    overlays: graph.overlays ?? [],
+    scenes: graph.scenes.map((scene) => sceneForModel(scene, ctx.screenUrls)),
+  };
+}
+
+/**
+ * Un tour de l'agent. `cachedTokens` = taille du contexte du tour précédent : ce préfixe est relu depuis le cache
+ * (environ 10 % du prix), seule la part nouvelle est donc réservée en entier sur le budget du jour.
+ */
+async function agentTurn(params: Pick<Anthropic.Beta.MessageCreateParamsNonStreaming, "system" | "tools" | "messages" | "output_config">, cachedTokens: number) {
+  try {
+    const count = await getClient().beta.messages.countTokens({ model: MODEL, system: params.system, messages: params.messages, tools: params.tools }, { timeout: 15_000 });
+    if (count.input_tokens > AI_AGENT_MAX_INPUT_TOKENS) throw new AiUnavailableError("Contexte trop volumineux");
+    const billed = Math.max(0, Math.ceil(count.input_tokens - Math.min(cachedTokens, count.input_tokens) * 0.9));
+    if (!(await reserveAiTokens(billed, { maxInput: AI_AGENT_MAX_INPUT_TOKENS, maxOutput: AI_AGENT_MAX_OUTPUT_TOKENS }))) throw new AiUnavailableError("Budget IA atteint");
+    const response = await getClient().beta.messages.create({
+      ...params,
+      model: MODEL,
+      max_tokens: AI_AGENT_MAX_OUTPUT_TOKENS,
+      cache_control: { type: "ephemeral" },
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+    });
+    console.info("[ai-usage]", { operation: "edit", model: response.model, inputTokens: response.usage.input_tokens, cacheReadTokens: response.usage.cache_read_input_tokens ?? 0, cacheWriteTokens: response.usage.cache_creation_input_tokens ?? 0, outputTokens: response.usage.output_tokens });
+    if (response.stop_reason === "refusal") throw new AiRefusalError(response.stop_details?.category ?? null);
+    if (response.stop_reason === "max_tokens") throw new AiUnavailableError("Réponse tronquée");
+    return { response, inputTokens: count.input_tokens };
+  } catch (error) {
+    if (error instanceof AiUnavailableError) throw error;
+    if (error instanceof Anthropic.APIError) throw new AiUnavailableError(`API Claude : ${error.status ?? "?"} ${error.message}`, { cause: error });
+    throw new AiUnavailableError("Appel à Claude impossible", { cause: error });
+  }
+}
+
+/**
+ * Agent d'édition : Claude modifie une copie de travail du plan à coups d'outils (lib/services/edit-tools.ts),
+ * peut regarder des images fixes du résultat (preview), puis conclut avec finish.
+ * Une demande = une tentative au quota IA, quel que soit le nombre de tours ; chaque tour réserve ses tokens.
+ */
+async function runEditAgent(graph: SceneGraph, message: string, ctx: ProjectContext, history: ChatTurn[], caller: AiCaller, target?: Scene, stillRenderer?: StillRenderer): Promise<EditResult> {
+  const free = caller.plan === "FREE";
+  const renderStills = free ? undefined : stillRenderer;
+  const maxTurns = free ? AGENT_FREE_MAX_TURNS : AGENT_MAX_TURNS;
+  const usage = emptyUsage();
+  if (!(await allowAiAttempt(caller))) throw new AiUnavailableError("Quota IA atteint ou protection indisponible");
+  const env = editEnv(ctx, graph, target?.id);
+  // Édition ciblée : seulement les screens que la scène montre ou cadre
+  const visuals = target ? target.kind === "screens" ? [...new Set([...sceneScreens(graph.scenes, target, ctx.screenUrls, MAX_SCREEN_COUNT), ...sceneFocuses(target).map((focus) => focus.src)])] : (target.screens ?? []) : undefined;
+  const recent = history.slice(-10).map((m) => `${m.role === "user" ? "Utilisateur" : "Kinetik"} : ${m.content}`).join("\n");
+  const stamp = Date.now().toString(36);
+  let created = 0;
+  const newId = () => `custom-${stamp}${(created++).toString(36)}`;
+
+  const messages: Anthropic.Beta.BetaMessageParam[] = [{
+    role: "user",
+    content: [
+      ...(await visualBlocks(ctx, { only: visuals, side: IMAGE_SIDE.edit })),
+      {
+        type: "text",
+        text: `${target ? `ÉDITION CIBLÉE : seule la scène ${target.id} (n° ${graph.scenes.indexOf(target) + 1}) peut changer. Pas d'ajout, suppression ni déplacement de scène ; pour un réglage de toute la vidéo, applique-le à cette scène via update_scene, ou propose de choisir « Toute la vidéo » (couleurs, polices, son).` : "ÉDITION COMPLÈTE : toutes les scènes peuvent changer."}
+Aperçu en images : ${renderStills ? "disponible (outil preview)" : "indisponible"}.${free ? ` Étapes limitées à ${AGENT_FREE_MAX_TURNS} tours : regroupe tes appels d'outils.` : ""}
+
+${describeProject({ ...ctx, colors: graph.colors?.length ? graph.colors : ctx.colors, duration: totalDuration(graph) })}
+Transitions signature du template (à privilégier) : ${getRecipe(graph.styleId ?? ctx.styleId).transitions.join(", ")}.
+Toutes les transitions compatibles (en modification, cette liste remplace « Transitions autorisées ») : ${env.transitions.join(", ")}.
+Objet 3D : ${env.stage ? `appareil ${graph.deviceMockup ?? "automatique"}${graph.deviceColor ? `, coque ${graph.deviceColor}` : ""} (camera, pose, deviceMockup, deviceColor disponibles)` : env.product3d ? "photo produit dans un décor 3D (camera et pose disponibles ; la photo reste à plat face à la caméra)" : "aucun (template 2D : camera et pose indisponibles)"}.
+
+Plan actuel :
+${JSON.stringify(planForModel(graph, ctx))}
+
+${recent ? `Échanges précédents :\n${recent}\n\n` : ""}Demande de l'utilisateur : ${message}`,
+      },
+    ],
+  }];
+
+  let working = structuredClone(graph);
+  let finished: { reply: string; label: string } | null = null;
+  let previews = 0;
+  let lastText = "";
+  const startedAt = Date.now();
+  let cachedTokens = 0;
+  for (let turn = 0; turn < maxTurns && !finished && Date.now() - startedAt < AGENT_TURN_DEADLINE_MS; turn++) {
+    const { response, inputTokens } = await agentTurn({ system: SYSTEM_BLOCKS, tools: EDIT_TOOLS, messages, output_config: { effort: "medium" } }, cachedTokens);
+    cachedTokens = inputTokens;
+    addTurnUsage(usage, response.model, response.usage);
+    messages.push({ role: "assistant", content: response.content });
+    lastText = response.content.flatMap((block) => block.type === "text" ? [block.text] : []).join(" ").trim() || lastText;
+    const uses = response.content.filter((block): block is Anthropic.Beta.BetaToolUseBlock => block.type === "tool_use");
+    if (!uses.length) break;
+
+    const results: Anthropic.Beta.BetaToolResultBlockParam[] = [];
+    for (const use of uses) {
+      try {
+        if (!isEditTool(use.name)) throw new EditOpError(`Outil inconnu : ${use.name}`);
+        if (use.name === "finish") {
+          finished = parseToolInput("finish", use.input);
+          results.push({ type: "tool_result", tool_use_id: use.id, content: "ok" });
+        } else if (use.name === "preview") {
+          const { shots } = parseToolInput("preview", use.input);
+          if (!renderStills) throw new EditOpError("Aperçu indisponible : vérifie les coordonnées puis termine.");
+          if (previews >= AGENT_MAX_PREVIEWS || Date.now() - startedAt > AGENT_PREVIEW_DEADLINE_MS) throw new EditOpError("Plus d'aperçu possible pour cette demande : termine avec finish.");
+          previews++;
+          const preview = finalizeGraph(working, env);
+          const valid = shots.slice(0, 3).map((shot) => {
+            const scene = preview.scenes.find((s) => s.id === shot.sceneId);
+            if (!scene) throw new EditOpError(`Scène « ${shot.sceneId} » introuvable.`);
+            return { sceneId: scene.id, time: Math.max(0, Math.min(scene.duration - 0.05, shot.time)) };
+          });
+          const images = await renderStills(preview, valid).catch((error: unknown) => {
+            console.error("[edit-preview]", error instanceof Error ? error.message : error);
+            throw new EditOpError("Aperçu en échec : vérifie les coordonnées puis termine.");
+          });
+          addPreviews(usage, images.filter(Boolean).length, env.stage || Boolean(env.product3d));
+          results.push({ type: "tool_result", tool_use_id: use.id, content: valid.flatMap((shot, i) => images[i] ? [{ type: "text" as const, text: `Scène ${shot.sceneId} à ${shot.time} s :` }, { type: "image" as const, source: { type: "base64" as const, media_type: "image/webp" as const, data: images[i] } }] : []) });
+        } else {
+          const { graph: next, result } = runEditTool(working, use.name, use.input, env, newId);
+          working = next;
+          results.push({ type: "tool_result", tool_use_id: use.id, content: result });
+        }
+      } catch (error) {
+        if (!(error instanceof EditOpError)) throw error;
+        results.push({ type: "tool_result", tool_use_id: use.id, is_error: true, content: error.message });
+      }
+    }
+    if (!finished) messages.push({ role: "user", content: results });
+  }
+
+  const done = finished as { reply: string; label: string } | null;
+  const reply = (done?.reply || lastText).trim().slice(0, 600);
+  const label = done?.label.trim().slice(0, 60) || (ctx.interfaceLocale === "en" ? "Edit" : "Modification");
+  let result: SceneGraph;
+  try { result = finalizeGraph(working, env); }
+  catch (error) { throw new AiUnavailableError(error instanceof Error ? error.message : "Plan invalide", { cause: error }); }
+  if (JSON.stringify(result) === JSON.stringify(graph)) return { graph: null, reply: reply || (ctx.interfaceLocale === "en" ? "Nothing changed." : "Rien n'a changé."), label: "", usage };
+  return { graph: result, reply: reply || (ctx.interfaceLocale === "en" ? "Here is the proposed edit." : "Voici la modification proposée."), label, usage };
 }
 
 /** Keep the strict provider grammar small; validate layer data locally. */
@@ -568,113 +655,6 @@ function parseOverlayOutput(value: string | null): unknown {
     if (!OverlaySchema.array().safeParse(parsed).success) throw new Error("Invalid layers");
     return parsed;
   } catch { throw new AiUnavailableError("Liste de calques invalide"); }
-}
-
-/** Couleurs, polices et son demandés dans le chat, validés comme depuis l'éditeur (null = inchangé). */
-function parseBrandOutput(value: string | null): BrandEdit {
-  if (value === null) return {};
-  try {
-    return BrandSchema.parse(JSON.parse(value));
-  } catch { throw new AiUnavailableError("Réglages de marque invalides"); }
-}
-
-/**
- * Applique les réglages demandés dans le chat, bornés comme depuis l'éditeur.
- * En édition ciblée, seule la position des textes s'applique (couleurs, polices et son concernent toute la vidéo).
- */
-function applyBrand(graph: SceneGraph, brand: BrandEdit, scoped: boolean) {
-  for (const scene of graph.scenes) {
-    const offsets = brand.textOffsets?.[scene.id];
-    if (!offsets) continue;
-    const textOffsets = { ...scene.textOffsets };
-    for (const target of ["title", "subtitle"] as const) {
-      const offset = offsets[target];
-      if (offset === undefined) continue;
-      if (offset === null || !Number.isFinite(offset.x) || !Number.isFinite(offset.y) || (!offset.x && !offset.y)) delete textOffsets[target];
-      else textOffsets[target] = { x: Math.round(Math.min(1, Math.max(-1, offset.x)) * 1000) / 1000, y: Math.round(Math.min(1, Math.max(-1, offset.y)) * 1000) / 1000 };
-    }
-    scene.textOffsets = textOffsets;
-  }
-  if (scoped) return;
-
-  const colors = (brand.colors ?? []).map((c) => c.trim().toLowerCase()).filter((c) => /^#[0-9a-f]{6}$/.test(c)).slice(0, 2);
-  if (colors.length) graph.colors = colors;
-  if (brand.fonts === "template") delete graph.fonts;
-  else if (brand.fonts && isBrandFont(brand.fonts.heading) && isBrandFont(brand.fonts.body)) graph.fonts = { heading: brand.fonts.heading, body: brand.fonts.body };
-  if (brand.audio) {
-    const { volume, trimStart, fadeIn, fadeOut } = brand.audio;
-    graph.audio = {
-      volume: volume !== undefined && Number.isFinite(volume) ? Math.round(Math.min(1, Math.max(0, volume)) * 100) / 100 : graph.audio?.volume ?? 1,
-      trimStart: trimStart !== undefined && Number.isFinite(trimStart) ? Math.round(Math.min(600, Math.max(0, trimStart)) * 10) / 10 : graph.audio?.trimStart ?? 0,
-      fadeIn: fadeIn ?? graph.audio?.fadeIn ?? false,
-      fadeOut: fadeOut ?? graph.audio?.fadeOut ?? false,
-    };
-  }
-}
-
-async function applyGraphEdit(graph: SceneGraph, message: string, ctx: ProjectContext, history: ChatTurn[], caller: AiCaller, scoped = false, visuals?: string[]): Promise<EditResult> {
-  if (!hasKey()) {
-    const result = await mock.applyEdit(graph, message, { hasLogo: Boolean(ctx.logoUrl) });
-    return { ...result, ...(ctx.interfaceLocale === "en" ? { reply: result.graph ? "Your preview has been updated. Apply it to save a new version." : "Add your logo in Media before placing it over the video.", label: result.graph ? "Updated preview" : "" } : {}), graph: result.graph ? withRecipeTransitions(result.graph, getRecipe(ctx.styleId)) : null };
-  }
-
-  const recent = history
-    .slice(-10)
-    .map((m) => `${m.role === "user" ? "Utilisateur" : "Kinetik"} : ${m.content}`)
-    .join("\n");
-
-  const output = await callClaude(
-    EditOutput,
-    [
-      {
-        role: "user",
-        content: [
-          ...(await visualBlocks(ctx, { only: visuals, side: IMAGE_SIDE.edit })),
-          {
-            type: "text",
-            text: `${scoped ? "ÉDITION CIBLÉE : le plan contient uniquement la scène sélectionnée. Si elle change, renvoie-la seule dans changedScenes avec son id et son type ; order et settings à null, aucune nouvelle scène. Dans brand n'utilise que textOffsets (couleurs, polices et son concernent toute la vidéo : propose de choisir « Toute la vidéo » pour les modifier) ; tes propositions de réglages seront limitées à cette scène." : "ÉDITION COMPLÈTE : toutes les scènes du plan sont fournies."}
-Voici le projet et le plan actuel de la vidéo. Applique la demande de l'utilisateur et renvoie UNIQUEMENT ce qui change, jamais le plan entier :
-- changedScenes : les scènes modifiées ou ajoutées, chacune complète (recopie ses champs non concernés), [] si aucune scène ne change ;
-- order : seulement si tu ajoutes, supprimes ou réordonnes des scènes, sinon null ;
-- settings, overlays, brand : seulement s'ils changent, sinon null.
-Ne change que ce que la demande implique. La durée totale ne change que si l'utilisateur le demande.
-Si la demande ne concerne pas la vidéo, mets relevant à false, changedScenes à [], tout le reste à null, et réponds en une phrase que tu ne peux modifier que la vidéo.
-
-${describeProject({ ...ctx, colors: graph.colors?.length ? graph.colors : ctx.colors, duration: graph.scenes.reduce((sum, s) => sum + s.duration, 0) })}
-
-Marque et son actuels :
-${JSON.stringify({ colors: graph.colors?.length ? graph.colors : ctx.colors, fonts: graph.fonts ?? "typographie du template", audio: { volume: graph.audio?.volume ?? 1, trimStart: graph.audio?.trimStart ?? 0, fadeIn: graph.audio?.fadeIn ?? false, fadeOut: graph.audio?.fadeOut ?? false } })}
-
-Plan actuel :
-${JSON.stringify({ overlays: graph.overlays ?? [], energy: graph.energy, logoEmphasis: graph.logoEmphasis, screenFrame: graph.screenFrame ?? "none", musicTrackId: graph.musicTrackId, titleAnimation: graph.titleAnimation ?? null, logoLayout: graph.logoLayout ?? null, logoBackground: graph.logoBackground ?? null, scenes: graph.scenes.map((s) => ({ ...sceneToOutput(s, ctx.screenUrls), textOffsets: s.textOffsets ? { title: s.textOffsets.title ?? null, subtitle: s.textOffsets.subtitle ?? null } : null })) })}
-
-${recent ? `Échanges précédents :\n${recent}\n\n` : ""}Demande de l'utilisateur : ${message}`,
-          },
-        ],
-      },
-    ],
-    "medium",
-    caller,
-    "edit",
-  );
-
-  if (!output.relevant) return { graph: null, reply: output.reply.trim().slice(0, 300), label: "" };
-  const { output: video, touched } = applyEditPatch(graph, output, ctx, scoped);
-  // Pas de logoLayout / logoBackground dans `kept` : ils viennent de `video`, qui peut les remettre au choix du template
-  const graphOut = normalize(video, null, graph.musicTrackId, getRecipe(ctx.styleId), ctx, { pitch: graph.pitch, voiceover: graph.voiceover, fonts: graph.fonts, audio: graph.audio, styleId: graph.styleId, colors: graph.colors, deviceMockup: graph.deviceMockup });
-  if (video.overlays === null) graphOut.overlays = graph.overlays;
-  graphOut.scenes = graphOut.scenes.map((scene) => {
-    const previous = graph.scenes.find((item) => item.id === scene.id && item.kind === scene.kind);
-    if (!previous) return scene;
-    // Scène non touchée : reprise à l'identique (textes par cadrage, positions… compris)
-    if (!touched.has(scene.id)) return previous;
-    const merged = { ...previous, ...scene };
-    // Les textes propres à chaque cadrage ne passent pas par Claude : on les garde pour les cadrages conservés
-    if (merged.focuses && previous.focuses) merged.focuses = merged.focuses.map((focus, i) => (previous.focuses![i]?.src === focus.src && previous.focuses![i].title ? { ...focus, title: previous.focuses![i].title } : focus));
-    return merged;
-  });
-  applyBrand(graphOut, parseBrandOutput(output.brand), scoped);
-  return { graph: graphOut, reply: output.reply.trim(), label: output.label.trim().slice(0, 60) || (ctx.interfaceLocale === "en" ? "Edit" : "Modification") };
 }
 
 export const welcomeMessage = mock.welcomeMessage;

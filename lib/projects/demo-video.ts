@@ -6,7 +6,7 @@ import { getEditorialMotion } from "@/config/editorial-motion";
 import { getGraphicMotion } from "@/config/graphic-motion";
 import { getReferenceMotion } from "@/config/reference-motion";
 import { stageTheme } from "@/config/stage-motion";
-import { getTypePoster } from "@/config/type-posters";
+import { getTypePoster, posterTransitionAt } from "@/config/type-posters";
 import { getLogoMotion } from "@/config/logo-motion";
 import { getProductTemplate } from "../../config/physical-product";
 import { demoPhysicalProductProps } from "../products/demo";
@@ -24,7 +24,7 @@ export function demoVideoProps(style: VideoStyle, format: VideoFormatId, locale:
     graph: { schema: 1, language: locale, energy, logoEmphasis: false, styleId: style.id, screenFrame: "phone", logoLayout: "signature", musicTrackId: null, bpm: 120,
       scenes: ["intro", "logo", "feature", "screens", "screens", "cta"].map((kind, i) => ({
         id: `poster-${i}`, kind: kind as "intro" | "logo" | "feature" | "screens" | "cta",
-        title: poster.name.toUpperCase(), subtitle: "", duration: 3, transition: style.recipe.transitions[0],
+        title: poster.name.toUpperCase(), subtitle: "", duration: 3, transition: posterTransitionAt(style.recipe.transitions, i),
         ...(kind === "screens" ? i === 3
           ? { screenFrame: "phone" as const, layout: style.recipe.screens, screenCount: 2 }
           : { screenFrame: "browser" as const, layout: "hero" as const, screenCount: 1 } : {}),

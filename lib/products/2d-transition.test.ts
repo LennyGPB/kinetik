@@ -37,3 +37,22 @@ test("the three transition signatures preserve bounded visible product framing a
   assert.notDeepEqual(middle[0].photo, middle[1].photo);
   assert.notEqual(middle[0].decorShift, middle[2].decorShift);
 });
+
+test("photo swaps start on the outgoing shot, end on the incoming one and keep a product visible", async () => {
+  const { product2DSwap, product2DTurns } = await import("../../config/product-2d-transition");
+  for (const style of styles) for (const b of [1, 2]) {
+    const start = product2DSwap(style, 0, b), end = product2DSwap(style, 1, b);
+    for (const [layer, visible] of [[start.outgoing, true], [end.incoming, true]] as const) {
+      assert.equal(layer.opacity === 1 || layer.opacity > .99, visible, style);
+      assert.ok(Math.abs(layer.x) < .001 && Math.abs(layer.scale - 1) < .001 && layer.blur < .001 && layer.clipLeft + layer.clipRight < .001, `${style} settles`);
+    }
+    for (let i = 0; i <= 40; i++) {
+      const { outgoing, incoming } = product2DSwap(style, i / 40, b);
+      const shown = (l: typeof outgoing) => l.opacity * (1 - (l.clipLeft + l.clipRight) / 100);
+      assert.ok(shown(outgoing) + shown(incoming) > .45, `${style} never hides the product`);
+      for (const l of [outgoing, incoming]) assert.ok(Object.values(l).every(v => typeof v === "boolean" || Number.isFinite(v)));
+    }
+  }
+  assert.equal(product2DTurns({ a: 2, b: 3, mix: .4 }), 2.4);
+  assert.equal(product2DTurns({ a: 3, b: 3, mix: 0 }), 3);
+});

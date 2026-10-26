@@ -4,7 +4,8 @@ import { hash, SkyDome } from "./stage-kit";
 import { CampaignLights } from "./product-campaign-kit";
 
 /** Deterministic sculpted water sheet: a ribbon with ruffled edges and detached spray. */
-export function SplashEnvironment({ base, accent, time }: { base: string; accent: string; time: number }) {
+/** `whip` (radians) : avance supplémentaire du ruban pendant une transition — l'eau fouette le cadre. */
+export function SplashEnvironment({ base, accent, time, whip = 0 }: { base: string; accent: string; time: number; whip?: number }) {
   const steps = 180, across = 8;
   const water = useMemo(() => {
     const geometry = new BufferGeometry();
@@ -20,7 +21,7 @@ export function SplashEnvironment({ base, accent, time }: { base: string; accent
   useLayoutEffect(() => {
     const geometry = fluid.current, p = geometry.attributes.position;
     for (let i = 0; i <= steps; i++) {
-      const t = i / steps, angle = t * Math.PI * 1.87 + time * .13;
+      const t = i / steps, angle = t * Math.PI * 1.87 + time * .13 + whip;
       const taper = Math.sin(Math.PI * t) ** .35;
       const radius = 1.73 + Math.sin(angle * 5 + time * .8) * .12 + Math.sin(angle * 11 - time) * .045;
       for (let j = 0; j <= across; j++) {
@@ -34,7 +35,7 @@ export function SplashEnvironment({ base, accent, time }: { base: string; accent
       }
     }
     p.needsUpdate = true; geometry.computeVertexNormals(); geometry.computeBoundingSphere();
-  }, [water, time]);
+  }, [water, time, whip]);
   useEffect(() => () => water.dispose(), [water]);
   return <>
     <color attach="background" args={[base]} />

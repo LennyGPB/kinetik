@@ -1,6 +1,7 @@
 // ⚠️ Fichier aussi bundlé par Remotion : imports RELATIFS uniquement.
 import { sceneFocuses, type Scene, type SceneGraph, type ScreenFocus, type Transition } from "../lib/projects/scenes";
 import { deviceSpec } from "./device-mockups";
+import { cameraEase, cameraShotAt, mixPose, NEUTRAL_POSE, poseAt, type ObjectPose, type ResolvedPose, type SceneCamera } from "../lib/projects/scene-camera";
 
 /**
  * Templates en vraie 3D (remotion/video/stage3d.tsx + un décor par univers dans remotion/video/stage-envs/).
@@ -34,11 +35,11 @@ export const STAGE_THEMES: Record<StageKind, {
   templateId: string; name: string; signature: Transition; light: boolean; base: string;
   headline: { en: string; fr: string }; description: { en: string; fr: string };
 }> = {
-  loom: { templateId: "loom", name: "Loom", signature: "satin-pass", light: false, base: "#080B12", headline: { fr: "Le mouvement vous habille.", en: "Made to move." }, description: { fr: "Des rubans de m?tal satin? sculptent l?espace autour de votre app. Reflets de studio et pli chrom? accompagnent chaque sc?ne.", en: "Satin-metal ribbons sculpt the space around your app. Studio reflections and a chrome fold accompany each scene." } },
-  tidal: { templateId: "tidal", name: "Tidal", signature: "tidal-wave", light: false, base: "#060E17", headline: { fr: "Une nouvelle vague.", en: "A new wave." }, description: { fr: "Votre app sur une plaque de m?tal au-dessus d?une surface liquide sombre. Rides chrom?es, accents cyan et reflets contr?l?s.", en: "Your app on a metal slab above a dark liquid surface. Chrome ripples, cyan accents and controlled reflections." } },
-  blueprint: { templateId: "blueprint-3d", name: "Blueprint 3D", signature: "blueprint-scan", light: false, base: "#07101A", headline: { fr: "De l’idée au réel.", en: "From idea to reality." }, description: { fr: "Un scanner de pr?cision : cadres en titane, trac?s lumineux et volumes filaires dans un studio miroir sombre.", en: "A precision scanner: titanium frames, luminous traces and wireframe volumes in a dark mirrored studio." } },
-  solstice: { templateId: "solstice-3d", name: "Solstice 3D", signature: "solar-sweep", light: false, base: "#100D0A", headline: { fr: "Sous un nouveau jour.", en: "In a new light." }, description: { fr: "Des panneaux optiques fum?s pivotent autour de votre app. Titane, lumi?re ambr?e et reflets sur un plateau sombre.", en: "Smoked optical panels rotate around your app. Titanium, amber light and reflections on a dark stage." } },
-  assembly: { templateId: "assembly", name: "Assembly", signature: "arm-exchange", light: false, base: "#080D12", headline: { fr: "Chaque geste compte.", en: "Precision in motion." }, description: { fr: "Des bras en titane usin? pr?sentent votre app. Joints lumineux fins, plateau graphite et chor?graphie m?canique de pr?cision.", en: "Machined titanium arms present your app. Fine luminous joints, a graphite stage and precision mechanical choreography." } },
+  loom: { templateId: "loom", name: "Loom", signature: "satin-pass", light: false, base: "#080B12", headline: { fr: "Le mouvement vous habille.", en: "Made to move." }, description: { fr: "Des rubans de métal satiné sculptent l’espace autour de votre app. Reflets de studio et pli chromé accompagnent chaque scène.", en: "Satin-metal ribbons sculpt the space around your app. Studio reflections and a chrome fold accompany each scene." } },
+  tidal: { templateId: "tidal", name: "Tidal", signature: "tidal-wave", light: false, base: "#060E17", headline: { fr: "Une nouvelle vague.", en: "A new wave." }, description: { fr: "Votre app sur une plaque de métal au-dessus d’une surface liquide sombre. Rides chromées, accents cyan et reflets contrôlés.", en: "Your app on a metal slab above a dark liquid surface. Chrome ripples, cyan accents and controlled reflections." } },
+  blueprint: { templateId: "blueprint-3d", name: "Blueprint 3D", signature: "blueprint-scan", light: false, base: "#07101A", headline: { fr: "De l’idée au réel.", en: "From idea to reality." }, description: { fr: "Un scanner de précision : cadres en titane, tracés lumineux et volumes filaires dans un studio miroir sombre.", en: "A precision scanner: titanium frames, luminous traces and wireframe volumes in a dark mirrored studio." } },
+  solstice: { templateId: "solstice-3d", name: "Solstice 3D", signature: "solar-sweep", light: false, base: "#100D0A", headline: { fr: "Sous un nouveau jour.", en: "In a new light." }, description: { fr: "Des panneaux optiques fumés pivotent autour de votre app. Titane, lumière ambrée et reflets sur un plateau sombre.", en: "Smoked optical panels rotate around your app. Titanium, amber light and reflections on a dark stage." } },
+  assembly: { templateId: "assembly", name: "Assembly", signature: "arm-exchange", light: false, base: "#080D12", headline: { fr: "Chaque geste compte.", en: "Precision in motion." }, description: { fr: "Des bras en titane usiné présentent votre app. Joints lumineux fins, plateau graphite et chorégraphie mécanique de précision.", en: "Machined titanium arms present your app. Fine luminous joints, a graphite stage and precision mechanical choreography." } },
   gyroscope: {
     templateId: "orbit-3d", name: "Orbit 3D", signature: "gyro-turn", light: false, base: "#080E14",
     headline: { en: "A world around you.", fr: "Une nouvelle orbite." },
@@ -243,6 +244,9 @@ function orbitPair(kind: Scene["kind"], side: 1 | -1): Pair {
 
 export type StageScene = {
   kind: Scene["kind"]; transition: Transition; from: number; duration: number; deviceCount: number; showDevice: boolean;
+  /** Plan de caméra et pose de l'appareil demandés pour la scène (chat) ; absents = ceux du template */
+  camera?: SceneCamera;
+  pose?: ObjectPose;
   /** Mises en avant (zoom / découpe) de la scène, dans l'ordre ; jouées en 3D sur l'écran de l'appareil */
   focus?: ScreenFocus[];
 };
@@ -254,30 +258,84 @@ export function sceneShot(scene: StageScene, index: number, t: number, format: S
   const f = framing(format, centered);
   // Plusieurs appareils côte à côte : la caméra recule d'autant
   const spread = 1 + 0.42 * (Math.max(1, scene.deviceCount) - 1);
-  const k = easeInOutSine(clamp01(t));
+  const k = cameraEase(scene.camera?.ease, clamp01(t), easeInOutSine);
+  // Plan demandé (chat) : remplace les valeurs du template champ par champ
+  const custom = cameraShotAt(scene.camera, k);
   return {
-    az: lerp(a.az, b.az, k), el: lerp(a.el, b.el, k), ty: lerp(a.ty, b.ty, k),
-    dist: lerp(a.dist, b.dist, k) * f.zoom * spread * (theme === "assembly" && format === "square" && !centered ? 1.14 : 1),
+    az: custom.angle ?? lerp(a.az, b.az, k), el: custom.height ?? lerp(a.el, b.el, k), ty: lerp(a.ty, b.ty, k),
+    dist: lerp(a.dist, b.dist, k) * f.zoom * spread * (theme === "assembly" && format === "square" && !centered ? 1.14 : 1) / (custom.zoom ?? 1),
     // Articulated arms need additional separation from the text in non-screen shots.
-    x: theme === "assembly" && !centered && format !== "portrait" ? (format === "square" ? 0.85 : 0.73) : f.x, y: f.y,
+    x: scene.camera?.frameX ?? (theme === "assembly" && !centered && format !== "portrait" ? (format === "square" ? 0.85 : 0.73) : f.x), y: scene.camera?.frameY ?? f.y,
   };
 }
 
 /** Durée (images) des deux moitiés d'une transition de plateau : fin de la scène précédente, début de la suivante. */
 export function stageTransitionFrames(transition: Transition) {
-  if (["satin-pass", "tidal-wave", "blueprint-scan", "solar-sweep", "arm-exchange"].includes(transition)) return { out: 24, in: 28 };
+  // Gestes de caméra rapides (courbe « whoosh ») : plus aucun cache plein écran, la caméra fait la transition
+  if (CAMERA_TRANSITIONS.includes(transition)) return { out: 12, in: 18 };
   if (transition === "array-sweep") return { out: 20, in: 26 };
   if (transition === "gyro-turn") return { out: 22, in: 28 };
-  if (transition === "magnetic-lock") return { out: 18, in: 22 };
-  if (transition === "vault-pass") return { out: 22, in: 26 };
-  if (transition === "stone-slide") return { out: 18, in: 22 };
   if (transition === "halo-pass") return { out: 20, in: 24 };
-  // Coupe nette : le flash (Shoot) et le râteau (Zen) masquent eux-mêmes le changement de plan
-  if (transition === "cut" || transition === "flash" || transition === "rake") return { out: 0, in: 0 };
+  if (transition === "cut") return { out: 0, in: 0 };
   if (transition === "turntable" || transition === "current") return { out: 14, in: 18 };
   if (transition === "sunpath") return { out: 16, in: 22 };
   if (transition === "district") return { out: 22, in: 28 };
   return { out: 10, in: 18 };
+}
+
+/** Transitions signatures jouées par un geste de caméra court (anciens caches plein écran : rideaux, volets, flash blanc, râteau). */
+export const CAMERA_TRANSITIONS: Transition[] = ["satin-pass", "tidal-wave", "blueprint-scan", "solar-sweep", "arm-exchange", "magnetic-lock", "vault-pass", "stone-slide", "flash", "rake"];
+
+/** Gestes de caméra des transitions : fouet latéral, spirale, plongée au ras du sol, orbite, envolée en grue, poussée. */
+export const STAGE_GESTURES = ["whip", "spiral", "plunge", "orbit", "rise", "push"] as const;
+export type StageGesture = (typeof STAGE_GESTURES)[number];
+/** Chaque univers enchaîne trois gestes différents (transition 1, 2, 3, puis on recommence). Kiosque garde son survol. */
+export const STAGE_SEQUENCES: Record<StageKind, [StageGesture, StageGesture, StageGesture]> = {
+  orbit: ["push", "rise", "whip"],
+  monument: ["orbit", "plunge", "spiral"],
+  shoot: ["whip", "push", "orbit"],
+  aquarium: ["rise", "spiral", "plunge"],
+  zen: ["push", "orbit", "rise"],
+  kiosk: ["rise", "orbit", "whip"],
+  obsidian: ["whip", "plunge", "orbit"],
+  halo: ["push", "spiral", "rise"],
+  magnet: ["spiral", "push", "whip"],
+  vault: ["push", "orbit", "rise"],
+  gyroscope: ["orbit", "rise", "spiral"],
+  loom: ["spiral", "whip", "push"],
+  tidal: ["plunge", "orbit", "whip"],
+  blueprint: ["rise", "whip", "spiral"],
+  solstice: ["orbit", "push", "plunge"],
+  assembly: ["whip", "spiral", "rise"],
+};
+/** Ampleur des gestes : Zen reste contemplatif, Vault mesuré. */
+const GESTURE_AMPLITUDE: Partial<Record<StageKind, number>> = { zen: 0.6, vault: 0.8 };
+
+/**
+ * Courbe « whoosh » : départ et arrivée immobiles, pointe ≈ 5 fois la vitesse moyenne au milieu
+ * (expo in-out mêlée de cubique, comme les templates produits 3D).
+ */
+export function stageWhoosh(t: number) {
+  const x = clamp01(t);
+  if (x === 0 || x === 1) return x;
+  const expo = x < 0.5 ? Math.pow(2, 20 * x - 10) / 2 : (2 - Math.pow(2, -20 * x + 10)) / 2;
+  return 0.65 * expo + 0.35 * easeInOutCubic(x);
+}
+
+/**
+ * Ce qu'un geste ajoute au trajet de caméra : `arc` = sin²(π·p) (nul et immobile aux deux bouts), `rush` = pic de vitesse.
+ * L'orbite traverse toujours l'avant de l'appareil (côté opposé à l'angle moyen) et reste sous ±65° : les décors sont faits pour l'avant.
+ */
+function stageGesture(gesture: StageGesture, shot: Shot, mid: number, arc: number, direction: number, amp: number) {
+  const swing = (deg: number) => direction * Math.min(deg * amp, 65 + Math.abs(mid)) * arc;
+  switch (gesture) {
+    case "whip": return { shot: { ...shot, az: shot.az + swing(58), el: shot.el - 2 * arc }, fov: 7, bank: 0.14, blur: [1, 0.1] as [number, number] };
+    case "spiral": return { shot: { ...shot, az: shot.az + swing(46), el: shot.el + 16 * amp * arc, dist: shot.dist * (1 - 0.18 * amp * arc) }, fov: 6, bank: 0.12, blur: [1, 0.3] as [number, number] };
+    case "plunge": return { shot: { ...shot, el: shot.el - (shot.el - 1) * 0.85 * amp * arc, dist: shot.dist * (1 - 0.28 * amp * arc), ty: shot.ty - 0.12 * arc }, fov: 9, bank: 0.06, blur: [0.15, 1] as [number, number] };
+    case "orbit": return { shot: { ...shot, az: shot.az + swing(78), dist: shot.dist * (1 + 0.12 * amp * arc) }, fov: 4, bank: 0.1, blur: [1, 0] as [number, number] };
+    case "rise": return { shot: { ...shot, el: shot.el + 30 * amp * arc, dist: shot.dist * (1 + 0.4 * amp * arc), ty: shot.ty + 0.25 * arc }, fov: 5, bank: 0.05, blur: [0.1, 1] as [number, number] };
+    case "push": return { shot: { ...shot, dist: shot.dist * (1 - 0.45 * amp * arc) }, fov: 10, bank: 0.08, blur: [0.6, 0.6] as [number, number] };
+  }
 }
 
 export type StageState = {
@@ -304,6 +362,13 @@ export type StageState = {
   clock: number;
   /** Transition en cours et sa progression (0 → 1, adoucie), pour les effets du décor (bulles, flash…) */
   transition: { kind: Transition; k: number; to: number } | null;
+  /**
+   * Geste de caméra de la transition : inclinaison (radians), champ élargi (degrés), pic de vitesse 0 → 1 → 0
+   * (flou de vitesse le long de `blur`, axes horizontal / vertical).
+   */
+  lens: { gesture: StageGesture | null; bank: number; fov: number; rush: number; blur: [number, number] };
+  /** Pose demandée de l'appareil (bascule, rotation, inclinaison, élévation, taille), fondue d'une scène à l'autre */
+  pose: ResolvedPose;
 };
 
 /**
@@ -375,14 +440,35 @@ export function stageState(scenes: StageScene[], frame: number, format: StageFor
   // Horloge : 30 % de chaque tranche pendant la scène, 70 % pendant la transition qui suit (accéléré)
   let clock = (index + 0.3 * progressIn(index, frame)) / Math.max(1, scenes.length);
   let transition: StageState["transition"] = null;
+  let lens: StageState["lens"] = { gesture: null, bank: 0, fov: 0, rush: 0, blur: [1, 0] };
+  const time = frame / 30;
+  let pose: ResolvedPose = scene.pose ? poseAt(scene.pose, progressIn(index, frame), time) : NEUTRAL_POSE;
   if (blend) {
-    const k = easeInOutCubic(clamp01(blend.p));
+    // Survol de Kiosque et tours de plateau : courbe douce ; partout ailleurs, geste « whoosh »
+    const flight = theme === "kiosk" || blend.transition === "turntable" || blend.transition === "current";
+    const linear = clamp01(blend.p);
+    const k = flight ? easeInOutCubic(linear) : stageWhoosh(linear);
     const from = base(blend.from, 1), to = base(blend.to, 0);
     shot = lerpShot(from, to, k);
+    const asked = scenes[blend.to].camera;
+    if (theme !== "kiosk" && asked?.gesture !== "none") {
+      const gesture = asked?.gesture ?? STAGE_SEQUENCES[theme][(blend.to - 1) % 3];
+      const mid = (from.az + to.az) / 2;
+      const direction = Math.abs(mid) > 2 ? -Math.sign(mid) : blend.to % 2 ? 1 : -1;
+      const arc = Math.sin(Math.PI * linear) ** 2;
+      const rush = Math.sin(Math.PI * linear) ** 4;
+      // Sur un tour de plateau, l'appareil tourne déjà : geste de caméra plus discret
+      const amp = (GESTURE_AMPLITUDE[theme] ?? 1) * (flight ? 0.5 : 1) * (asked?.gestureAmount ?? 1);
+      const applied = stageGesture(gesture, shot, mid, arc, direction, amp);
+      shot = applied.shot;
+      lens = { gesture, bank: applied.bank * amp * direction * rush, fov: applied.fov * amp * rush, rush: rush * amp, blur: applied.blur };
+    }
     devices = lerp(deviceCount(scenes[blend.from]), deviceCount(scenes[blend.to]), k);
+    if (scenes[blend.from].pose || scenes[blend.to].pose) pose = mixPose(poseAt(scenes[blend.from].pose, 1, time), poseAt(scenes[blend.to].pose, 0, time), k);
     const a = stageSpot(theme, blend.from), b = stageSpot(theme, blend.to);
     spot = [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
-    clock = (blend.from + 0.3 + 0.7 * k) / Math.max(1, scenes.length);
+    // Horloge du décor : accélérée, mais sans à-coup (courbe douce, même sous un geste « whoosh »)
+    clock = (blend.from + 0.3 + 0.7 * easeInOutCubic(linear)) / Math.max(1, scenes.length);
     transition = { kind: blend.transition, k, to: blend.to };
     if (blend.transition === "vault-pass") {
       const travel = Math.sin(Math.PI * k);
@@ -410,7 +496,7 @@ export function stageState(scenes: StageScene[], frame: number, format: StageFor
   // Onde de sol : part de chaque frontière (sauf la première scène, qui a sa propre montée)
   const since = index > 0 ? local : local - 18;
   const wave = since >= 0 && since < 40 ? since / 40 : -1;
-  return { shot, spin, screen, devices, wave, index, progress: scene.duration > 0 ? clamp01(local / scene.duration) : 0, focus, spot, clock, transition };
+  return { shot, spin, screen, devices, wave, index, progress: scene.duration > 0 ? clamp01(local / scene.duration) : 0, focus, spot, clock, transition, lens, pose };
 }
 
 /** Ce que l'écran de l'appareil montre pour une scène : capture(s) fournie(s), écran d'accueil au logo, ou maquette. */
