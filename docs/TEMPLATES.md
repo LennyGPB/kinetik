@@ -431,6 +431,10 @@ Règles de direction artistique : `docs/MOTION-RULES.md`. Mécanique dans le mot
 | `streak` | colonnes de lumière qui s'élargissent | Lumen (`interlock`) |
 | `surge` | le liquide monte jusqu'à couvrir l'écran puis redescend | Gloss (`gloss`) |
 | `sparkle` | une étoile chromée à quatre branches s'ouvre en tournant jusqu'à couvrir l'écran pendant que le cadre se liquéfie, puis se referme (sortie 11 images, entrée 13, temps linéaire) | Lustre (`lustre`) |
+| `heatscan` | une ligne de scan blanche descend ; au-dessus, colonnes thermiques (bleu nuit → bleu → cyan → blanc → rouge) qui coulent, pendant que l’image passe en fausses couleurs étirées vers le bas ; à l’entrée, une seconde ligne découvre la scène suivante, qui refroidit (sortie 12 images, entrée 15, temps linéaire) | Thermal (`thermal`) |
+| `cast` | l’ombre couchée du premier mot de la scène suivante surgit du bas en perspective et fonce vers la caméra jusqu’à remplir l’écran, puis se recouche ; le décor plonge légèrement (sortie 13 images, entrée 16) | Cast (`cast`) |
+| `shatter` | une toile de fissures claires part d'un point d'impact et couvre le cadre, les éclats deviennent opaques du centre vers les bords ; à l'entrée, ils tombent en tournant (sortie 12 images, entrée 18, temps linéaire, secousse amortie du décor) | Shard (`shard`) |
+| `blob` | une tache orange dessinée à la main (contour d'encre, hachures, bord bouillonnant) gonfle en rebond jusqu'à couvrir l'écran pendant que l'image tremble, puis se rétracte en ressort (sortie 12 images, entrée 15) | Wiggle (`wiggle`) |
 
 Les anciennes transitions de ces templates restent autorisées : les projets existants gardent leurs transitions enregistrées,
 les nouvelles générations partent de la signature. Les transitions `whip` et `ripple` posent un filtre sur le contenu et le fond
@@ -488,6 +492,22 @@ Identifiants conservés. Offprint et Patina ne sont plus des templates photo (tr
 
 `lustre-art.tsx`, `lustre.tsx` : pochette Y2K. Mot en chrome liquide (rose vif, bleu glacé, reflets blancs) dessiné en SVG de largeur fixe (1000 unités, même rendu dans les trois formats et la miniature) : déplacement par un champ de bruit qui glisse sur une courbe sinusoïdale (ondulation continue), flou puis seuil (lettres gonflées), éclairage spéculaire dont la lumière tourne une fois par mesure, liseré sombre et lueur rose. Retour à la ligne automatique (1 à 3 lignes, découpage qui maximise la taille, jamais de mot de deux lettres seul). Entrée en ressort (le métal se gonfle depuis une flaque), sortie qui fond. Étincelles à quatre branches qui scintillent en cloche, fond noir granuleux avec poussières et rayures de pellicule. Deux lignes de crédits en capitales très espacées sous le mot (sous-titre, nom de l'app). Transitions : `sparkle` (signature), `ripple`, `fade`. Voisins : Gloss (liquide sous un mot en contour, `surge`, condensée, expo) et Melt (coulures, espace) — Lustre diffère par la transition, la typographie (Unbounded), la courbe (ressort) et le fond.
 
+### Thermal (nouveau, 26/10/2026)
+
+`thermal-art.tsx`, `thermal.tsx` : affiche tech noire. Mot en perspective (plan incliné, Bricolage 800), face noire cerclée de blanc avec halo cyan ; extrusion droite jusqu’au bas du cadre obtenue par 10 décalages doublés fusionnés (coulée continue), remplie de bandes thermiques tirées de la palette qui descendent en continu, intérieur des lettres assombri (seuls les bords brûlent), refroidissement vers le bas. En-tête monospace en trois colonnes, pastille d’app (initiale), sous-titre en deux étiquettes noires décalées. Entrée : la face apparaît puis la coulée descend (expo) ; sortie : le mot s’enfonce dans sa coulée. Transitions : `heatscan` (signature), `whip`, `fade`. Voisins : Smear (traînées depuis un mot condensé, `smear`) et Melt (coulures, `drip`) — Thermal diffère par la perspective, l’échelle thermique, la transition, la typographie et l’en-tête technique.
+
+### Cast (nouveau, 26/10/2026)
+
+`cast-art.tsx`, `cast.tsx` : studio gris clair. Mot condensé très haut (Anton) posé sur l’horizon (`castHorizon` : 56 / 58 / 60 % selon le format), sous-titre vertical en capitales espacées à sa gauche, pastille d’app à l’accent ; projection lumineuse renversée couchée au sol en perspective CSS, qui pivote et s’allonge avec une lumière qui tourne lentement (courbes sinusoïdales continues, `castLight`). Le fond suit la lumière (halo). Entrée : le mot sort du sol (léger dépassement) ; sortie : il y redescend. Pied de page en deux colonnes. Transitions : `cast` (signature, raccord par masque typographique), `zoom`, `fade`. Seul template motion sur fond clair de cette famille d’affiches.
+
+### Shard (nouveau, 26/10/2026)
+
+`shard-art.tsx`, `shard.tsx` : affiche noire. Titre condensé blanc (Anton) serré sur 1 à 3 lignes, fendu par cinq cassures droites tirées du texte (quatre presque verticales, une couchée). Chaque cassure découpe le plan en deux demi-plans (clipPath) ; les 32 combinaisons sont rendues avec leur glissement cumulé, les cassures sont retracées dans la couleur du fond et des éclats fins (dont un à l'accent) restent accrochés. Entrée : le titre arrive entier puis se fend d'un coup (fissures en 4 images, glissement en rebond sec) ; sortie : chaque morceau tombe avec sa vitesse et sa rotation. En-tête en deux colonnes, pastille d'app coupée par le coin bas gauche, sous-titre en bas à droite. Transitions : `shatter` (signature), `cut`, `whip`.
+
+### Wiggle (nouveau, 26/10/2026)
+
+`wiggle-art.tsx`, `wiggle.tsx` : affiche anthracite tachetée. Titre en grosses lettres (Bricolage 800), un mot par ligne : première ligne à l'accent hachurée de jaune, suivantes blanches, contour sombre épais décalé, trait de craie. Bouillonnement continu (bruit qui glisse sur une courbe fermée, jamais par paliers) et dandinement par lettre (rotation et hauteur avec leur propre phase). Entrée : les lettres sautent une à une en ressort ; sortie : elles s'écrasent et tombent. Pastille carrée au trait avec l'initiale, sous-titre en petites capitales, petite marque sous le titre. Transitions : `blob` (signature), `slide`, `fade`.
+
 ### Crosscut (refonte)
 
 Montage alterné : deux plans de la photo en diagonale (pente de 10 % de la hauteur) qui travellent en sens opposés, une bande d’accent avec un défilant de clap (« SCENE 01 — TAKE 01 — CUT »), plans A / B qui échangent couleur et noir et blanc à chaque scène, titre aligné sur la diagonale. Transition signature `scissor` (refaite le 25/10/2026, sans aplat plein écran) : coupe de montage dans le décor — les deux plans photo filent en sens contraires le long de la diagonale (sortie 12 images, entrée 16), avec flou de vitesse ; la bande reste en place comme ligne de coupe, un filet clair court sur son bord et le défilant bondit d'un cran ; le titre suit le plan du haut le long de la diagonale. Chaque scène a ses propres cadrages A / B (`CROSSCUT_CROPS`), le voile du plan du haut est limité à la gauche (photo visible), filets de calage tracés le long de la bande et repères de calage dans les coins. `EditorialBackdrop` reçoit désormais `time` pour les mouvements continus entre scènes.
@@ -502,3 +522,11 @@ Montage alterné : deux plans de la photo en diagonale (pente de 10 % de la haut
   en fin de scène dans l'axe où elle s'est ouverte. Transitions : `fold`, `hairline`, `ink`, `fade`.
 - **Broadsheet** (`press-column`) : chaque scène est une nouvelle édition (autres cadrages), trame de points sur les photos,
   calque d'impression décalé qui se recale à l'arrivée, filet pointillé qui défile. Transitions : `track`, `press`, `stencil`, `fold`.
+
+## Masquer / mettre en « Populaire » (admin)
+
+Page `/admin/templates` : par catégorie de galerie (motion, produits physiques, logo, posts, store, décors), chaque template peut être
+**masqué** (retiré de toutes les galeries, les projets existants continuent de marcher) ou marqué **Populaire** (8 max par catégorie,
+badge dans la galerie et affiché en tête). Stockage : table `TemplateSetting` ; lecture en cache (`lib/templates/settings.ts`, tag
+`template-settings`) invalidée par l'action admin. Liste des catégories : `config/template-catalog.ts`. Un nouveau template
+apparaît automatiquement dans l'admin.

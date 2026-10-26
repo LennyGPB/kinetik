@@ -48,10 +48,12 @@ export const CAMPAIGN_POST_TEMPLATES = [
   { id: "post-chrome", name: "Chrome", linked: false, layout: "chrome", palette: ["#F1ECFF", "#14121C", "#7B4DFF"], description: { fr: "Lavande et violet : forme 3D chromée, photo en duotone, titre net et bouton flèche.", en: "Lavender and purple: a chrome 3D shape, duotone photo, crisp title and an arrow button." } },
   { id: "post-nexus", name: "Nexus", linked: false, layout: "nexus", palette: ["#050806", "#F2F5F1", "#2BFF88"], description: { fr: "Tech néon : noir profond, halos et planète vert néon, photo teintée, titre large entaillé et badge.", en: "Neon tech: deep black, neon-green glows and planet, tinted photo, a cut wide headline and a badge." } },
   { id: "post-amplify", name: "Amplify", linked: false, layout: "amplify", palette: ["#0B0B0B", "#FFFFFF", "#FFD400"], description: { fr: "Agence marketing jaune et noir : titres condensés géants, mot clé surligné, photo en duotone et grille lumineuse.", en: "Yellow-and-black marketing agency: giant condensed titles, a highlighted keyword, duotone photo and a glowing grid." } },
+  { id: "post-riot", name: "Riot", linked: false, layout: "riot", palette: ["#120A1C", "#FFFFFF", "#FF2BD6"], description: { fr: "Grunge violet et magenta : spray et coulures, note scotchée, écran d’appareil photo, portrait duotone et mot surligné au pinceau.", en: "Purple-and-magenta grunge: spray and drips, a taped note, a camera screen, a duotone portrait and a brush-highlighted word." } },
 ] as const;
 
 export const CAMPAIGN_DEMO_PHOTOS: Record<string, string> = {
   "post-nexus": "/post-demos/portrait-1.jpg",
+  "post-riot": "/post-demos/portrait-5.jpg",
   "post-amplify": "/post-demos/portrait-3.jpg",
   "post-neon-night": "/post-demos/portrait-6.jpg",
   "post-warp": "/post-demos/city.jpg",

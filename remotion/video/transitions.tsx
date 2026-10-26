@@ -8,7 +8,7 @@ import type { MotionEase, MotionExit } from "../../config/recipes";
 import type { VideoProps } from "../props";
 import { useRecipe } from "./theme";
 import { CollectionTransitionCover, isCollectionTransition } from "./collection-transitions";
-import { LiquidWarpFilter, SparkleCover, BurnCover, CapsuleCover, DripCover, ScanCover, ScrawlCover, SmudgeGlow, StrataCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
+import { BlobCover, BoilFilter, ShatterCover, CastCover, ThermalFilter, ThermalScanCover, LiquidWarpFilter, SparkleCover, BurnCover, CapsuleCover, DripCover, ScanCover, ScrawlCover, SmudgeGlow, StrataCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
 
 /**
  * BRIQUES « transitions » (scene.transition, choisie par Claude parmi recipe.transitions).
@@ -479,6 +479,65 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     backdrop: ({ phase, t, unit, frame, id }) => {
       const s = phase === "out" ? t : 1 - t;
       return { style: { transform: `scale(${1 + s * 0.05}) rotate(${(phase === "out" ? 1 : -1) * s * 2}deg)`, filter: s > 0.05 ? `url(#${id})` : undefined }, defs: <LiquidWarpFilter id={id} amount={s * unit * 4} frame={frame} /> };
+    },
+  },
+  // Scan thermique (Thermal) : une ligne de scan descend, le cadre passe en fausses couleurs et s'étire vers le bas sous
+  // des colonnes thermiques ; à l'entrée, une seconde ligne découvre la scène suivante, qui refroidit
+  heatscan: {
+    enter: (energy) => (energy === "high" ? 12 : 15),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    wrap: (children, c, id) => filtered(children, id, 1 - c.inP, (fid) => <ThermalFilter id={fid} amount={1 - c.inP} unit={c.unit} palette={c.palette} />),
+    // Temps linéaire : la ligne garde la même vitesse qu'à la sortie
+    overlay: (c) => <ThermalScanCover {...coverIn(c)} p={clamp01(1 - c.frame / 15)} />,
+    exit: {
+      frames: 12,
+      cover: (c) => <ThermalScanCover {...c} />,
+      wrap: (children, t, c, id) => filtered(children, id, t, (fid) => <ThermalFilter id={fid} amount={t} unit={c.unit} palette={c.palette} />),
+    },
+  },
+  // Bris de verre (Shard) : une toile de fissures couvre le cadre et les éclats deviennent opaques, puis tombent en tournant
+  shatter: {
+    enter: (energy) => (energy === "high" ? 14 : 18),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    // Temps linéaire : la chute des éclats ne suit pas la courbe en rebond du template
+    overlay: (c) => <ShatterCover {...coverIn(c)} p={clamp01(1 - c.frame / 18)} />,
+    exit: { frames: 12, cover: (c) => <ShatterCover {...c} /> },
+    // Secousse de l'impact : le décor tremble brièvement, amortie
+    backdrop: ({ phase, t, unit }) => {
+      const s = phase === "out" ? t : 0;
+      return { style: { transform: `translate(${(Math.sin(s * 40) * (1 - s) * unit * 0.6).toFixed(2)}px, ${(Math.cos(s * 33) * (1 - s) * unit * 0.4).toFixed(2)}px)` } };
+    },
+  },
+  // Tache (Wiggle) : une tache dessinée gonfle en rebond jusqu'à couvrir l'écran pendant que l'image tremble, puis se rétracte
+  blob: {
+    enter: (energy) => (energy === "high" ? 12 : 15),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    wrap: (children, c, id) => filtered(children, id, (1 - c.inP) * c.unit * 2.5, (fid) => <BoilFilter id={fid} amount={(1 - c.inP) * c.unit * 2.5} frame={c.frame} />),
+    overlay: (c) => <BlobCover {...coverIn(c)} p={clamp01(1 - c.frame / 15)} />,
+    exit: {
+      frames: 12,
+      cover: (c) => <BlobCover {...c} />,
+      wrap: (children, t, c, id) => filtered(children, id, t * c.unit * 2.5, (fid) => <BoilFilter id={fid} amount={t * c.unit * 2.5} frame={c.frame} />),
+    },
+  },
+  // Projection (Cast) : l'ombre couchée du mot suivant fonce vers le spectateur jusqu'à remplir l'écran, puis recule
+  cast: {
+    enter: (energy) => (energy === "high" ? 13 : 16),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    overlay: (c) => <CastCover {...coverIn(c)} p={clamp01(1 - c.frame / 16)} />,
+    exit: { frames: 13, cover: (c) => <CastCover {...c} /> },
+    // Le décor recule légèrement pendant que l'ombre arrive (la caméra plonge vers le sol)
+    backdrop: ({ phase, t }) => {
+      const s = phase === "out" ? t : 1 - t;
+      return { style: { transform: `translateY(${(-s * 4).toFixed(2)}%) scale(${1 + s * 0.06})` } };
     },
   },
   // Montée (Gloss) : le liquide rose monte en vague jusqu'à couvrir l'écran, puis redescend

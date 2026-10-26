@@ -28,6 +28,10 @@ import { VeilLayout } from "./veil";
 import { LumenLayout } from "./lumen";
 import { GlossLayout } from "./gloss";
 import { LustreLayout } from "./lustre";
+import { ThermalLayout } from "./thermal";
+import { CastLayout } from "./cast";
+import { ShardLayout } from "./shard";
+import { WiggleLayout } from "./wiggle";
 import { Typo5Layout } from "./typo5";
 import { isLight, textColorOn, useBodyFont, useIsPortrait, useRecipe, useTitleFont, useTitleScale, useUnit } from "./theme";
 
@@ -163,6 +167,10 @@ function AuthoredLayout(l: TextLayoutProps) {
   if (kind === "interlock") return <LumenLayout {...l} />;
   if (kind === "gloss") return <GlossLayout {...l} />;
   if (kind === "lustre") return <LustreLayout {...l} />;
+  if (kind === "thermal") return <ThermalLayout {...l} />;
+  if (kind === "cast") return <CastLayout {...l} />;
+  if (kind === "shard") return <ShardLayout {...l} />;
+  if (kind === "wiggle") return <WiggleLayout {...l} />;
   if (kind === "hollow" || kind === "cursive" || kind === "overlap" || kind === "bloom" || kind === "reflect") return <Typo5Layout kind={kind} {...l} />;
   const centered = ["blackout", "cadence", "anvil"].includes(kind ?? "");
   const graphicScale = width >= height && ["anvil", "blackout"].includes(kind ?? "") ? 1.1 : 1.35;

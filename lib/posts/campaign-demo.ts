@@ -14,6 +14,7 @@ export function campaignDemo(templateId: string, locale: "fr" | "en"): PostDocum
     "chrome": ["Ta stratégie, enfin claire.", "Contenu vs résultat", "Prêt à grandir ?"],
     nexus: ["LANCEMENT DE LA BÊTA", "CE QUI EST DISPONIBLE", "REJOIGNEZ LE TEST"],
     amplify: ["À QUOI SERT UN SLOGAN ?", "TROIS TYPES DE POSTS", "LE TON DE TA MARQUE"],
+    riot: ["AVIS CLIENTS", "CE QUE LE CLIENT A DEMANDÉ", "TON VISUEL COMPTE VRAIMENT"],
     riptide: ["NOUVELLE COLLECTION", "VENTE FLASH", "LIEN EN BIO"],
     focal: ["focus", "clarté", "regard"],
     acid: ["RENCONTREZ VOTRE ALLIÉ", "CONÇU POUR DEMAIN", "REJOIGNEZ LE MOUVEMENT"],
@@ -63,6 +64,7 @@ export function campaignDemo(templateId: string, locale: "fr" | "en"): PostDocum
     "chrome": ["Your strategy, made clear.", "Content vs results", "Ready to grow?"],
     nexus: ["BETA LAUNCH IS HERE", "WHAT IS AVAILABLE", "JOIN THE TEST"],
     amplify: ["WHAT IS A SLOGAN FOR?", "THREE TYPES OF POSTS", "YOUR BRAND VOICE"],
+    riot: ["CLIENT FEEDBACK", "WHAT MY CLIENT ASKED FOR", "YOUR VISUALS REALLY MATTER"],
     riptide: ["NEW COLLECTION", "FLASH SALE", "LINK IN BIO"],
     focal: ["focus", "clarity", "vision"],
     acid: ["MEET YOUR NEW FRIEND", "BUILT FOR TOMORROW", "JOIN THE MOVEMENT"],
@@ -105,5 +107,5 @@ export function campaignDemo(templateId: string, locale: "fr" | "en"): PostDocum
     atelier: ["The art of detail.", "A distinctive présence.", "Images that last."],
   };
   return { type: "post", templateId, format: "FEED", colors: [...template.palette], linked: template.linked, font: ["daybook", "ritual", "dune", "atelier"].includes(template.layout) ? "serif" : "sans",
-    pages: copy[template.layout].map((title, i): PostPage => ({ id: `demo-${i + 1}`, title, kicker: template.id.startsWith("post-kinetik-") ? "KINETIK / CONTENT IN MOTION" : template.layout === "nexus" ? `${fr ? "PARTIE" : "PART"} ${i + 1}` : template.layout === "amplify" ? (fr ? "Le guide de la semaine" : "This week’s guide") : fr ? "STUDIO / DIRECTION CRÉATIVE" : "STUDIO / CREATIVE DIRECTION", body: fr ? "Une vision claire, des images choisies et une histoire qui vous ressemble." : "A clear vision, carefully chosen imagery and a story that feels like you.", cta: i === 2 ? (fr ? "Créons la suite ensemble →" : "Create what’s next together →") : "", imageIndex: null, layout: "image", titleSize: template.layout === "ritual" ? 88 : 100, align: ["afterhours", "muse", "ritual", "dune"].includes(template.layout) ? "center" : "left", offsetX: 0, offsetY: 0, imageFit: "cover", imageX: 50, imageY: 50, imageZoom: 1, imageEffect: ["afterhours", "still", "diptych"].includes(template.layout) ? "grayscale" : "none", imageOverlay: template.layout === "afterhours" ? 0.55 : 0.35 })) };
+    pages: copy[template.layout].map((title, i): PostPage => ({ id: `demo-${i + 1}`, title, kicker: template.id.startsWith("post-kinetik-") ? "KINETIK / CONTENT IN MOTION" : template.layout === "nexus" ? `${fr ? "PARTIE" : "PART"} ${i + 1}` : template.layout === "amplify" ? (fr ? "Le guide de la semaine" : "This week’s guide") : template.layout === "riot" ? (fr ? "le guide du designer" : "the designer’s guide") : fr ? "STUDIO / DIRECTION CRÉATIVE" : "STUDIO / CREATIVE DIRECTION", body: fr ? "Une vision claire, des images choisies et une histoire qui vous ressemble." : "A clear vision, carefully chosen imagery and a story that feels like you.", cta: i === 2 ? (fr ? "Créons la suite ensemble →" : "Create what’s next together →") : "", imageIndex: null, layout: "image", titleSize: template.layout === "ritual" ? 88 : 100, align: ["afterhours", "muse", "ritual", "dune"].includes(template.layout) ? "center" : "left", offsetX: 0, offsetY: 0, imageFit: "cover", imageX: 50, imageY: 50, imageZoom: 1, imageEffect: ["afterhours", "still", "diptych"].includes(template.layout) ? "grayscale" : "none", imageOverlay: template.layout === "afterhours" ? 0.55 : 0.35 })) };
 }

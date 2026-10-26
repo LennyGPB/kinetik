@@ -511,6 +511,100 @@ export function campaignPostArt(doc: PostDocument, index: number, tools: Campaig
         ${dots}
         <rect width="${w}" height="${h}" filter="url(#${id}grain)"/>`;
     }
+    case "riot": {
+      // Grunge violet et magenta (feeds de designers) : spray, coulures, scotch et grain. Trois compositions en alternance :
+      // note scotchée sur un calendrier, écran d'appareil photo magenta, portrait duotone avec mot surligné au pinceau.
+      const violet = mixHex(accent, "#6A2BFF", 0.65), paper = "#EEE9E1", hh = Math.min(h, 1350), kind = index % 3;
+      const lead = (beginning || page.title).toUpperCase(), key = beginning ? ending.toUpperCase() : "";
+      const size = page.titleSize * 1.5;
+      const splat = (cx: number, cy: number, rx: number, ry: number, n: number, color: string, seed: number) => Array.from({ length: n }, (_, k) => {
+        const a = rnd(seed + k) * Math.PI * 2, d = Math.sqrt(rnd(seed + k * 7.1));
+        return `<circle cx="${(cx + Math.cos(a) * rx * d).toFixed(1)}" cy="${(cy + Math.sin(a) * ry * d).toFixed(1)}" r="${(1 + rnd(seed + k * 3.3) * 4).toFixed(1)}" fill="${color}" opacity="${(0.35 + rnd(seed + k * 5.7) * 0.6).toFixed(2)}"/>`;
+      }).join("");
+      // Bande de spray et coulures qui tombent
+      const drips = (x0: number, x1: number, y: number, color: string, seed: number) => `<rect x="${x0}" y="${y - 30}" width="${x1 - x0}" height="44" fill="${color}" filter="url(#${id}rough)"/>` + Array.from({ length: 9 }, (_, k) => {
+        const x = x0 + (x1 - x0) * (k + 0.5) / 9 + (rnd(seed + k) - 0.5) * 40, len = 30 + rnd(seed + k * 2.3) * 140, r = 4 + rnd(seed + k * 4.1) * 5;
+        return `<path d="M ${x.toFixed(1)} ${y} v ${len.toFixed(1)}" stroke="${color}" stroke-width="${(r * 2).toFixed(1)}" stroke-linecap="round"/>`;
+      }).join("");
+      const tape = (x: number, y: number, r: number, width = 150) => `<rect x="${x}" y="${y}" width="${width}" height="40" fill="#F4F0E6" opacity=".72" transform="rotate(${r} ${x + width / 2} ${y + 20})"/>`;
+      const ticker = (y: number, rot: number, fill: string, ink: string) => `<g transform="rotate(${rot} ${w / 2} ${y})"><rect x="-80" y="${y - 24}" width="${w + 160}" height="48" fill="${fill}"/>${label(`${page.kicker} · `.repeat(8).toUpperCase(), -60, y + 8, 18, ink, false, w * 3, 30)}</g>`;
+      const defs = `<defs>
+          <filter id="${id}rough" x="-10%" y="-40%" width="120%" height="180%"><feTurbulence type="fractalNoise" baseFrequency=".035 .09" numOctaves="3" seed="7"/><feDisplacementMap in="SourceGraphic" scale="26" xChannelSelector="R" yChannelSelector="G"/></filter>
+          <filter id="${id}soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="16"/></filter>
+          <filter id="${id}grain"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="9"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .16"/></feComponentTransfer></filter>
+          <radialGradient id="${id}spray"><stop stop-color="${accent}" stop-opacity=".75"/><stop offset=".55" stop-color="${accent}" stop-opacity=".22"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient>
+          <radialGradient id="${id}glow" cx=".5" cy=".35" r=".75"><stop stop-color="${violet}" stop-opacity=".35"/><stop offset="1" stop-color="${bg}" stop-opacity="0"/></radialGradient>
+          <radialGradient id="${id}pfade" cx=".5" cy=".42" r=".6"><stop offset=".55" stop-color="#ffffff"/><stop offset="1" stop-color="#000000"/></radialGradient>
+        </defs>`;
+      let art = "";
+      if (kind === 0) {
+        // Note scotchée sur un calendrier, flèche au spray et bandeau qui défile
+        const cw = w / 4, rows = Array.from({ length: 5 }, (_, k) => h * 0.06 + k * h * 0.22);
+        const grid = `<g stroke="${fg}" stroke-opacity=".3" stroke-width="3">${[1, 2, 3].map((k) => `<path d="M ${k * cw} 0 V ${h}"/>`).join("")}${rows.map((y) => `<path d="M 0 ${y.toFixed(1)} H ${w}"/>`).join("")}</g>
+          <g opacity=".55">${rows.slice(0, 4).flatMap((y, r) => [0, 1, 2, 3].map((c) => label(String(r * 4 + c + 1), c * cw + cw - 46, y + 40, 26, fg, false, 60))).join("")}</g>`;
+        const nw = 600, nh = Math.min(hh * 0.5, 640), nx = (w - nw) / 2, ny = h * 0.45 - nh / 2, ncx = w / 2, ncy = ny + nh / 2;
+        art = `${grid}
+          <path d="M 40 ${h * 0.3} C ${w * 0.35} ${h * 0.2}, ${w * 0.62} ${h * 0.26}, ${w - 130} ${h * 0.24}" stroke="${violet}" stroke-width="30" fill="none" stroke-linecap="round" filter="url(#${id}rough)"/>
+          <path d="M ${w - 190} ${h * 0.18} L ${w - 100} ${h * 0.235} L ${w - 185} ${h * 0.3}" stroke="${violet}" stroke-width="30" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#${id}rough)"/>
+          ${splat(160, h * 0.78, 170, 90, 60, fg, 3)}
+          <g transform="rotate(8 ${w - 200} ${ny + nh})"><rect x="${w - 330}" y="${ny + nh - 190}" width="270" height="320" fill="${paper}"/>${photo(image, imageRatio, w - 314, ny + nh - 174, 238, 238, true)}<rect x="${w - 314}" y="${ny + nh - 174}" width="238" height="238" fill="${violet}" opacity=".3"/></g>
+          ${tape(w - 250, ny + nh - 205, 14, 110)}
+          <g transform="rotate(-6 ${ncx} ${ncy})">
+            <rect x="${nx + 18}" y="${ny + 26}" width="${nw}" height="${nh}" fill="#000000" opacity=".55" filter="url(#${id}soft)"/>
+            <rect x="${nx}" y="${ny}" width="${nw}" height="${nh}" fill="${paper}"/>
+            ${heading(page.title.toUpperCase(), "condensed", nx + 44, ny + 70, nw - 88, nh * 0.5, size * 1.1, accent, true)}
+            ${label(page.kicker.toUpperCase(), ncx, ny + nh * 0.7, 28, bg, true, nw - 100, 40)}
+            <path d="M ${nx + 120} ${ny + nh * 0.74} C ${ncx - 60} ${ny + nh * 0.72}, ${ncx + 80} ${ny + nh * 0.77}, ${nx + nw - 120} ${ny + nh * 0.735}" stroke="${accent}" stroke-width="10" fill="none" stroke-linecap="round"/>
+            ${label(page.body, ncx, ny + nh * 0.83, 20, mixHex(bg, paper, 0.25), true, nw - 120, nh * 0.13)}
+            <circle cx="${ncx - 120}" cy="${ny + 34}" r="16" fill="#1B1B1F"/><circle cx="${ncx - 125}" cy="${ny + 29}" r="5" fill="#ffffff" opacity=".6"/>
+          </g>
+          ${tape(nx + nw - 120, ny - 18, 32)}${tape(nx - 40, ny + nh - 40, -28, 130)}
+          ${ticker(h * 0.85, -5, violet, fg)}`;
+      } else if (kind === 1) {
+        // Écran d'appareil photo magenta posé sur un collage photo violet
+        const cx = 60, cw = 960, ch = Math.min(hh * 0.48, 600), cy = Math.max(h * 0.27, h * 0.5 - ch / 2 - 30);
+        const sx = cx + 40, sy = cy + 40, sw = cw - 210, sh = ch - 80, dark = mixHex(accent, "#000000", 0.3);
+        const leadBox = measure(lead, "condensed", sw - 80, sh * (key ? 0.45 : 0.7), size);
+        art = `${photo(image, imageRatio, 0, 0, w, h, true)}<rect width="${w}" height="${h}" fill="${bg}" opacity=".6"/><rect width="${w}" height="${h}" fill="${violet}" opacity=".3"/>
+          ${drips(-20, w + 20, h * 0.08, violet, 11)}
+          ${splat(w - 130, cy + ch + 40, 140, 70, 50, accent, 17)}
+          <g transform="rotate(-2 ${w / 2} ${cy + ch / 2})">
+            <rect x="${cx + 14}" y="${cy + 24}" width="${cw}" height="${ch}" rx="46" fill="#000000" opacity=".6" filter="url(#${id}soft)"/>
+            <rect x="${cx + 60}" y="${cy - 46}" width="220" height="76" rx="18" fill="${dark}"/>
+            <circle cx="${cx + 98}" cy="${cy - 10}" r="10" fill="#FF3B3B"/>${label("REC", cx + 120, cy - 1, 24, fg, false, 120)}
+            <rect x="${cx}" y="${cy}" width="${cw}" height="${ch}" rx="46" fill="${accent}"/>
+            <rect x="${sx}" y="${sy}" width="${sw}" height="${sh}" rx="22" fill="#140A1F" stroke="${dark}" stroke-width="8"/>
+            <path d="M ${sx + sw * 0.55} ${sy} L ${sx + sw * 0.8} ${sy} L ${sx + sw * 0.5} ${sy + sh} L ${sx + sw * 0.25} ${sy + sh} Z" fill="#ffffff" opacity=".05"/>
+            <circle cx="${cx + cw - 85}" cy="${cy + ch * 0.28}" r="46" fill="#1A1020" stroke="${dark}" stroke-width="10"/><circle cx="${cx + cw - 97}" cy="${cy + ch * 0.28 - 12}" r="10" fill="#ffffff" opacity=".35"/>
+            ${[0.55, 0.7, 0.85].map((f) => `<circle cx="${cx + cw - 85}" cy="${cy + ch * f}" r="16" fill="${dark}"/>`).join("")}
+            ${heading(lead, "condensed", sx + 40, sy + 40, sw - 80, sh * (key ? 0.45 : 0.7), size, fg, false)}
+            ${key ? heading(key, "condensed", sx + 40, sy + 52 + leadBox.height, sw - 80, sh * 0.32, size * 1.05, mixHex(accent, "#ffffff", 0.35), false) : ""}
+          </g>
+          <g transform="rotate(3 ${w - 280} ${cy - 70})"><rect x="${w - 500}" y="${cy - 100}" width="440" height="56" fill="${paper}"/>${label(page.kicker.toUpperCase(), w - 280, cy - 63, 22, bg, true, 400, 40)}</g>
+          ${tape(w - 540, cy - 112, -24, 110)}
+          ${label(page.body, 76, cy + ch + 74, 24, fg, false, 800, Math.max(40, h - 140 - (cy + ch + 74)))}`;
+      } else {
+        // Portrait duotone, halo au spray, surtitre manuscrit cerclé et mot clé surligné au pinceau
+        const leadBox = measure(lead, "condensed", 940, hh * 0.16, size * 1.2);
+        const keyBox = key ? measure(key, "condensed", 900, hh * 0.13, size * 1.2) : { width: 0, height: 0 };
+        const blockH = 100 + leadBox.height + (key ? keyBox.height + 22 : 0) + 100;
+        const ky = h - 130 - blockH, ly = ky + 100, keyY = ly + leadBox.height + 16, bodyY = (key ? keyY + keyBox.height : ly + leadBox.height) + 56;
+        const kickerW = Math.min(800, measure(page.kicker, "italic", 800, 64, 54).width);
+        const ph = Math.min(h, ly + 80);
+        art = `<ellipse cx="${w / 2}" cy="${ph * 0.42}" rx="${w * 0.5}" ry="${ph * 0.38}" fill="url(#${id}spray)"/>${splat(w / 2, ph * 0.42, w * 0.48, ph * 0.36, 90, accent, 29)}
+          <mask id="${id}pmask"><rect width="${w}" height="${ph}" fill="url(#${id}pfade)"/></mask>
+          <g mask="url(#${id}pmask)">${photo(image, imageRatio, 0, 0, w, ph, true)}<rect width="${w}" height="${ph}" fill="${violet}" opacity=".35"/></g>
+          <linearGradient id="${id}base" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${bg}" stop-opacity="0"/><stop offset=".6" stop-color="${bg}" stop-opacity=".85"/><stop offset="1" stop-color="${bg}"/></linearGradient>
+          <rect x="0" y="${ky - 160}" width="${w}" height="${h - ky + 160}" fill="url(#${id}base)"/>
+          ${drips(-20, w * 0.45, h * 0.04, accent, 41)}
+          <ellipse cx="${w / 2}" cy="${ky + 34}" rx="${kickerW / 2 + 54}" ry="50" fill="none" stroke="${accent}" stroke-width="5" transform="rotate(-3 ${w / 2} ${ky + 34})"/>
+          ${heading(page.kicker, "italic", 140, ky, 800, 64, 54, accent, true)}
+          ${heading(lead, "condensed", 70, ly, 940, hh * 0.16, size * 1.2, fg, true)}
+          ${key ? `<rect x="${w / 2 - keyBox.width / 2 - 34}" y="${keyY - 10}" width="${keyBox.width + 68}" height="${keyBox.height + 16}" fill="${violet}" filter="url(#${id}rough)"/>${heading(key, "condensed", 90, keyY, 900, hh * 0.13, size * 1.2, fg, true)}` : ""}
+          ${label(page.body, w / 2, bodyY, 22, fg, true, 760, 60)}`;
+      }
+      return `${defs}<rect width="${w}" height="${h}" fill="${bg}"/><rect width="${w}" height="${h}" fill="url(#${id}glow)"/>${art}<rect width="${w}" height="${h}" filter="url(#${id}grain)"/>`;
+    }
     default: return null;
   }
 }

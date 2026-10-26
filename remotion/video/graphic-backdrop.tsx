@@ -11,6 +11,10 @@ import { HoloBackdrop } from "./holo-art";
 import { VeilForeground } from "./veil-art";
 import { GlossBackdrop } from "./gloss-art";
 import { LustreBackdrop } from "./lustre-art";
+import { ThermalBackdrop } from "./thermal-art";
+import { CastBackdrop } from "./cast-art";
+import { ShardBackdrop } from "./shard-art";
+import { WiggleBackdrop } from "./wiggle-art";
 import { Typo5Backdrop } from "./typo5-art";
 
 /** Authored graphics, shared by catalogue thumbnails and frame-driven renders. */
@@ -34,6 +38,10 @@ export function GraphicBackdrop({ kind, palette, time: elapsed = 0, beatPosition
   if (kind === "hollow" || kind === "cursive" || kind === "overlap" || kind === "bloom" || kind === "reflect") return <Typo5Backdrop kind={kind} palette={palette} time={time} />;
   if (kind === "gloss") return <GlossBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
   if (kind === "lustre") return <LustreBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "thermal") return <ThermalBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "cast") return <CastBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "shard") return <ShardBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "wiggle") return <WiggleBackdrop palette={palette} time={time} />;
   if (kind === "cadence") return <CadenceBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
   if (kind === "tessera") return <TesseraBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
   if (["anvil", "cadence", "blackout", "tessera"].includes(kind)) return <RefinedGraphic kind={kind} palette={palette} time={time} aspectRatio={aspectRatio} />;

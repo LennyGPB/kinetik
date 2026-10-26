@@ -2,6 +2,7 @@ import { useId, type CSSProperties, type ReactNode } from "react";
 import { AbsoluteFill, Easing, random } from "remotion";
 import type { VideoProps } from "../props";
 import { luminance, textColorOn, useTitleFont } from "./theme";
+import { condensedFont as castFont } from "./fonts";
 
 /**
  * Transitions thématiques (docs/MOTION-RULES.md) : chaque couverture reprend le motif d'un thème
@@ -643,5 +644,187 @@ export function SparkleCover(c: CoverContext) {
       const s = c.unit * (2.2 + 1.8 * Math.sin(Math.PI * e));
       return <path key={k} d={star} fill="#FFFFFF" opacity={0.9 * Math.sin(Math.PI * e)} transform={`translate(${W / 2 + Math.cos(a) * r} ${H / 2 + Math.sin(a) * r}) scale(${s})`} />;
     })}
+  </svg>;
+}
+
+// ───────── Thermal : le scan thermique ─────────
+
+/** Fausses couleurs thermiques (Thermal) : l'image passe en luminance, étirée vers le bas, puis en échelle bleu → cyan → blanc → rouge. `amount` 0 → 1. */
+export function ThermalFilter({ id, amount, unit, palette: [bg, main, accent] }: { id: string; amount: number; unit: number; palette: Palette }) {
+  const k = Math.max(0, Math.min(1, amount));
+  const rgb = (hex: string) => /^#[0-9a-f]{6}$/i.test(hex) ? [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) : [0.5, 0.5, 0.5];
+  // Échelle : noir, bleu nuit, principale, cyan, blanc, accent
+  const stops = [rgb(bg).map((v) => v * 0.5), rgb(main).map((v) => v * 0.45), rgb(main), rgb(main).map((v, i) => i === 0 ? v * 0.4 + 0.15 : 0.45 * v + 0.55), [1, 1, 1], rgb(accent)];
+  const table = (c: number) => stops.map((s) => s[c].toFixed(3)).join(" ");
+  return <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+    <defs><filter id={id} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation={`0 ${(k * unit * 6).toFixed(2)}`} result="drawn" />
+      <feColorMatrix in="drawn" type="matrix" values="0.3 0.59 0.11 0 0  0.3 0.59 0.11 0 0  0.3 0.59 0.11 0 0  0 0 0 1 0" result="lum" />
+      <feComponentTransfer in="lum" result="heat"><feFuncR type="table" tableValues={table(0)} /><feFuncG type="table" tableValues={table(1)} /><feFuncB type="table" tableValues={table(2)} /></feComponentTransfer>
+      <feComposite in="heat" in2="drawn" operator="arithmetic" k2={k} k3={1 - k} />
+    </filter></defs>
+  </svg>;
+}
+
+/**
+ * Scan thermique (Thermal) : une ligne de scan blanche descend ; au-dessus, le cadre est recouvert de colonnes thermiques
+ * (bandes bleu → cyan → blanc → rouge qui coulent vers le bas). À l'entrée, une nouvelle ligne descend et découvre la scène
+ * suivante au-dessus d'elle, les colonnes s'écoulant sous la ligne.
+ */
+export function ThermalScanCover(c: CoverContext) {
+  if (c.p <= 0) return null;
+  const [bg, main, accent] = c.palette;
+  const e = Easing.inOut(Easing.cubic)(clamp01(c.p));
+  const W = c.width, H = c.height;
+  // Sortie : la zone couverte grandit du haut vers le bas ; entrée : elle se réduit par le haut
+  const scan = c.phase === "out" ? e * (H + c.unit * 6) : (1 - e) * (H + c.unit * 6);
+  const top = c.phase === "out" ? 0 : scan, bottom = c.phase === "out" ? scan : H + c.unit * 6;
+  const cyan = `color-mix(in srgb, #6FF6FF 65%, ${main})`, deep = `color-mix(in srgb, ${main} 45%, ${bg})`;
+  const gid = `thermal-scan-${c.phase}-${c.frame}`;
+  const cols = 22, cw = W / cols, flow = c.frame * c.unit * 1.4;
+  return <svg width={W} height={H} style={fill} aria-hidden>
+    <defs>
+      <linearGradient id={gid} gradientUnits="userSpaceOnUse" spreadMethod="repeat" x1="0" y1={flow} x2="0" y2={flow + H * 0.55}>
+        <stop offset="0" stopColor={deep} /><stop offset="0.22" stopColor={main} /><stop offset="0.38" stopColor={cyan} /><stop offset="0.47" stopColor="#FFFFFF" />
+        <stop offset="0.54" stopColor={accent} /><stop offset="0.64" stopColor={cyan} /><stop offset="0.8" stopColor={main} /><stop offset="1" stopColor={deep} />
+      </linearGradient>
+      <clipPath id={`${gid}-c`}><rect x="0" y={top} width={W} height={Math.max(0, bottom - top)} /></clipPath>
+    </defs>
+    <g clipPath={`url(#${gid}-c)`}>
+      <rect width={W} height={H} fill={deep} />
+      {/* Colonnes de largeurs irrégulières, chacune avec son décalage de chaleur ; bords sombres comme sur le titre */}
+      {Array.from({ length: cols }, (_, i) => {
+        const x = i * cw, shift = random(`thermal-col-${i}`) * H * 0.5;
+        return <g key={i} transform={`translate(0 ${shift.toFixed(1)})`}>
+          <rect x={x - 0.5} y={-shift} width={cw + 1} height={H} fill={`url(#${gid})`} />
+          <rect x={x + cw * (0.3 + random(`thermal-in-${i}`) * 0.3)} y={-shift} width={cw * 0.35} height={H} fill={bg} opacity={0.45} />
+        </g>;
+      })}
+    </g>
+    {/* Ligne de scan et sa lueur */}
+    <rect x="0" y={scan - c.unit * 2.5} width={W} height={c.unit * 5} fill={cyan} opacity={0.35} style={{ filter: `blur(${c.unit * 1.5}px)` }} />
+    <rect x="0" y={scan - c.unit * 0.25} width={W} height={c.unit * 0.5} fill="#FFFFFF" />
+  </svg>;
+}
+
+// ───────── Cast : la projection ─────────
+
+/**
+ * Projection (Cast) : l'ombre couchée du premier mot de la scène suivante surgit du bas du cadre en perspective et fonce
+ * vers le spectateur jusqu'à remplir l'écran (anthracite), puis recule et se couche pour découvrir la scène.
+ */
+export function CastCover(c: CoverContext) {
+  if (c.p <= 0) return null;
+  const [, main] = c.palette;
+  const e = Easing.inOut(Easing.cubic)(clamp01(c.p));
+  const word = (c.title.trim().split(/\s+/)[0] || "•").toUpperCase();
+  const flood = clamp01((e - 0.62) / 0.3);
+  const size = c.height * (0.25 + e * e * 3.2);
+  return <div style={fill}>
+    <div style={{ position: "absolute", left: "50%", top: "100%", perspective: c.height * 0.9, perspectiveOrigin: "50% 0%" }}>
+      <div style={{ transformOrigin: "50% 0%", transform: `translate(-50%, ${-e * c.height * 0.55}px) rotateX(${70 - e * 40}deg) scaleY(-1)`, fontFamily: castFont, fontSize: size, lineHeight: 0.84, whiteSpace: "nowrap", color: main, opacity: clamp01((e - 0.03) * 8) }}>{word}</div>
+    </div>
+    <div style={{ ...fill, background: main, opacity: flood }} />
+  </div>;
+}
+
+// ───────── Shard : le bris de verre ─────────
+
+/** Toile de fissures : rayons depuis un point d'impact, coupés par des anneaux ; chaque case est un éclat. */
+function shatterPanes(W: number, H: number, cx: number, cy: number) {
+  const rays = 9, rings = [0.16, 0.42, 0.75, 1.6].map((r) => r * Math.hypot(W, H));
+  const angle = (i: number) => (i / rays) * Math.PI * 2 + (random(`shard-a-${i}`) - 0.5) * 0.45;
+  const point = (i: number, j: number) => {
+    const r = j < 0 ? 0 : rings[j] * (0.85 + random(`shard-r-${i % rays}-${j}`) * 0.3), a = angle(i % rays);
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r] as const;
+  };
+  const panes: { pts: (readonly [number, number])[]; ring: number; i: number }[] = [];
+  for (let j = 0; j < rings.length; j++) for (let i = 0; i < rays; i++) {
+    panes.push({ pts: j === 0 ? [point(i, -1), point(i, 0), point(i + 1, 0)] : [point(i, j - 1), point(i, j), point(i + 1, j), point(i + 1, j - 1)], ring: j, i });
+  }
+  return panes;
+}
+
+/**
+ * Bris de verre (Shard) : à la sortie, une toile de fissures claires part d'un point d'impact et s'étend sur tout le cadre,
+ * puis les éclats deviennent opaques (couleur du fond) du centre vers les bords. À l'entrée, les éclats tombent en
+ * tournant, du centre vers les bords, et découvrent la scène suivante.
+ */
+export function ShatterCover(c: CoverContext) {
+  if (c.p <= 0) return null;
+  const [bg, main] = c.palette;
+  const W = c.width, H = c.height, cx = W * 0.54, cy = H * 0.46;
+  const panes = shatterPanes(W, H, cx, cy);
+  const p = clamp01(c.p);
+  const web = c.phase === "out" ? clamp01(p / 0.45) : 1;
+  return <svg width={W} height={H} style={fill} aria-hidden>
+    {c.phase === "out" && <defs><clipPath id={`shatter-web-${c.frame}`}><circle cx={cx} cy={cy} r={web * Math.hypot(W, H)} /></clipPath></defs>}
+    <g clipPath={c.phase === "out" ? `url(#shatter-web-${c.frame})` : undefined}>
+      {panes.map(({ pts, ring, i }, k) => {
+        const centerX = pts.reduce((s, q) => s + q[0], 0) / pts.length, centerY = pts.reduce((s, q) => s + q[1], 0) / pts.length;
+        const path = `M${pts.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join("L")}Z`;
+        if (c.phase === "out") {
+          // Les éclats se remplissent du centre vers les bords
+          const start = 0.35 + ring * 0.15 + random(`shard-o-${k}`) * 0.08;
+          const fillK = clamp01((p - start) / 0.12);
+          return <path key={k} d={path} fill={bg} fillOpacity={fillK} stroke={main} strokeOpacity={0.85 * (1 - fillK * 0.6)} strokeWidth={c.unit * 0.25} strokeLinejoin="round" />;
+        }
+        // Entrée : chaque éclat tombe avec sa rotation, l'anneau intérieur en premier
+        const t = clamp01(((1 - p) - ring * 0.12 - random(`shard-i-${k}`) * 0.08) / 0.6);
+        const fy = t * t * H * (1 + random(`shard-v-${k}`) * 0.6), fx = (centerX - cx) * t * 0.25, rot = (random(`shard-t-${i}-${ring}`) - 0.5) * 80 * t;
+        return t >= 1 ? null : <path key={k} d={path} transform={`translate(${fx.toFixed(1)} ${fy.toFixed(1)}) rotate(${rot.toFixed(1)} ${centerX.toFixed(1)} ${centerY.toFixed(1)})`} fill={bg} stroke={main} strokeOpacity={0.6} strokeWidth={c.unit * 0.25} strokeLinejoin="round" />;
+      })}
+    </g>
+    {/* Impact : petit point clair qui s'éteint */}
+    {c.phase === "out" && <circle cx={cx} cy={cy} r={c.unit * (0.6 + web * 1.4)} fill={main} opacity={0.9 * (1 - clamp01((p - 0.4) / 0.4))} />}
+  </svg>;
+}
+
+// ───────── Wiggle : la tache ─────────
+
+/** Tremblé dessiné (Wiggle) : champ de bruit fin qui glisse en continu, déplacement `amount` (px). */
+export function BoilFilter({ id, amount, frame }: { id: string; amount: number; frame: number }) {
+  return <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+    <defs><filter id={id} x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="5" result="noise" />
+      <feOffset in="noise" dx={Math.sin(frame * 0.35) * 30} dy={Math.cos(frame * 0.28) * 30} result="flow" />
+      <feDisplacementMap in="SourceGraphic" in2="flow" scale={Math.max(0, amount)} xChannelSelector="R" yChannelSelector="G" />
+    </filter></defs>
+  </svg>;
+}
+
+/**
+ * Tache (Wiggle) : une tache dessinée à la main (accent, contour d'encre, hachures claires) gonfle depuis le centre avec un
+ * rebond jusqu'à couvrir l'écran, son bord bouillonnant ; à l'entrée, elle se rétracte en ressort et découvre la scène.
+ */
+export function BlobCover(c: CoverContext) {
+  if (c.p <= 0) return null;
+  const [, , accent] = c.palette;
+  const p = clamp01(c.p);
+  // Gonflement avec dépassement (sortie) ; rétraction qui s'accélère (entrée)
+  const e = c.phase === "out" ? Easing.out(Easing.back(1.4))(p) : Easing.in(Easing.back(1.4))(p);
+  const W = c.width, H = c.height, R = Math.max(0, e) * Math.hypot(W, H) * 0.62;
+  const gid = `blob-${c.phase}-${c.frame}`;
+  const lobes = 9;
+  const path = Array.from({ length: lobes * 4 }, (_, k) => {
+    const a = (k / (lobes * 4)) * Math.PI * 2, r = R * (1 + 0.08 * Math.sin(a * lobes + c.frame * 0.25) + 0.04 * Math.sin(a * 3 - c.frame * 0.18));
+    return `${k ? "L" : "M"}${(W / 2 + Math.cos(a) * r).toFixed(1)} ${(H / 2 + Math.sin(a) * r).toFixed(1)}`;
+  }).join("") + "Z";
+  return <svg width={W} height={H} style={fill} aria-hidden>
+    <defs>
+      <filter id={gid} x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="7" result="n" />
+        <feOffset in="n" dx={Math.sin(c.frame * 0.4) * 25} dy={Math.cos(c.frame * 0.33) * 25} result="m" />
+        <feDisplacementMap in="SourceGraphic" in2="m" scale={c.unit * 3} xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+      <pattern id={`${gid}-h`} patternUnits="userSpaceOnUse" width={c.unit * 2.4} height={c.unit * 2.4} patternTransform="rotate(-35)">
+        <rect width={c.unit * 0.7} height={c.unit * 2.4} fill="#FFE45C" opacity="0.35" />
+      </pattern>
+    </defs>
+    <g filter={`url(#${gid})`}>
+      <path d={path} fill="#0E0D0C" transform={`translate(${c.unit * 1.2} ${c.unit * 1.5})`} />
+      <path d={path} fill={accent} stroke="#0E0D0C" strokeWidth={c.unit * 0.8} />
+      <path d={path} fill={`url(#${gid}-h)`} />
+    </g>
   </svg>;
 }

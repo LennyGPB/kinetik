@@ -3,7 +3,7 @@
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { Film, LayoutDashboard, ScrollText, Users } from "lucide-react";
+import { Film, LayoutDashboard, LayoutTemplate, ScrollText, Users } from "lucide-react";
 import Link from "@/lib/i18n/navigation";
 import { usePathname } from "@/lib/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ export function AdminNavLinks() {
   { href: "/admin", label: t.copy["0d214ec700d5"], icon: LayoutDashboard },
   { href: "/admin/users", label: t.copy["23d3938b5ef0"], icon: Users },
   { href: "/admin/videos", label: t.locale === "fr" ? "Projets" : "Projects", icon: Film },
+  { href: "/admin/templates", label: "Templates", icon: LayoutTemplate },
   { href: "/admin/logs", label: t.copy["43b7c75d56f0"], icon: ScrollText },
 ];
 

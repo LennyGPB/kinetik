@@ -12,6 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Segmented } from "@/components/ui/segmented";
 import { buttonVariants } from "@/components/ui/button";
 import { StorePreview } from "./store-preview";
+import { PopularBadge, useArrangedTemplates } from "@/components/templates/template-settings";
 
 export function StoreTemplateGallery() {
   const t = useDictionary();
@@ -19,10 +20,11 @@ export function StoreTemplateGallery() {
   const c = storeCopy(locale);
   const [open, setOpen] = useState<StoreTemplate | null>(null);
   const [platform, setPlatform] = useState<"ios" | "android" | "banner">("ios");
+  const { items: templates, isPopular } = useArrangedTemplates("store", STORE_TEMPLATES);
   const demo = useMemo(() => open ? demoStore(open.id, locale) : null, [open, locale]);
   return <>
-    <div className="flex items-center justify-between gap-4"><p className="max-w-xl text-sm text-muted">{c.intro}</p><p className="shrink-0 text-sm text-subtle">{format(t.app.templates.count, { count: STORE_TEMPLATES.length })}</p></div>
-    <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">{STORE_TEMPLATES.map((item) => <li key={item.id}><StoreTile item={item} locale={locale} onOpen={() => setOpen(item)} /></li>)}</ul>
+    <div className="flex items-center justify-between gap-4"><p className="max-w-xl text-sm text-muted">{c.intro}</p><p className="shrink-0 text-sm text-subtle">{format(t.app.templates.count, { count: templates.length })}</p></div>
+    <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">{templates.map((item) => <li key={item.id} className="relative"><StoreTile item={item} locale={locale} onOpen={() => setOpen(item)} />{isPopular(item.id) && <PopularBadge className="absolute top-2.5 left-2.5" />}</li>)}</ul>
     <Dialog open={Boolean(open)} onClose={() => setOpen(null)} title={open?.name ?? ""} description={open?.description[locale]} className="sm:max-w-5xl">
       {open && demo && <div className="space-y-5">
         <Segmented variant="pills" size="sm" label={c.preview} value={platform} onChange={setPlatform} options={[{ value: "ios", label: c.iphone }, { value: "android", label: c.android }, { value: "banner", label: c.banner }]} />

@@ -12,6 +12,7 @@ import { PostPreview } from "./post-preview";
 import { Dialog } from "@/components/ui/dialog";
 import { buttonVariants } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { PopularBadge, useArrangedTemplates } from "@/components/templates/template-settings";
 
 export function PostTemplateGallery() {
   const t = useDictionary();
@@ -19,7 +20,8 @@ export function PostTemplateGallery() {
   const c = postCopy(locale);
   const [open, setOpen] = useState<string | null>(null);
   const [filter, setFilter] = useState<PostFilter>("all");
-  const templates = POST_TEMPLATES.filter((template) => matchesPostFilter(template, filter));
+  const filtered = useMemo(() => POST_TEMPLATES.filter((template) => matchesPostFilter(template, filter)), [filter]);
+  const { items: templates, isPopular } = useArrangedTemplates("post", filtered);
   const labels = locale === "fr" ? { all: "Tous", kinetik: "Kinetik", photo: "Photo", typography: "Typographie", linked: "Carrousels liés" } : { all: "All", kinetik: "Kinetik", photo: "Photography", typography: "Typography", linked: "Linked carousels" };
   const template = POST_TEMPLATES.find((item) => item.id === open);
   return <>
@@ -30,8 +32,9 @@ export function PostTemplateGallery() {
       <p className="shrink-0 text-sm text-subtle" aria-live="polite">{format(t.app.templates.count, { count: templates.length })}</p>
     </div>
     <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
-      {templates.map((item) => <li key={item.id}>
+      {templates.map((item) => <li key={item.id} className="relative">
         <PostTemplateTile item={item} locale={locale} onOpen={setOpen} />
+        {isPopular(item.id) && <PopularBadge className="absolute top-2.5 left-2.5" />}
       </li>)}
     </ul>
     <Dialog open={Boolean(template)} onClose={() => setOpen(null)} title={template?.name ?? ""} description={template?.description[locale]} className="sm:max-w-5xl">

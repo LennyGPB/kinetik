@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ADMIN_UNLOCK_MS, adminForAction, type Admin, checkAdminPassword, getAdminState, isAdminPasswordConfigured, logAdmin } from "@/lib/admin/auth";
@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { deleteUserWithFiles } from "@/lib/account/delete-user";
 import { rateLimitAll, resetRateLimit } from "@/lib/rate-limit";
 import { LIMITS, limitKey, requestIp, tooMany } from "@/lib/security/limits";
+import { isTemplateKind, MAX_POPULAR, templatesOfKind } from "@/config/template-catalog";
+import { TEMPLATE_SETTINGS_TAG } from "@/lib/templates/settings";
 
 /**
  * Actions du tableau de bord admin. Chacune revérifie l'accès (rôle ADMIN + mot de passe admin saisi pour cette session) :
@@ -127,4 +129,49 @@ export async function deleteProjectAdmin(_prev: AdminFormState, formData: FormDa
   await logAdmin(admin, "project.delete", { type: "project", id: project.id, label: `${project.name} · ${project.user.email}` });
   refresh();
   return { ok: true, message: `« ${project.name} » supprimée.` };
+}
+
+// ───────────── Templates ─────────────
+
+const templateSettingSchema = z.object({
+  kind: z.string().refine(isTemplateKind),
+  templateId: z.string().min(1).max(100),
+  field: z.enum(["hidden", "popular"]),
+  value: z.boolean(),
+});
+
+/** Masque / réaffiche un template, ou le met en « Populaire » (8 max par catégorie). */
+export async function setTemplateSetting(input: { kind: string; templateId: string; field: "hidden" | "popular"; value: boolean }): Promise<AdminFormState> {
+  const { admin, denied } = await guard();
+  if (denied) return denied;
+  const parsed = templateSettingSchema.safeParse(input);
+  if (!parsed.success || !isTemplateKind(parsed.data.kind)) return { error: "Requête invalide." };
+  const { templateId, field, value } = parsed.data;
+  const kind = parsed.data.kind;
+  const template = templatesOfKind(kind, "fr").find((item) => item.id === templateId);
+  if (!template) return { error: "Template introuvable." };
+
+  const key = { kind_templateId: { kind, templateId } };
+  if (field === "popular" && value) {
+    const result = await db.$transaction(async (tx) => {
+      const current = await tx.templateSetting.findUnique({ where: key });
+      if (current?.hidden) return { error: "Réaffiche ce template avant de le mettre en populaire." };
+      const count = await tx.templateSetting.count({ where: { kind, popular: true, hidden: false, NOT: { templateId } } });
+      if (count >= MAX_POPULAR) return { error: `${MAX_POPULAR} templates populaires maximum dans cette catégorie. Retires-en un d’abord.` };
+      await tx.templateSetting.upsert({ where: key, create: { kind, templateId, popular: true }, update: { popular: true } });
+      return null;
+    }, { isolationLevel: "Serializable" });
+    if (result) return result;
+  } else {
+    // Masquer retire aussi le badge « Populaire »
+    const data = field === "hidden" ? { hidden: value, ...(value ? { popular: false } : {}) } : { popular: false };
+    await db.templateSetting.upsert({ where: key, create: { kind, templateId, ...data }, update: data });
+  }
+
+  const action = field === "hidden" ? (value ? "template.hide" : "template.show") : value ? "template.popular" : "template.unpopular";
+  await logAdmin(admin, action, { type: "template", id: `${kind}:${templateId}`, label: template.name });
+  updateTag(TEMPLATE_SETTINGS_TAG);
+  refresh();
+  const label = field === "hidden" ? (value ? "masqué" : "réaffiché") : value ? "mis en populaire" : "retiré des populaires";
+  return { ok: true, message: `« ${template.name} » ${label}.` };
 }

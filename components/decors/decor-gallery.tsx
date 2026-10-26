@@ -9,13 +9,14 @@ import { decorCopy } from '@/lib/decors/copy';
 import { Segmented } from '@/components/ui/segmented';
 import { Dialog } from '@/components/ui/dialog';
 import { DecorCreate } from './decor-create';
+import { PopularBadge, useArrangedTemplates } from '@/components/templates/template-settings';
 
 export function DecorGallery() {
   const { locale } = useDictionary(), c = decorCopy(locale);
   const [category, setCategory] = useState<DecorCategory | 'all'>('all');
   const [selected, setSelected] = useState<DecorId | null>(null);
   const [busy, setBusy] = useState(false);
-  const visible = DECORS.filter(decor => category === 'all' || decor.category === category);
+  const { items: visible, isPopular } = useArrangedTemplates('decor', DECORS.filter(decor => category === 'all' || decor.category === category));
   const icons = { pc: Monitor, phone: Smartphone, tablet: Tablet, hybrid: Layers };
   return <section aria-label={c.title}>
     <Segmented variant="pills" label={c.title} size="sm" value={category} onChange={setCategory} options={(['all', ...DECOR_CATEGORIES] as const).map(value => ({ value, label: <span className="flex items-center gap-1.5">{value !== 'all' && (() => { const Icon = icons[value]; return <Icon className="size-3.5" aria-hidden />; })()}{c.categories[value]}</span> }))} />
@@ -28,6 +29,7 @@ export function DecorGallery() {
         <button type="button" onClick={() => setSelected(decor.id)} className="group block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent rounded-xl" aria-label={`${c.use} · ${decorName(decor.id, locale)}`}>
           <div className="relative aspect-video overflow-hidden rounded-xl bg-surface-2">
             <Image src={`/decors/prepared/${decor.id}-thumb.webp`} alt={decorName(decor.id, locale)} fill sizes="(min-width:1280px) 360px, (min-width:640px) 50vw, 100vw" className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.035] motion-reduce:transform-none" />
+            {isPopular(decor.id) && <PopularBadge className="absolute top-2.5 left-2.5" />}
             <span className="absolute bottom-3 right-3 rounded-full bg-black/70 p-2 text-white transition-colors group-hover:bg-accent"><ArrowUpRight className="size-4" aria-hidden /></span>
           </div>
           <div className="mt-3 flex items-center justify-between gap-3 px-1"><h3 className="text-sm font-semibold">{decorName(decor.id, locale)}</h3><span className="text-xs text-muted">{c.categories[decor.category]}</span></div>

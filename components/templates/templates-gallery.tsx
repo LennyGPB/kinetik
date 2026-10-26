@@ -8,7 +8,7 @@ import { getLogoMotion } from "@/config/logo-motion";
 import { getProductTemplate } from "@/config/physical-product";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "@/lib/i18n/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Player } from "@/components/editor/player";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import { format } from "@/lib/i18n";
 import { demoVideoProps } from "@/lib/projects/demo-video";
 import { cn } from "@/lib/utils";
 import { TemplateHoverPreview } from "@/components/media/template-hover-preview";
+import { PopularBadge, useArrangedTemplates } from "@/components/templates/template-settings";
 import { PostTemplateGallery } from "@/components/posts/post-template-gallery";
 import { StoreTemplateGallery } from "@/components/store/store-template-gallery";
 import { storeCopy } from "@/lib/store/copy";
@@ -53,7 +54,10 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
   const endHover = () => setPlayingId(null);
   // Logo motions have their own creation flow: they get their own tab, and are never offered while picking a style in the classic wizard.
   const productFamily = kind === "product" || Boolean(getProductTemplate(selectedId));
-  const styles = VIDEO_STYLES.filter((style) => productFamily ? Boolean(getProductTemplate(style.id)) : !getProductTemplate(style.id) && (kind === "logo" ? Boolean(getLogoMotion(style.id)) : !getLogoMotion(style.id) && (filter === "all" || style.category === filter)));
+  const catalogKind = productFamily ? "product" : kind === "logo" ? "logo" : "motion";
+  const filtered = useMemo(() => VIDEO_STYLES.filter((style) => productFamily ? Boolean(getProductTemplate(style.id)) : !getProductTemplate(style.id) && (kind === "logo" ? Boolean(getLogoMotion(style.id)) : !getLogoMotion(style.id) && (filter === "all" || style.category === filter))), [productFamily, kind, filter]);
+  // Réglages admin : templates masqués retirés, populaires en tête (le template déjà choisi reste visible)
+  const { items: styles, isPopular } = useArrangedTemplates(catalogKind, filtered, selectedId);
 
   return (
     <div>
@@ -99,6 +103,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
                 className={cn("relative block aspect-[2/3] w-full cursor-pointer overflow-hidden rounded-2xl text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent", selectedId === style.id && "ring-2 ring-accent")}
               >
                 <VideoPlaceholder ratio="fill" palette={style.palette} templateId={style.id} scene={style.recipe.background} label={getLogoMotion(style.id) ? undefined : style.name.split(" ")[0]} />
+                {isPopular(style.id) && <PopularBadge className="absolute top-2.5 left-2.5" />}
                 {selectedId === style.id && <span className="absolute top-3 right-3 grid size-7 place-items-center rounded-full bg-accent text-accent-fg"><Check className="size-4" aria-hidden /></span>}
               </button>
               {playingId === style.id && <TemplateHoverPreview style={style} locale={t.locale} grow={1.3} />}

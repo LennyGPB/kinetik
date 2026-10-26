@@ -17,8 +17,8 @@ test("Instagram filters include the two Kinetik styles and correctly count linke
 });
 
 test("campaign collection adds forty-eight distinct editable templates", () => {
-  assert.equal(CAMPAIGN_POST_TEMPLATES.length, 48);
-  assert.equal(new Set(CAMPAIGN_POST_TEMPLATES.map((template) => template.layout)).size, 48);
+  assert.equal(CAMPAIGN_POST_TEMPLATES.length, 49);
+  assert.equal(new Set(CAMPAIGN_POST_TEMPLATES.map((template) => template.layout)).size, 49);
   for (const template of CAMPAIGN_POST_TEMPLATES) {
     assert.ok(POST_TEMPLATES.some((item) => item.id === template.id));
     const doc = applyPostTemplate(demoPost("post-portrait"), template.id, "fr", 1);

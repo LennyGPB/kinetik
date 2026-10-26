@@ -387,3 +387,17 @@ model AdminLog {
 
   @@index([createdAt])
 }
+
+/// Réglages admin d'un template de la galerie (les templates eux-mêmes sont dans config/). Absent = visible, pas populaire.
+model TemplateSetting {
+  /// Catégorie de la galerie : motion, product, logo, post, store, decor
+  kind       String
+  templateId String
+  /// Masqué de toutes les galeries (les projets existants qui l'utilisent continuent de marcher)
+  hidden     Boolean  @default(false)
+  /// Mis en avant avec le badge « Populaire » (8 max par catégorie)
+  popular    Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+
+  @@id([kind, templateId])
+}
