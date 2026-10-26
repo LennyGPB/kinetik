@@ -592,3 +592,56 @@ export function SmudgeGlow({ intensity, color }: { intensity: number; color: str
   if (intensity <= 0.02) return null;
   return <AbsoluteFill style={{ pointerEvents: "none", background: `radial-gradient(ellipse 80% 30% at 50% 50%, color-mix(in srgb, ${color}, transparent 30%), transparent 75%)`, opacity: intensity * 0.9, mixBlendMode: "screen" }} />;
 }
+
+// ───────── Lustre ─────────
+
+/** Ondulation de métal liquide (Lustre) : champ de bruit qui glisse en continu, déplacement proportionnel à `amount` (px). */
+export function LiquidWarpFilter({ id, amount, frame }: { id: string; amount: number; frame: number }) {
+  return <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+    <defs><filter id={id} x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.005 0.008" numOctaves="2" seed="9" result="noise" />
+      <feOffset in="noise" dx={Math.sin(frame * 0.05) * 40} dy={Math.cos(frame * 0.04) * 30} result="flow" />
+      <feDisplacementMap in="SourceGraphic" in2="flow" scale={Math.max(0, amount)} xChannelSelector="R" yChannelSelector="G" />
+    </filter></defs>
+  </svg>;
+}
+
+/**
+ * Étincelle (Lustre) : une étoile chromée à quatre branches s'ouvre en tournant depuis le centre jusqu'à couvrir le cadre
+ * (sortie), puis se referme en continuant sa rotation pour découvrir la scène suivante (entrée). Quatre petites étincelles
+ * filent sur ses branches.
+ */
+export function SparkleCover(c: CoverContext) {
+  if (c.p <= 0) return null;
+  const [, main, accent] = c.palette;
+  const e = Easing.inOut(Easing.cubic)(clamp01(c.p));
+  const W = c.width, H = c.height, d = Math.hypot(W, H) / 2;
+  // Étoile pleine : à 45°, son bord passe à ≈ 0,49 R ; 2,3 × la demi-diagonale suffit à couvrir les coins
+  const R = e * d * 2.3, turn = c.phase === "out" ? e * 50 : 100 - e * 50;
+  const ice = `color-mix(in srgb, #8FE9FF 72%, ${main})`;
+  const gid = `sparkle-${c.phase}-${c.frame}`;
+  const star = "M0 -1C0.15 -0.45 0.45 -0.15 1 0C0.45 0.15 0.15 0.45 0 1C-0.15 0.45 -0.45 0.15 -1 0C-0.45 -0.15 -0.15 -0.45 0 -1Z";
+  return <svg width={W} height={H} style={fill} aria-hidden>
+    <defs>
+      {/* Chrome : bandes rose / bleu glacé / blanc répétées en diagonale, comme le métal du titre */}
+      <linearGradient id={gid} gradientUnits="userSpaceOnUse" spreadMethod="repeat" x1="-0.1" y1="-0.2" x2="0.08" y2="0.32">
+        <stop offset="0" stopColor={ice} /><stop offset="0.2" stopColor="#FFFFFF" /><stop offset="0.34" stopColor={ice} />
+        <stop offset="0.52" stopColor={accent} /><stop offset="0.7" stopColor={`color-mix(in srgb, ${accent}, #000 30%)`} /><stop offset="0.86" stopColor={accent} /><stop offset="1" stopColor={ice} />
+      </linearGradient>
+      <radialGradient id={`${gid}-core`} cx="0" cy="0" r="0.5" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.8" /><stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+      </radialGradient>
+    </defs>
+    <g transform={`translate(${W / 2} ${H / 2}) rotate(${turn}) scale(${Math.max(0.001, R)})`}>
+      <path d={star} fill={`url(#${gid})`} />
+      <path d={star} fill={`url(#${gid}-core)`} />
+      <path d={star} fill="none" stroke={`color-mix(in srgb, ${accent}, #000 40%)`} strokeWidth={0.02} />
+      <path d={star} fill="none" stroke="#FFFFFF" strokeOpacity={0.7 * (1 - e)} strokeWidth={0.008} />
+    </g>
+    {[0, 1, 2, 3].map((k) => {
+      const a = (turn + k * 90) * Math.PI / 180 - Math.PI / 2, r = R * 0.9 + c.unit * 4;
+      const s = c.unit * (2.2 + 1.8 * Math.sin(Math.PI * e));
+      return <path key={k} d={star} fill="#FFFFFF" opacity={0.9 * Math.sin(Math.PI * e)} transform={`translate(${W / 2 + Math.cos(a) * r} ${H / 2 + Math.sin(a) * r}) scale(${s})`} />;
+    })}
+  </svg>;
+}

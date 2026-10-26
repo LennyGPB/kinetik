@@ -407,6 +407,110 @@ export function campaignPostArt(doc: PostDocument, index: number, tools: Campaig
         ${label(page.body, 76, vertical ? h * 0.42 : h * 0.3, 22, fg, false, vertical ? 480 : 520, h * 0.12)}
         ${heading(`${(lead.split(/\s+/)[0] ?? "").replace(/[,.]+$/, "")}-`, "rounded", vertical ? 76 : 90, vertical ? h * 0.78 : h * 0.6, 520, h * 0.09, 76, fg, false)}`;
     }
+    case "nexus": {
+      // Tech néon (lancement, bêta) : noir profond, vert néon, photo monochrome teintée de vert et fondue dans le noir,
+      // lignes topographiques, repères « + », badge en pastille, titre large entaillé (pochoir), seconde partie en contour vert.
+      // Trois compositions qui alternent : photo à droite, photo dans une planète verte, carte photo sur une éclipse.
+      const kind = index % 3, deep = mixHex(accent, "#000000", 0.82), soft = mixHex(accent, bg, 0.55);
+      const topo = Array.from({ length: 9 }, (_, k) => {
+        const cx = kind === 1 ? w * 0.7 : w * 0.35, cy = h * (kind === 2 ? 0.75 : 0.4), r = 120 + k * 70;
+        const pts = Array.from({ length: 97 }, (_, j) => { const a = (j / 96) * Math.PI * 2; const rr = r * (1 + 0.08 * Math.sin(a * 3 + k * 0.7 + index) + 0.05 * Math.sin(a * 5 - k)); return `${(cx + Math.cos(a) * rr * 1.25).toFixed(1)},${(cy + Math.sin(a) * rr * 0.8).toFixed(1)}`; });
+        return `<polyline points="${pts.join(" ")}" fill="none" stroke="${fg}" stroke-opacity="${k % 3 === 0 ? 0.08 : 0.05}" stroke-width="1.5"/>`;
+      }).join("");
+      const crosses = [[0.08, 0.3], [0.92, 0.22], [0.18, 0.62], [0.86, 0.66], [0.5, 0.12]].map(([fx, fy]) => `<path d="M ${w * fx - 12} ${h * fy} h 24 M ${w * fx} ${h * fy - 12} v 24" stroke="${fg}" stroke-opacity=".3" stroke-width="2"/>`).join("");
+      const pillText = page.kicker.toUpperCase(), pillW = Math.min(460, pillText.length * 15 + 60);
+      const pill = `<rect x="${w - 60 - pillW}" y="70" width="${pillW}" height="50" rx="25" fill="none" stroke="${accent}" stroke-width="2.5"/>${label(pillText, w - 60 - pillW / 2, 103, 19, accent, true, pillW - 40)}`;
+      // Titre : début plein (blanc) entaillé façon pochoir, fin en contour vert
+      const size = page.titleSize * 1.05, tx = 64, ty = kind === 2 ? h * 0.62 : h * 0.6;
+      const leadText = (beginning || page.title).toUpperCase(), tailText = beginning ? ending.toUpperCase() : "";
+      const hh = Math.min(h, 1350), leadBox = measure(leadText, "wide", 952, hh * 0.17, size);
+      const rowsCount = Math.max(1, Math.round(leadBox.height / (size * 1.13))), rowH = leadBox.height / rowsCount;
+      const cuts = Array.from({ length: rowsCount }, (_, r) => [0.42, 0.7].map((f, k) => {
+        const x0 = tx + page.offsetX + leadBox.width * (0.06 + rnd(r * 7 + k + index * 3) * 0.6);
+        return `<rect x="${x0.toFixed(1)}" y="${(ty + page.offsetY + r * rowH + rowH * f * 0.85).toFixed(1)}" width="${(leadBox.width * (0.1 + rnd(r + k * 5) * 0.16)).toFixed(1)}" height="${(rowH * 0.06).toFixed(1)}" fill="${bg}"/>`;
+      }).join("")).join("");
+      const title = `${heading(leadText, "wide", tx, ty, 952, hh * 0.17, size, fg, false)}${cuts}${tailText ? stroked(tailText, "wide", tx, ty + leadBox.height + 6, 952, hh * 0.1, size * 0.62, accent, 2.5, false) : ""}`;
+      const bodyY = ty + leadBox.height + (tailText ? size * 0.75 : 0) + 44;
+      const squares = [[0.14, 0.12, 70], [0.27, 0.2, 52], [0.1, 0.26, 40]].map(([fx, fy, s]) => `<rect x="${w * fx - s / 2}" y="${h * fy - s / 2}" width="${s}" height="${s}" rx="${s * 0.22}" fill="none" stroke="${accent}" stroke-width="6" filter="url(#${id}neon)"/><rect x="${w * fx - s / 2}" y="${h * fy - s / 2}" width="${s}" height="${s}" rx="${s * 0.22}" fill="none" stroke="${mixHex(accent, "#ffffff", 0.5)}" stroke-width="2.5"/>`).join("");
+      const subject = kind === 0
+        ? `<g clip-path="url(#${id}right)">${photo(image, imageRatio, w * 0.38, 0, w * 0.62, h * 0.72, true)}<rect x="${w * 0.38}" y="0" width="${w * 0.62}" height="${h * 0.72}" fill="${bg}" opacity=".3"/><rect x="${w * 0.38}" y="0" width="${w * 0.62}" height="${h * 0.72}" fill="${accent}" opacity=".2"/></g>
+           <rect x="${w * 0.38}" y="0" width="${w * 0.62}" height="${h * 0.72}" fill="url(#${id}fadeL)"/><rect x="${w * 0.38}" y="0" width="${w * 0.62}" height="${h * 0.72}" fill="url(#${id}fadeB)"/><rect x="${w * 0.38}" y="0" width="${w * 0.62}" height="${h * 0.72}" fill="url(#${id}fadeT)"/>${squares}`
+        : kind === 1
+        ? `<circle cx="${w * 0.66}" cy="${h * 0.3}" r="${w * 0.33}" fill="${accent}" opacity=".35" filter="url(#${id}halo)"/>
+           <g clip-path="url(#${id}planet)">${photo(image, imageRatio, w * 0.36, h * 0.3 - w * 0.3, w * 0.6, w * 0.6, true)}<circle cx="${w * 0.66}" cy="${h * 0.3}" r="${w * 0.3}" fill="url(#${id}sphere)"/></g>
+           <circle cx="${w * 0.2}" cy="${h * 0.16}" r="${w * 0.045}" fill="url(#${id}moon)"/>`
+        : `<ellipse cx="${w / 2}" cy="${h * 0.98}" rx="${w * 0.62}" ry="${h * 0.42}" fill="${accent}" opacity=".5" filter="url(#${id}halo)"/>
+           <ellipse cx="${w / 2}" cy="${h * 0.99}" rx="${w * 0.56}" ry="${h * 0.4}" fill="${deep}"/><ellipse cx="${w / 2}" cy="${h * 0.99}" rx="${w * 0.56}" ry="${h * 0.4}" fill="none" stroke="${accent}" stroke-width="3" stroke-opacity=".8"/>
+           <g clip-path="url(#${id}card)">${photo(image, imageRatio, w * 0.27, h * 0.12, w * 0.46, h * 0.42, true)}<rect x="${w * 0.27}" y="${h * 0.12}" width="${w * 0.46}" height="${h * 0.42}" fill="${accent}" opacity=".18"/><rect x="${w * 0.27}" y="${h * 0.12}" width="${w * 0.46}" height="${h * 0.42}" fill="url(#${id}fadeB)"/></g>
+           <rect x="${w * 0.27}" y="${h * 0.12}" width="${w * 0.46}" height="${h * 0.42}" rx="28" fill="none" stroke="${accent}" stroke-opacity=".5" stroke-width="2"/>`;
+      return `<defs>
+          <filter id="${id}neon" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+          <filter id="${id}halo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="60"/></filter>
+          <filter id="${id}grain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="11"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .1"/></feComponentTransfer></filter>
+          <linearGradient id="${id}fadeL" x1="0" x2="1"><stop stop-color="${bg}"/><stop offset=".12" stop-color="${bg}" stop-opacity=".85"/><stop offset=".55" stop-color="${bg}" stop-opacity="0"/></linearGradient>
+          <linearGradient id="${id}fadeT" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${bg}" stop-opacity=".75"/><stop offset=".3" stop-color="${bg}" stop-opacity="0"/></linearGradient>
+          <linearGradient id="${id}fadeB" x1="0" y1="0" x2="0" y2="1"><stop offset=".5" stop-color="${bg}" stop-opacity="0"/><stop offset="1" stop-color="${bg}"/></linearGradient>
+          <radialGradient id="${id}sphere" cx=".38" cy=".35" r=".75"><stop stop-color="${mixHex(accent, "#ffffff", 0.35)}" stop-opacity=".55"/><stop offset=".55" stop-color="${accent}" stop-opacity=".45"/><stop offset="1" stop-color="${deep}" stop-opacity=".95"/></radialGradient>
+          <radialGradient id="${id}moon" cx=".35" cy=".35" r=".8"><stop stop-color="${mixHex(accent, "#ffffff", 0.4)}"/><stop offset="1" stop-color="${deep}"/></radialGradient>
+          <radialGradient id="${id}glow" cx="${kind === 1 ? 0.66 : 0.6}" cy="${kind === 2 ? 0.9 : 0.35}" r=".7"><stop stop-color="${accent}" stop-opacity=".28"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient>
+          <clipPath id="${id}right"><rect x="${w * 0.38}" y="0" width="${w * 0.62}" height="${h * 0.72}"/></clipPath>
+          <clipPath id="${id}planet"><circle cx="${w * 0.66}" cy="${h * 0.3}" r="${w * 0.3}"/></clipPath>
+          <clipPath id="${id}card"><rect x="${w * 0.27}" y="${h * 0.12}" width="${w * 0.46}" height="${h * 0.42}" rx="28"/></clipPath>
+        </defs>
+        <rect width="${w}" height="${h}" fill="${bg}"/>
+        ${subject}<rect width="${w}" height="${h}" fill="url(#${id}glow)"/>${topo}${crosses}${pill}${title}
+        ${label(page.body.toUpperCase(), 64, bodyY, 21, kind === 2 ? mixHex(fg, accent, 0.25) : soft, false, 700, h * 0.08)}
+        <rect width="${w}" height="${h}" filter="url(#${id}grain)"/>`;
+    }
+    case "amplify": {
+      // Agence marketing jaune et noir : une page sur deux en aplat jaune. Titre condensé énorme et centré, petite accroche
+      // au-dessus, mot clé en jaune (page noire) ou sur étiquette noire (page jaune), photo en duotone jaune, sol en grille
+      // perspective, traînées de lumière jaunes et bouton en pastille.
+      const yellow = index % 2 === 1, paper = yellow ? accent : bg, ink = yellow ? bg : fg, hot = yellow ? bg : accent;
+      const size = page.titleSize * 1.45;
+      const leadText = (beginning || page.title).toUpperCase(), keyText = beginning ? ending.toUpperCase() : "";
+      const hh = Math.min(h, 1350), leadBox = measure(leadText, "condensed", 900, hh * 0.2, size);
+      const keyBox = keyText ? measure(keyText, "condensed", 900, hh * 0.14, size * 1.08) : { width: 0, height: 0 };
+      const ty = h * 0.15, keyY = ty + leadBox.height + 4;
+      const horizon = h * 0.74;
+      const rays = Array.from({ length: 15 }, (_, k) => `<path d="M ${w / 2} ${horizon} L ${(-w * 0.6 + (k / 14) * w * 2.2).toFixed(1)} ${h}" stroke="${accent}" stroke-opacity=".55" stroke-width="2"/>`).join("");
+      const rows = Array.from({ length: 7 }, (_, k) => { const y = horizon + (h - horizon) * ((k + 1) / 7) ** 1.8; return `<path d="M 0 ${y.toFixed(1)} H ${w}" stroke="${accent}" stroke-opacity="${(0.25 + k * 0.08).toFixed(2)}" stroke-width="2"/>`; }).join("");
+      const curve = (dy: number, rise: number) => `M -60 ${h * (0.5 + dy)} C ${w * 0.3} ${h * (0.5 + dy - rise)}, ${w * 0.7} ${h * (0.5 + dy + rise)}, ${w + 60} ${h * (0.44 + dy)}`;
+      const swoosh = (dy: number, rise: number) => `<path d="${curve(dy, rise)}" stroke="${yellow ? "#ffffff" : accent}" stroke-width="34" fill="none" opacity=".55" filter="url(#${id}soft)"/><path d="${curve(dy, rise)}" stroke="#ffffff" stroke-width="3" fill="none" opacity=".85"/>`;
+      // Page jaune : la photo encadrée se place sous le texte (jamais par-dessus) et au-dessus de la pastille
+      const pillW = 260, pillY = h * 0.87, bodyY = keyY + keyBox.height + 50;
+      const fy = Math.max(h * 0.47, bodyY + 60), fh = Math.max(h * 0.18, pillY - 50 - fy), fw = Math.min(w * 0.64, fh * 1.5), fx = (w - fw) / 2;
+      const photoArt = yellow
+        ? `<g transform="rotate(-3 ${w / 2} ${fy + fh / 2})"><rect x="${fx - 14}" y="${fy - 14}" width="${fw + 28}" height="${fh + 28}" rx="34" fill="${bg}"/>
+             <g clip-path="url(#${id}frame)">${photo(image, imageRatio, fx, fy, fw, fh, true)}<rect x="${fx}" y="${fy}" width="${fw}" height="${fh}" fill="${accent}" opacity=".3"/></g></g>`
+        // Photo verticale : boîte à sa hauteur naturelle, calée en haut de la bande (le haut de l'image, souvent le visage, reste visible)
+        : `<g clip-path="url(#${id}upper)">${photo(image, imageRatio, 0, h * 0.36, w, Math.max(h * 0.5, w / imageRatio), true)}<rect x="0" y="${h * 0.36}" width="${w}" height="${h * 0.5}" fill="${bg}" opacity=".28"/><rect x="0" y="${h * 0.36}" width="${w}" height="${h * 0.5}" fill="${accent}" opacity=".2"/></g>
+           <rect x="0" y="${h * 0.36}" width="${w}" height="${h * 0.5}" fill="url(#${id}fade)"/><g clip-path="url(#${id}floor)">${rays}${rows}</g>`;
+      const key = !keyText ? "" : yellow
+        ? `<rect x="${w / 2 - keyBox.width / 2 - 24}" y="${keyY - 6}" width="${keyBox.width + 48}" height="${keyBox.height + 4}" fill="${bg}" transform="rotate(-1.5 ${w / 2} ${keyY + keyBox.height / 2})"/>${heading(keyText, "condensed", 90, keyY, 900, hh * 0.14, size * 1.08, fg, true)}`
+        : heading(keyText, "condensed", 90, keyY, 900, hh * 0.14, size * 1.08, accent, true);
+      // Pastille : flèche et points de progression (la page courante en jaune, allongée)
+      const dots = doc.pages.map((_, k) => `<rect x="${w / 2 - 30 + (k - (doc.pages.length - 1) / 2) * 26 + (k > index ? 14 : 0)}" y="${pillY + 22}" width="${k === index ? 26 : 12}" height="12" rx="6" fill="${k === index ? accent : "#ffffff"}" opacity="${k === index ? 1 : 0.45}"/>`).join("");
+      return `<defs>
+          <filter id="${id}soft" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="16"/></filter>
+          <filter id="${id}grain"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="4"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 .12"/></feComponentTransfer></filter>
+          <radialGradient id="${id}light" cx=".5" cy=".18" r=".8"><stop stop-color="${yellow ? "#ffffff" : accent}" stop-opacity="${yellow ? 0.45 : 0.3}"/><stop offset="1" stop-color="${paper}" stop-opacity="0"/></radialGradient>
+          <linearGradient id="${id}fade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${bg}"/><stop offset=".12" stop-color="${bg}" stop-opacity=".85"/><stop offset=".4" stop-color="${bg}" stop-opacity="0"/><stop offset=".8" stop-color="${bg}" stop-opacity="0"/><stop offset="1" stop-color="${bg}"/></linearGradient>
+          <clipPath id="${id}upper"><rect x="0" y="${h * 0.36}" width="${w}" height="${h * 0.5}"/></clipPath>
+          <clipPath id="${id}floor"><rect x="0" y="${horizon}" width="${w}" height="${h - horizon}"/></clipPath>
+          <clipPath id="${id}frame"><rect x="${fx}" y="${fy}" width="${fw}" height="${fh}" rx="24"/></clipPath>
+        </defs>
+        <rect width="${w}" height="${h}" fill="${paper}"/><rect width="${w}" height="${h}" fill="url(#${id}light)"/>
+        ${swoosh(yellow ? 0.1 : -0.02, 0.12)}${photoArt}${swoosh(yellow ? 0.2 : 0.18, -0.1)}
+        <circle cx="${w / 2}" cy="74" r="22" fill="none" stroke="${hot}" stroke-width="5"/><circle cx="${w / 2}" cy="74" r="8" fill="${hot}"/>
+        ${label(page.kicker, w / 2, ty - 22, 26, ink, true, 760)}
+        ${heading(leadText, "condensed", 90, ty, 900, hh * 0.2, size, ink, true)}${key}
+        ${label(page.body, w / 2, bodyY, 22, ink, true, 720, h * 0.07)}
+        <rect x="${w / 2 - pillW / 2}" y="${pillY}" width="${pillW}" height="56" rx="28" fill="${yellow ? bg : "#151515"}" stroke="${accent}" stroke-opacity="${yellow ? 0 : 0.6}" stroke-width="2"/>
+        <circle cx="${w / 2 + pillW / 2 - 34}" cy="${pillY + 28}" r="14" fill="${accent}"/><path d="M ${w / 2 + pillW / 2 - 41} ${pillY + 28} h 14 m -6 -6 6 6 -6 6" stroke="${bg}" stroke-width="3" fill="none" stroke-linecap="round"/>
+        ${dots}
+        <rect width="${w}" height="${h}" filter="url(#${id}grain)"/>`;
+    }
     default: return null;
   }
 }

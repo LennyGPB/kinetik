@@ -12,7 +12,7 @@ Les projets `kind = POST` partagent les comptes, les assets, les versions, les l
 - Collection professionnelle : `Swiss` (grille et accent vert), `Ledger` (colonnes éditoriales), `Frame` (captures sur bleu nuit), `Outline` (ligne continue) et `Continuum` (courbe panoramique). Les deux derniers sont liés.
 - Collection photo : `Portrait` (photo plein cadre et serif italique), `Team Board` (six portraits avec noms/rôles), `Nomad` (panneau dépoli), `District` (photo monochrome et carrousel contrasté) et `Manifest` (affiche rouge/noir/crème). Les photos sont remplaçables et disposent de réglages de cadrage. Les photos de démonstration sont réservées aux aperçus.
 - Collection campagne : `Afterhours`, `Daybook`, `Muse`, `Ritual`, `Dune`, `Still`, `Diptych`, `Ember`, `Chromatic` et `Atelier`. Photos remplaçables, compositions distinctes, mélange de serif et de sans serif ; `Ritual`, `Dune` et `Chromatic` possèdent un élément continu entre les pages.
-- `Signal`, `Studio` et `Paper Trail` sont retirés du catalogue et des créations. Leur rendu reste disponible pour éditer/exporter les projets existants et restaurer leurs anciennes versions. Le catalogue compte 43 templates actifs.
+- `Signal`, `Studio` et `Paper Trail` sont retirés du catalogue et des créations. Leur rendu reste disponible pour éditer/exporter les projets existants et restaurer leurs anciennes versions. Le catalogue compte 45 templates actifs.
 - Formats : carré 1080 × 1080, feed 1080 × 1350 et story 1080 × 1920.
 
 ## Crédits
@@ -56,3 +56,8 @@ Les tests vérifient les prix et arrondis, la validation, les accès, les double
 
 - Refonte : `Orbit` (`lib/posts/orbit-svg.ts`, orbite lumineuse continue sur tout le carrousel, une planète par page, ciel étoilé, titre en grotesque large) et `Frame` (`lib/posts/frame-svg.ts`, capture entière dans une fenêtre d’app en verre sur halos colorés, interface esquissée sans capture). `Kinetik Launch` reprend la landing : grille, halo violet, badge, bouton et maquette qui alterne moniteur / téléphone / post carré. `Brush` gagne un pinceau texturé, un cercle tracé autour du mot en accent et une note scotchée. Couleurs plus vives pour `Kinetik Guide` et `Ligne`.
 - `Focal` : affiche rouge, photo fondue en silhouette, bande nette sur le regard, mot géant (début gras, fin légère) et texte justifié façon poème.
+
+- `Nexus` et `Amplify` (`lib/posts/campaign-svg.ts`, 26/10/2026), inspirés de feeds d'agences tech et marketing :
+  - **Nexus** : noir profond et vert néon (`#2BFF88`), photo monochrome teintée de vert fondue dans le noir, halo, lignes topographiques, repères « + » et badge en pastille (surtitre). Titre large dont la partie pleine est entaillée façon pochoir, les deux derniers mots en contour vert. Trois compositions en alternance : photo à droite avec carrés néon, photo dans une planète verte avec sa lune, carte photo au-dessus d'une éclipse.
+  - **Amplify** : jaune (`#FFD400`) et noir, une page sur deux en aplat jaune. Titre condensé géant et centré, les deux derniers mots en jaune (page noire) ou sur étiquette noire (page jaune), accroche au-dessus. Page noire : photo en duotone fondue, calée sur le haut de l'image, et sol en grille perspective ; page jaune : photo encadrée inclinée, placée sous le texte. Traînées de lumière, pastille avec flèche et points de progression. Sur les pages jaunes, le cadre commun (CTA, numéro de page) passe en noir.
+  - Aperçu de contrôle des trois formats : `node --import tsx --conditions=react-server scripts/review-post-templates.ts post-nexus` → `out/post-post-nexus.png`.

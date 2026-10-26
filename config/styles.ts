@@ -92,6 +92,7 @@ const CATALOG: Omit<VideoStyle, "recipe">[] = [
   { id: "bloom", name: "Bloom", category: "tech", palette: ["#07070C", "#FFFFFF", "#6E8BFF"], ratio: "16:9" },
   { id: "reflect", name: "Reflect", category: "minimal", palette: ["#050505", "#F2F2F2", "#C8FF3D"], ratio: "4:5" },
   { id: "gloss", name: "Gloss", category: "bold", palette: ["#0B0A0C", "#FFFFFF", "#E040FB"], ratio: "4:5" },
+  { id: "lustre", name: "Lustre", category: "bold", palette: ["#0B0507", "#C9B8FF", "#FF2D7A"], ratio: "1:1" },
   { id: "interlock", name: "Lumen", category: "bold", palette: ["#121014", "#FFA05C", "#8B3DFF"], ratio: "4:5" },
   {"id":"column","name":"Column","category":"editorial","palette":["#161D2E", "#FFF5E8", "#4C8DFF"],"ratio":"9:16"},
   {"id":"aspect","name":"Aspect","category":"editorial","palette":["#241622", "#FFF2EA", "#FF4F7B"],"ratio":"9:16"},

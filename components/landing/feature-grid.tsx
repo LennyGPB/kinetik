@@ -2,13 +2,38 @@
 
 import { useEffect, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { AudioLines, Clapperboard, Mic, MousePointerClick, Package, PenTool, Scaling, Smartphone, Sofa, Sparkles, SquareStack, type LucideIcon } from "lucide-react";
+import { AudioLines, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { Preview } from "./hero-capabilities";
 import "./feature-grid.css";
 
 const heights = [14, 22, 35, 19, 48, 68, 42, 28, 59, 83, 50, 72, 96, 61, 38, 78, 54, 88, 43, 65, 31, 52, 23, 40, 18, 29];
+
+// Même langage que les pictos de la page tarifs (credit-costs) : cadre fin incliné, texte mono, trait violet.
+const TAGS: Record<string, string> = { launch: "MP4", product: "3D", demo: "REC", decor: "SET", posts: "1:1", voice: "VO", formats: "16:9" };
+const FRAME = "relative flex -rotate-6 border border-white/40 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:-translate-y-0.5 motion-safe:group-hover:rotate-0";
+
+function FeatureGlyph({ kind }: { kind: string }) {
+  return (
+    <span aria-hidden="true" className="relative flex h-7 w-9 shrink-0 items-center justify-center text-[#faf9ff]">
+      {kind === "logo" ? (
+        <span className="font-heading text-lg font-extralight tracking-tight">Aa<span className="text-accent-text">.</span></span>
+      ) : kind === "stores" ? (
+        <span className={`${FRAME} h-7 w-4 items-end justify-center rounded-[3px] pb-0.5`}>
+          <span className="absolute top-1 left-1 h-px w-1.5 bg-accent-text" />
+          <span className="h-px w-1.5 bg-white/50" />
+        </span>
+      ) : (
+        <span className={`${FRAME} h-6 min-w-8 items-end rounded-sm px-1 pb-0.5`}>
+          <span className="absolute top-1 left-1 h-px w-2 bg-accent-text" />
+          {kind === "demo" && <span className="absolute top-1 right-1 size-1 rounded-full bg-accent-text" />}
+          <span className="font-mono text-[9px] leading-none">{TAGS[kind]}</span>
+        </span>
+      )}
+    </span>
+  );
+}
 
 export function FeatureGrid() {
   const t = useDictionary(), fr = t.locale === "fr";
@@ -41,31 +66,29 @@ export function FeatureGrid() {
   }, []);
   const copy = fr ? {
     launch: ["Vidéos de lancement", "Ton app présentée en motion design, prête à poster."],
-    demo: ["Démos d’app", "Ton enregistrement d’écran monté automatiquement : zooms, curseur, rythme."],
-    product: ["Produit physique", "Tes photos produit prennent vie dans des univers 2.5D et 3D."],
-    decor: ["Décors", "Ta vidéo dans un vrai setup : bureau, café, salle de conf."],
-    logo: ["Logos animés", "Ton logo prend vie en quelques secondes."],
-    stores: ["Visuels stores", "Captures App Store et Play Store prêtes à publier."],
-    posts: ["Posts réseaux", "Posts et carrousels animés aux couleurs de ta marque."],
-    voice: ["Voix IA", "Une voix off naturelle, dans ta langue, calée sur ta vidéo."],
-    formats: ["Multi-formats", "Une vidéo. Tous les écrans : 16:9, 9:16 et 1:1 en un clic."],
+    demo: ["Démos d’app", "Ton écran monté tout seul : zooms, curseur, rythme."],
+    product: ["Produit physique", "Tes photos produit en univers 2.5D et 3D."],
+    decor: ["Décors", "Ta vidéo dans un vrai setup."],
+    logo: ["Logos animés", "Ton logo animé en quelques secondes."],
+    stores: ["Visuels stores", "Captures App Store et Play Store."],
+    posts: ["Posts réseaux", "Posts et carrousels animés à ta marque."],
+    voice: ["Voix IA", "Une voix off naturelle, dans ta langue."],
+    formats: ["Multi-formats", "16:9, 9:16 et 1:1 en un clic."],
   } : {
-    launch: ["Launch videos", "Your app in motion design, ready to share."],
-    demo: ["App demos", "Your screen recording, edited automatically: zooms, cursor, rhythm."],
-    product: ["Physical products", "Your product photos come to life in 2.5D and 3D worlds."],
-    decor: ["Scenes", "Your video in a real setting: desk, café, conference room."],
-    logo: ["Animated logos", "Your logo comes to life in seconds."],
-    stores: ["Store visuals", "App Store and Play Store screenshots, ready to publish."],
-    posts: ["Social posts", "Animated posts and carousels in your brand colours."],
-    voice: ["AI voice", "A natural voiceover, in your language, timed to your video."],
-    formats: ["Multiple formats", "One video. Every screen: 16:9, 9:16 and 1:1 in one click."],
+    launch: ["Launch videos", "Your app in motion design, ready to post."],
+    demo: ["App demos", "Your screen, edited for you: zooms, cursor, rhythm."],
+    product: ["Physical products", "Your product photos in 2.5D and 3D worlds."],
+    decor: ["Scenes", "Your video in a real setting."],
+    logo: ["Animated logos", "Your logo animated in seconds."],
+    stores: ["Store visuals", "App Store and Play Store screenshots."],
+    posts: ["Social posts", "Animated posts and carousels, on brand."],
+    voice: ["AI voice", "A natural voiceover, in your language."],
+    formats: ["Multiple formats", "16:9, 9:16 and 1:1 in one click."],
   };
   type Key = keyof typeof copy;
-  const icons: Record<Key, LucideIcon> = { launch: Clapperboard, demo: MousePointerClick, product: Package, decor: Sofa, logo: PenTool, stores: Smartphone, posts: SquareStack, voice: Mic, formats: Scaling };
   const card = (key: Key, size: "large" | "medium" | "wide" | "row", art: ReactNode, badge?: string) => {
-    const Icon = icons[key];
     return <motion.article
-      className={`feature-grid-card feature-grid-${size} feature-grid-${key}`}
+      className={`group feature-grid-card feature-grid-${size} feature-grid-${key}`}
       initial={{
         opacity: 0,
         y: reducedMotion ? 0 : 40,
@@ -82,7 +105,7 @@ export function FeatureGrid() {
       }}
     >
       <div className="feature-grid-copy">
-        <div className="feature-grid-kicker"><span className="feature-grid-chip" aria-hidden="true"><Icon size={17} /></span>{badge && <span className="feature-grid-badge"><Sparkles size={11} aria-hidden="true" />{badge}</span>}</div>
+        <div className="feature-grid-kicker"><FeatureGlyph kind={key} />{badge && <span className="feature-grid-badge"><Sparkles size={11} aria-hidden="true" />{badge}</span>}</div>
         <h3>{copy[key][0]}</h3>
         <p>{copy[key][1]}</p>
       </div>
@@ -92,8 +115,8 @@ export function FeatureGrid() {
   const art = (children: ReactNode) => <div className="feature-grid-art" aria-hidden="true">{children}</div>;
   return <div ref={root} className="feature-grid">
     {card("launch", "large", art(<Preview kind="motion" fr={fr} />))}
-    {card("demo", "large", art(<Preview kind="demo" fr={fr} />))}
-    {card("product", "medium", art(<Preview kind="product" fr={fr} />), fr ? "Nouveau" : "New")}
+    {card("product", "large", art(<Preview kind="product" fr={fr} />), fr ? "Nouveau" : "New")}
+    {card("demo", "medium", art(<Preview kind="demo" fr={fr} />))}
     {card("decor", "medium", art(<Preview kind="decor" fr={fr} />))}
     {card("logo", "medium", art(<Preview kind="signature" fr={fr} />))}
     {card("stores", "wide", art(<Preview kind="stores" fr={fr} />))}

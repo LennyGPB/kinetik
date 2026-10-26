@@ -8,7 +8,7 @@ import type { MotionEase, MotionExit } from "../../config/recipes";
 import type { VideoProps } from "../props";
 import { useRecipe } from "./theme";
 import { CollectionTransitionCover, isCollectionTransition } from "./collection-transitions";
-import { BurnCover, CapsuleCover, DripCover, ScanCover, ScrawlCover, SmudgeGlow, StrataCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
+import { LiquidWarpFilter, SparkleCover, BurnCover, CapsuleCover, DripCover, ScanCover, ScrawlCover, SmudgeGlow, StrataCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
 
 /**
  * BRIQUES « transitions » (scene.transition, choisie par Claude parmi recipe.transitions).
@@ -460,6 +460,26 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     style: () => ({}),
     overlay: (c) => <StreakCover {...coverIn(c)} />,
     exit: { frames: 14, cover: (c) => <StreakCover {...c} /> },
+  },
+  // Étincelle (Lustre) : une étoile chromée s'ouvre en tournant jusqu'à couvrir l'écran pendant que le cadre se liquéfie,
+  // puis se referme en continuant sa rotation
+  sparkle: {
+    enter: (energy) => (energy === "high" ? 11 : 13),
+    fadeOut: false,
+    opaque: true,
+    style: () => ({}),
+    wrap: (children, c, id) => filtered(children, id, (1 - c.inP) * c.unit * 6, (fid) => <LiquidWarpFilter id={fid} amount={(1 - c.inP) * c.unit * 6} frame={c.frame} />),
+    // Temps linéaire (et non la courbe d'entrée du template, en ressort) : l'étoile se referme aussi doucement qu'elle s'est ouverte
+    overlay: (c) => <SparkleCover {...coverIn(c)} p={clamp01(1 - c.frame / 13)} />,
+    exit: {
+      frames: 11,
+      cover: (c) => <SparkleCover {...c} />,
+      wrap: (children, t, c, id) => filtered(children, id, t * c.unit * 6, (fid) => <LiquidWarpFilter id={fid} amount={t * c.unit * 6} frame={c.frame} />),
+    },
+    backdrop: ({ phase, t, unit, frame, id }) => {
+      const s = phase === "out" ? t : 1 - t;
+      return { style: { transform: `scale(${1 + s * 0.05}) rotate(${(phase === "out" ? 1 : -1) * s * 2}deg)`, filter: s > 0.05 ? `url(#${id})` : undefined }, defs: <LiquidWarpFilter id={id} amount={s * unit * 4} frame={frame} /> };
+    },
   },
   // Montée (Gloss) : le liquide rose monte en vague jusqu'à couvrir l'écran, puis redescend
   surge: {

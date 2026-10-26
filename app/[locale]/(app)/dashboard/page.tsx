@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { PageSkeleton } from "@/components/app/page-skeleton";
 import { ProjectGrid } from "@/components/app/project-grid";
 import { CreateShortcuts } from "@/components/app/create-shortcuts";
+import { Starfield } from "@/components/landing/starfield";
 import { buttonVariants } from "@/components/ui/button";
 import { CREDIT_COSTS } from "@/config/credits";
 import { requireUser } from "@/lib/auth/dal";
@@ -37,9 +38,9 @@ async function DashboardContent() {
 
       {/* Bloc de création : l'action principale de l'app, dans l'esprit du hero de la landing */}
       <section className="relative isolate overflow-hidden rounded-3xl border border-line bg-bg-subtle">
-        {/* Fond : grille + halo violet, comme la landing */}
+        {/* Fond : étoiles en mouvement + halo violet, comme la landing */}
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-grid mask-fade-b opacity-60" />
+          <Starfield className="absolute inset-0 size-full mask-fade-b" />
           <div className="absolute -top-40 left-1/2 h-[30rem] w-[60rem] max-w-[160%] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,var(--accent-glow),transparent)] opacity-70" />
         </div>
         <div className="flex flex-col gap-8 p-6 sm:p-10">

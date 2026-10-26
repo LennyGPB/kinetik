@@ -8,6 +8,7 @@ import { motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { HeroCapabilities } from "./hero-capabilities";
+import { Starfield } from "./starfield";
 import { PlatformMarquee } from "@/components/landing/platform-marquee";
 
 
@@ -41,9 +42,9 @@ export function Hero() {
 
   return (
     <section className="relative flex min-h-svh flex-col overflow-hidden pt-32 sm:pt-40 lg:pt-36">
-      {/* Fond : grille + glow violet */}
+      {/* Fond : étoiles en mouvement + glow violet */}
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
-        <div className="absolute inset-0 bg-grid mask-fade-b opacity-70" />
+        <Starfield className="absolute inset-0 size-full mask-fade-b" />
         <div className="absolute top-[-20%] left-1/2 h-[720px] w-[1100px] max-w-[160vw] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,var(--accent-glow),transparent)] opacity-80" />
       </div>
 

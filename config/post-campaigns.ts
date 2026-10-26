@@ -46,9 +46,13 @@ export const CAMPAIGN_POST_TEMPLATES = [
   { id: "post-moderno", name: "Moderno", linked: false, layout: "moderno", palette: ["#191919", "#FFFFFF", "#EF7D35"], description: { fr: "Feed moderne : photo noir et blanc, titre serif, mot en italique orange et pages orange.", en: "A modern feed: black-and-white photo, serif title, an orange italic word and orange pages." } },
   { id: "post-bleed", name: "Bleed", linked: false, layout: "bleed", palette: ["#4B2FE0", "#FFFFFF", "#0E0E10"], description: { fr: "Aplat de couleur et mot géant qui déborde du cadre. Bannière typographique franche.", en: "Flat colour and a giant word bleeding off the frame. A bold typographic banner." } },
   { id: "post-chrome", name: "Chrome", linked: false, layout: "chrome", palette: ["#F1ECFF", "#14121C", "#7B4DFF"], description: { fr: "Lavande et violet : forme 3D chromée, photo en duotone, titre net et bouton flèche.", en: "Lavender and purple: a chrome 3D shape, duotone photo, crisp title and an arrow button." } },
+  { id: "post-nexus", name: "Nexus", linked: false, layout: "nexus", palette: ["#050806", "#F2F5F1", "#2BFF88"], description: { fr: "Tech néon : noir profond, halos et planète vert néon, photo teintée, titre large entaillé et badge.", en: "Neon tech: deep black, neon-green glows and planet, tinted photo, a cut wide headline and a badge." } },
+  { id: "post-amplify", name: "Amplify", linked: false, layout: "amplify", palette: ["#0B0B0B", "#FFFFFF", "#FFD400"], description: { fr: "Agence marketing jaune et noir : titres condensés géants, mot clé surligné, photo en duotone et grille lumineuse.", en: "Yellow-and-black marketing agency: giant condensed titles, a highlighted keyword, duotone photo and a glowing grid." } },
 ] as const;
 
 export const CAMPAIGN_DEMO_PHOTOS: Record<string, string> = {
+  "post-nexus": "/post-demos/portrait-1.jpg",
+  "post-amplify": "/post-demos/portrait-3.jpg",
   "post-neon-night": "/post-demos/portrait-6.jpg",
   "post-warp": "/post-demos/city.jpg",
   "post-spray": "/post-demos/portrait-4.jpg",

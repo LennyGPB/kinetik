@@ -23,6 +23,7 @@ export const GRAPHIC_MOTION = {
   offprint: { kind: "offprint", headline: "SENSE" },
   patina: { kind: "patina", headline: "HOLO" },
   gloss: { kind: "gloss", headline: "GLOSS" },
+  lustre: { kind: "lustre", headline: "LUSTRE" },
   hollow: { kind: "hollow", headline: "LOUDER" },
   cursive: { kind: "cursive", headline: "NEXT Level" },
   overlap: { kind: "overlap", headline: "Different" },

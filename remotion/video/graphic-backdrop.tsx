@@ -10,6 +10,7 @@ import { MeltBackdrop } from "./melt-art";
 import { HoloBackdrop } from "./holo-art";
 import { VeilForeground } from "./veil-art";
 import { GlossBackdrop } from "./gloss-art";
+import { LustreBackdrop } from "./lustre-art";
 import { Typo5Backdrop } from "./typo5-art";
 
 /** Authored graphics, shared by catalogue thumbnails and frame-driven renders. */
@@ -32,6 +33,7 @@ export function GraphicBackdrop({ kind, palette, time: elapsed = 0, beatPosition
   if (kind === "patina") return <HoloBackdrop palette={palette} time={time} />;
   if (kind === "hollow" || kind === "cursive" || kind === "overlap" || kind === "bloom" || kind === "reflect") return <Typo5Backdrop kind={kind} palette={palette} time={time} />;
   if (kind === "gloss") return <GlossBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
+  if (kind === "lustre") return <LustreBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
   if (kind === "cadence") return <CadenceBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
   if (kind === "tessera") return <TesseraBackdrop palette={palette} time={time} aspectRatio={aspectRatio} />;
   if (["anvil", "cadence", "blackout", "tessera"].includes(kind)) return <RefinedGraphic kind={kind} palette={palette} time={time} aspectRatio={aspectRatio} />;

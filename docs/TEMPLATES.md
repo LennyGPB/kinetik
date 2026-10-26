@@ -430,6 +430,7 @@ Règles de direction artistique : `docs/MOTION-RULES.md`. Mécanique dans le mot
 | `slash` | bandes diagonales qui s'élargissent | Holo (`patina`) |
 | `streak` | colonnes de lumière qui s'élargissent | Lumen (`interlock`) |
 | `surge` | le liquide monte jusqu'à couvrir l'écran puis redescend | Gloss (`gloss`) |
+| `sparkle` | une étoile chromée à quatre branches s'ouvre en tournant jusqu'à couvrir l'écran pendant que le cadre se liquéfie, puis se referme (sortie 11 images, entrée 13, temps linéaire) | Lustre (`lustre`) |
 
 Les anciennes transitions de ces templates restent autorisées : les projets existants gardent leurs transitions enregistrées,
 les nouvelles générations partent de la signature. Les transitions `whip` et `ripple` posent un filtre sur le contenu et le fond
@@ -482,6 +483,10 @@ Identifiants conservés. Offprint et Patina ne sont plus des templates photo (tr
 ### Gloss (nouveau)
 
 `gloss-art.tsx`, `gloss.tsx` : liquide chromé rose et blanc dans la moitié basse, en couches ondulantes avec reflets, qui monte en colonne jusqu'au mot ; mot condensé en contour rose lumineux rempli de noir ; accroche en petites capitales au-dessus, en-tête en trois colonnes. La miniature affiche le nom du template (« GLOSS »).
+
+### Lustre (nouveau, 26/10/2026)
+
+`lustre-art.tsx`, `lustre.tsx` : pochette Y2K. Mot en chrome liquide (rose vif, bleu glacé, reflets blancs) dessiné en SVG de largeur fixe (1000 unités, même rendu dans les trois formats et la miniature) : déplacement par un champ de bruit qui glisse sur une courbe sinusoïdale (ondulation continue), flou puis seuil (lettres gonflées), éclairage spéculaire dont la lumière tourne une fois par mesure, liseré sombre et lueur rose. Retour à la ligne automatique (1 à 3 lignes, découpage qui maximise la taille, jamais de mot de deux lettres seul). Entrée en ressort (le métal se gonfle depuis une flaque), sortie qui fond. Étincelles à quatre branches qui scintillent en cloche, fond noir granuleux avec poussières et rayures de pellicule. Deux lignes de crédits en capitales très espacées sous le mot (sous-titre, nom de l'app). Transitions : `sparkle` (signature), `ripple`, `fade`. Voisins : Gloss (liquide sous un mot en contour, `surge`, condensée, expo) et Melt (coulures, espace) — Lustre diffère par la transition, la typographie (Unbounded), la courbe (ressort) et le fond.
 
 ### Crosscut (refonte)
 
