@@ -18,11 +18,11 @@ export function DecorGallery() {
   const visible = DECORS.filter(decor => category === 'all' || decor.category === category);
   const icons = { pc: Monitor, phone: Smartphone, tablet: Tablet, hybrid: Layers };
   return <section aria-label={c.title}>
-    <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <Segmented variant="pills" label={c.title} size="sm" value={category} onChange={setCategory} options={(['all', ...DECOR_CATEGORIES] as const).map(value => ({ value, label: <span className="flex items-center gap-1.5">{value !== 'all' && (() => { const Icon = icons[value]; return <Icon className="size-3.5" aria-hidden />; })()}{c.categories[value]}</span> }))} />
+    <header className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div><h2 className="font-heading text-2xl sm:text-3xl">{c.heading}</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">{c.subtitle}</p></div>
       <p className="shrink-0 text-xs leading-relaxed text-accent-text">{c.free}</p>
     </header>
-    <Segmented label={c.title} size="sm" value={category} onChange={setCategory} options={(['all', ...DECOR_CATEGORIES] as const).map(value => ({ value, label: <span className="flex items-center gap-1.5">{value !== 'all' && (() => { const Icon = icons[value]; return <Icon className="size-3.5" aria-hidden />; })()}{c.categories[value]}</span> }))} />
     {visible.length ? <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {visible.map(decor => <li key={decor.id}>
         <button type="button" onClick={() => setSelected(decor.id)} className="group block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent rounded-xl" aria-label={`${c.use} · ${decorName(decor.id, locale)}`}>

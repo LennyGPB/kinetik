@@ -25,7 +25,7 @@ export function PostTemplateGallery() {
   return <>
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 overflow-x-auto scrollbar-none">
-        <Segmented label={c.posts} size="sm" value={filter} onChange={setFilter} options={POST_FILTERS.map((value) => ({ value, label: labels[value] }))} />
+        <Segmented variant="pills" label={c.posts} size="sm" value={filter} onChange={setFilter} options={POST_FILTERS.map((value) => ({ value, label: labels[value] }))} />
       </div>
       <p className="shrink-0 text-sm text-subtle" aria-live="polite">{format(t.app.templates.count, { count: templates.length })}</p>
     </div>

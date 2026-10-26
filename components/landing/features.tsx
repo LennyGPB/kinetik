@@ -12,7 +12,11 @@ export function Features() {
   return (
     <>
     <Section id="features" className="scroll-mt-24">
-      <SectionHeading title={t.locale === "fr" ? "Tout pour faire bouger" : "Everything to move"} accent={t.locale === "fr" ? "ta marque." : "your brand."} />
+      <SectionHeading
+        title={t.locale === "fr" ? "Tout pour faire bouger" : "Everything to move"}
+        accent={t.locale === "fr" ? "ta marque." : "your brand."}
+        subtitle={t.locale === "fr" ? "Du premier aperçu au dernier export." : "From the first preview to the final export."}
+      />
       <FeatureGrid />
     </Section>
     <Section id="editor">

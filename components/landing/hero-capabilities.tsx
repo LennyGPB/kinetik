@@ -100,7 +100,7 @@ export function resetSheen(event: PointerEvent<HTMLElement>) {
   event.currentTarget.style.removeProperty("--py");
 }
 
-export function HeroCapabilities({ creation = false }: { creation?: boolean }) {
+export function HeroCapabilities({ creation = false, compact = false, onOpen }: { creation?: boolean; /** Cartes plus petites (page de création) : on en voit davantage à l’écran */ compact?: boolean; /** Renvoie true pour ouvrir le format sur place au lieu de suivre le lien */ onOpen?: (kind: Format) => boolean }) {
   const fr = useDictionary().locale === "fr";
   const viewport = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
@@ -219,14 +219,14 @@ export function HeroCapabilities({ creation = false }: { creation?: boolean }) {
   const byKind = (kind: Format) => homeFormats.find((item) => item.kind === kind)!;
   const formats = creation ? [byKind("motion"), product, byKind("post"), byKind("stores"), { kind: "decor" as const, title: fr ? "Décors" : "Scenes", description: fr ? "Ta vidéo dans un vrai décor, prête à partager." : "Your video in a real setting, ready to share.", tilt: [8, -18, 3] as [number, number, number] }, byKind("demo")] : homeFormats;
   const destination = (kind: Format) => `/create?kind=${kind === "stores" ? "store" : kind === "demo" ? "recording" : kind}`;
-  return <div className="relative mx-auto mt-12 w-full max-w-none pb-6 sm:mt-16">
+  return <div className={`relative mx-auto mt-12 w-full max-w-none pb-6 sm:mt-16${compact ? " hero-capabilities-compact" : ""}`}>
     <button type="button" className="hero-capabilities-nav hero-capabilities-navPrev" onClick={() => go.current(-1)} aria-label={fr ? "Formats précédents" : "Previous formats"} aria-controls="hero-formats"><ChevronLeft size={20} /></button>
     <button type="button" className="hero-capabilities-nav hero-capabilities-navNext" onClick={() => go.current(1)} aria-label={fr ? "Formats suivants" : "Next formats"} aria-controls="hero-formats"><ChevronRight size={20} /></button>
     <div ref={viewport} id="hero-formats" className="hero-capabilities-viewport" onPointerEnter={(event) => { if (event.pointerType === "mouse") setHovered(true); }} onPointerLeave={() => setHovered(false)} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
       <div ref={track} className="hero-capabilities-track">
         {[false, true].map((duplicate) => <ul key={String(duplicate)} aria-hidden={duplicate || undefined} aria-label={duplicate ? undefined : fr ? "Tous les formats de création" : "All creation formats"} className="hero-capabilities-rail">
           {formats.map((format) => <li key={format.kind} className={`hero-capabilities-cardSlot hero-capabilities-kind-${format.kind}`}>
-            <Link href={creation ? destination(format.kind) : "/register"} className={`hero-capabilities-card${creation && format.kind === "motion" ? " hero-capabilities-cardPopular" : ""}`} tabIndex={duplicate ? -1 : undefined} onPointerMove={trackSheen} onPointerLeave={resetSheen} style={{ "--rx": `${format.tilt[0]}deg`, "--ry": `${format.tilt[1]}deg`, "--rz": `${format.tilt[2]}deg` } as CSSProperties}>
+            <Link href={creation ? destination(format.kind) : "/register"} className={`hero-capabilities-card${creation && format.kind === "motion" ? " hero-capabilities-cardPopular" : ""}`} tabIndex={duplicate ? -1 : undefined} onClick={(event) => { if (onOpen?.(format.kind)) event.preventDefault(); }} onPointerMove={trackSheen} onPointerLeave={resetSheen} style={{ "--rx": `${format.tilt[0]}deg`, "--ry": `${format.tilt[1]}deg`, "--rz": `${format.tilt[2]}deg` } as CSSProperties}>
               {creation && format.kind === "motion" && <span className={`absolute -top-4 left-4 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs ${purpleButtonStyle}`}><Sparkles size={13} aria-hidden />{fr ? "Le plus populaire" : "Most popular"}</span>}
               <div className="hero-capabilities-artwork" aria-hidden="true"><Preview kind={format.kind} fr={fr} /></div>
               <div className="hero-capabilities-cardContent">

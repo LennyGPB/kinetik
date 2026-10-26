@@ -57,11 +57,12 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
 
   return (
     <div>
-      {!onSelect && <div className="mb-6"><Segmented label={postCopy(t.locale).newContent} value={kind} onChange={(value) => { endHover(); setKind(value); }} options={[{ value: "motion", label: postCopy(t.locale).motion }, { value: "product", label: t.locale === "fr" ? "Produits physiques" : "Physical products" }, { value: "logo", label: t.styleCategories.logo }, { value: "post", label: postCopy(t.locale).posts }, { value: "store", label: storeCopy(t.locale).kind }, { value: "decor", label: decorCopy(t.locale).title }]} /></div>}
+      {!onSelect && <div className="mb-2"><Segmented variant="pills" label={postCopy(t.locale).newContent} value={kind} onChange={(value) => { endHover(); setKind(value); }} options={[{ value: "motion", label: postCopy(t.locale).motion }, { value: "product", label: t.locale === "fr" ? "Produits physiques" : "Physical products" }, { value: "logo", label: t.styleCategories.logo }, { value: "post", label: postCopy(t.locale).posts }, { value: "store", label: storeCopy(t.locale).kind }, { value: "decor", label: decorCopy(t.locale).title }]} /></div>}
       {kind === "decor" ? <DecorGallery /> : kind === "store" ? <StoreTemplateGallery /> : kind === "post" ? <PostTemplateGallery /> : <>
       <div className={cn("flex flex-col gap-4", !compact && "sm:flex-row sm:items-center sm:justify-between")}>
         {kind === "logo" || productFamily ? <span /> : <div className="min-w-0 overflow-x-auto scrollbar-none">
           <Segmented
+            variant="pills"
             label={tt.title}
             size="sm"
             value={filter}

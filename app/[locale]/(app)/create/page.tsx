@@ -22,7 +22,9 @@ async function CreateContent({ searchParams }: { searchParams: PageProps<"/[loca
   const user = await requireUser();
   const params = await searchParams;
   const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
-  if (!first(params.kind) && !first(params.style) && !first(params.flow) && !first(params.analysis)) return <CreatePicker />;
+  // Sans choix précis : le carrousel des formats (?pick=motion ou ?kind=motion ouvre directement les choix Motion)
+  const bareMotion = first(params.kind) === "motion" && !first(params.style) && !first(params.flow) && !first(params.analysis);
+  if (bareMotion || (!first(params.kind) && !first(params.style) && !first(params.flow) && !first(params.analysis))) return <CreatePicker initialGroup={bareMotion || first(params.pick) === "motion" ? "motion" : null} />;
   const [balance, brandKit] = await Promise.all([getCreditBalance(user.id), getDefaultBrandKit(user.id)]);
   if (first(params.kind) === "product") return <PhysicalProductCreate balance={balance.total} initialStyleId={first(params.style)} />;
   if (first(params.kind) === "decor") return <div className="mx-auto max-w-6xl"><DecorGallery /></div>;

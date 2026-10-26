@@ -25,7 +25,7 @@ export function StoreTemplateGallery() {
     <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">{STORE_TEMPLATES.map((item) => <li key={item.id}><StoreTile item={item} locale={locale} onOpen={() => setOpen(item)} /></li>)}</ul>
     <Dialog open={Boolean(open)} onClose={() => setOpen(null)} title={open?.name ?? ""} description={open?.description[locale]} className="sm:max-w-5xl">
       {open && demo && <div className="space-y-5">
-        <Segmented size="sm" label={c.preview} value={platform} onChange={setPlatform} options={[{ value: "ios", label: c.iphone }, { value: "android", label: c.android }, { value: "banner", label: c.banner }]} />
+        <Segmented variant="pills" size="sm" label={c.preview} value={platform} onChange={setPlatform} options={[{ value: "ios", label: c.iphone }, { value: "android", label: c.android }, { value: "banner", label: c.banner }]} />
         {platform === "banner" ? <StorePreview document={demo} platform="banner" className="mx-auto w-full max-w-[560px] rounded-xl" /> : <div className="overflow-x-auto"><div className="flex min-w-[720px] gap-2">{demo.pages.map((page, index) => <StorePreview key={page.id} document={demo} index={index} platform={platform} className="w-1/6 shrink-0 rounded-lg" />)}</div></div>}
         <p className="text-xs text-muted">{c.demo}</p>
         <Link href={`/create?kind=store&style=${open.id}`} className={buttonVariants({ variant: "purple" })}>{c.use}<ArrowRight /></Link>

@@ -186,3 +186,12 @@
 }
 .hero-capabilities-cardPopular .hero-capabilities-cardContent p { color: rgb(255 255 255 / .85); }
 .hero-capabilities-cardPopular .hero-capabilities-arrow { background: rgb(255 255 255 / .12); border-color: rgb(255 255 255 / .3); color: white; }
+
+/* Page de création : mêmes cartes, en plus compact (même taille que les sous-choix Motion) */
+.hero-capabilities-compact .hero-capabilities-cardSlot { width:262px; flex-basis:262px; }
+.hero-capabilities-compact .hero-capabilities-rail { gap:28px; padding-right:28px; }
+.hero-capabilities-compact .hero-capabilities-viewport { padding-top:52px; padding-bottom:60px; }
+.hero-capabilities-compact .hero-capabilities-viewport .hero-capabilities-preview { height:290px; }
+.hero-capabilities-compact .hero-capabilities-viewport .hero-capabilities-cardContent h3 { min-height:0; font-size:20px; line-height:1.25; }
+.hero-capabilities-compact .hero-capabilities-viewport .hero-capabilities-cardContent p { min-height:0; padding-bottom:0; font-size:13px; }
+@media (max-width:639px) { .hero-capabilities-compact .hero-capabilities-cardSlot { width:240px; flex-basis:240px; } .hero-capabilities-compact .hero-capabilities-viewport .hero-capabilities-preview { height:260px; } }

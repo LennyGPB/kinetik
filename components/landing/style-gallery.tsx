@@ -50,7 +50,16 @@ const ITEMS: Record<Exclude<Kind, "all">, Item[]> = {
   post: POST_TEMPLATES.map((template) => ({ kind: "post", id: template.id, template })),
   store: STORE_TEMPLATES.map((template) => ({ kind: "store", id: template.id, template })),
 };
-const ALL_ITEMS = [...FEATURED_ITEMS, ...interleave([OTHER_MOTION_ITEMS, ITEMS.logo, ITEMS.post, ITEMS.store])];
+const INTERLEAVED_ITEMS = [...FEATURED_ITEMS, ...interleave([OTHER_MOTION_ITEMS, ITEMS.logo, ITEMS.post, ITEMS.store])];
+const DEFAULT_REPLACEMENTS: Record<string, string> = {
+  veil: "stage",
+  "product-runway-3d": "product-sylve-3d",
+  "logo-aperture": "interlock",
+};
+const DEFAULT_ITEMS = INTERLEAVED_ITEMS.slice(0, PREVIEW_COUNT).map((item) =>
+  INTERLEAVED_ITEMS.find((candidate) => candidate.id === DEFAULT_REPLACEMENTS[item.id]) ?? item,
+);
+const ALL_ITEMS = [...DEFAULT_ITEMS, ...INTERLEAVED_ITEMS.filter((item) => !DEFAULT_ITEMS.includes(item))];
 
 export function StyleGallery() {
   const t = useDictionary();
