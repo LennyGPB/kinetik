@@ -31,12 +31,17 @@ function productTextMotion(style: string, s: number, x: number, u: number): CSSP
   return {};
 }
 
+/** Trois couleurs (fond, texte, accent / liquide) : les trois premières du projet ; moins de trois → palette du template. */
+function productPalette(colors: string[] | undefined, fallback: readonly string[]) {
+  return colors && colors.length >= 3 ? colors.slice(0, 3) : fallback;
+}
+
 /** Real cutouts on separate planes. No fabricated side view or synthetic label. */
 function ProductScene({ props, scene, index, frames }: { props: VideoProps; scene: Scene; index: number; frames: number }) {
   const frame = useCurrentFrame(), { width, height, fps } = useVideoConfig();
   const titleFont = useTitleFont(), textFont = useBodyFont();
   const template = getProductTemplate(props.graph.styleId)!;
-  const [, foreground] = props.graph.colors?.length === 3 ? props.graph.colors : template.palette;
+  const [, foreground] = productPalette(props.graph.colors, template.palette);
   const vertical = height > width, u = Math.min(width, height) / 1080;
   const enter = interpolate(frame, [0, fps * .65], [0, 1], { extrapolateRight: "clamp" });
   const exit = interpolate(frame, [frames - fps * .3, frames], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
@@ -67,7 +72,7 @@ export function PhysicalProductVideo({ props }: { props: VideoProps }) {
   const total = durationInFrames(props.graph);
   const gallery = isProduct3D(props.graph.styleId);
   const template = getProductTemplate(props.graph.styleId)!;
-  const palette = props.graph.colors?.length === 3 ? props.graph.colors : template.palette;
+  const palette = productPalette(props.graph.colors, template.palette);
   const campaign = getProductCampaign(template.id);
   const sources = props.graph.scenes.map((scene, index) => scene.screens?.find((url) => props.screenUrls.includes(url)) ?? props.screenUrls[index % Math.max(1, props.screenUrls.length)]).filter((src): src is string => Boolean(src)).map((src) => src.startsWith("/product-demos/") && getRemotionEnvironment().isRendering ? staticFile(src.slice(1)) : src);
   const durations = props.graph.scenes.map((scene) => scene.duration);

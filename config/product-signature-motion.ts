@@ -23,7 +23,7 @@ export function productViewOffset(motion: Pick<SignatureState, "frame">, width: 
  * Logique pure : tout dérive de l'image et des durées des scènes (déterministe, testée dans lib/products/signature-motion.test.ts).
  */
 
-export const SIGNATURE_KINDS = ["splash", "corde", "nocturne", "sorbet", "ion", "runway", "gallery"] as const;
+export const SIGNATURE_KINDS = ["splash", "corde", "nocturne", "sorbet", "ion", "flux", "glacier", "brume", "runway", "gallery"] as const;
 export type SignatureKind = (typeof SIGNATURE_KINDS)[number];
 export function isSignatureKind(kind: string | undefined): kind is SignatureKind {
   return (SIGNATURE_KINDS as readonly string[]).includes(kind ?? "");
@@ -48,6 +48,9 @@ export const SEQUENCES: Record<SignatureKind, [Gesture, Gesture, Gesture]> = {
   nocturne: ["push", "orbit", "rise"],
   sorbet: ["rise", "push", "spiral"],
   ion: ["orbit", "plunge", "whip"],
+  flux: ["plunge", "spiral", "push"],
+  glacier: ["rise", "whip", "plunge"],
+  brume: ["push", "whip", "rise"],
   runway: ["whip", "rise", "orbit"],
   gallery: ["orbit", "push", "rise"],
 };
@@ -101,6 +104,36 @@ const SHOTS: Record<SignatureKind, ShotPair[]> = {
     [P(-0.5, 12.5, 7, 31, 1.4), P(-0.3, 11.5, 5.8, 31, 1.45)],
     [P(0.08, 9.5, 0.9, 38, 1.6), P(0, 15, 1.3, 24, 1.6)],
   ],
+  flux: [
+    // Plongée dans le jet : la caméra frôle la spirale de liquide puis recule
+    [P(0.55, 5.4, 3.9, 27, 2.35), P(0.12, 9.8, 2.6, 31, 2.05)],
+    // Gros plan d'inspection, de trois quarts, sur l'étiquette
+    [P(-0.58, 7.1, 2.4, 25, 2.15), P(-0.3, 6.6, 2.2, 25, 2.1)],
+    // Contre-plongée : le liquide s'élève au-dessus du produit
+    [P(0.4, 7.2, 0.45, 32, 2.45), P(0.16, 6.8, 0.8, 30, 2.35)],
+    // Héros frontal, effet vertigo
+    [P(-0.1, 7.4, 2.4, 36, 2.05), P(0, 11.8, 2.1, 24, 2.05)],
+  ],
+  glacier: [
+    // Descente depuis les glaçons du haut jusqu'au produit (surface de liquide posée à 0,42)
+    [P(-0.5, 9.8, 5.4, 30, 1.9), P(-0.12, 8.2, 2.8, 30, 2)],
+    // Au ras de la couronne de liquide, de profil
+    [P(0.62, 6.6, 1.3, 26, 2.05), P(0.36, 6.1, 1.5, 25, 2.1)],
+    // Trois quarts qui tourne autour des glaçons ; assez haut pour la plongée qui suit
+    [P(-0.7, 7.8, 3.6, 30, 1.95), P(-0.98, 7.2, 3.1, 29, 2)],
+    // Héros frontal, effet vertigo
+    [P(0.08, 7.4, 2.8, 36, 2.05), P(0, 11.8, 3.1, 24, 2.05)],
+  ],
+  brume: [
+    // Approche lente, de face, vers le produit en apesanteur
+    [P(-0.38, 12.2, 3, 30, 2.05), P(0, 8.4, 2.1, 30, 2.05)],
+    // Macro sur l'étiquette puis le haut du produit : très près, focale longue
+    [P(0.35, 4.4, 2.3, 22, 2.25), P(0.12, 3.9, 2.6, 21, 2.5)],
+    // Recul vers un plan large, produit incliné : la brume a la place de se déployer en haut à droite
+    [P(-0.45, 7.6, 2.9, 30, 2.45), P(-0.25, 9, 2.8, 30, 2.6)],
+    // Héros frontal, effet vertigo
+    [P(0.1, 6, 2.3, 34, 2.1), P(0, 10.5, 2.05, 24, 2.05)],
+  ],
   runway: [
     [P(-0.45, 11.5, 4.8, 30, 1.7), P(-0.18, 9.2, 3.1, 30, 1.7)],
     [P(0.45, 6.6, 2.4, 27, 1.9), P(0.25, 6.1, 2.2, 26, 1.9)],
@@ -128,7 +161,7 @@ export function whoosh(t: number) {
   return 0.65 * expo + 0.35 * cubic;
 }
 
-/** Ce que chaque geste ajoute au trajet : `arc` = sin(π·t) (0 aux deux bouts), `rush` = pic de vitesse. Flou : axe horizontal / vertical. */
+/** Ce que chaque geste ajoute au trajet : `arc` = sin²(π·t) (0 aux deux bouts, à vitesse nulle), `rush` = pic de vitesse. Flou : axe horizontal / vertical. */
 function gesture(kind: Gesture, camera: Pose, arc: number, rush: number, direction: number): { camera: Pose; bank: number; blur: [number, number] } {
   switch (kind) {
     case "whip": return { camera: { ...camera, az: camera.az + direction * 0.55 * arc, height: camera.height - 0.9 * arc, fov: camera.fov + 7 * rush }, bank: 0.16, blur: [1, 0.1] };
@@ -175,7 +208,8 @@ export function productSignatureMotion(kind: SignatureKind, durations: number[],
   const amount = asked?.gestureAmount ?? 1;
   let bank = 0, blur: [number, number] = [1, 0];
   if (moving && move) {
-    const applied = gesture(move, camera, Math.sin(Math.PI * linear) * amount, rush * amount, direction);
+    // Écart du geste en cloche sin² : vitesse nulle au départ et à l'arrivée (pas d'à-coup quand la caméra se pose)
+    const applied = gesture(move, camera, rush * amount, rush * amount, direction);
     camera = applied.camera;
     bank = applied.bank * direction * rush * amount;
     blur = applied.blur;
@@ -204,7 +238,7 @@ export function productSignatureMotion(kind: SignatureKind, durations: number[],
     bank: bank + Math.sin(time * 0.7) * 0.03,
     float: kind === "ion" || kind === "gallery" || kind === "runway" ? 0 : Math.sin(time * 0.65) * 0.045,
     /** Inclinaison habituelle de la photo dans chaque univers */
-    roll: kind === "splash" ? 0.22 + Math.sin(time * 0.45) * 0.06 : kind === "corde" ? -0.16 + Math.sin(time * 0.6) * 0.07 : kind === "sorbet" ? Math.sin(time * 0.5) * 0.06 : kind === "nocturne" ? Math.sin(time * 0.3) * 0.012 : 0,
+    roll: kind === "splash" ? 0.22 + Math.sin(time * 0.45) * 0.06 : kind === "corde" ? -0.16 + Math.sin(time * 0.6) * 0.07 : kind === "sorbet" ? Math.sin(time * 0.5) * 0.06 : kind === "nocturne" ? Math.sin(time * 0.3) * 0.012 : kind === "flux" ? 0.05 + Math.sin(time * 0.55) * 0.035 : kind === "glacier" ? -0.07 + Math.sin(time * 0.5) * 0.03 : kind === "brume" ? brumeRoll(moving ? a : state.index, b, moving ? k : 0) + Math.sin(time * 0.4) * 0.03 : 0,
     product: { scale: 1 - 0.07 * rush + 0.035 * landing + 0.012 * beat, roll: direction * 0.11 * rush + 0.03 * landing, lift: 0.12 * rush },
     rush,
     /** Axe du flou de vitesse (horizontal, vertical) */
@@ -227,3 +261,9 @@ function smoothstepInverse(y: number) {
 }
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const lerpPose = (a: Pose, b: Pose, k: number): Pose => ({ az: lerp(a.az, b.az, k), distance: lerp(a.distance, b.distance, k), height: lerp(a.height, b.height, k), fov: lerp(a.fov, b.fov, k), look: lerp(a.look, b.look, k) });
+
+/** Brume : le produit se penche pendant le plan de vaporisation (3ᵉ du cycle), en fondu d'une scène à l'autre. */
+const BRUME_ROLLS = [0, 0.04, -0.42, 0];
+function brumeRoll(a: number, b: number, k: number) {
+  return lerp(BRUME_ROLLS[a % 4], BRUME_ROLLS[b % 4], k);
+}

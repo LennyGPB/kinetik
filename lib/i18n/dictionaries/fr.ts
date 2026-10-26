@@ -968,6 +968,7 @@ export const fr = {
       main: "Principale",
       accent: "Accent",
       additionalColor: "Couleur {n}",
+      liquidColor: "Liquide",
       templateColors: "Couleurs du template",
       addColor: "Ajouter une couleur",
       colorsHelp: "Le fond reste basé sur la couleur principale. La palette est répartie dans les décors et les accents des différentes scènes : lance l’aperçu pour les voir.",

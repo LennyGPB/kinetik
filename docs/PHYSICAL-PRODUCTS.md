@@ -1,17 +1,17 @@
 # Produits physiques → vidéo
 
-Entrée : **Créer → Produit physique** (`/fr/create?kind=product`). Les dix styles sont aussi disponibles dans l’onglet Produits physiques de la bibliothèque de templates.
+Entrée : **Créer → Produit physique** (`/fr/create?kind=product`). Les treize styles sont aussi disponibles dans l’onglet Produits physiques de la bibliothèque de templates.
 
 ## Parcours
 
 1. **Photos** : importer une fiche e-commerce ou jusqu’à quatre photos ; préparer les images et choisir entre original et version préparée.
-2. **Style** : aperçus animés avec les vraies photos de l’utilisateur, sélection de Runway 3D, Gallery 3D, Splash 3D, Nocturne 3D, Corde 3D, Sorbet 3D, Ion 3D, Studio, Floating ou Editorial.
+2. **Style** : aperçus animés avec les vraies photos de l’utilisateur, sélection de Runway 3D, Gallery 3D, Splash 3D, Nocturne 3D, Corde 3D, Sorbet 3D, Ion 3D, Flux 3D, Glacier 3D, Brume 3D, Studio, Floating ou Editorial.
 3. **Message & son** : nom, accroche, un à trois bénéfices, appel à l’action, prix et lien facultatifs ; logo, couleurs et bibliothèque musicale ou fichier personnel.
 4. **Aperçu** : lecture avec contrôles, formats 9:16 / 16:9 / 1:1, 15 ou 30 secondes, récapitulatif, enregistrement facultatif dans un nouveau brand kit, puis ouverture de l’éditeur.
 
 La création utilise le tarif de génération existant. Elle est transactionnelle et identifiée par une clé de requête stable : une reprise après coupure ne facture pas une deuxième fois le même projet. Aucun appel IA n’est nécessaire pour créer la première version : les textes validés sont conservés tels quels.
 
-## Trois rendus 2.5D et sept décors 3D
+## Trois rendus 2.5D et dix décors 3D
 
 - **Runway 3D** : univers de Stage partagé directement, avec sol miroir, grille, anneaux lumineux, halo, cubes flottants et poussières. Chaque scène possède une station fixe dans le même espace. La caméra effectue une lente grue / orbite pendant les plans et voyage continûment entre les stations. Les vraies photos détourées restent à leurs positions dans le monde et s’orientent face à la caméra ; leurs copies inversées apparaissent sous le sol. Les textes se retirent pendant le trajet. Le milieu du raccord peut montrer l’espace entre les stations ; le produit sort alors naturellement du cadre. Même tarif 3D, mêmes formats et mêmes outils d’édition que Gallery 3D.
 
@@ -22,6 +22,9 @@ La création utilise le tarif de génération existant. Elle est transactionnell
 - **Corde 3D** (`product-sylve-3d`) : cordes rouges tressées et halo orange ambré. Identifiant historique conservé pour les projets existants.
 - **Sorbet 3D** (`product-sorbet-3d`) : studio rose, glaçons translucides et mouvement aérien.
 - **Ion 3D** (`product-ion-3d`) : trois exemplaires de la photo courante, sol miroir, panneaux lumineux et brume froide.
+- **Flux 3D** (`product-flux-3d`) : nuit rouge sombre, jet de liquide en spirale autour du produit, gouttes et éclats de lumière. **La 3ᵉ couleur de la palette teinte le liquide** (pastille « Liquide » à la création et dans Style de l’éditeur) ; le halo du fond suit la même teinte. Démo : canette fictive OHM (`public/product-demos/ohm-can.png`, dessinée par `scripts/make-demo-can.ts`). Détails plus bas.
+- **Glacier 3D** (`product-glacier-3d`) : studio bleu glacé, glaçons en apesanteur, couronne de liquide au pied du produit et surface de boisson. **La 3ᵉ couleur teinte le liquide**, comme Flux. Démo : canette fictive NORDA. Détails plus bas.
+- **Brume 3D** (`product-brume-3d`) : studio gris en dégradé, macros, écho du produit en éventail pendant les transitions et vaporisation de brume depuis le haut du produit. La 3ᵉ couleur teinte le halo et la brume. Démo : parfum fictif ÉLAN. Détails plus bas.
 
 - **Studio** : fond minéral, typographie serif, socle elliptique, ombre de contact et mouvement très léger.
 - **Floating** : fond bleu profond, volume lumineux, orbite et suspension avec faible inclinaison.
@@ -98,6 +101,9 @@ Splash et Corde ont servi de pilote (validé le 25/10/2026), puis la méthode a 
   | Nocturne | poussée → orbite → envolée | réfraction qui culmine (« dissolution »), fines stries lumineuses devant l’objectif |
   | Sorbet | envolée → poussée → spirale | glaçons qui s’écartent puis reviennent, éclats de glace qui frôlent l’objectif |
   | Ion | orbite → plongée → fouet | panneaux qui s’allument en balayage, carrousel des trois exemplaires (un cran de 120° par transition) |
+  | Flux | plongée → spirale → poussée | gerbe de liquide coloré qui traverse l’objectif, le jet tourne plus vite et gonfle, les gouttes s’écartent |
+  | Glacier | envolée → fouet → plongée | éclats de glace et gerbe de liquide devant l’objectif, couronne qui jaillit, glaçons qui s’écartent |
+  | Brume | poussée → fouet → envolée | écho du produit en éventail (quatre copies pâles qui s’ouvrent puis se referment) |
   | Runway | fouet → envolée → orbite | trajet fouetté entre stations (cible visée hors station ≤ 7 images), traînées de lumière, anneaux qui s’embrasent |
   | Gallery | orbite → poussée → envolée | colonnes du premier plan balayées par l’orbite, incrustations dorées qui s’embrasent |
 
@@ -105,6 +111,8 @@ Splash et Corde ont servi de pilote (validé le 25/10/2026), puis la méthode a 
   le long de l’axe du geste (horizontal pour fouet / orbite / spirale, vertical pour plongée / envolée ; `RushBlur`, filtre SVG
   sur le canvas, quelques images), produit qui se rétracte légèrement et pivote dans le plan de l’image.
 - **Arrivée** : le produit se pose avec un rebond amorti (≈ 0,5 s) ; pulsation continue et légère sur le tempo.
+  L'écart propre au geste suit une cloche sin² (vitesse nulle au départ et à l'arrivée : la caméra ne s'arrête pas net, corrigé le 26/10/2026).
+  L'avance du ruban de Splash et du jet de Flux est cumulée d'une transition à l'autre (1,6 rad chacune) : le liquide ne revient plus à sa position de départ à la fin du raccord.
 - **Plans** (cycle de 4 par univers) : approche, gros plan d’inspection sur le haut du produit, plan haut ou bas, héros final
   (effet vertigo : recul + champ qui se resserre, ou grue qui s’élève).
 - **Effets** : `remotion/video/product-signature-fx.tsx` (dans le repère de la caméra) et réactions des décors
@@ -129,6 +137,20 @@ Une photo réutilisée reste entièrement opaque pendant les trois transitions. 
 `config/product-shot-motion.ts` fournit une progression déterministe en quatre plans : approche précoce, inspection régulière, révélation accélérée et stabilisation finale. Gallery combine orbites et travellings plus marqués ; Runway conserve ses stations fixes et applique ce rythme à ses trajets de grue / orbite. Studio, Floating et Editorial transposent le même rythme en zoom, déplacement latéral et inclinaison de la photo, avec une amplitude modérée pour Studio et plus forte pour Floating. Le quatrième plan termine son mouvement principal à 72 % de sa progression : les derniers 28 % gardent le cadrage final, tandis que flottement, roulis ou animation du décor peuvent continuer doucement.
 
 La référence de 16,07 secondes a été examinée sur 64 images espacées d’environ 0,25 seconde (`out/reference-camera/contact.png`). On y observe approximativement une approche (0–1,2 s), une inspection macro latérale (1,25–2,5 s), un angle plus haut (2,5–3,5 s), une diagonale (3,5–4,5 s), une orbite (4,5–5,5 s), des inserts liquides (5,5–11 s), un recul rapide (11,25–12,75 s) et un plan produit stable (13–14 s). Ces images seules ne permettent pas de distinguer avec certitude caméra réelle et zoom numérique. L’adaptation reprend leur rythme dans les décors existants, sans reconstruire les faces cachées du produit ni reproduire les inserts liquides. Elle utilise les caméras natives Three.js et les transformations de la photo en 2.5D ; aucun coût ou gain de vitesse supplémentaire n’a été mesuré.
+
+### Flux 3D
+
+`remotion/video/product-flux-3d.tsx` : trois filets de liquide (tubes de 200 × 14 sommets recalculés à chaque image, repère transporté le long de l’hélice), renflements qui glissent le long du jet, filet plus fin quand il passe devant le produit pour ne jamais le masquer, 48 gouttes et quelques éclats lumineux. Matériau physique (transmission 0,3, absorption, vernis) teinté par la 3ᵉ couleur de la palette (`LIQUID_TEMPLATES` dans `config/physical-product.ts`). Ciel en shader : halo de la teinte du liquide en haut à droite et fines lignes verticales. Approximation procédurale, sans simulation de fluide. Coût de rendu proche de Splash (une passe de transmission), non mesuré sur Lambda.
+
+### Glacier 3D
+
+`remotion/video/product-glacier-3d.tsx` : studio bleu glacé (ciel dégradé et halo blanc derrière le produit), surface de boisson en grille polaire (ondes concentriques, fondu en transparence par sommet au-delà de ~2,5 unités pour ne jamais former un sol jusqu’à l’horizon), couronne de liquide en nappe à douze pointes au pied du produit avec une goutte au sommet de chaque pointe, 30 gouttes en arc figé, 11 glaçons transmissifs (géométrie partagée avec Sorbet, `iceCubeGeometry`) placés hors du secteur avant pour ne pas couvrir l’étiquette, 14 éclats de glace, givre scintillant et brume basse. Le liquide (couronne, gouttes, surface) suit la 3ᵉ couleur de la palette. En transition, la couronne jaillit plus haut, l’onde s’amplifie, les glaçons s’écartent ; devant l’objectif passent des éclats de glace et une gerbe de liquide en sens opposé. Gestes : envolée → fouet → plongée. Démo : canette fictive NORDA (`public/product-demos/norda-can.png`). Coût : plusieurs passes de transmission comme Sorbet (≈ 1 s par image en local), non mesuré sur Lambda.
+
+### Brume 3D
+
+Inspiré d’une pub de parfum (approche lente, macros, fouet, écho en éventail, vaporisation, retour au plan héros). `remotion/video/product-brume-3d.tsx` : fond attaché à la caméra (halo clair centré sur le produit, bords sombres, texture étendue pour le cadrage décalé en paysage), écho de quatre copies de la vraie photo décalées dans le sens du geste, de plus en plus pâles et inclinées (`echoCopies`, inclinaison par copie via `userData.roll`), et 260 gouttelettes de brume qui partent du haut du produit dans l’axe de son inclinaison pendant le 3ᵉ plan (le produit s’y penche de 0,42 rad, en fondu). Plans : approche, macro sur l’étiquette et le haut du produit, recul vers un plan large incliné, héros. Ce qui n’est pas reproduit : vraie rotation 3D, bouchon qui se sépare, macros de côté sur le verre (faces non fournies). Démo : parfum fictif ÉLAN (`public/product-demos/elan-perfume.png`, `scripts/make-demo-perfume.ts`). Coût faible (pas de transmission), non mesuré sur Lambda.
+
+La vidéo produit lit les trois premières couleurs du projet dès qu’il y en a au moins trois (auparavant, une 4ᵉ couleur ajoutée dans l’éditeur faisait revenir toute la palette du template).
 
 ## Préparation des images
 

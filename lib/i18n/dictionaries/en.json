@@ -1325,6 +1325,7 @@
       "main": "Primary",
       "accent": "Accent",
       "additionalColor": "Colour {n}",
+      "liquidColor": "Liquid",
       "addColor": "Add a colour",
       "templateColors": "Template colours",
       "colorsHelp": "The background stays based on your primary colour. The palette is distributed across scene decorations and accents. Play the preview to see them.",

@@ -39,14 +39,7 @@ export function CordeEnvironment({ base, accent, time, narrow = false, swing = 0
 
 /** `burst` (0 → 1 → 0) : pendant une transition, les glaçons s'écartent du produit en tournoyant, puis reviennent. */
 export function SorbetEnvironment({ base, accent, time, narrow = false, burst = 0 }: EnvProps) {
-  const cube = useMemo(() => {
-    const geometry = new RoundedBoxGeometry(1, 1, 1, 5, .055), positions = geometry.attributes.position, normals = geometry.attributes.normal;
-    for (let i = 0; i < positions.count; i++) {
-      const amount = (fbm(positions.getX(i) * 4 + positions.getY(i), positions.getZ(i) * 4, 3) - .5) * .04;
-      positions.setXYZ(i, positions.getX(i) + normals.getX(i) * amount, positions.getY(i) + normals.getY(i) * amount, positions.getZ(i) + normals.getZ(i) * amount);
-    }
-    geometry.computeVertexNormals(); return geometry;
-  }, []);
+  const cube = useMemo(() => iceCubeGeometry(), []);
   const frost = useMemo(() => organicTexture("ice"), []);
   useEffect(() => () => { cube.dispose(); frost.dispose(); }, [cube, frost]);
   return <>
@@ -99,4 +92,14 @@ export function IonEnvironment({ base, accent, time, sweep = -1 }: EnvProps) {
     {[-1, 1].map(side => <mesh key={side} position={[side * 3.65, 3.3, -.4]}><boxGeometry args={[.18, 7, .15]} /><meshBasicMaterial color="#F2F8FF" toneMapped={false} /></mesh>)}
     <Mist time={time} color="#E7F2FF" low opacity={.13} />
   </>;
+}
+
+/** Glaçon chanfreiné aux faces légèrement irrégulières (bruit fractal déterministe), partagé par Sorbet et Glacier. */
+export function iceCubeGeometry() {
+  const geometry = new RoundedBoxGeometry(1, 1, 1, 5, .055), positions = geometry.attributes.position, normals = geometry.attributes.normal;
+  for (let i = 0; i < positions.count; i++) {
+    const amount = (fbm(positions.getX(i) * 4 + positions.getY(i), positions.getZ(i) * 4, 3) - .5) * .04;
+    positions.setXYZ(i, positions.getX(i) + normals.getX(i) * amount, positions.getY(i) + normals.getY(i) * amount, positions.getZ(i) + normals.getZ(i) * amount);
+  }
+  geometry.computeVertexNormals(); return geometry;
 }

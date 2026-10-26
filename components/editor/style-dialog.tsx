@@ -13,7 +13,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { getStyle, STYLE_CATEGORIES, VIDEO_STYLES, type StyleCategory } from "@/config/styles";
-import { getProductTemplate } from "@/config/physical-product";
+import { LIQUID_TEMPLATES, getProductTemplate } from "@/config/physical-product";
 import { getLogoMotion } from "@/config/logo-motion";
 import { MAX_PROJECT_COLORS } from "@/config/colors";
 import { format } from "@/lib/i18n";
@@ -126,7 +126,7 @@ export function StyleDialog({
               {colors.map((color, i) => (
                 <ColorInput
                   key={i}
-                  label={i === 0 ? s.main : i === 1 ? s.accent : format(s.additionalColor, { n: i + 1 })}
+                  label={i === 0 ? s.main : i === 1 ? s.accent : i === 2 && LIQUID_TEMPLATES.includes(styleId) ? s.liquidColor : format(s.additionalColor, { n: i + 1 })}
                   value={color}
                   onChange={(value) => setColors((list) => list.map((item, index) => index === i ? value : item))}
                   onRemove={i > 0 ? () => setColors((list) => list.filter((_, index) => index !== i)) : undefined}

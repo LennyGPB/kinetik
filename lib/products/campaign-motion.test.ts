@@ -6,9 +6,9 @@ import { isSignatureKind } from "../../config/product-signature-motion";
 import { getStyle } from "../../config/styles";
 import { getRecipe } from "../../config/recipes";
 
-test("the five reference-inspired campaigns are available as premium 3D product templates", () => {
-  assert.equal(PRODUCT_CAMPAIGNS.length, 5);
-  assert.equal(new Set(PRODUCT_CAMPAIGNS.map(item => item.id)).size, 5);
+test("the eight reference-inspired campaigns are available as premium 3D product templates", () => {
+  assert.equal(PRODUCT_CAMPAIGNS.length, 8);
+  assert.equal(new Set(PRODUCT_CAMPAIGNS.map(item => item.id)).size, 8);
   for (const template of PRODUCT_CAMPAIGNS) {
     assert.equal(getProductCampaign(template.id)?.kind, template.kind);
     assert.ok(isProduct3D(template.id));
