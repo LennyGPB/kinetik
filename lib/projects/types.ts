@@ -60,6 +60,8 @@ export type EditorProject = {
   /** Musique uploadée (les pistes de la bibliothèque n'ont pas encore de fichier audio) */
   musicSrc: string | null;
   websiteUrl: string | null;
+  /** Vidéo Créations (Claude privé) : code de la version publiée choisie. Null pour les autres templates. */
+  custom?: import("@/lib/custom-motion/contract").CustomRuntime | null;
   /** Polices du brand kit de l'utilisateur (null s'il n'en a pas configuré) */
   brandFonts: { heading: BrandFont; body: BrandFont } | null;
   /** Fichiers du projet, pour le gestionnaire de médias de l'éditeur */

@@ -5,6 +5,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { getR2Store } from "./r2";
 import { isStorageKey, ownsUpload } from "./keys";
+export { isCommunityUpload, COMMUNITY_OWNER } from "./keys";
 import { acquireLock, releaseLock, reserveBudget } from "@/lib/rate-limit";
 
 /**

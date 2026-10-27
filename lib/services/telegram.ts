@@ -48,6 +48,15 @@ export async function notifySignup(user: { name: string | null; email: string; m
   ].join("\n"));
 }
 
+export async function notifyGeneration(generation: { userId: string; description: string; amount: number }) {
+  const user = await db.user.findUnique({ where: { id: generation.userId }, select: { name: true, email: true, plan: true } }).catch(() => null);
+  return notifyTelegram([
+    `🎬 <b>Nouvelle génération</b> · ${generation.amount} crédits`,
+    escapeHtml(generation.description),
+    user ? `${escapeHtml(user.name || "—")} · ${escapeHtml(user.email)} · ${user.plan}` : null,
+  ].filter(Boolean).join("\n"));
+}
+
 export function notifyPurchase(purchase: { label: string; amountCents: number; currency?: string; email?: string | null; detail?: string }) {
   return notifyTelegram([
     `💰 <b>${escapeHtml(purchase.label)}</b> · ${euros(purchase.amountCents, purchase.currency)}`,

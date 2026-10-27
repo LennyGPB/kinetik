@@ -50,6 +50,8 @@ import type { ProjectVariant } from "@/lib/projects/types";
 import { ScreensPicker } from "./screens-picker";
 import { SceneTimeline } from "./scene-timeline";
 import { ScenePresentationSelect } from "./scene-presentation-select";
+import { customScene } from "@/lib/custom-motion/graph";
+import type { CustomSceneType } from "@/lib/custom-motion/contract";
 import { Dialog } from "@/components/ui/dialog";
 import { AnimatedApply } from "@/components/ui/animated-apply";
 
@@ -157,7 +159,17 @@ export function Player({ videoProps, editing, variants, className, compact = fal
   const index = Math.max(0, timeline.findLastIndex((s) => s.from <= frame));
   const editable = Boolean(editing) && !editing?.disabled && !saving;
   const selected = graph.scenes.find((s) => s.id === selectedId) ?? null;
-  const canChooseScreens = Boolean(selected && (selected.kind === "screens" || (videoProps.recipe.stage && stageShowsDevice(selected, Boolean(graph.logoLayout)))));
+  // Vidéo Créations (Claude privé) : seuls les textes déclarés, les durées (bornées par type) et l'ordre des scènes se règlent
+  const custom = videoProps.custom ?? null;
+  const customType = (scene: Scene | null | undefined) => custom?.meta.sceneTypes.find((type) => type.type === scene?.customType);
+  const labelOf = (scene: Scene) => custom ? customType(scene)?.label ?? scene.title : sceneLabel(scene.kind, t.locale);
+  const selectedType = customType(selected);
+  const minSeconds = selectedType?.minDuration ?? SCENE_MIN_SECONDS;
+  const maxSeconds = selectedType?.maxDuration ?? SCENE_MAX_SECONDS;
+  const maxScenes = custom ? custom.meta.maxScenes : MAX_SCENES;
+  const minScenes = custom ? custom.meta.minScenes : MIN_SCENES;
+  const canRepeat = !custom || Boolean(selectedType?.repeatable);
+  const canChooseScreens = custom ? Boolean(selectedType?.screen) : Boolean(selected && (selected.kind === "screens" || (videoProps.recipe.stage && stageShowsDevice(selected, Boolean(graph.logoLayout)))));
 
   useEffect(() => {
     const player = playerRef.current;
@@ -233,15 +245,23 @@ export function Player({ videoProps, editing, variants, className, compact = fal
   /** Ajoute une modification à l'aperçu et planifie l'enregistrement groupé. */
   function edit(change: TimelineEdit): boolean {
     if (!editing || !editable) return false;
+    if (custom) {
+      const targetId = "sceneId" in change ? change.sceneId : null;
+      const scene = graph.scenes.find((s) => s.id === targetId);
+      const type = customType(scene);
+      const count = graph.scenes.length + (change.kind === "delete" ? -1 : 1);
+      if ((change.kind === "delete" || change.kind === "duplicate") && (!type?.repeatable || count < custom.meta.minScenes || count > custom.meta.maxScenes)) return false;
+      if (change.kind === "duration" && type) change = { ...change, duration: Math.round(Math.min(type.maxDuration, Math.max(type.minDuration, change.duration)) * 100) / 100 };
+    }
     const next = [...drafts, change];
     setDrafts(next);
     if (change.kind === "delete") setSelectedId(null);
-    const focusSceneId = change.kind === "delete" ? null : change.kind === "add" || change.kind === "duplicate" ? change.id : change.sceneId;
+    const focusSceneId = change.kind === "delete" ? null : change.kind === "add" || change.kind === "addCustom" || change.kind === "duplicate" ? change.id : change.sceneId;
     held.current = null;
     // Nouvelle scène : on la sélectionne et on ouvre directement l'édition de son texte
-    if (change.kind === "add" || change.kind === "duplicate") {
+    if (change.kind === "add" || change.kind === "addCustom" || change.kind === "duplicate") {
       setSelectedIdState(change.id);
-      const withText = change.kind === "add" && hasEditableTitle(change.sceneKind);
+      const withText = (change.kind === "add" && hasEditableTitle(change.sceneKind)) || (change.kind === "addCustom" && Object.keys(change.texts).length > 0);
       setPanel(withText ? "text" : null);
       // L'enregistrement recharge le lecteur et fermerait le formulaire : on attend qu'il soit refermé
       // (la scène et son texte partent alors ensemble, en une seule version).
@@ -320,7 +340,20 @@ export function Player({ videoProps, editing, variants, className, compact = fal
     </div>
   ) : null;
 
-  const advanced = editing && selected ? (
+  const advanced = editing && selected && custom ? (
+    editing.onAskScene ? (
+      <div className="sm:-my-1 sm:overflow-hidden sm:py-1">
+        <div className="flex flex-col gap-3 lg:-ml-6 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-0 lg:gap-y-3">
+          <div className={cn(GROUP, "max-lg:hidden")}>
+            <button type="button" disabled={!editable || drafts.length > 0} onClick={() => { playerRef.current?.pause(); editing.onAskScene?.(selected.id); }} className={TOOL}>
+              <MessageSquare aria-hidden />
+              {t.copy["c7b2ac7f9b71"]}
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null
+  ) : editing && selected ? (
         // Chaque groupe porte un trait à sa gauche ; décalé d'un écart vers la gauche dans une boîte qui coupe ce qui dépasse,
         // le trait du premier groupe de chaque ligne est masqué : il n'apparaît qu'entre deux groupes d'une même ligne.
         <div className="sm:-my-1 sm:overflow-hidden sm:py-1">
@@ -472,7 +505,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
         </TextEditingContext>
         {positioning && <div aria-hidden className="pointer-events-none absolute inset-0"><div className="absolute inset-y-0 left-1/2 border-l border-dashed border-white/35" /><div className="absolute inset-x-0 top-1/2 border-t border-dashed border-white/35" /></div>}
         <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-black/40 px-2 py-0.5 font-mono text-[10px] text-white/80 backdrop-blur">
-          {index + 1}/{graph.scenes.length} · {preview ? sceneLabel(graph.scenes[index].kind, t.locale) : graph.scenes[index]?.kind}
+          {index + 1}/{graph.scenes.length} · {custom && graph.scenes[index] ? labelOf(graph.scenes[index]) : preview ? sceneLabel(graph.scenes[index].kind, t.locale) : graph.scenes[index]?.kind}
         </span>
         {/* En pause : icône lecture au centre (le clic sur la vidéo relance la lecture, l'icône ne l'intercepte pas) */}
         <span
@@ -541,6 +574,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           selectedId={selectedId}
           onSelect={setSelectedId}
           onEdit={edit}
+          labelOf={custom ? labelOf : undefined}
         />
       </div>
 
@@ -552,12 +586,12 @@ export function Player({ videoProps, editing, variants, className, compact = fal
             <div className="flex w-full items-center gap-1 lg:hidden">
               <button type="button" onClick={() => setSceneSheet(true)} aria-haspopup="dialog" className="group flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft px-3 py-3 text-left text-fg shadow-sm transition-[background-color,border-color,transform] hover:border-accent hover:bg-accent/15 active:scale-[0.98] active:bg-accent/20">
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-fg"><Pencil className="size-4" aria-hidden /></span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{sceneLabel(selected.kind, t.locale)}</span><span className="mt-0.5 block text-xs text-muted tabular-nums">{formatSeconds(selected.duration, t.locale)}</span></span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{labelOf(selected)}</span><span className="mt-0.5 block text-xs text-muted tabular-nums">{formatSeconds(selected.duration, t.locale)}</span></span>
                 <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-accent-text">{tl.sceneSheet} <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden /></span>
               </button>
             </div>
             <div role="toolbar" aria-label={tl.selected} className="max-lg:hidden flex w-full flex-wrap items-center gap-1 rounded-2xl border border-line bg-surface p-1.5 pl-3 text-fg sm:w-auto sm:max-w-full sm:flex-nowrap sm:gap-1 sm:overflow-x-auto sm:rounded-full sm:p-1 sm:pl-3 sm:scrollbar-none">
-              <span className="mr-1 shrink-0 text-sm font-semibold whitespace-nowrap">{sceneLabel(selected.kind, t.locale)}</span>
+              <span className="mr-1 shrink-0 text-sm font-semibold whitespace-nowrap">{labelOf(selected)}</span>
               <span className="mr-1 shrink-0 font-mono text-xs whitespace-nowrap text-muted tabular-nums sm:w-12">{formatSeconds(selected.duration, t.locale)}</span>
               {/* Mobile : fermer reste en haut à droite, les outils passent sur la ligne suivante */}
               <div className="ml-auto sm:hidden">
@@ -566,10 +600,10 @@ export function Player({ videoProps, editing, variants, className, compact = fal
                 </ToolButton>
               </div>
               <div className="flex w-full flex-wrap items-center gap-1 sm:contents">
-              <ToolButton label={tl.shorter} disabled={!editable || selected.duration <= SCENE_MIN_SECONDS} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration - DURATION_STEP })}>
+              <ToolButton label={tl.shorter} disabled={!editable || selected.duration <= minSeconds} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration - DURATION_STEP })}>
                 <Minus />
               </ToolButton>
-              <ToolButton label={tl.longer} disabled={!editable || selected.duration >= SCENE_MAX_SECONDS} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration + DURATION_STEP })}>
+              <ToolButton label={tl.longer} disabled={!editable || selected.duration >= maxSeconds} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration + DURATION_STEP })}>
                 <Plus />
               </ToolButton>
               <ToolButton label={selected.kind === "logo" ? t.copy["61918df1ac56"] : tl.editText} disabled={!editable} active={panel === "text" || panel === "logo"} onClick={() => {
@@ -595,27 +629,27 @@ export function Player({ videoProps, editing, variants, className, compact = fal
               {canChooseScreens && (
                 <ToolButton
                   label={videoProps.screenUrls.length ? selected.kind === "screens" ? tl.screensPick : tl.mockupScreenPick : tl.screensNone}
-                  disabled={!editable || !videoProps.screenUrls.length}
+                  disabled={!editable || (!custom && !videoProps.screenUrls.length)}
                   active={panel === "screens" || Boolean(selected.screens?.length)}
-                  onClick={() => setPanel((v) => (v === "screens" ? null : "screens"))}
+                  onClick={() => (custom && !videoProps.screenUrls.length ? editing?.onMedia?.() : setPanel((v) => (v === "screens" ? null : "screens")))}
                 >
                   <Images />
                 </ToolButton>
               )}
-              <span className="mx-0.5 h-5 w-px bg-line max-sm:hidden" />
-              <TransitionSelect value={selected.transition} recommended={videoProps.recipe.transitions} allowCut={!videoProps.recipe.stage || selected.id === graph.scenes[0]?.id} disabled={!editable} onChange={(transition) => edit({ kind: "transition", sceneId: selected.id, transition })} />
+              {!custom && <><span className="mx-0.5 h-5 w-px bg-line max-sm:hidden" />
+              <TransitionSelect value={selected.transition} recommended={videoProps.recipe.transitions} allowCut={!videoProps.recipe.stage || selected.id === graph.scenes[0]?.id} disabled={!editable} onChange={(transition) => edit({ kind: "transition", sceneId: selected.id, transition })} /></>}
               <span className="mx-0.5 h-5 w-px bg-line max-sm:hidden" />
               <ToolButton
-                label={graph.scenes.length >= MAX_SCENES ? tl.maxScenes : tl.duplicate}
-                disabled={!editable || graph.scenes.length >= MAX_SCENES}
+                label={graph.scenes.length >= maxScenes ? tl.maxScenes : tl.duplicate}
+                disabled={!editable || !canRepeat || graph.scenes.length >= maxScenes}
                 onClick={() => edit({ kind: "duplicate", sceneId: selected.id, id: newSceneId(selected.kind) })}
               >
                 <Copy />
               </ToolButton>
               <ToolButton
-                label={graph.scenes.length <= MIN_SCENES ? tl.minScenes : tl.remove}
+                label={graph.scenes.length <= minScenes ? tl.minScenes : tl.remove}
                 danger
-                disabled={!editable || graph.scenes.length <= MIN_SCENES}
+                disabled={!editable || !canRepeat || graph.scenes.length <= minScenes}
                 onClick={() => edit({ kind: "delete", sceneId: selected.id })}
               >
                 <Trash2 />
@@ -635,17 +669,33 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           <div ref={addMenuRef} className="relative max-lg:fixed max-lg:right-4 max-lg:bottom-[calc(max(1rem,env(safe-area-inset-bottom))+0.75rem)] max-lg:z-40">
             <button
               type="button"
-              disabled={!editable || graph.scenes.length >= MAX_SCENES}
+              disabled={!editable || graph.scenes.length >= maxScenes || Boolean(custom && !custom.meta.sceneTypes.some((type) => type.repeatable))}
               onClick={() => setAddOpen((v) => !v)}
               aria-expanded={addOpen}
-              title={graph.scenes.length >= MAX_SCENES ? tl.maxScenes : selected ? tl.addAfter : tl.addAtEnd}
+              title={graph.scenes.length >= maxScenes ? tl.maxScenes : selected ? tl.addAfter : tl.addAtEnd}
               className={cn(purpleButtonStyle, "flex h-9 items-center gap-1.5 rounded-full px-3 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 max-lg:h-10 max-lg:px-3.5 lg:border-dashed lg:border-line-strong lg:bg-none lg:bg-transparent lg:text-fg lg:shadow-none lg:hover:border-accent lg:hover:text-accent-text lg:hover:shadow-none")}
             >
               <Plus className="size-4" /> {tl.add}
             </button>
             {addOpen && (
               <ul role="menu" className="absolute bottom-full left-0 z-30 mb-2 w-60 max-lg:right-0 max-lg:left-auto overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-[var(--shadow-lift)]">
-                {SCENE_KINDS.map((kind) => (
+                {custom ? custom.meta.sceneTypes.filter((type) => type.repeatable).map((type) => (
+                  <li key={type.type}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setAddOpen(false);
+                        const id = newSceneId("feature");
+                        const scene = customScene(custom.meta, type.type, id, Object.fromEntries(type.texts.map((field) => [field.key, field.label])));
+                        edit({ kind: "addCustom", id, afterId: selected?.id ?? graph.scenes.at(-1)?.id ?? null, customType: type.type, title: scene.title, texts: scene.texts ?? {}, duration: scene.duration });
+                      }}
+                      className="flex w-full flex-col items-start rounded-xl px-3 py-2 text-left transition-colors hover:bg-surface-2"
+                    >
+                      <span className="text-sm font-semibold text-fg">{type.label}</span>
+                    </button>
+                  </li>
+                )) : SCENE_KINDS.map((kind) => (
                   <li key={kind}>
                     <button
                       type="button"
@@ -679,7 +729,7 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           <>
             {/* Desktop : réglages de la scène posés directement sous la frise (mobile : feuille « Réglages de la scène ») */}
             <div key={selected.id} className="max-lg:hidden">{advanced}</div>
-            <Dialog open={sceneSheet} onClose={() => setSceneSheet(false)} title={tl.sceneSheet} headerAction={<button type="button" aria-label={tl.remove} title={tl.remove} disabled={!editable || graph.scenes.length <= MIN_SCENES} onClick={() => { edit({ kind: "delete", sceneId: selected.id }); setSceneSheet(false); }} className="-mt-1 grid size-11 place-items-center rounded-full text-red-500 hover:bg-red-500/10 disabled:opacity-30"><Trash2 className="size-4" /></button>} description={`${sceneLabel(selected.kind, t.locale)} · ${formatSeconds(selected.duration, t.locale)}`}>
+            <Dialog open={sceneSheet} onClose={() => setSceneSheet(false)} title={tl.sceneSheet} headerAction={<button type="button" aria-label={tl.remove} title={tl.remove} disabled={!editable || !canRepeat || graph.scenes.length <= minScenes} onClick={() => { edit({ kind: "delete", sceneId: selected.id }); setSceneSheet(false); }} className="-mt-1 grid size-11 place-items-center rounded-full text-red-500 hover:bg-red-500/10 disabled:opacity-30"><Trash2 className="size-4" /></button>} description={`${labelOf(selected)} · ${formatSeconds(selected.duration, t.locale)}`}>
               {/* Un bouton agit sur l'aperçu (texte, mockup, déplacer…) : la feuille se referme pour le laisser voir.
                   Exceptions marquées data-keep-open (durée) ; les listes déroulantes ne la ferment pas. */}
               <div className="flex flex-col gap-5" onClickCapture={(event) => {
@@ -689,9 +739,9 @@ export function Player({ videoProps, editing, variants, className, compact = fal
                 <div className="flex items-center justify-between gap-3" data-keep-open>
                   <span className="text-sm text-muted">{tl.durationLabel}</span>
                   <div className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
-                    <ToolButton label={tl.shorter} disabled={!editable || selected.duration <= SCENE_MIN_SECONDS} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration - DURATION_STEP })}><Minus /></ToolButton>
+                    <ToolButton label={tl.shorter} disabled={!editable || selected.duration <= minSeconds} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration - DURATION_STEP })}><Minus /></ToolButton>
                     <span className="w-14 text-center font-mono text-sm tabular-nums">{formatSeconds(selected.duration, t.locale)}</span>
-                    <ToolButton label={tl.longer} disabled={!editable || selected.duration >= SCENE_MAX_SECONDS} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration + DURATION_STEP })}><Plus /></ToolButton>
+                    <ToolButton label={tl.longer} disabled={!editable || selected.duration >= maxSeconds} onClick={() => edit({ kind: "duration", sceneId: selected.id, duration: selected.duration + DURATION_STEP })}><Plus /></ToolButton>
                   </div>
                 </div>
                 {editing.onAskScene && <button type="button" disabled={!editable || drafts.length > 0} onClick={() => { playerRef.current?.pause(); editing.onAskScene?.(selected.id); }} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-accent/40 bg-accent-soft px-4 text-sm font-semibold text-accent-text disabled:opacity-40"><MessageSquare className="size-4" />{t.copy["c7b2ac7f9b71"]}</button>}
@@ -703,15 +753,15 @@ export function Player({ videoProps, editing, variants, className, compact = fal
                     if (next === "text" && timing) seek(timing.from + Math.min(Math.round(FPS * 0.8), Math.floor(selected.duration * FPS * 0.6)));
                     setPanel(next);
                   }} />
-                  {canChooseScreens && <SheetAction icon={<Images />} label={selected.kind === "screens" ? tl.screensPick : tl.mockupScreenPick} disabled={!editable || !videoProps.screenUrls.length} onClick={() => setPanel("screens")} />}
+                  {canChooseScreens && <SheetAction icon={<Images />} label={selected.kind === "screens" ? tl.screensPick : tl.mockupScreenPick} disabled={!editable || (!custom && !videoProps.screenUrls.length)} onClick={() => (custom && !videoProps.screenUrls.length ? editing?.onMedia?.() : setPanel("screens"))} />}
                   {selected.kind === "screens" && <SheetAction icon={<ScanSearch />} label={tl.focus} disabled={!editable || !videoProps.screenUrls.length} onClick={() => { playerRef.current?.pause(); setPanel("focus"); }} />}
-                  <SheetAction icon={<Copy />} label={tl.duplicate} disabled={!editable || graph.scenes.length >= MAX_SCENES} onClick={() => edit({ kind: "duplicate", sceneId: selected.id, id: newSceneId(selected.kind) })} />
+                  <SheetAction icon={<Copy />} label={tl.duplicate} disabled={!editable || !canRepeat || graph.scenes.length >= maxScenes} onClick={() => edit({ kind: "duplicate", sceneId: selected.id, id: newSceneId(selected.kind) })} />
                 </div>
-                <TransitionSelect wide value={selected.transition} recommended={videoProps.recipe.transitions} allowCut={!videoProps.recipe.stage || selected.id === graph.scenes[0]?.id} disabled={!editable} onChange={(transition) => edit({ kind: "transition", sceneId: selected.id, transition })} />
-                <div className="border-t border-line pt-4">
+                {!custom && <TransitionSelect wide value={selected.transition} recommended={videoProps.recipe.transitions} allowCut={!videoProps.recipe.stage || selected.id === graph.scenes[0]?.id} disabled={!editable} onChange={(transition) => edit({ kind: "transition", sceneId: selected.id, transition })} />}
+                {!custom && <div className="border-t border-line pt-4">
                   <p className="mb-3 text-xs font-semibold tracking-wide text-subtle uppercase">{tl.advancedSection}</p>
                   {advanced}
-                </div>
+                </div>}
               </div>
             </Dialog>
           </>
@@ -722,7 +772,20 @@ export function Player({ videoProps, editing, variants, className, compact = fal
           <QuickSettings logoOnly initiallyOpen sceneId={selected.id} graph={graph} videoProps={videoProps} recipe={videoProps.recipe} brandFonts={null} disabled={!editable} onApply={(setting) => { editing.onSetting?.(setting, selected.id); setPanel(null); }} />
         </Dialog>
       )}
-      {editing && selected && panel === "text" && (
+      {editing && selected && panel === "text" && custom && (
+        <CustomTextForm
+          key={selected.id}
+          type={selectedType}
+          texts={selected.texts ?? {}}
+          disabled={!editable}
+          onCancel={closeFocus}
+          onApply={(texts) => {
+            edit({ kind: "customTexts", sceneId: selected.id, texts });
+            setPanel(null);
+          }}
+        />
+      )}
+      {editing && selected && panel === "text" && !custom && (
         // La clé fait repartir le formulaire des textes de la scène sélectionnée
         <TextForm
           key={selected.id}
@@ -777,6 +840,34 @@ export function Player({ videoProps, editing, variants, className, compact = fal
         />
       )}
     </div>
+  );
+}
+
+/** Textes déclarés d'une scène Créations (un champ par texte, avec sa longueur maximale). */
+function CustomTextForm({ type, texts, disabled, onApply, onCancel }: { type: CustomSceneType | undefined; texts: Record<string, string>; disabled: boolean; onApply: (texts: Record<string, string>) => void; onCancel: () => void }) {
+  const t = useDictionary();
+  const tl = t.app.editor.timeline;
+  const fields = type?.texts ?? [];
+  const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(fields.map((field) => [field.key, texts[field.key] ?? ""])));
+  const input = "w-full rounded-lg border border-line-strong bg-bg px-3 py-2 text-sm text-fg outline-none focus:border-accent disabled:opacity-50";
+  return (
+    <Dialog open onClose={onCancel} title={tl.editText} description={type?.label}>
+      {fields.length ? (
+        <div className="flex flex-col gap-4">
+          {fields.map((item) => (
+            <label key={item.key} className="flex flex-col gap-1.5 text-sm font-medium">
+              <span className="flex items-baseline justify-between gap-3">{item.label}<span className="font-mono text-xs font-normal text-subtle tabular-nums">{(values[item.key] ?? "").length}/{item.max}</span></span>
+              {item.multiline
+                ? <textarea rows={3} disabled={disabled} value={values[item.key] ?? ""} maxLength={item.max} onChange={(ev) => setValues((v) => ({ ...v, [item.key]: ev.target.value }))} className={cn(input, "resize-y")} />
+                : <input disabled={disabled} value={values[item.key] ?? ""} maxLength={item.max} onChange={(ev) => setValues((v) => ({ ...v, [item.key]: ev.target.value }))} className={input} />}
+            </label>
+          ))}
+          <AnimatedApply disabled={disabled} onApply={() => onApply(values)} onCancel={onCancel} />
+        </div>
+      ) : (
+        <p className="text-sm text-muted">{t.locale === "fr" ? "Cette scène n’a pas de texte modifiable." : "This scene has no editable text."}</p>
+      )}
+    </Dialog>
   );
 }
 

@@ -13,6 +13,8 @@ import { normalizeSiteUrl, reviewFromAnalysis, validUrlStep } from "@/lib/url-vi
 import { urlVideoCopy } from "@/lib/url-video/copy";
 import { urlFlowCopy } from "@/lib/url-video/flow-copy";
 import { cn } from "@/lib/utils";
+/** Une seule vidéo par site (même valeur que côté serveur). */
+const URL_VIDEO_COUNT = 1;
 import { UrlSourceStep, UrlTemplateStep, UrlMusicStep, UrlMessageStep, UrlAssetsStep, UrlFinalStep, UrlProposalResults, UrlAnalysisProgress, type Milestone, type UrlResult } from "./url-video-steps";
 
 /** Ordre des étapes. L'analyse du site tourne pendant le choix du style et de la musique. */
@@ -48,7 +50,6 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
   const [url, setUrl] = useState("");
   const [preferences, setPreferencesState] = useState<UrlPreferences>({ templateId: null, music: null });
   const preferencesRef = useRef(preferences);
-  const [manual, setManual] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<UrlAnalysis | null>(null);
   const [review, setReview] = useState<UrlReview | null>(null);
@@ -79,7 +80,6 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
   const applyResult = useCallback((data: UrlResult) => {
     const nextPreferences = UrlPreferencesSchema.parse(data.review ?? data.analysis.preferences ?? {});
     changePreferences(nextPreferences);
-    setManual(Boolean(nextPreferences.templateId));
     setPendingId(null);
     setResult(data); setAnalysis(data.analysis); setUrl(data.analysis.url);
     setBalance(data.balance); publishCreditBalance(data.balance);
@@ -94,7 +94,7 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
     if (state.pending) {
       setPendingId(id); setUrl(state.url);
       const next = UrlPreferencesSchema.parse(state.preferences ?? {});
-      changePreferences(next); setManual(Boolean(next.templateId));
+      changePreferences(next);
       return;
     }
     const response = await fetch(`/api/url-video/proposals?id=${encodeURIComponent(id)}`, { cache: "no-store" });
@@ -187,11 +187,11 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
   /** L'étape est-elle complète ? Le style et la musique n'attendent pas la fin de l'analyse. */
   function stepValid(index: number) {
     if (index === STEP.source) return Boolean(url.trim());
-    if (index === STEP.template) return !manual || Boolean(preferences.templateId);
+    if (index === STEP.template) return Boolean(preferences.templateId);
     if (index === STEP.music) return true;
-    if (index === STEP.message) return validUrlStep(2, review, manual, preferences);
-    if (index === STEP.assets) return validUrlStep(3, review, manual, preferences);
-    return validUrlStep(4, review, manual, preferences);
+    if (index === STEP.message) return validUrlStep(2, review, preferences);
+    if (index === STEP.assets) return validUrlStep(3, review, preferences);
+    return validUrlStep(4, review, preferences);
   }
   async function next() {
     if (uploading || saving || busy === "generation") return;
@@ -214,7 +214,7 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
     const next = new URL(window.location.href); next.searchParams.delete("analysis"); next.searchParams.delete("urlStep"); window.history.replaceState(null, "", next);
   }
   function reset() {
-    changeUrl(""); changePreferences({ music: null, templateId: null }); setManual(false); setStep(0);
+    changeUrl(""); changePreferences({ music: null, templateId: null }); setStep(0);
   }
   async function addLogo(file: File) {
     setUploading(true); setError("");
@@ -227,14 +227,13 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
     setAnalysis((current) => current ? { ...current, screens: [...current.screens, ...files.filter((file) => !current.screens.some((screen) => screen.url === file.url)).map((file) => ({ ...file, label: file.fileName.slice(0, 80), source: current.url, format: "app" as const }))].slice(0, 24) } : current);
   }
 
-  const remaining = 3 - (result?.occupiedSlots ?? 0), cost = remaining * CREDIT_COSTS.generation;
+  const remaining = Math.max(0, URL_VIDEO_COUNT - (result?.occupiedSlots ?? 0)), cost = remaining * CREDIT_COSTS.generation;
   // L'analyse en cours ne bloque que l'étape du site : elle tourne en fond pendant le style et la musique
   const disabled = uploading || saving || busy === "generation" || (busy === "analysis" && step === STEP.source) || !stepValid(step) || (step === LAST_STEP && balance < cost);
   const noMusic = !preferences.music && !preferences.musicTrackId;
   const nextLabel = saving ? f.saving : step === STEP.music && noMusic ? f.skipMusic : f.nextLabels[step] ?? f.next;
   const common = review ? { locale, review, onChange: setReview } : null;
   const errorMessage = c.errors[error as keyof typeof c.errors] ?? c.errors.default;
-  const readyCount = result?.proposals.filter((proposal) => proposal.status === "READY").length ?? 0;
 
   if (restoring) return <div role="status" className="mx-auto flex max-w-4xl items-center gap-3 py-16 text-sm text-muted"><Loader2 className="size-5 animate-spin motion-reduce:animate-none" />{c.restoring}</div>;
   return <div className="mx-auto max-w-4xl pb-4 pt-2 sm:pt-5" onKeyDown={(e) => { if (step === 0 && e.key === "Enter" && e.target instanceof HTMLInputElement && e.target.type !== "file") { e.preventDefault(); void next(); } }}>
@@ -248,12 +247,11 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
     {error && <div role="alert" className="mb-6 rounded-xl border border-danger/35 bg-surface px-5 py-4"><p className="text-sm leading-relaxed text-fg">{errorMessage}</p>{!analysis && !busy && step > STEP.source && <Button variant="outline" size="sm" className="mt-3" onClick={() => void analyze()}>{pendingId ? c.retryBrief : f.retryAnalysis}</Button>}</div>}
 
     {locked && result && review ? <>
-      <div className="mb-5 flex items-center justify-between text-sm"><span className="text-muted">{f.three}</span><span className="font-medium">{readyCount}/3 {f.done.toLowerCase()}</span></div>
       <UrlProposalResults locale={locale} result={result} review={review} />
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-5"><Button variant="ghost" disabled={Boolean(busy) || generating} onClick={reset}><RotateCcw className="size-4" />{f.startOver}</Button>{remaining > 0 && <Button variant="purple" loading={busy === "generation"} disabled={Boolean(busy) || generating || balance < cost} onClick={() => void generate()}>{f.resume} · {cost} {c.credits}</Button>}</div>
     </> : <>
       {step === STEP.source && <UrlSourceStep locale={locale} url={url} onUrl={changeUrl} disabled={Boolean(busy)} />}
-      {step === STEP.template && <><UrlAnalysisProgress locale={locale} busy={busy === "analysis"} ready={Boolean(analysis)} milestones={milestones} failed={Boolean(error)} /><UrlTemplateStep locale={locale} preferences={preferences} manual={manual} onManual={setManual} onPreferences={changePreferences} analysis={analysis} /></>}
+      {step === STEP.template && <><UrlAnalysisProgress locale={locale} busy={busy === "analysis"} ready={Boolean(analysis)} milestones={milestones} failed={Boolean(error)} /><UrlTemplateStep locale={locale} preferences={preferences} onPreferences={changePreferences} /></>}
       {step === STEP.music && <><UrlAnalysisProgress locale={locale} busy={busy === "analysis"} ready={Boolean(analysis)} milestones={milestones} failed={Boolean(error)} /><UrlMusicStep locale={locale} preferences={preferences} onPreferences={changePreferences} onUploading={setUploading} disabled={busy === "generation"} /></>}
       {step === STEP.message && common && <UrlMessageStep {...common} />}
       {step === STEP.assets && common && analysis && <UrlAssetsStep {...common} analysis={analysis} onAddScreens={addScreens} onLogoUpload={(file) => void addLogo(file)} uploading={uploading} onUploading={setUploading} />}
@@ -265,7 +263,7 @@ export function UrlVideoCreate({ balance: initialBalance, initialAnalysisId }: {
           <Button variant="ghost" disabled={step === STEP.source || busy === "generation" || saving || uploading} onClick={() => go(step - 1)} className={cn("min-h-11", step === STEP.source && "invisible")}><ArrowLeft className="size-4" />{f.back}</Button>
           <Button variant="purple" disabled={disabled} loading={saving || (busy === "analysis" && step === STEP.source) || busy === "generation"} className="group h-auto min-h-12 max-w-[75%] whitespace-normal px-6 py-3 text-center" onClick={() => void next()}>{nextLabel}{!saving && busy !== "generation" && step < LAST_STEP && <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" />}</Button>
         </div>
-        {step === STEP.template && manual && !preferences.templateId && <p className="mt-3 text-right text-xs text-muted">{f.chooseTemplate}</p>}
+        {step === STEP.template && !preferences.templateId && <p className="mt-3 text-right text-xs text-muted">{f.chooseTemplate}</p>}
         {step === STEP.message && review && !stepValid(STEP.message) && <p className="mt-3 text-right text-xs text-danger">{f.checkMessage}</p>}
         {step === STEP.assets && review?.screens.length === 0 && <p className="mt-3 text-right text-xs text-danger">{f.noScreens}</p>}
         {step === LAST_STEP && <p className={cn("mt-3 text-xs leading-relaxed", balance < cost ? "text-danger" : "text-muted")}>{balance < cost ? c.noCredit : f.exportNote}</p>}

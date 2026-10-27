@@ -6,14 +6,14 @@ Deux entrées dans `/create` : URL vers vidéo et création manuelle. Le lien di
 
 Le formulaire URL est découpé en cinq étapes : **site et son → template → message → marque et visuels → génération**. Une seule décision principale par écran ; les polices, accroches et détails d’extraction sont accessibles à la demande. Les textes du brief s’agrandissent avec leur contenu, sans masquer la fin dans de petits champs défilants.
 
-L’étape 1 permet d’importer une musique facultative avec le composant d’upload audio existant. L’étape 2 propose le choix IA ou le catalogue de templates habituel ; l’analyse du site se poursuit pendant ce choix. En mode IA, les trois propositions ont des templates distincts. En mode manuel, le template choisi s’applique aux trois propositions, avec des accroches différentes. Ces préférences sont conservées dans l’analyse et restaurées après rechargement.
+L’étape 1 permet d’importer une musique facultative avec le composant d’upload audio existant. L’étape 2 affiche le catalogue de templates habituel : l’utilisateur choisit toujours son template (l’IA n’en propose pas), et l’analyse du site se poursuit pendant ce choix. Ces préférences sont conservées dans l’analyse et restaurées après rechargement.
 
 1. Analyse incluse et limitée par compte : Chromium headless, desktop et mobile ×2, nettoyage des principaux bandeaux/widgets, captures de sections, home et jusqu’à deux pages de menu pertinentes.
 2. Recherche du logo dans le header, apple-touch-icon, manifest, OG et favicon ; priorité à la source, puis à la résolution. Les images importées sont rasterisées. Palette issue des styles calculés et du logo ; variables CSS et polices observées sont aussi transmises au modèle.
 3. Détection App Store / Google Play. iOS utilise iTunes Lookup, avec lecture de la page en secours lorsque les captures sont absentes. Android utilise les images de captures exposées dans le DOM public de la fiche. Une source bloquée conserve les assets du site et produit un avertissement.
-4. Analyse vision + texte → brief Zod : produit, cible, trois bénéfices, ton, trois hooks, trois styles et typographie. Aucun chiffre ni témoignage inventé.
-5. Validation et correction : logo, palette, polices, screens, texte, accroches, styles, durée et format. Le brand kit actif peut être enregistré ; les kits antérieurs sont conservés. Le brief et les screens sont visibles dans `/brand-kit`.
-6. Trois projets vidéo générés en parallèle. Tarif : `3 × CREDIT_COSTS.generation` (30 crédits actuellement), affiché avant lancement ; export séparé. Un échec est remboursé individuellement. Le choix ouvre l’éditeur habituel.
+4. Analyse vision + texte → brief Zod : produit, cible, trois bénéfices, ton, une accroche et typographie (les anciennes analyses peuvent contenir trois accroches : seule la première est utilisée). Aucun chiffre ni témoignage inventé.
+5. Validation et correction : logo, palette, polices, screens, texte, accroche, durée et format. Le brand kit actif peut être enregistré ; les kits antérieurs sont conservés. Le brief et les screens sont visibles dans `/brand-kit`.
+6. Une seule vidéo générée (`URL_VIDEO_COUNT` dans `lib/url-video/proposals.ts`). Tarif : `CREDIT_COSTS.generation`, affiché avant lancement ; export séparé. Un échec est remboursé. Le choix ouvre l’éditeur habituel.
 
 ## Installation
 

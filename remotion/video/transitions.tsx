@@ -526,7 +526,7 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
       wrap: (children, t, c, id) => filtered(children, id, t * c.unit * 2.5, (fid) => <BoilFilter id={fid} amount={t * c.unit * 2.5} frame={c.frame} />),
     },
   },
-  // Projection (Cast) : l'ombre couchée du mot suivant fonce vers le spectateur jusqu'à remplir l'écran, puis recule
+  // Volet d'horizon (Cast) : un trait bleu se trace sur l'horizon, puis deux panneaux anthracite s'ouvrent depuis cette ligne
   cast: {
     enter: (energy) => (energy === "high" ? 13 : 16),
     fadeOut: false,
@@ -534,10 +534,10 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     style: () => ({}),
     overlay: (c) => <CastCover {...coverIn(c)} p={clamp01(1 - c.frame / 16)} />,
     exit: { frames: 13, cover: (c) => <CastCover {...c} /> },
-    // Le décor recule légèrement pendant que l'ombre arrive (la caméra plonge vers le sol)
+    // Le décor se resserre très légèrement pendant que les panneaux couvrent l'image
     backdrop: ({ phase, t }) => {
       const s = phase === "out" ? t : 1 - t;
-      return { style: { transform: `translateY(${(-s * 4).toFixed(2)}%) scale(${1 + s * 0.06})` } };
+      return { style: { transform: `scale(${(1 + s * 0.03).toFixed(4)})` } };
     },
   },
   // Montée (Gloss) : le liquide rose monte en vague jusqu'à couvrir l'écran, puis redescend

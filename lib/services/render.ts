@@ -10,6 +10,7 @@ import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/c
 import { getRenderProgress, presignUrl, renderMediaOnLambda, renderStillOnLambda, type AwsRegion } from "@remotion/lambda/client";
 import sharp from "sharp";
 import { isOwnUpload, mimeFromKey, storage } from "@/lib/storage";
+import { isCommunityUpload } from "@/lib/storage/keys";
 import { durationInFrames, type VideoProps } from "@/remotion/props";
 import type { ExportQuality } from "@/config/credits";
 
@@ -72,7 +73,8 @@ export async function inlineAssets(props: VideoProps, userId: string): Promise<V
       return `data:audio/mp4;base64,${data.toString("base64")}`;
     }
     if (!url?.startsWith("/api/uploads/")) return url;
-    if (!isOwnUpload(userId, url)) throw new Error("unauthorized_media");
+    // Images du studio Claude privé : publiques (vidéos Créations)
+    if (!isOwnUpload(userId, url) && !isCommunityUpload(url)) throw new Error("unauthorized_media");
     const key = url.slice("/api/uploads/".length);
     const r2 = getR2Store();
     if (key.includes("/video/") && r2) return getSignedUrl(r2.client, new GetObjectCommand({ Bucket: r2.bucket, Key: key }), { expiresIn: 3600 });
@@ -90,8 +92,10 @@ export async function inlineAssets(props: VideoProps, userId: string): Promise<V
   // On garde l'ordre des screens (les proportions et la mise en avant s'y réfèrent) en écartant ceux illisibles
   const kept = props.screenUrls.map((url, i) => ({ url, data: inlined[i], ratio: props.screenRatios?.[i] ?? null })).filter((s) => s.data);
   const byUrl = new Map(kept.map((s) => [s.url, s.data as string]));
+  const custom = props.custom ? { ...props.custom, assets: Object.fromEntries(await Promise.all(Object.entries(props.custom.assets).map(async ([name, url]) => [name, await inline(url) ?? url] as const))) } : props.custom;
   return {
     ...props,
+    custom,
     logoUrl,
     musicSrc,
     backgroundUrl,
@@ -133,7 +137,8 @@ export async function startLambdaRender({ props, quality, fileName, userId, batc
     privacy: "private",
     maxRetries: 1,
     // Plateau 3D (Stage) : WebGL logiciel, seul disponible sur Lambda (pas de GPU) ; les écrans peuvent mettre du temps à se peindre
-    ...(props.recipe.stage && { chromiumOptions: { gl: "swangle" as const }, timeoutInMilliseconds: 120_000 }),
+    // Vidéos Créations : le code peut utiliser WebGL (three.js)
+    ...((props.recipe.stage || props.custom) && { chromiumOptions: { gl: "swangle" as const }, timeoutInMilliseconds: 120_000 }),
     // Découpe la vidéo en morceaux rendus en parallèle, dans la part du quota AWS de ce rendu (Remotion impose 4 images minimum par morceau)
     framesPerLambda: Math.max(4, Math.ceil(durationInFrames(props.graph) / lambdasPerRender(batch))),
     downloadBehavior: { type: "download", fileName },
@@ -175,7 +180,7 @@ export async function renderPreviewStills(props: VideoProps, userId: string, fra
       imageFormat: "jpeg",
       privacy: "private",
       maxRetries: 1,
-      ...(props.recipe.stage && { chromiumOptions: { gl: "swangle" as const }, timeoutInMilliseconds: 120_000 }),
+      ...((props.recipe.stage || props.custom) && { chromiumOptions: { gl: "swangle" as const }, timeoutInMilliseconds: 120_000 }),
     });
     try {
       const response = await fetch(await presignUrl({ region, bucketName: still.bucketName, objectKey: still.outKey, expiresInSeconds: 300 }), { signal: AbortSignal.timeout(30_000) });

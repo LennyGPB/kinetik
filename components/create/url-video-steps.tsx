@@ -103,33 +103,38 @@ export function UrlAnalysisProgress({ locale, busy, ready, milestones, failed = 
   }, [ready, readyHidden]);
   if (ready && readyHidden) return null;
   if (!busy && !ready && !milestones.length) return null;
-  return <div className="mt-7 rounded-xl border border-line bg-surface px-5 py-4">
-    <div role="status" className="flex items-center gap-3">
-      {ready ? <Check className="size-5 shrink-0 text-success" aria-hidden /> : interrupted ? <X className="size-5 shrink-0 text-danger" aria-hidden /> : <Loader2 className={cn("size-5 shrink-0 text-accent-text", busy && "animate-spin motion-reduce:animate-none")} aria-hidden />}
-      <div className="min-w-0"><p className="text-sm font-medium">{ready ? f.analysisReady : interrupted ? f.analysisFailed : f.analysisRunning}</p><p className="mt-1 text-xs leading-relaxed text-muted">{ready ? f.analysisReadyHelp : interrupted ? f.analysisFailedHelp : current ? c.stages[current.stage as keyof typeof c.stages] ?? f.wait : f.wait}</p></div>
+  const running = !ready && !interrupted;
+  const detail = ready ? f.analysisReadyHelp : interrupted ? f.analysisFailedHelp : current ? c.stages[current.stage as keyof typeof c.stages] ?? f.wait : f.wait;
+  return <div className={cn("relative mb-8 animate-enter overflow-hidden rounded-2xl border bg-surface px-5 py-4 sm:px-6 sm:py-5", ready ? "border-success/40" : interrupted ? "border-danger/40" : "border-accent/30 shadow-[0_0_0_1px_rgb(139_92_246/0.08),0_12px_40px_-18px_var(--accent-glow)]")}>
+    {/* Halo violet qui dérive doucement derrière le contenu pendant l'analyse */}
+    {running && <div aria-hidden className="pointer-events-none absolute -left-16 -top-20 size-56 animate-drift rounded-full bg-accent/15 blur-3xl" />}
+    <div role="status" className="relative flex items-center gap-4">
+      <span className="relative grid size-11 shrink-0 place-items-center" aria-hidden>
+        {running ? <>
+          <span className="absolute inset-0 animate-ping rounded-full bg-accent/20 [animation-duration:2s] motion-reduce:animate-none" />
+          <span className="absolute inset-0 rounded-full border-2 border-accent/20" />
+          <span className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-r-accent border-t-accent [animation-duration:0.9s] loading-spin" />
+          <Sparkles className="size-4 animate-pulse text-accent-text" />
+        </> : <span className={cn("grid size-11 animate-pop place-items-center rounded-full", ready ? "bg-success/15 text-success" : "bg-danger/15 text-danger")}>{ready ? <Check className="size-5" /> : <X className="size-5" />}</span>}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold">{ready ? f.analysisReady : interrupted ? f.analysisFailed : f.analysisRunning}</p>
+        <p key={detail} className="mt-1 animate-enter text-xs leading-relaxed text-muted">{detail}</p>
+      </div>
     </div>
-    {milestones.length > 0 && <details className="mt-3 text-xs text-muted"><summary className="cursor-pointer py-1">{f.details}</summary><ul className="mt-3 grid gap-2 sm:grid-cols-2">{milestones.map((m) => <li key={m.stage} className="flex items-center gap-2"><span className="size-1 shrink-0 rounded-full bg-muted" />{c.stages[m.stage as keyof typeof c.stages] ?? m.stage}{m.count !== undefined && ` · ${m.count}`}</li>)}</ul></details>}
+    {/* Barre de progression indéterminée */}
+    {running && <div aria-hidden className="relative mt-4 h-1 overflow-hidden rounded-full bg-accent/10"><div className="absolute inset-y-0 w-1/3 animate-loading loading-bar rounded-full bg-gradient-to-r from-transparent via-accent to-transparent" /></div>}
+    {milestones.length > 0 && <details className="relative mt-3 text-xs text-muted"><summary className="cursor-pointer py-1 transition-colors hover:text-fg">{f.details}</summary><ul className="mt-3 grid gap-2 sm:grid-cols-2">{milestones.map((m) => <li key={m.stage} className="flex animate-enter items-center gap-2"><Check className="size-3 shrink-0 text-success" />{c.stages[m.stage as keyof typeof c.stages] ?? m.stage}{m.count !== undefined && ` · ${m.count}`}</li>)}</ul></details>}
   </div>;
 }
 
-export function UrlTemplateStep({ locale, preferences, manual, onManual, onPreferences, analysis }: {
-  locale: Locale; preferences: UrlPreferences; manual: boolean; onManual: (value: boolean) => void;
-  onPreferences: (value: UrlPreferences) => void; analysis: UrlAnalysis | null;
+export function UrlTemplateStep({ locale, preferences, onPreferences }: {
+  locale: Locale; preferences: UrlPreferences; onPreferences: (value: UrlPreferences) => void;
 }) {
   const f = urlFlowCopy[locale];
-  return <div className="space-y-6">
-    <fieldset className="grid gap-3 sm:grid-cols-2"><legend className="sr-only">{f.template}</legend>
-      {[false, true].map((isManual) => <label key={String(isManual)} className={cn("flex cursor-pointer items-start gap-3 rounded-xl border p-5 transition-colors", manual === isManual ? "border-accent bg-accent-soft" : "border-line-strong bg-surface hover:border-muted")}>
-        <input type="radio" name="url-template-mode" checked={manual === isManual} onChange={() => { onManual(isManual); if (!isManual) onPreferences({ ...preferences, templateId: null }); }} className="mt-1 size-4 shrink-0 accent-accent" />
-        <span><span className="flex items-center gap-2 text-sm font-semibold">{!isManual && <Sparkles className="size-4" aria-hidden />}{isManual ? f.manual : f.ai}</span><span className="mt-2 block text-sm leading-relaxed text-muted">{isManual ? f.manualHelp : f.aiHelp}</span></span>
-      </label>)}
-    </fieldset>
-    {manual ? <div>
-      <div className="mb-4 flex items-center justify-between gap-3 text-sm"><p className="font-medium">{f.browse}</p><p className="text-accent-text">{preferences.templateId ? `${f.selectedTemplate} : ${getStyle(preferences.templateId)?.name}` : f.chooseTemplate}</p></div>
-      <div className="max-h-[620px] overflow-y-auto overscroll-contain rounded-xl border border-line p-3 sm:p-5"><TemplatesGallery compact selectedId={preferences.templateId} onSelect={(templateId) => onPreferences({ ...preferences, templateId })} /></div>
-    </div> : analysis && <div className="grid grid-cols-3 gap-3 pt-2" aria-label={f.aiTemplates}>
-      {analysis.brief.styles.map((id) => { const style = getStyle(id); if (!style) return null; return <div key={id} className="min-w-0"><div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-surface"><VideoPlaceholder ratio="fill" templateId={id} palette={style.palette} scene={style.recipe.background} label={style.name} /></div><p className="mt-2 text-center text-xs font-medium text-muted">{style.name}</p></div>; })}
-    </div>}
+  return <div>
+    <div className="mb-4 flex items-center justify-between gap-3 text-sm"><p className="font-medium">{f.browse}</p><p className="text-accent-text">{preferences.templateId ? `${f.selectedTemplate} : ${getStyle(preferences.templateId)?.name}` : f.chooseTemplate}</p></div>
+    <div className="max-h-[620px] overflow-y-auto overscroll-contain rounded-xl border border-line p-3 sm:p-5"><TemplatesGallery compact selectedId={preferences.templateId} onSelect={(templateId) => onPreferences({ ...preferences, templateId })} /></div>
   </div>;
 }
 
@@ -143,10 +148,10 @@ export function UrlMessageStep({ locale, review, onChange }: ReviewProps) {
     <fieldset><legend className="text-sm font-semibold">{c.benefits}</legend><p className="mb-3 mt-1 text-xs leading-relaxed text-muted">{f.benefitsHelp}</p>
       <div className="space-y-3">{review.brief.benefits.map((benefit, index) => <div key={index} className="flex items-start gap-3"><Check className="mt-4 size-4 shrink-0 text-accent-text" aria-hidden /><GrowingTextarea aria-label={`${c.benefits} ${index + 1}`} rows={2} maxLength={180} value={benefit} onChange={(e) => update("benefits", review.brief.benefits.map((v, i) => i === index ? e.target.value : v))} /></div>)}</div>
     </fieldset>
-    <OptionalSection title={f.advancedMessage} description={locale === "fr" ? "Personnalise le ton et les premières secondes de tes vidéos." : "Fine-tune the tone and opening seconds of your videos."} icon={<SlidersHorizontal className="size-5" />}>
+    <OptionalSection title={f.advancedMessage} description={locale === "fr" ? "Personnalise le ton et les premières secondes de ta vidéo." : "Fine-tune the tone and opening seconds of your video."} icon={<SlidersHorizontal className="size-5" />}>
       <div className="space-y-5"><label className="block text-sm font-medium">{c.tone}<select className={cn(urlField, "mt-2")} value={review.brief.tone} onChange={(e) => update("tone", e.target.value)}>{Object.entries(c.tones).map(([id, text]) => <option key={id} value={id}>{text}</option>)}</select></label>
         <p className="text-xs leading-relaxed text-muted">{f.advancedMessageHelp}</p>
-        {review.brief.hooks.map((hook, index) => <label key={index} className="block text-sm font-medium">{locale === "fr" ? "Accroche" : "Hook"} {index + 1}<GrowingTextarea className="mt-2" rows={2} maxLength={100} value={hook} onChange={(e) => update("hooks", review.brief.hooks.map((v, i) => i === index ? e.target.value : v))} /></label>)}
+        <label className="block text-sm font-medium">{locale === "fr" ? "Accroche" : "Hook"}<GrowingTextarea className="mt-2" rows={2} maxLength={100} value={review.brief.hooks[0]} onChange={(e) => update("hooks", [e.target.value])} /></label>
       </div>
     </OptionalSection>
   </div>;
@@ -200,7 +205,7 @@ export function UrlAssetsStep({ locale, review, onChange, analysis, onAddScreens
 
 export function UrlFinalStep({ locale, review, onChange, analysis, onEdit }: ReviewProps & { analysis: UrlAnalysis; onEdit: (step: number) => void }) {
   const c = urlVideoCopy[locale], f = urlFlowCopy[locale];
-  const styles = review.templateId ? [review.templateId] : review.brief.styles;
+  const style = review.templateId ? getStyle(review.templateId) : null;
   return <div className="mx-auto max-w-3xl space-y-7">
     <div className="flex items-start gap-4 rounded-xl bg-surface p-5 sm:p-6">
       {review.logo && <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-bg p-2">{/* eslint-disable-next-line @next/next/no-img-element -- private logo */}<img src={review.logo.url} alt="" className="h-full w-full object-contain" /></div>}
@@ -208,11 +213,9 @@ export function UrlFinalStep({ locale, review, onChange, analysis, onEdit }: Rev
       <button type="button" onClick={() => onEdit(3)} aria-label={`${f.edit} ${c.product}`} className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"><Pencil className="size-4" /></button>
     </div>
     <dl className="divide-y divide-line">
-      {[{ label: f.template, value: review.templateId ? getStyle(review.templateId)?.name : f.aiTemplates, step: 1 }, { label: f.audio, value: review.music?.fileName ?? getTrack(review.musicTrackId)?.title ?? f.noMusic, step: 2 }, { label: c.screens, value: `${review.screens.length} ${f.selected}`, step: 4 }].map((row) => <div key={row.label} className="flex items-center gap-4 py-4"><dt className="w-24 shrink-0 text-sm text-muted">{row.label}</dt><dd className="min-w-0 flex-1 truncate text-sm font-medium">{row.value}</dd><button type="button" onClick={() => onEdit(row.step)} className="min-h-10 cursor-pointer text-sm text-accent-text hover:underline">{f.edit}</button></div>)}
+      {[{ label: f.template, value: style?.name ?? f.chooseTemplate, step: 1 }, { label: f.audio, value: review.music?.fileName ?? getTrack(review.musicTrackId)?.title ?? f.noMusic, step: 2 }, { label: c.screens, value: `${review.screens.length} ${f.selected}`, step: 4 }].map((row) => <div key={row.label} className="flex items-center gap-4 py-4"><dt className="w-24 shrink-0 text-sm text-muted">{row.label}</dt><dd className="min-w-0 flex-1 truncate text-sm font-medium">{row.value}</dd><button type="button" onClick={() => onEdit(row.step)} className="min-h-10 cursor-pointer text-sm text-accent-text hover:underline">{f.edit}</button></div>)}
     </dl>
-    <div className={cn("grid gap-3", styles.length === 3 ? "grid-cols-3" : "grid-cols-1 sm:max-w-xs")}>
-      {styles.map((id) => { const style = getStyle(id); if (!style) return null; return <div key={id}><div className="relative aspect-video overflow-hidden rounded-xl bg-surface"><VideoPlaceholder ratio="fill" templateId={id} palette={style.palette} scene={style.recipe.background} label={style.name} /></div><p className="mt-2 text-xs text-muted">{style.name}</p></div>; })}
-    </div>
+    {style && <div className="sm:max-w-xs"><div className="relative aspect-video overflow-hidden rounded-xl bg-surface"><VideoPlaceholder ratio="fill" templateId={style.id} palette={style.palette} scene={style.recipe.background} label={style.name} /></div><p className="mt-2 text-xs text-muted">{style.name}</p></div>}
     {review.music && <audio controls preload="metadata" src={review.music.url} aria-label={review.music.fileName} className="h-10 w-full" />}
     <fieldset className="border-t border-line pt-6"><legend className="text-sm font-semibold">{f.output}</legend>
       <div className="mt-4 space-y-5">
@@ -237,7 +240,7 @@ export function UrlFinalStep({ locale, review, onChange, analysis, onEdit }: Rev
         </div>
       </div>
     </fieldset>
-    {styles.some((id) => getStyle(id)?.category === "3d") && <p className="text-xs leading-relaxed text-muted">{f.premium}</p>}
+    {style?.category === "3d" && <p className="text-xs leading-relaxed text-muted">{f.premium}</p>}
     <label className="flex cursor-pointer items-start gap-3 border-t border-line pt-5"><input type="checkbox" className="mt-1 size-4 shrink-0 accent-accent" checked={review.saveBrand} onChange={(e) => onChange({ ...review, saveBrand: e.target.checked })} /><span className="text-sm font-medium">{f.savedKit}<span className="mt-1 block text-xs font-normal leading-relaxed text-muted">{f.savedKitHelp}</span></span></label>
     {(analysis.brief.warnings.length > 0 || analysis.pages.length > 0) && <details className="text-xs text-muted"><summary className="cursor-pointer py-2">{c.sources}{analysis.brief.warnings.length > 0 && ` · ${c.warnings}`}</summary><div className="mt-3 space-y-3">{analysis.brief.warnings.map((warning, i) => <p key={i} className="leading-relaxed">{warning}</p>)}{analysis.pages.map((page) => <a key={page} href={page} target="_blank" rel="noreferrer" className="block break-all underline underline-offset-4">{page}</a>)}</div></details>}
   </div>;
@@ -245,9 +248,9 @@ export function UrlFinalStep({ locale, review, onChange, analysis, onEdit }: Rev
 
 export function UrlProposalResults({ locale, result, review }: { locale: Locale; result: UrlResult; review: UrlReview }) {
   const c = urlVideoCopy[locale], f = urlFlowCopy[locale];
-  return <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{result.proposals.map((proposal) => <section key={proposal.id} className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface">
+  return <div className={cn("grid gap-6", result.proposals.length > 1 ? "sm:grid-cols-2 lg:grid-cols-3" : "mx-auto max-w-md")}>{result.proposals.map((proposal) => <section key={proposal.id} className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface">
     <div className="flex items-center justify-between gap-3 px-4 py-3"><h2 className="text-sm font-semibold">{getStyle(proposal.styleId)?.name ?? proposal.styleId}</h2><span className={cn("text-xs", proposal.status === "READY" ? "text-success" : "text-muted")}>{proposal.status === "READY" ? f.ready : proposal.status === "FAILED" ? f.failed : f.pending}</span></div>
     {proposal.graph && proposal.source ? <Player component={KinetikVideo} inputProps={buildVideoProps(proposal.source, proposal.graph, result.watermark)} durationInFrames={durationInFrames(proposal.graph)} fps={FPS} compositionWidth={DIMENSIONS[proposal.source.format].width} compositionHeight={DIMENSIONS[proposal.source.format].height} controls loop initiallyMuted style={{ width: "100%", aspectRatio: `${DIMENSIONS[proposal.source.format].width}/${DIMENSIONS[proposal.source.format].height}` }} /> : <div role="status" className="flex min-h-72 flex-col items-center justify-center gap-3 border-y border-line p-5 text-center text-sm text-muted">{proposal.status === "GENERATING" && <Loader2 className="size-6 animate-spin motion-reduce:animate-none" />}{proposal.status === "FAILED" ? c.failed : c.pending}</div>}
-    <div className="space-y-4 p-4"><p className="min-h-10 text-sm leading-relaxed">{review.brief.hooks[proposal.index]}</p>{proposal.status === "READY" && <Link href={`/project/${proposal.id}`} className="flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 text-center text-sm font-medium text-accent-fg hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">{c.edit}</Link>}</div>
+    <div className="space-y-4 p-4"><p className="min-h-10 text-sm leading-relaxed">{review.brief.hooks[proposal.index] ?? review.brief.hooks[0]}</p>{proposal.status === "READY" && <Link href={`/project/${proposal.id}`} className="flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 text-center text-sm font-medium text-accent-fg hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">{c.edit}</Link>}</div>
   </section>)}</div>;
 }

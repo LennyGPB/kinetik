@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     } else throw new Error("invalid");
     if (data) pdf = await openPitchPdf(data);
     const metadata: PitchMetadata = { state: "analyzing", sourceName, sourceType, options, pages: pdf?.numPages ?? 3 };
-    await spendCredits(user.id, { amount: CREDIT_COSTS.pitch.analysis, type: "GENERATION", reference: projectId, description: "Pitch · source analysis" }, async (tx) => {
+    await spendCredits(user.id, { amount: CREDIT_COSTS.pitch.analysis, type: "GENERATION", reference: projectId, description: "Pitch · source analysis", silent: true }, async (tx) => {
       await tx.project.create({ data: { id: projectId, userId: user.id, name: sourceName, appName: "Pitch deck", kind: "MOTION", videoType: "pitch-deck", locale: options.locale,
         status: "DRAFT", duration: options.duration, format: options.format, styleId: "veil", websiteUrl: sourceType === "website" ? url : null,
         versions: { create: { number: 1, label: "Pitch analysis", scenes: { schema: 1, energy: "balanced", logoEmphasis: true, musicTrackId: null, bpm: 120, scenes: [], pitch: metadata } as unknown as Prisma.InputJsonValue } } } });

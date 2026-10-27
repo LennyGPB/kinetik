@@ -35,7 +35,10 @@ export function SceneTimeline({
   selectedId,
   onSelect,
   onEdit,
+  labelOf,
 }: {
+  /** Nom d'une scène quand il ne vient pas de son type (vidéos Créations) */
+  labelOf?: (scene: SceneGraph["scenes"][number]) => string | undefined;
   graph: SceneGraph;
   frame: number;
   total: number;
@@ -177,7 +180,7 @@ export function SceneTimeline({
               role={editable ? "button" : undefined}
               tabIndex={editable ? 0 : undefined}
               aria-pressed={editable ? selected : undefined}
-              aria-label={editable ? `${sceneLabel(scene.kind, t.locale)} · ${formatSeconds(scene.duration, t.locale)}` : undefined}
+              aria-label={editable ? `${labelOf?.(scene) ?? sceneLabel(scene.kind, t.locale)} · ${formatSeconds(scene.duration, t.locale)}` : undefined}
               onPointerDown={
                 editable
                   ? (ev) => {
@@ -218,12 +221,12 @@ export function SceneTimeline({
               style={{ flex: duration }}
             >
               <span className={cn("pointer-events-none absolute inset-0 hidden items-center truncate overflow-hidden rounded-md px-1.5 text-[10px] font-semibold sm:flex", preview ? "text-muted" : SCENE_COLORS[scene.kind].text)}>
-                {editable || preview ? sceneLabel(scene.kind, t.locale) : scene.kind}
+                {labelOf?.(scene) ?? (editable || preview ? sceneLabel(scene.kind, t.locale) : scene.kind)}
               </span>
               {editable && (
                 <span
                   role="presentation"
-                  aria-label={format(tl.resize, { name: sceneLabel(scene.kind, t.locale) })}
+                  aria-label={format(tl.resize, { name: labelOf?.(scene) ?? sceneLabel(scene.kind, t.locale) })}
                   onPointerDown={(ev) => {
                     ev.stopPropagation();
                     ev.currentTarget.setPointerCapture(ev.pointerId);

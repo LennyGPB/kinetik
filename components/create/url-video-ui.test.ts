@@ -37,11 +37,11 @@ test("guided URL screens separate source, template, music, message and assets", 
     const library = renderToStaticMarkup(createElement(UrlMusicStep, { locale: "fr", preferences: { templateId: null, music: null, musicTrackId: MUSIC_LIBRARY[0].id }, onPreferences() {}, onUploading() {}, disabled: false }));
     assert.match(library, /BPM/);
     assert.ok(library.includes(MUSIC_LIBRARY[0].src));
-    const template = (manual: boolean) => renderToStaticMarkup(createElement(UrlTemplateStep, { locale: "fr", preferences, manual, onManual() {}, onPreferences() {}, analysis: null }));
-    assert.match(template(false), /Laisser l’IA choisir/); assert.doesNotMatch(template(false), /Template gallery/);
-    assert.match(template(true), /Template gallery/);
+    // Le template est toujours choisi par l'utilisateur : pas d'option « IA »
+    const template = renderToStaticMarkup(createElement(UrlTemplateStep, { locale: "fr", preferences, onPreferences() {} }));
+    assert.match(template, /Template gallery/); assert.doesNotMatch(template, /IA choisir/);
     const file = { url: "/api/uploads/owner/image/screen.png", fileName: "screen.png", mimeType: "image/png", sizeBytes: 100, label: "Product", source: "https://example.com", format: "app" };
-    const analysis = UrlAnalysisSchema.parse({ url: "https://example.com", locale: "fr", screens: [file], logo: null, colors: ["#111111"], pages: [], stores: [], brief: { company: "Example", product: "A long product description that stays fully readable", audience: "Teams", benefits: ["One benefit", "Second benefit", "Third benefit"], hooks: ["One", "Two", "Three"], tone: "professional", styles: ["veil", "power", "folio"], headingFont: "Inter", bodyFont: "Inter", fontNote: "Observed", warnings: [] } });
+    const analysis = UrlAnalysisSchema.parse({ url: "https://example.com", locale: "fr", screens: [file], logo: null, colors: ["#111111"], pages: [], stores: [], brief: { company: "Example", product: "A long product description that stays fully readable", audience: "Teams", benefits: ["One benefit", "Second benefit", "Third benefit"], hooks: ["One", "Two", "Three"], tone: "professional", headingFont: "Inter", bodyFont: "Inter", fontNote: "Observed", warnings: [] } });
     const review = reviewFromAnalysis("analysis", analysis);
     const message = renderToStaticMarkup(createElement(UrlMessageStep, { locale: "fr", review, onChange() {} }));
     assert.match(message, /A long product description that stays fully readable/);

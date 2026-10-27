@@ -1,6 +1,8 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { after } from "next/server";
 import { db } from "@/lib/db";
+import { notifyGeneration } from "@/lib/services/telegram";
 import { projectBalance } from "./balance";
 import { getPlan, type PlanId } from "@/config/pricing";
 import type { CreditSource, CreditTransactionType, Prisma } from "@/lib/generated/prisma/client";
@@ -103,12 +105,23 @@ export async function renewSubscriptionCredits(userId: string, input: {
  */
 export async function spendCredits(
   userId: string,
-  input: { amount: number; type: CreditTransactionType; description: string; reference?: string },
+  /** `silent` : pas de notification Telegram (étape intermédiaire d'une génération déjà signalée). */
+  input: { amount: number; type: CreditTransactionType; description: string; reference?: string; silent?: boolean },
   commit?: (tx: Prisma.TransactionClient) => Promise<unknown>,
 ) {
   if (!Number.isSafeInteger(input.amount) || input.amount < 0) throw new Error("invalid_credit_amount");
   if (input.amount === 0) return getCreditBalance(userId);
 
+  const balance = await debit(userId, input, commit);
+  if (input.type === "GENERATION" && !input.silent) {
+    // Toute génération (motion, signature, Instagram, store…) est signalée sur Telegram, après la réponse.
+    try { after(() => notifyGeneration({ userId, description: input.description, amount: input.amount })); }
+    catch { /* Hors requête (scripts, tests) : pas de notification. */ }
+  }
+  return balance;
+}
+
+function debit(userId: string, input: { amount: number; type: CreditTransactionType; description: string; reference?: string }, commit?: (tx: Prisma.TransactionClient) => Promise<unknown>) {
   return db.$transaction(async (tx) => {
     // Serialize all debits for this account across every app instance.
     await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;

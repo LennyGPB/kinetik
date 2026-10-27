@@ -87,7 +87,7 @@ export function MotionChoices({ fr, onChoose, leavingKey = null }: { fr: boolean
     {
       key: "url",
       title: fr ? "URL vers vidéo" : "URL to video",
-      description: fr ? "Colle ton lien : on prépare trois vidéos à partir de ton site." : "Paste your link: we prepare three videos from your website.",
+      description: fr ? "Colle ton lien : on prépare ta vidéo à partir de ton site." : "Paste your link: we prepare your video from your website.",
       art: <VideoArt src="/medias/stage-landscape-en.mp4"><span className="choice-cards-url"><Globe size={12} aria-hidden="true" />{fr ? "ton-site.com" : "your-site.com"}</span></VideoArt>,
       tilt: [8, 14, -3],
       href: "/create?kind=motion&flow=url",

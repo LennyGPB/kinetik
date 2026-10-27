@@ -4,6 +4,7 @@ import type { CalculateMetadataFunction } from "remotion";
 import type { VideoFormatId } from "../config/formats";
 import type { Recipe } from "../config/recipes";
 import type { SceneGraph } from "../lib/projects/scenes";
+import type { CustomRuntime } from "../lib/custom-motion/contract";
 
 export const FPS = 30;
 
@@ -33,6 +34,8 @@ export type VideoProps = {
   websiteUrl: string | null;
   musicSrc: string | null;
   watermark: boolean;
+  /** Vidéo de la commu (Claude privé) : code, réglages déclarés et images du studio. Absent pour les autres templates. */
+  custom?: CustomRuntime | null;
 };
 
 export function durationInFrames(graph: SceneGraph) {

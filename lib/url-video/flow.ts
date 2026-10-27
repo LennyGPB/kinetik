@@ -13,10 +13,10 @@ export function reviewFromAnalysis(id: string, analysis: UrlAnalysis, preference
     screens: analysis.screens.slice(0, 6), format: "PORTRAIT", duration: 15, saveBrand: true, ...preferences });
 }
 
-export function validUrlStep(step: number, review: UrlReview | null, manual: boolean, preferences: UrlPreferences) {
-  if (step === 1) return Boolean(review) && (!manual || Boolean(preferences.templateId));
+export function validUrlStep(step: number, review: UrlReview | null, preferences: UrlPreferences) {
+  if (step === 1) return Boolean(review) && Boolean(preferences.templateId);
   if (!review) return false;
   if (step === 2) return ProductBriefSchema.safeParse(review.brief).success;
   if (step === 3) return review.screens.length > 0 && review.screens.length <= 8 && review.colors.length > 0;
-  return ReviewSchema.safeParse(review).success;
+  return Boolean(review.templateId) && ReviewSchema.safeParse(review).success;
 }

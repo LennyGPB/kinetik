@@ -11,17 +11,18 @@ test("the first step accepts pasted domains and rejects invalid URLs before adva
 
 const analysis = UrlAnalysisSchema.parse({ url: "https://example.com", locale: "fr", logo: null, colors: ["#111111"], stores: [], pages: [],
   screens: [{ url: "/api/uploads/owner/image/screen.png", fileName: "screen.png", mimeType: "image/png", sizeBytes: 10, label: "Hero", source: "https://example.com", format: "desktop" }],
-  brief: { company: "Example", product: "Task management", audience: "Teams", benefits: ["Organize", "Share", "Find"], tone: "professional", hooks: ["One", "Two", "Three"], styles: ["veil", "power", "folio"], headingFont: "Inter", bodyFont: "Inter", fontNote: "Observed", warnings: [] } });
+  brief: { company: "Example", product: "Task management", audience: "Teams", benefits: ["Organize", "Share", "Find"], tone: "professional", hooks: ["One", "Two", "Three"], headingFont: "Inter", bodyFont: "Inter", fontNote: "Observed", warnings: [] } });
 
-test("the guided flow requires a manual template only when the user chooses manual selection", () => {
+test("the guided flow always requires the user to pick a template", () => {
   const preferences = UrlPreferencesSchema.parse({});
   const review = reviewFromAnalysis("analysis", analysis);
-  assert.equal(validUrlStep(1, null, false, preferences), false);
-  assert.equal(validUrlStep(1, review, false, preferences), true);
-  assert.equal(validUrlStep(1, review, true, preferences), false);
-  assert.equal(validUrlStep(1, review, true, { ...preferences, templateId: "stage" }), true);
-  assert.equal(validUrlStep(2, { ...review, brief: { ...review.brief, product: "" } }, false, preferences), false);
-  assert.equal(validUrlStep(3, { ...review, screens: [] }, false, preferences), false);
+  assert.equal(validUrlStep(1, null, preferences), false);
+  assert.equal(validUrlStep(1, review, preferences), false);
+  assert.equal(validUrlStep(1, review, { ...preferences, templateId: "stage" }), true);
+  assert.equal(validUrlStep(4, review, preferences), false);
+  assert.equal(validUrlStep(4, { ...review, templateId: "stage" }, preferences), true);
+  assert.equal(validUrlStep(2, { ...review, brief: { ...review.brief, product: "" } }, preferences), false);
+  assert.equal(validUrlStep(3, { ...review, screens: [] }, preferences), false);
 });
 
 test("review creation preserves uploaded music and a chosen template across analysis and reload", () => {

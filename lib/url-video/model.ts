@@ -4,7 +4,7 @@ import { VIDEO_STYLES } from "../../config/styles";
 import { getLogoMotion } from "../../config/logo-motion";
 import { getTrack } from "../../config/music";
 
-export { ProductBriefSchema, URL_VIDEO_STYLES, type ProductBrief } from "./brief";
+export { ProductBriefSchema, type ProductBrief } from "./brief";
 import { ProductBriefSchema, type ProductBrief } from "./brief";
 export const UrlPreferencesSchema = z.object({
   templateId: z.string().max(40).refine((id) => VIDEO_STYLES.some((s) => s.id === id) && !getLogoMotion(id)).nullable().default(null),
@@ -38,9 +38,8 @@ export const ReviewSchema = z.object({
 });
 export type UrlReview = z.infer<typeof ReviewSchema>;
 
-export function productGenerationBrief(brief: ProductBrief, index: number) {
-  return JSON.stringify({ product: brief.product, audience: brief.audience, benefits: brief.benefits, tone: brief.tone,
-    hook: brief.hooks[index], direction: ["Product demonstration", "Benefit-led story", "Brand introduction"][index] });
+export function productGenerationBrief(brief: ProductBrief) {
+  return JSON.stringify({ product: brief.product, audience: brief.audience, benefits: brief.benefits, tone: brief.tone, hook: brief.hooks[0] });
 }
 
 export function keyPages(links: { url: string; text: string }[], home: string) {

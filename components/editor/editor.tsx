@@ -38,6 +38,7 @@ import { MediaDialog } from "./media-dialog";
 import { OverlaysDialog } from "./overlays-dialog";
 import { ProjectName } from "./project-name";
 import { QuickSettings } from "./quick-settings";
+import { CommunityColorsDialog } from "./community-colors-dialog";
 import { ShareDialog } from "./share-dialog";
 import { SoundDialog } from "./sound-dialog";
 import { StyleDialog } from "./style-dialog";
@@ -85,6 +86,8 @@ export function Editor({
   const [soundOpen, setSoundOpen] = useState(false);
   const [voiceoverOpen, setVoiceoverOpen] = useState(Boolean(project.versions.at(-1)?.graph.voiceover?.setupPending && project.status === "READY"));
   const [styleOpen, setStyleOpen] = useState(false);
+  // Vidéo Créations (Claude privé) : pas de changement de template, de calques ni de traduction automatique
+  const community = Boolean(project.custom);
   const [overlaysOpen, setOverlaysOpen] = useState(false);
   // Historique des versions replié par défaut (desktop) : on l'ouvre au besoin
   const [versionsOpen, setVersionsOpen] = useState(false);
@@ -228,10 +231,10 @@ export function Editor({
   const tools: { key: string; label: string; icon: ReactNode; onClick: () => void; disabled?: boolean }[] =
     project.status === "READY"
       ? [
-          { key: "translation", label: t.copy["e6646d000948"], icon: <Languages />, onClick: () => setTranslationOpen(true), disabled: Boolean(proposal) || thinking || applying || restoring || translating || current?.number !== latest?.number },
-          { key: "style", label: t.app.style.button, icon: <Palette />, onClick: () => setStyleOpen(true) },
+          ...(community ? [] : [{ key: "translation", label: t.copy["e6646d000948"], icon: <Languages />, onClick: () => setTranslationOpen(true), disabled: Boolean(proposal) || thinking || applying || restoring || translating || current?.number !== latest?.number }]),
+          { key: "style", label: community ? (t.locale === "fr" ? "Couleurs" : "Colours") : t.app.style.button, icon: <Palette />, onClick: () => setStyleOpen(true) },
           { key: "media", label: t.app.media.button, icon: <Images />, onClick: () => setMediaOpen(true) },
-          { key: "layers", label: t.copy["eaa1ecaa099b"], icon: <Layers />, onClick: () => setOverlaysOpen(true) },
+          ...(community ? [] : [{ key: "layers", label: t.copy["eaa1ecaa099b"], icon: <Layers />, onClick: () => setOverlaysOpen(true) }]),
           { key: "sound", label: t.app.sound.music, icon: <Music2 />, onClick: () => setSoundOpen(true) },
           { key: "voiceover", label: t.voiceover.title, icon: <Mic2 />, onClick: () => setVoiceoverOpen(true) },
           { key: "share", label: t.app.share.button, icon: <Share2 />, onClick: () => setShareOpen(true) },
@@ -302,7 +305,7 @@ export function Editor({
     <VersionsPanel versions={versions} selected={selected} onSelect={(number) => { setSelected(number); afterSelect?.(); }} onRestore={handleRestore} restoring={restoring || Boolean(proposal)} layout={layout} showHeader={layout === "list"} />
   );
 
-  const quickSettings = latest && (
+  const quickSettings = latest && !community && (
     <QuickSettings key={editingSceneId ?? "global"} sceneId={editingSceneId} graph={latest.graph} videoProps={buildVideoProps(project, latest.graph, plan.watermark)} recipe={getRecipe(latest.graph.styleId ?? project.styleId)} brandFonts={project.brandFonts} onApply={(setting) => handleSetting(setting, editingSceneId ?? undefined)} disabled={restoring || thinking || applying || translating || Boolean(proposal)} />
   );
 
@@ -456,7 +459,14 @@ export function Editor({
         />
       )}
       {latest && overlaysOpen && <OverlaysDialog project={project} graph={latest.graph} watermark={plan.watermark} onClose={() => setOverlaysOpen(false)} onVersion={(version) => { setFocusScene(null); setVersions((list) => [...list, version]); setSelected(version.number); }} />}
-      {latest && (
+      {latest && community && styleOpen && (
+        <CommunityColorsDialog project={project} graph={latest.graph} watermark={plan.watermark} onClose={() => setStyleOpen(false)} onVersion={(version) => {
+          setFocusScene(null);
+          setVersions((list) => [...list, version]);
+          setSelected(version.number);
+        }} />
+      )}
+      {latest && !community && (
         <StyleDialog
           key={styleOpen ? "style-open" : "style-closed"}
           open={styleOpen}

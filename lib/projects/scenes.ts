@@ -22,6 +22,9 @@ export type Transition = (typeof TRANSITIONS)[number];
 export type ScreenFrame = "phone" | "browser" | "none";
 
 export type Scene = {
+  /** Vidéo Créations (Claude privé) : type de scène déclaré par le code, et ses textes. Absents sur les autres templates. */
+  customType?: string;
+  texts?: Record<string, string>;
   pitchVisual?: { source: string; evidence: string; chart?: import("../pitch/model").PitchChart };
   textOffsets?: Partial<Record<"title" | "subtitle", { x: number; y: number }>>;
   /** Taille du titre / sous-titre par rapport à celle du template (1 = inchangée) */

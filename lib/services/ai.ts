@@ -274,7 +274,7 @@ function getClient() {
   return client;
 }
 
-const hasKey = () => Boolean(process.env.ANTHROPIC_API_KEY);
+export const hasKey = () => Boolean(process.env.ANTHROPIC_API_KEY);
 
 async function callClaude<T>(schema: z.ZodType<T>, messages: Anthropic.Beta.BetaMessageParam[], effort: "low" | "medium" | "high", caller: AiCaller, operation: "generation" | "edit", system = SYSTEM): Promise<T> {
   try {
@@ -519,7 +519,7 @@ function planForModel(graph: SceneGraph, ctx: ProjectContext) {
  * Un tour de l'agent. `cachedTokens` = taille du contexte du tour précédent : ce préfixe est relu depuis le cache
  * (environ 10 % du prix), seule la part nouvelle est donc réservée en entier sur le budget du jour.
  */
-async function agentTurn(params: Pick<Anthropic.Beta.MessageCreateParamsNonStreaming, "system" | "tools" | "messages" | "output_config">, cachedTokens: number) {
+export async function agentTurn(params: Pick<Anthropic.Beta.MessageCreateParamsNonStreaming, "system" | "tools" | "messages" | "output_config">, cachedTokens: number) {
   try {
     const count = await getClient().beta.messages.countTokens({ model: MODEL, system: params.system, messages: params.messages, tools: params.tools }, { timeout: 15_000 });
     if (count.input_tokens > AI_AGENT_MAX_INPUT_TOKENS) throw new AiUnavailableError("Contexte trop volumineux");

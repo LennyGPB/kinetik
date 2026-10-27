@@ -401,3 +401,63 @@ model TemplateSetting {
 
   @@id([kind, templateId])
 }
+
+// ───────────────────────── Claude privé (contenu Créations) ─────────────────────────
+
+/// Vidéo écrite librement par Claude depuis l'admin (/admin/studio), publiable dans la galerie « Créations ».
+model CustomMotion {
+  id          String   @id @default(cuid())
+  name        String
+  /// Code TSX du brouillon (écrit par Claude), et sa version compilée
+  source      String   @default("")
+  compiled    String   @default("")
+  /// Réglages déclarés : types de scènes, textes, couleurs, formats (lib/custom-motion/contract.ts)
+  meta        Json     @default("{}")
+  /// Contenu par défaut : scènes, textes, couleurs, musique (CustomMotionDemo)
+  demo        Json     @default("{}")
+  /// Images envoyées dans le studio : { nom: url }
+  assets      Json     @default("{}")
+  /// Miniature de la carte dans la galerie (URL /api/uploads/community/…), null = dégradé de la palette
+  thumbnail   String?
+  /// Visible dans la galerie (dernière version publiée)
+  published   Boolean  @default(false)
+  popular     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  versions CustomMotionVersion[]
+  messages CustomMotionMessage[]
+}
+
+/// Version figée et publiée : les projets des utilisateurs y restent attachés (styleId = "community:<id de version>").
+model CustomMotionVersion {
+  id        String   @id @default(cuid())
+  motionId  String
+  number    Int
+  source    String
+  compiled  String
+  meta      Json
+  demo      Json
+  assets    Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  motion CustomMotion @relation(fields: [motionId], references: [id], onDelete: Cascade)
+
+  @@unique([motionId, number])
+}
+
+/// Conversation du studio avec Claude. `source` : le code après ce message (pour revenir en arrière).
+model CustomMotionMessage {
+  id        String   @id @default(cuid())
+  motionId  String
+  role      String
+  content   String
+  source    String?
+  meta      Json?
+  demo      Json?
+  createdAt DateTime @default(now())
+
+  motion CustomMotion @relation(fields: [motionId], references: [id], onDelete: Cascade)
+
+  @@index([motionId, createdAt])
+}

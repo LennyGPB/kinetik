@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { parseSceneGraph } from "@/lib/projects/scenes";
-import { isStorageKey, UPLOAD_PREFIX } from "./keys";
+import { COMMUNITY_OWNER, isStorageKey, UPLOAD_PREFIX } from "./keys";
 import { isShareToken, sharedMediaUrls } from "./shared-media";
 import { PostDocumentSchema } from "@/lib/posts/document";
 
@@ -9,6 +9,8 @@ export async function canReadMedia(key: string, userId: string | null, shareToke
   if (!isStorageKey(key)) return false;
   const ownerId = key.split("/")[0];
   if (userId === ownerId) return true;
+  // Images des vidéos Créations : publiques (galerie, projets des utilisateurs, partage)
+  if (ownerId === COMMUNITY_OWNER) return true;
   if (!shareToken || !isShareToken(shareToken)) return false;
   // Recheck the live share token on every read, including audio Range requests.
   const project = await db.project.findFirst({

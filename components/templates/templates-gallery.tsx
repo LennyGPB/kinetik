@@ -28,6 +28,7 @@ import { storeCopy } from "@/lib/store/copy";
 import { postCopy } from "@/lib/posts/copy";
 import { DecorGallery } from "@/components/decors/decor-gallery";
 import { decorCopy } from "@/lib/decors/copy";
+import { CommunityGallery } from "@/components/templates/community-gallery";
 
 type Filter = StyleCategory | "all";
 
@@ -43,7 +44,7 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
   const [applying, setApplying] = useState(false);
 
   const [filter, setFilter] = useState<Filter>("all");
-  const [kind, setKind] = useState<"motion" | "logo" | "post" | "store" | "decor" | "product">("motion");
+  const [kind, setKind] = useState<"motion" | "logo" | "post" | "store" | "decor" | "product" | "community">("motion");
   const [open, setOpen] = useState<VideoStyle | null>(null);
   const [videoFormat, setVideoFormat] = useState<VideoFormatId>("LANDSCAPE");
   const closePreview = useCallback(() => { if (!applying) setOpen(null); }, [applying]);
@@ -61,8 +62,8 @@ export function TemplatesGallery({ selectedId, onSelect, compact = false }: {
 
   return (
     <div>
-      {!onSelect && <div className="mb-2"><Segmented variant="pills" label={postCopy(t.locale).newContent} value={kind} onChange={(value) => { endHover(); setKind(value); }} options={[{ value: "motion", label: postCopy(t.locale).motion }, { value: "product", label: t.locale === "fr" ? "Produits physiques" : "Physical products" }, { value: "logo", label: t.styleCategories.logo }, { value: "post", label: postCopy(t.locale).posts }, { value: "store", label: storeCopy(t.locale).kind }, { value: "decor", label: decorCopy(t.locale).title }]} /></div>}
-      {kind === "decor" ? <DecorGallery /> : kind === "store" ? <StoreTemplateGallery /> : kind === "post" ? <PostTemplateGallery /> : <>
+      {!onSelect && <div className="mb-2"><Segmented variant="pills" label={postCopy(t.locale).newContent} value={kind} onChange={(value) => { endHover(); setKind(value); }} options={[{ value: "motion", label: postCopy(t.locale).motion }, { value: "product", label: t.locale === "fr" ? "Produits physiques" : "Physical products" }, { value: "logo", label: t.styleCategories.logo }, { value: "post", label: postCopy(t.locale).posts }, { value: "store", label: storeCopy(t.locale).kind }, { value: "decor", label: decorCopy(t.locale).title }, { value: "community", label: t.locale === "fr" ? "Créations" : "Creations" }]} /></div>}
+      {kind === "community" ? <CommunityGallery /> : kind === "decor" ? <DecorGallery /> : kind === "store" ? <StoreTemplateGallery /> : kind === "post" ? <PostTemplateGallery /> : <>
       <div className={cn("flex flex-col gap-4", !compact && "sm:flex-row sm:items-center sm:justify-between")}>
         {kind === "logo" || productFamily ? <span /> : <div className="min-w-0 overflow-x-auto scrollbar-none">
           <Segmented

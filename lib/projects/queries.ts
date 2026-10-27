@@ -9,6 +9,7 @@ import { PostDocumentSchema } from "@/lib/posts/document";
 import { StoreDocumentSchema } from "@/lib/store/document";
 import type { EditorProject, ProjectCard, ProjectVariant } from "./types";
 import type { VideoSource } from "./video-props";
+import { getCommunityRuntime } from "@/lib/custom-motion/queries";
 
 type MediaAsset = { id: string; type: string; url: string; width: number | null; height: number | null };
 
@@ -105,6 +106,7 @@ export async function getEditorProject(userId: string, projectId: string): Promi
     colors: toColors(project.colors),
     ...(await projectMedia(project.assets)),
     websiteUrl: project.websiteUrl,
+    custom: await getCommunityRuntime(project.styleId),
     brandFonts,
     media: {
       logo: toUploaded(project.assets.find((a) => a.type === "LOGO")),
@@ -175,6 +177,7 @@ export async function getVideoSource(projectId: string): Promise<VideoSource | n
     colors: toColors(project.colors),
     ...(await projectMedia(project.assets)),
     websiteUrl: project.websiteUrl,
+    custom: await getCommunityRuntime(project.styleId),
   };
 }
 
@@ -199,6 +202,7 @@ export async function getSharedVideo(token: string) {
     colors: toColors(project.colors),
     ...(await projectMedia(project.assets)),
     websiteUrl: project.websiteUrl,
+    custom: await getCommunityRuntime(project.styleId),
   };
   // Le filigrane suit le plan du propriétaire, comme à l'export
   return { source, graph: parseSceneGraph(version.scenes), watermark: getPlan(project.user.plan).watermark, name: project.name };

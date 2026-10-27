@@ -132,7 +132,23 @@
   --animate-draw: draw 3s var(--ease-out-expo) forwards;
   --animate-confetti: confetti 5s linear infinite;
   --animate-warp: warp 1.8s ease-in infinite;
+  /* Bloc d’analyse URL → vidéo (url-video-steps.tsx) */
+  --animate-enter: enter 0.5s var(--ease-out-expo) both;
+  --animate-pop: pop 0.45s var(--ease-spring) both;
+  --animate-loading: loading 1.6s ease-in-out infinite;
 
+  @keyframes enter {
+    from { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.99); }
+    to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes loading {
+    from { left: -33%; }
+    to { left: 100%; }
+  }
   @keyframes drift {
     0% { transform: translate3d(-12%, -8%, 0) scale(1); }
     50% { transform: translate3d(10%, 6%, 0) scale(1.15); }
@@ -401,6 +417,10 @@
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+
+  /* Les indicateurs de chargement restent animés : sans eux, l’attente paraît figée. */
+  .loading-spin { animation-duration: 1.4s !important; animation-iteration-count: infinite !important; }
+  .loading-bar { animation-duration: 2.4s !important; animation-iteration-count: infinite !important; }
 
   /* Explicitly requested, brief feedback on the content chooser. */
   .create-choice-motion,

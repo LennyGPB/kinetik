@@ -19,7 +19,7 @@ test("failed AI analysis retains owner-scoped captures and retries without captu
   const require = createRequire(path.join(process.cwd(), "lib/url-video/analyze-route.test.ts"));
   let user: { id: string; plan: "PRO" } | null = { id: "owner", plan: "PRO" };
   let captures = 0, calls = 0, fail = true;
-  const brief = { company: "Example", product: "Task management", audience: "Teams", benefits: ["Organize", "Share", "Find"], tone: "professional", hooks: ["One", "Two", "Three"], styles: ["veil", "power", "folio"], headingFont: "Inter", bodyFont: "Inter", fontNote: "Observed", warnings: [] };
+  const brief = { company: "Example", product: "Task management", audience: "Teams", benefits: ["Organize", "Share", "Find"], tone: "professional", hooks: ["One", "Two", "Three"], headingFont: "Inter", bodyFont: "Inter", fontNote: "Observed", warnings: [] };
   const source = { url: "https://example.com/", logo: null, screens: [{ url: "/api/uploads/owner/image/screen.png", fileName: "screen.png", mimeType: "image/png", sizeBytes: 100, label: "Hero", source: "https://example.com/", format: "desktop" }], colors: ["#111111"], stores: [], pages: ["https://example.com/"], text: "Task management for teams", fonts: ["Inter"], variables: [], logoColors: [], warnings: [] };
   const rows = new Map<string, { id: string; userId: string; data: unknown; projectIds: string[] }>();
   const mocks = {

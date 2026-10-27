@@ -28,6 +28,7 @@ import { useId, useMemo } from "react";
 import { VoiceoverAudio, NarrationCaptions } from "./voiceover";
 import { PitchChartScene } from "./pitch-chart";
 import { musicDuckVolume } from "../../lib/projects/voiceover";
+import { CustomMotionVideo } from "./custom-motion";
 
 /**
  * Composition principale. Ordre des calques, du fond vers l'avant :
@@ -35,7 +36,7 @@ import { musicDuckVolume } from "../../lib/projects/voiceover";
  * Le rendu d'un template dépend de `props.recipe` (config/recipes.ts), sauf réglages choisis par l'utilisateur dans le SceneGraph.
  */
 export function KinetikVideo(input: VideoProps) {
-  return <>{getProductTemplate(input.graph.styleId) ? <PhysicalProductVideo props={input} /> : input.graph.recording?.decorId ? <DecorVideo props={input} /> : input.graph.recording ? <ScreenRecordingVideo props={input} /> : <MotionVideo input={input} />}<VoiceoverAudio graph={input.graph} /><NarrationCaptions graph={input.graph} /></>;
+  return <>{input.custom ? <CustomMotionVideo props={input} music={input.musicSrc ? <Music src={input.musicSrc} graph={input.graph} /> : null} /> : getProductTemplate(input.graph.styleId) ? <PhysicalProductVideo props={input} /> : input.graph.recording?.decorId ? <DecorVideo props={input} /> : input.graph.recording ? <ScreenRecordingVideo props={input} /> : <MotionVideo input={input} />}<VoiceoverAudio graph={input.graph} /><NarrationCaptions graph={input.graph} /></>;
 }
 
 function MotionVideo({ input }: { input: VideoProps }) {

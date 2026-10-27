@@ -7,7 +7,7 @@ import { projectVisual } from "./visuals";
 import { resolveStageTransitions } from "../../config/stage-motion";
 
 /** Ce qu'il faut d'un projet pour le rendre (éditeur, page de partage, export). */
-export type VideoSource = Pick<EditorProject, "appName" | "format" | "styleId" | "colors" | "logoUrl" | "backgroundUrl" | "screenUrls" | "screenRatios" | "websiteUrl" | "musicSrc" | "locale">;
+export type VideoSource = Pick<EditorProject, "appName" | "format" | "styleId" | "colors" | "logoUrl" | "backgroundUrl" | "screenUrls" | "screenRatios" | "websiteUrl" | "musicSrc" | "locale" | "custom">;
 
 /** Construit les props de la composition Remotion à partir d'un projet et d'une version. */
 export function buildVideoProps(project: VideoSource, graph: SceneGraph, watermark: boolean): VideoProps {
@@ -31,5 +31,6 @@ export function buildVideoProps(project: VideoSource, graph: SceneGraph, waterma
     websiteUrl: project.websiteUrl,
     musicSrc: graph.musicTrackId ? getTrack(graph.musicTrackId)?.src ?? null : project.musicSrc,
     watermark,
+    custom: project.custom ?? null,
   };
 }

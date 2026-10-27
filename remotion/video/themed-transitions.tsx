@@ -2,7 +2,7 @@ import { useId, type CSSProperties, type ReactNode } from "react";
 import { AbsoluteFill, Easing, random } from "remotion";
 import type { VideoProps } from "../props";
 import { luminance, textColorOn, useTitleFont } from "./theme";
-import { condensedFont as castFont } from "./fonts";
+import { castHorizon } from "./cast-art";
 
 /**
  * Transitions thématiques (docs/MOTION-RULES.md) : chaque couverture reprend le motif d'un thème
@@ -707,24 +707,26 @@ export function ThermalScanCover(c: CoverContext) {
   </svg>;
 }
 
-// ───────── Cast : la projection ─────────
+// ───────── Cast : le volet d'horizon ─────────
 
 /**
- * Projection (Cast) : l'ombre couchée du premier mot de la scène suivante surgit du bas du cadre en perspective et fonce
- * vers le spectateur jusqu'à remplir l'écran (anthracite), puis recule et se couche pour découvrir la scène.
+ * Volet d'horizon (Cast) : un trait bleu se trace sur la ligne d'horizon du décor, depuis le centre, puis deux panneaux
+ * anthracite s'ouvrent à partir de cette ligne (vers le haut et vers le bas) jusqu'à couvrir le cadre. À l'entrée, les
+ * panneaux se referment vers l'horizon et le trait s'efface : la scène suivante apparaît depuis la même ligne.
  */
 export function CastCover(c: CoverContext) {
   if (c.p <= 0) return null;
-  const [, main] = c.palette;
-  const e = Easing.inOut(Easing.cubic)(clamp01(c.p));
-  const word = (c.title.trim().split(/\s+/)[0] || "•").toUpperCase();
-  const flood = clamp01((e - 0.62) / 0.3);
-  const size = c.height * (0.25 + e * e * 3.2);
+  const [, main, accent] = c.palette;
+  const p = clamp01(c.p);
+  const H = c.height, horizon = H * castHorizon(c.width / c.height);
+  const line = Easing.out(Easing.cubic)(clamp01(p / 0.4));
+  const open = Easing.inOut(Easing.poly(5))(clamp01((p - 0.22) / 0.78));
+  const top = horizon * open, bottom = (H - horizon) * open;
+  const thick = Math.max(2, c.unit * 0.32);
   return <div style={fill}>
-    <div style={{ position: "absolute", left: "50%", top: "100%", perspective: c.height * 0.9, perspectiveOrigin: "50% 0%" }}>
-      <div style={{ transformOrigin: "50% 0%", transform: `translate(-50%, ${-e * c.height * 0.55}px) rotateX(${70 - e * 40}deg) scaleY(-1)`, fontFamily: castFont, fontSize: size, lineHeight: 0.84, whiteSpace: "nowrap", color: main, opacity: clamp01((e - 0.03) * 8) }}>{word}</div>
-    </div>
-    <div style={{ ...fill, background: main, opacity: flood }} />
+    <div style={{ position: "absolute", left: 0, right: 0, top: horizon - top, height: top + 1, background: main }} />
+    <div style={{ position: "absolute", left: 0, right: 0, top: horizon, height: bottom, background: main }} />
+    <div style={{ position: "absolute", left: "50%", top: horizon - thick / 2, width: c.width * line, height: thick, transform: "translateX(-50%)", background: accent, opacity: 1 - clamp01((open - 0.7) / 0.3), boxShadow: `0 0 ${c.unit * 1.6}px ${accent}` }} />
   </div>;
 }
 

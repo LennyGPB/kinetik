@@ -38,6 +38,9 @@ import { MAX_CHAT_MESSAGE_LENGTH, type ActionResult, type EditorMessage, type Ed
 import { createProjectSchema, projectMediaSchema, projectSoundSchema, type CreateProjectInput, type ProjectMediaInput, type ProjectSoundInput } from "./validation";
 import { translateVideoText } from "@/lib/services/ai";
 import { translationEntries, type TranslationLanguage } from "./translation";
+import { getCommunityRuntime } from "@/lib/custom-motion/queries";
+import { customGraphIssues } from "@/lib/custom-motion/validate";
+import { applyCustomEdit } from "@/lib/services/custom-edit";
 
 
 
@@ -304,12 +307,18 @@ const types = t.app.credits.types;
 
     const history = await db.chatMessage.findMany({ where: { projectId }, orderBy: { createdAt: "desc" }, take: 10, select: { role: true, content: true } });
     const targetScene = sceneId ? sourceGraph.scenes.find((scene) => scene.id === sceneId) : null;
-    const storedMessage = targetScene ? `[${format(t.app.editor.sceneTag, { n: sourceGraph.scenes.indexOf(targetScene) + 1 })} · ${targetScene.kind}] ${message}` : message;
+    const storedMessage = targetScene ? `[${format(t.app.editor.sceneTag, { n: sourceGraph.scenes.indexOf(targetScene) + 1 })} · ${targetScene.customType ?? targetScene.kind}] ${message}` : message;
     const userMessage = await db.chatMessage.create({ data: { projectId, role: "USER", content: storedMessage } });
 
     let result: EditResult;
+    const community = await getCommunityRuntime(project.styleId);
     try {
-      result = await applyEdit(
+      result = community ? await applyCustomEdit(
+        sourceGraph, message, community.meta,
+        { colors: Array.isArray(project.colors) ? project.colors.filter((c): c is string => typeof c === "string") : [], interfaceLocale: t.locale === "en" ? "en" : "fr", locale: sourceGraph.language ?? (project.locale === "en" ? "en" : "fr") },
+        history.reverse().map((m) => ({ role: m.role === "USER" ? "user" : "assistant", content: m.content })),
+        { userId: user.id, plan: user.plan }, sceneId ?? undefined,
+      ) : await applyEdit(
         sourceGraph,
         message,
         await projectContext(projectId),
@@ -471,6 +480,10 @@ async function derivedVersion(projectId: string, derive: (graph: SceneGraph) => 
   const base = parseSceneGraph(latest.scenes);
   const result = derive({ ...base, language: base.language ?? (project.locale === "en" ? "en" : "fr") });
   if (!result) return { ok: false, error: "invalid" };
+  // Vidéo Créations : le template reste le même et le plan respecte les réglages déclarés par la vidéo
+  const community = await getCommunityRuntime(project.styleId);
+  if (community && ((result.graph.styleId ?? project.styleId) !== project.styleId || customGraphIssues(community.meta, base, result.graph).length)) return { ok: false, error: "invalid" };
+  if (!community && result.graph.scenes.some((scene) => scene.customType)) return { ok: false, error: "invalid" };
   const [version] = await db.$transaction([
     db.projectVersion.create({ data: { projectId, number: latest.number + 1, scenes: result.graph, label: result.label } }),
     db.project.update({ where: { id: projectId }, data: { duration: Math.round(totalDuration(result.graph)) } }),
@@ -531,6 +544,16 @@ export async function changeStyle(projectId: string, input: { styleId: string; c
     label: format(t.app.style.version, { name: style.name }),
   }));
   if (result.ok) await db.project.update({ where: { id: projectId }, data: { styleId: style.id, colors } });
+  return result;
+}
+
+/** Vidéo Créations : palette (autant de couleurs que de rôles déclarés par la vidéo). */
+export async function setCommunityColors(projectId: string, input: unknown) {
+  const t = await getServerDictionary();
+  const colors = Array.isArray(input) ? input.filter((c): c is string => typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c)).map((c) => c.toLowerCase()) : [];
+  if (!colors.length || colors.length !== (Array.isArray(input) ? input.length : -1)) return { ok: false, error: "invalid" } as const;
+  const result = await derivedVersion(projectId, (graph) => ({ graph: { ...graph, colors }, label: t.locale === "en" ? "Colours" : "Couleurs" }));
+  if (result.ok) await db.project.update({ where: { id: projectId }, data: { colors } });
   return result;
 }
 
