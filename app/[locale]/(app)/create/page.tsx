@@ -11,6 +11,7 @@ import { StoreForm } from "@/components/store/store-form";
 import { DecorGallery } from "@/components/decors/decor-gallery";
 import { requireUser } from "@/lib/auth/dal";
 import { getCreditBalance } from "@/lib/credits/ledger";
+import { isFeatureEnabled } from "@/config/features";
 
 import { getDefaultBrandKit } from "@/lib/projects/queries";
 
@@ -22,6 +23,11 @@ async function CreateContent({ searchParams }: { searchParams: PageProps<"/[loca
   const user = await requireUser();
   const params = await searchParams;
   const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+  // Feature cachée (config/features.ts) : retour au choix des formats
+  const hiddenKind = { decor: "decor", product: "product", post: "post", store: "store", recording: "recording" } as const;
+  const askedKind = first(params.kind) as keyof typeof hiddenKind | undefined;
+  const askedFlow = first(params.flow);
+  if ((askedKind && Object.hasOwn(hiddenKind, askedKind) && !isFeatureEnabled(hiddenKind[askedKind])) || (askedFlow === "logo" && !isFeatureEnabled("signature")) || (askedFlow === "pitch" && !isFeatureEnabled("pitch"))) return <CreatePicker />;
   // Sans choix précis : le carrousel des formats (?pick=motion ou ?kind=motion ouvre directement les choix Motion)
   const bareMotion = first(params.kind) === "motion" && !first(params.style) && !first(params.flow) && !first(params.analysis);
   if (bareMotion || (!first(params.kind) && !first(params.style) && !first(params.flow) && !first(params.analysis))) return <CreatePicker initialGroup={bareMotion || first(params.pick) === "motion" ? "motion" : null} />;

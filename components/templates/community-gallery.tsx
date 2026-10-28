@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Player as RemotionPlayer } from "@remotion/player";
+import { Player as RemotionPlayer, Thumbnail } from "@remotion/player";
 import { Player } from "@/components/editor/player";
 import { DIMENSIONS, durationInFrames, FPS, type VideoProps } from "@/remotion/props";
 import { KinetikVideo } from "@/remotion/video/KinetikVideo";
@@ -15,6 +15,9 @@ import { createCommunityProject, getCommunityPreview, listCommunity } from "@/li
 import { customPreviewProps } from "@/lib/custom-motion/graph";
 import type { CommunityTemplate } from "@/lib/custom-motion/queries";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
+import Link from "@/lib/i18n/navigation";
+import { ArrowUpRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type Preview = NonNullable<Awaited<ReturnType<typeof getCommunityPreview>>>;
@@ -25,8 +28,36 @@ function loadPreview(id: string) {
   return previews.get(id)!;
 }
 
-/** Onglet « Créations » : vidéos écrites avec Claude privé et publiées depuis l'admin. */
-export function CommunityGallery() {
+/** Phrase d'accroche de l'onglet « Créations » (galerie de l'app et landing). */
+export function communityIntro(fr: boolean) {
+  return fr
+    ? <>Des créations <strong className="font-semibold text-fg">100 % originales</strong>, signées Kinetik ou la communauté :<br />utilisables en 1 clic et faciles à personnaliser.</>
+    : <><strong className="font-semibold text-fg">100% original</strong> creations by Kinetik and the community:<br />ready in one click and easy to customize.</>;
+}
+
+/**
+ * Format de chaque carte sur la landing, pour une grille variée comme les autres templates.
+ * Motif portrait, paysage, paysage, portrait, carré, paysage, paysage : sur 3 colonnes, les hauteurs s'équilibrent.
+ */
+const LANDING_SHAPES: VideoFormatId[] = ["PORTRAIT", "LANDSCAPE", "LANDSCAPE", "PORTRAIT", "SQUARE", "LANDSCAPE", "LANDSCAPE"];
+function landingShape(item: CommunityTemplate, index: number): VideoFormatId {
+  const wanted = LANDING_SHAPES[index % LANDING_SHAPES.length];
+  return item.formats.includes(wanted) ? wanted : item.formats.includes("PORTRAIT") ? "PORTRAIT" : item.formats[0];
+}
+
+/**
+ * Taille de rendu des vignettes : les cartes sont en 2:3, comme les vignettes des autres templates.
+ * Une vidéo portrait est rendue directement en 2:3 (le code reçoit width/height et se met en page) pour ne rien rogner.
+ */
+function cardDimensions(format: VideoFormatId) {
+  return format === "PORTRAIT" ? { width: 1080, height: 1620 } : DIMENSIONS[format];
+}
+
+/**
+ * Onglet « Créations » : vidéos écrites avec Claude privé et publiées depuis l'admin.
+ * Avec signUpHref (landing, visiteur non connecté) : chaque carte mène à l'inscription au lieu d'ouvrir la fiche.
+ */
+export function CommunityGallery({ signUpHref, showIntro = true }: { signUpHref?: string; showIntro?: boolean } = {}) {
   const t = useDictionary();
   const fr = t.locale === "fr";
   const locale = fr ? "fr" : "en";
@@ -55,35 +86,86 @@ export function CommunityGallery() {
   if (!items) return <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="aspect-[2/3] animate-pulse rounded-2xl bg-surface-2" />)}</div>;
   if (!items.length) return <p className="mt-10 text-center text-sm text-muted">{fr ? "Aucune vidéo Créations pour l’instant. Reviens bientôt !" : "No community videos yet. Check back soon!"}</p>;
 
-  return (
-    <div>
-      <p className="mt-1 text-sm text-muted">{fr ? "Des animations créées sur mesure. Change les textes, les couleurs, la musique et la durée des scènes." : "Custom-made animations. Change the text, colours, music and scene lengths."}</p>
-      <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
-        {items.map((item) => (
-          <li key={item.id}>
-            <button
-              type="button"
-              onClick={() => openItem(item)}
+  const gradient = (item: CommunityTemplate) => `linear-gradient(150deg, ${item.palette[0]}, ${item.palette[1] ?? item.palette[0]} 60%, ${item.palette[2] ?? item.palette[1] ?? item.palette[0]})`;
+  const visual = (item: CommunityTemplate, shape?: VideoFormatId) => (
+    hovered?.id === item.id ? (
+      <div className="pointer-events-none absolute inset-0 grid place-items-center overflow-hidden bg-black">
+        <HoverPlayer props={customPreviewProps(hovered.preview.runtime, hovered.preview.demo, shape ?? (item.formats.includes("PORTRAIT") ? "PORTRAIT" : item.formats[0]), locale)} />
+      </div>
+    ) : item.thumbnail && (!shape || shape === "PORTRAIT") ? (
+      // eslint-disable-next-line @next/next/no-img-element -- image publique servie par /api/uploads
+      <img src={item.thumbnail} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
+    ) : (
+      <LiveThumbnail item={item} locale={locale} format={shape} />
+    )
+  );
+
+  // Landing : mêmes cartes que les autres templates (colonnes, nom et infos sur l'image, badge), clic → inscription
+  if (signUpHref) {
+    return (
+      <div className="mx-auto mt-8 w-full max-w-5xl columns-2 gap-3 sm:gap-4 md:columns-3">
+        {items.map((item, index) => {
+          const shape = landingShape(item, index);
+          return (
+          <div key={item.id} className="mb-3 break-inside-avoid sm:mb-4">
+            <Link
+              href={signUpHref}
               onMouseEnter={() => hover(item.id)}
               onMouseLeave={() => setHovered(null)}
-              className="relative block aspect-[2/3] w-full cursor-pointer overflow-hidden rounded-2xl text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-              style={{ background: `linear-gradient(150deg, ${item.palette[0]}, ${item.palette[1] ?? item.palette[0]} 60%, ${item.palette[2] ?? item.palette[1] ?? item.palette[0]})` }}
+              onFocus={() => hover(item.id)}
+              onBlur={() => setHovered(null)}
+              className="group relative block overflow-hidden rounded-2xl border border-line bg-surface transition-[border-color,box-shadow] duration-300 hover:border-accent/40 hover:shadow-[0_20px_50px_-20px_var(--accent-glow)] sm:rounded-3xl"
             >
-              {hovered?.id === item.id ? (
-                <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black">
-                  <HoverPlayer props={customPreviewProps(hovered.preview.runtime, hovered.preview.demo, item.formats.includes("PORTRAIT") ? "PORTRAIT" : item.formats[0], locale)} />
+              <div className={cn("relative overflow-hidden", shape === "LANDSCAPE" ? "aspect-video" : shape === "SQUARE" ? "aspect-square" : "aspect-[2/3]")} style={{ background: gradient(item) }}>
+                <div className="absolute inset-0 transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.06]">{visual(item, shape)}</div>
+              </div>
+              <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 pt-12 sm:p-4 sm:pt-16">
+                <div className="flex items-end justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-display text-base font-semibold text-white sm:text-lg">{item.name}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-white/70 max-sm:hidden">{fr ? `${item.scenes} scènes · ${item.seconds} s · modifiable en 1 clic` : `${item.scenes} scenes · ${item.seconds}s · edit in one click`}</p>
+                  </div>
+                  <span className="grid size-8 shrink-0 translate-y-2 place-items-center rounded-full bg-white text-black opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+                    <ArrowUpRight className="size-4" />
+                    <span className="sr-only">{t.landing.gallery.use}</span>
+                  </span>
                 </div>
-              ) : item.thumbnail ? (
-                // eslint-disable-next-line @next/next/no-img-element -- image publique servie par /api/uploads
-                <img src={item.thumbnail} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
-              ) : (
-                <span className="absolute inset-x-3 bottom-3 text-lg font-bold text-white drop-shadow">{item.name}</span>
-              )}
+              </div>
+              {item.popular
+                ? <PopularBadge className="absolute top-2.5 left-2.5 z-20 sm:top-3 sm:left-3" />
+                : <Badge tone="glass" className="absolute top-2.5 left-2.5 z-20 sm:top-3 sm:left-3">{fr ? "Créations" : "Creations"}</Badge>}
+            </Link>
+          </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {showIntro && <p className="mt-1 text-sm text-muted">{communityIntro(fr)}</p>}
+      <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+        {items.map((item) => {
+          const tile = {
+            onMouseEnter: () => hover(item.id),
+            onMouseLeave: () => setHovered(null),
+            className: "relative block aspect-[2/3] w-full cursor-pointer overflow-hidden rounded-2xl text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent",
+            style: { background: gradient(item) },
+          };
+          const content = <>
+              {visual(item)}
               {item.popular && <PopularBadge className="absolute top-2.5 left-2.5" />}
-            </button>
-            <p className="mt-2 truncate px-1 text-sm font-medium">{item.name}</p>
-          </li>
-        ))}
+          </>;
+          return (
+            <li key={item.id}>
+              {signUpHref
+                ? <Link href={signUpHref} aria-label={item.name} {...tile}>{content}</Link>
+                : <button type="button" onClick={() => openItem(item)} {...tile}>{content}</button>}
+              <p className="mt-2 truncate px-1 text-sm font-medium">{item.name}</p>
+            </li>
+          );
+        })}
       </ul>
 
       <Dialog open={Boolean(open)} onClose={() => { if (!applying) setOpen(null); }} title={open?.item.name ?? ""} className="overflow-x-hidden bg-bg sm:max-w-4xl sm:p-7">
@@ -115,8 +197,39 @@ export function CommunityGallery() {
   );
 }
 
+/**
+ * Miniature automatique quand le studio n'en a pas : une image de la démo, prise au milieu de la scène
+ * qui couvre 40 % de la vidéo (jamais pendant une transition). Calculée dans le navigateur, sans rendu serveur.
+ */
+function LiveThumbnail({ item, locale, format: wanted }: { item: CommunityTemplate; locale: "fr" | "en"; format?: VideoFormatId }) {
+  const [preview, setPreview] = useState<Preview | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadPreview(item.id).then((loaded) => { if (alive) setPreview(loaded); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [item.id]);
+  if (!preview) return <span className="absolute inset-x-3 bottom-3 text-lg font-bold text-white drop-shadow">{item.name}</span>;
+  const format = wanted ?? (item.formats.includes("PORTRAIT") ? "PORTRAIT" : item.formats[0]);
+  const props = customPreviewProps(preview.runtime, preview.demo, format, locale);
+  const total = durationInFrames(props.graph);
+  let from = 0;
+  let frame = Math.round(total * 0.4);
+  for (const scene of props.graph.scenes) {
+    const length = scene.duration * FPS;
+    if (from + length > total * 0.4) { frame = Math.round(from + length * 0.55); break; }
+    from += length;
+  }
+  const { width, height } = cardDimensions(format);
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden bg-black">
+      <Thumbnail component={KinetikVideo} inputProps={props} durationInFrames={total} frameToDisplay={Math.min(total - 1, frame)} compositionWidth={width} compositionHeight={height} fps={FPS}
+        style={width < height ? { width: "100%", height: "100%" } : { height: "100%", aspectRatio: `${width} / ${height}`, flexShrink: 0 }} />
+    </div>
+  );
+}
+
 /** Prévisu muette au survol d'une carte (vidéo seule, sans contrôles). */
 function HoverPlayer({ props }: { props: VideoProps }) {
-  const { width, height } = DIMENSIONS[props.format];
-  return <RemotionPlayer component={KinetikVideo} inputProps={props} durationInFrames={durationInFrames(props.graph)} compositionWidth={width} compositionHeight={height} fps={FPS} autoPlay loop initiallyMuted controls={false} style={{ width: "100%", aspectRatio: `${width} / ${height}` }} />;
+  const { width, height } = cardDimensions(props.format);
+  return <RemotionPlayer component={KinetikVideo} inputProps={props} durationInFrames={durationInFrames(props.graph)} compositionWidth={width} compositionHeight={height} fps={FPS} autoPlay loop initiallyMuted controls={false} style={width < height ? { width: "100%", height: "100%" } : { width: "100%", aspectRatio: `${width} / ${height}` }} />;
 }

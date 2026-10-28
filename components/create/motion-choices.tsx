@@ -7,6 +7,7 @@ import Link from "@/lib/i18n/navigation";
 import { Preview, resetSheen, trackSheen } from "@/components/landing/hero-capabilities";
 import { purpleButtonStyle } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { isFeatureEnabled } from "@/config/features";
 import "@/components/landing/hero-capabilities.css";
 import "./motion-choices.css";
 
@@ -83,7 +84,7 @@ export function ChoiceCards({ items, label, entrance = "rise", leavingKey = null
 
 /** Les 4 façons de créer un motion ; elles jaillissent du centre, là où était la carte Motion design. */
 export function MotionChoices({ fr, onChoose, leavingKey = null }: { fr: boolean; /** Clic sur une carte : la page joue sa sortie puis navigue */ onChoose?: (choice: { key: string; href: string; title: string }) => void; leavingKey?: string | null }) {
-  const items: ChoiceCard[] = [
+  const allItems: ChoiceCard[] = [
     {
       key: "url",
       title: fr ? "URL vers vidéo" : "URL to video",
@@ -117,6 +118,7 @@ export function MotionChoices({ fr, onChoose, leavingKey = null }: { fr: boolean
       href: "/create?kind=motion&flow=pitch",
     },
   ];
+  const items = allItems.filter((item) => item.key === "logo" ? isFeatureEnabled("signature") : item.key === "pitch" ? isFeatureEnabled("pitch") : true);
   const playable = onChoose ? items.map((item) => ({ ...item, onOpen: () => { onChoose({ key: item.key, href: item.href, title: item.title }); return true; } })) : items;
   return <ChoiceCards items={playable} leavingKey={leavingKey} entrance="spread" label={fr ? "Façons de créer un motion" : "Ways to create a motion"} />;
 }

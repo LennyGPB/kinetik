@@ -406,6 +406,12 @@ Règles de direction artistique : `docs/MOTION-RULES.md`. Mécanique dans le mot
 | Transition | Motif | Templates (signature en premier dans `transitions`) |
 | --- | --- | --- |
 | `press` | mâchoires de presse qui frappent | Anvil |
+| `newsprint` | la page se resserre en colonne de presse bordée de filets (editorial-transitions.tsx, 27/10/2026) | Column |
+| `aperture` | découpe diagonale qui balaie le cadre | Aspect |
+| `stairs` | effacement en escalier par trois bandes | Interval |
+| `keepsake` | tirage bordé d’ivoire qui pivote et tombe | Memento |
+| `gallery-frame` | cadre qui se replie entre deux filets décalés | Cadran |
+| `window` | fenêtre qui se referme, la couleur part puis revient | Rêverie |
 | `cog` | ouverture dentée, cran par cran | Ratchet |
 | `stitch` | aiguille qui coud l'écran, couture qui s'ouvre | Suture |
 | `clasp` | pièces crantées qui s'emboîtent puis se déverrouillent | Interlock |

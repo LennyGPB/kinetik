@@ -6,7 +6,7 @@ import * as Three from "three";
 import * as RemotionThree from "@remotion/three";
 import * as Fiber from "@react-three/fiber";
 import { BRAND_FONTS } from "../../config/fonts";
-import { brandFont } from "../video/brand-fonts";
+import { brandFont, loadBrandItalic } from "../video/brand-fonts";
 import type { CUSTOM_IMPORTS, CustomVideoInput } from "../../lib/custom-motion/contract";
 
 /**
@@ -18,9 +18,11 @@ import type { CUSTOM_IMPORTS, CustomVideoInput } from "../../lib/custom-motion/c
 const KINETIK_HELPERS = {
   /** Polices disponibles (familles Google Fonts déjà intégrées) */
   FONTS: BRAND_FONTS,
-  /** Charge une police de la liste : { fontFamily, bold, medium } ; police système de secours si inconnue. */
-  loadFont(family: string) {
-    return brandFont(family) ?? { fontFamily: "sans-serif", bold: 700, medium: 600 };
+  /** Charge une police de la liste : { fontFamily, bold, medium } ; police système de secours si inconnue. { italic: true } charge aussi l'italique. */
+  loadFont(family: string, options?: { italic?: boolean }) {
+    const font = brandFont(family);
+    if (font && options?.italic) loadBrandItalic(family);
+    return font ?? { fontFamily: "sans-serif", bold: 700, medium: 600 };
   },
   /** Position dans la mesure musicale : temps écoulés depuis le premier temps (fractionnaire) à l'image `frame`. */
   beat(frame: number, input: Pick<CustomVideoInput, "bpm" | "beatPhase" | "fps">) {

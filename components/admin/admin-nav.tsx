@@ -1,31 +1,33 @@
-import { getServerDictionary } from "@/lib/i18n/server";
-import { Lock } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { getAdminState } from "@/lib/admin/auth";
-import { lockAdmin } from "@/lib/admin/actions";
+import Link from "@/lib/i18n/navigation";
+import { getServerDictionary } from "@/lib/i18n/server";
 import { AdminNavLinks } from "./admin-nav-links";
 
-/** Navigation admin : rendue seulement pour un admin déverrouillé (sinon rien, l'espace reste invisible). */
+/** Navigation admin : rendue seulement pour un admin (sinon rien, l'espace reste invisible). */
 export async function AdminNav() {
   const t = await getServerDictionary();
-
   const state = await getAdminState();
-  if (!state?.unlockedUntil) return null;
-  const minutes = Math.max(1, Math.round((state.unlockedUntil.getTime() - Date.now()) / 60_000));
+  if (!state?.isAdmin) return null;
   return (
     <>
       <AdminNavLinks />
-      <form action={lockAdmin} className="ml-auto flex shrink-0 items-center gap-2">
-        <span className="hidden text-xs text-subtle md:inline" title={state.user.email}>
-
-          {t.copy["40585e470173"]} {minutes}  {"min"}
-        </span>
-        <button
-          type="submit"
-          className="flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-sm font-medium text-muted transition-colors hover:border-line-strong hover:text-fg"
-        >
-          <Lock className="size-3.5" /> <span className="max-sm:hidden">{t.copy["017ac627d562"]}</span>
-        </button>
-      </form>
+      <Link
+        href="/dashboard"
+        title={state.user.email}
+        className="ml-auto flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line px-3 text-sm font-medium text-muted transition-colors hover:border-line-strong hover:text-fg"
+      >
+        <LogOut className="size-3.5" /> <span className="max-sm:hidden">{t.locale === "fr" ? "Quitter l’admin" : "Exit admin"}</span>
+      </Link>
     </>
+  );
+}
+
+/** Même encombrement que la navigation pendant son chargement (pas de saut de mise en page). */
+export function AdminNavFallback() {
+  return (
+    <div aria-hidden className="flex min-w-0 flex-1 items-center gap-1">
+      {Array.from({ length: 6 }, (_, i) => <span key={i} className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-surface-2/60 lg:w-28" />)}
+    </div>
   );
 }

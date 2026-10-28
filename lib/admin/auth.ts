@@ -7,10 +7,9 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 /**
- * Accès admin : DEUX verrous.
- * 1. Le compte a le rôle ADMIN (sinon /admin répond 404 : l'espace admin est invisible).
- * 2. Le mot de passe admin (distinct du mot de passe du compte) a été saisi pour CETTE session il y a moins de 30 min.
- *    Son hash scrypt est dans ADMIN_PASSWORD_HASH (encodé en base64url, voir scripts/admin-password.ts).
+ * Accès admin : le compte a le rôle ADMIN (sinon /admin répond 404 : l'espace admin est invisible).
+ * Le second verrou (mot de passe admin saisi par session) est désactivé : un admin connecté accède directement à l'espace.
+ * Le code du déverrouillage (ADMIN_PASSWORD_HASH, page /admin/unlock) reste en place pour pouvoir le réactiver.
  *
  * Les pages appellent requireAdmin() ; chaque Server Action appelle adminForAction() (une action est un point d'entrée
  * public : la vérification de la page ne la protège pas).
@@ -26,10 +25,9 @@ type AdminState = { user: CurrentUser; isAdmin: boolean; unlockedUntil: Date | n
 export const getAdminState = cache(async (): Promise<AdminState | null> => {
   const user = await getCurrentUser();
   if (!user) return null;
-  const session = await db.session.findUnique({ where: { id: user.sessionId }, select: { adminUntil: true } });
   const isAdmin = user.role === "ADMIN";
-  const until = session?.adminUntil ?? null;
-  return { user, isAdmin, unlockedUntil: isAdmin && until && until.getTime() > Date.now() ? until : null };
+  // Sans mot de passe admin : un admin est toujours « déverrouillé »
+  return { user, isAdmin, unlockedUntil: isAdmin ? new Date(Date.now() + ADMIN_UNLOCK_MS) : null };
 });
 
 /** Pour les pages admin : 404 si pas admin, page de déverrouillage si le mot de passe admin n'a pas été saisi. */

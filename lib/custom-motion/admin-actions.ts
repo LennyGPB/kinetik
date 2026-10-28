@@ -26,7 +26,7 @@ async function guard(id?: string) {
 
 export async function createMotion(name: string): Promise<Result> {
   const admin = await guard();
-  if (!admin) return { ok: false, error: "Accès refusé (déverrouille l'admin)." };
+  if (!admin) return { ok: false, error: "Accès refusé." };
   const clean = typeof name === "string" ? name.trim().slice(0, 60) : "";
   if (!clean) return { ok: false, error: "Donne un nom à la vidéo." };
   const motion = await db.customMotion.create({ data: { name: clean }, select: { id: true } });
@@ -37,7 +37,7 @@ export async function createMotion(name: string): Promise<Result> {
 /** Un message à Claude privé : il modifie le code, les réglages et la démo, puis répond. */
 export async function sendStudioMessage(id: string, message: string, runtimeError?: string | null): Promise<Result<{ studio: StudioView }>> {
   const admin = await guard(id);
-  if (!admin) return { ok: false, error: "Accès refusé (déverrouille l'admin)." };
+  if (!admin) return { ok: false, error: "Accès refusé." };
   const text = typeof message === "string" ? message.trim().slice(0, 8000) : "";
   if (!text) return { ok: false, error: "Message vide." };
   const lock = await acquireLock(`studio:${id}`, 300_000, true);

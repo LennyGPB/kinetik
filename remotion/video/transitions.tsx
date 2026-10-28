@@ -8,6 +8,7 @@ import type { MotionEase, MotionExit } from "../../config/recipes";
 import type { VideoProps } from "../props";
 import { useRecipe } from "./theme";
 import { CollectionTransitionCover, isCollectionTransition } from "./collection-transitions";
+import { editorialGesture, EditorialRules, keepsakeBorder, type EditorialKind } from "./editorial-transitions";
 import { BlobCover, BoilFilter, ShatterCover, CastCover, ThermalFilter, ThermalScanCover, LiquidWarpFilter, SparkleCover, BurnCover, CapsuleCover, DripCover, ScanCover, ScrawlCover, SmudgeGlow, StrataCover, StreakCover, SurgeCover, FlareCover, IgniteCover, SlashCover, WhirlRing, ClaspCover, CogCover, EclipseCover, SmearStreaks, HairlineCover, ShearCover, TrainCover, InkCover, MotionBlurFilter, PressCover, ratchetSteps, RippleFilter, RippleRings, StencilCover, StitchCover, TessellateCover, WhipStreaks, type CoverContext } from "./themed-transitions";
 
 /**
@@ -88,6 +89,23 @@ type TransitionBrick = {
 };
 
 const fast = (energy: Energy) => (energy === "high" ? 8 : 14);
+
+/**
+ * Templates éditoriaux photo (editorial-transitions.tsx) : décor et contenu font le même geste, sans aplat plein écran ;
+ * seuls de fins filets d'accent soulignent la découpe.
+ */
+function editorialBrick(kind: EditorialKind): TransitionBrick {
+  const rules = (c: CoverContext) => <EditorialRules kind={kind} c={c} />;
+  return {
+    enter: (energy) => (energy === "high" ? 13 : 17),
+    fadeOut: false,
+    opaque: true,
+    style: (c) => (c.inP < 1 ? editorialGesture(kind, "in", c.inP, c.unit) : {}),
+    overlay: (c) => (c.inP < 1 ? rules(coverIn(c)) : null),
+    exit: { frames: 13, style: (t, c) => editorialGesture(kind, "out", t, c.unit), cover: rules },
+    backdrop: ({ phase, t, unit }) => ({ style: { ...editorialGesture(kind, phase, t, unit), ...(kind === "keepsake" ? keepsakeBorder(phase, t, unit) : {}) } }),
+  };
+}
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 /** Couverture d'entrée : `p` = 1 − progression (la couverture découvre la scène). */
 const coverIn = (c: TransitionContext): CoverContext => ({ p: 1 - c.inP, phase: "in", frame: c.frame, width: c.width, height: c.height, unit: c.unit, color: c.accent, palette: c.palette, title: c.title });
@@ -642,6 +660,19 @@ const TRANSITION_BRICKS: Record<Transition, TransitionBrick> = {
     exit: { frames: 20, style: (t, c) => ({ opacity: 1 - t, filter: `blur(${t * c.unit * 0.35}px)` }) },
   },
   // Quartier suivant (Kiosque) : la caméra survole la ville ; les textes filent dans le sens du vol
+  // ── Éditoriaux photo (editorial-transitions.tsx) ──
+  // Colonne de presse (Column) : la page se resserre en colonne bordée de filets en remontant, la suivante s'ouvre depuis elle
+  newsprint: editorialBrick("newsprint"),
+  // Ouverture diagonale (Aspect) : le biais du portrait balaie le cadre vers le haut à gauche et découvre la scène suivante
+  aperture: editorialBrick("aperture"),
+  // Paliers (Interval) : trois bandes s'effacent en escalier, la scène suivante revient en escalier
+  stairs: editorialBrick("stairs"),
+  // Tirage (Memento) : l'image devient un tirage bordé d'ivoire qui pivote et tombe, le suivant se pose
+  keepsake: editorialBrick("keepsake"),
+  // Cadrage (Cadran) : l'image se replie dans un cadre entre deux filets décalés, la suivante s'ouvre et les filets s'alignent
+  "gallery-frame": editorialBrick("gallery-frame"),
+  // Fenêtre de couleur (Rêverie) : la couleur quitte l'image pendant que la fenêtre se referme, la suivante s'ouvre et se colore
+  window: editorialBrick("window"),
   district: {
     enter: (energy) => (energy === "high" ? 20 : 26),
     fadeOut: false,

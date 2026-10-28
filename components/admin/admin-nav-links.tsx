@@ -22,7 +22,7 @@ export function AdminNavLinks() {
 
   const pathname = usePathname();
   return (
-    <nav aria-label={"Admin"} className="flex min-w-0 items-center gap-0.5 overflow-x-auto scrollbar-none">
+    <nav aria-label={"Admin"} className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto scrollbar-none [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)]">
       {LINKS.map(({ href, label, icon: Icon }) => {
         const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
         return (
@@ -31,13 +31,14 @@ export function AdminNavLinks() {
             href={href}
             aria-current={active ? "page" : undefined}
             aria-label={label}
+            title={label}
             className={cn(
               "flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors",
-              active ? "bg-surface-2 text-fg" : "text-muted hover:text-fg",
+              active ? "bg-surface-2 text-fg shadow-[inset_0_0_0_1px_var(--color-line)]" : "text-muted hover:bg-surface-2/50 hover:text-fg",
             )}
           >
             <Icon className="size-4" />
-            <span className="max-md:hidden">{label}</span>
+            <span className="max-lg:hidden">{label}</span>
           </Link>
         );
       })}

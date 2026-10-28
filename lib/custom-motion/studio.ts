@@ -87,7 +87,7 @@ type CustomVideoInput = {
   fonts: { heading: string; body: string } | null; // polices choisies par l'utilisateur, sinon null
 };
 \`\`\`
-Module "kinetik" : loadFont(famille) → { fontFamily, bold, medium } (familles : Bricolage Grotesque, Inter, Geist, Space Grotesk, Manrope, DM Sans, Sora, Unbounded, Poppins, Playfair Display, Syne, Outfit, Anton, Instrument Serif, JetBrains Mono ; appelle-le au niveau du module) ; beat(frame, props) → nombre de temps écoulés (fractionnaire). Si props.fonts n'est pas null, utilise loadFont(props.fonts.heading / body) à la place de tes polices.
+Module "kinetik" : loadFont(famille, { italic?: true }) → { fontFamily, bold, medium } (italic : charge aussi l'italique, à utiliser avec fontStyle "italic") (familles : Bricolage Grotesque, Inter, Geist, Space Grotesk, Manrope, DM Sans, Sora, Unbounded, Poppins, Playfair Display, Syne, Outfit, Anton, Instrument Serif, JetBrains Mono ; appelle-le au niveau du module) ; beat(frame, props) → nombre de temps écoulés (fractionnaire). Si props.fonts n'est pas null, utilise loadFont(props.fonts.heading / body) à la place de tes polices.
 
 ## Règles techniques (impératives)
 - Rendu image par image en parallèle : tout dépend de useCurrentFrame(). Interdits : Math.random (utilise random("graine")), Date, setTimeout/setInterval/requestAnimationFrame, fetch, état React qui évolue dans le temps, CSS animations/transitions.

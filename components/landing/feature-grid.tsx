@@ -2,9 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { AudioLines, Sparkles } from "lucide-react";
-import type { ReactNode } from "react";
+import type { PointerEvent, ReactNode } from "react";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { Preview } from "./hero-capabilities";
+import { isFeatureEnabled, type Feature } from "@/config/features";
 import "./feature-grid.css";
 
 const heights = [14, 22, 35, 19, 48, 68, 42, 28, 59, 83, 50, 72, 96, 61, 38, 78, 54, 88, 43, 65, 31, 52, 23, 40, 18, 29];
@@ -79,18 +80,40 @@ export function FeatureGrid() {
       <div className="feature-grid-format-labels"><span>16:9</span><span>9:16</span><span>1:1</span></div>
     </div>,
   };
-  const keys = Object.keys(copy) as Key[];
+  const flags: Partial<Record<Key, Feature>> = { launch: "motion", product: "product", demo: "recording", decor: "decor", logo: "signature", stores: "store", posts: "post" };
+  const keys = (Object.keys(copy) as Key[]).filter((key) => !flags[key] || isFeatureEnabled(flags[key]));
+  // Étiquette de catégorie en haut à droite de chaque carte
+  const tags: Record<Key, string> = fr
+    ? { launch: "Vidéo", product: "3D", demo: "Écran", decor: "Mockup", logo: "Signature", stores: "iOS · Android", posts: "Social", voice: "IA", formats: "Export" }
+    : { launch: "Video", product: "3D", demo: "Screen", decor: "Mockup", logo: "Signature", stores: "iOS · Android", posts: "Social", voice: "AI", formats: "Export" };
+  // Cartes larges : elles cassent la régularité du bandeau
+  const wide = new Set<Key>(["launch", "demo", "stores", "formats"]);
+  const total = String(keys.length).padStart(2, "0");
   const list = (clone: boolean) => <ul className="feature-grid-list" aria-hidden={clone || undefined}>
-    {keys.map(key => <li key={key} className={`feature-grid-card feature-grid-${key}`}>
+    {keys.map((key, index) => <li key={key} className={`feature-grid-card feature-grid-${key}${wide.has(key) ? " feature-grid-wide" : ""}`}>
       <div className="feature-grid-art" aria-hidden="true">{arts[key]}</div>
+      <div className="feature-grid-meta" aria-hidden="true">
+        <span className="feature-grid-index">{String(index + 1).padStart(2, "0")}<i>/ {total}</i></span>
+        <span className="feature-grid-tags">{key === "product" && <span className="feature-grid-badge"><Sparkles size={10} aria-hidden="true" />{fr ? "Nouveau" : "New"}</span>}<span className="feature-grid-tag">{tags[key]}</span></span>
+      </div>
       <div className="feature-grid-copy">
-        <h3>{copy[key][0]}{key === "product" && <span className="feature-grid-badge"><Sparkles size={10} aria-hidden="true" />{fr ? "Nouveau" : "New"}</span>}</h3>
+        <h3>{copy[key][0]}</h3>
         <p>{copy[key][1]}</p>
       </div>
+      <span className="feature-grid-spot" aria-hidden="true" />
     </li>)}
   </ul>;
 
-  return <div ref={root} className="feature-grid">
+  // Halo qui suit le pointeur sur la carte survolée
+  const spotlight = (event: PointerEvent<HTMLDivElement>) => {
+    const card = (event.target as HTMLElement).closest<HTMLElement>(".feature-grid-card");
+    if (!card) return;
+    const box = card.getBoundingClientRect();
+    card.style.setProperty("--mx", `${event.clientX - box.left}px`);
+    card.style.setProperty("--my", `${event.clientY - box.top}px`);
+  };
+
+  return <div ref={root} className="feature-grid" onPointerMove={spotlight}>
     <div className="feature-grid-track">{list(false)}{list(true)}</div>
   </div>;
 }

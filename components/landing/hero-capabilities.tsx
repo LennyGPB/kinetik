@@ -12,6 +12,7 @@ import { StorePreview } from "@/components/store/store-preview";
 import { getStoreTemplate } from "@/config/store-templates";
 import { demoStore } from "@/lib/store/document";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
+import { isFormatEnabled } from "@/config/features";
 import "./hero-capabilities.css";
 
 export type Format = "motion" | "stores" | "pdf" | "signature" | "post" | "demo" | "decor" | "product";
@@ -128,7 +129,6 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
     let half = element.scrollWidth / 2;
     const resize = new ResizeObserver(() => { half = element.scrollWidth / 2; });
     resize.observe(element);
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const duration = 45;
     const wrap = (value: number) => half > 0 ? ((value % half) + half) % half : value;
     let x = scroller.scrollLeft, applied = x, speed = 0, last = performance.now(), frame = 0, idleUntil = performance.now() + 2500;
@@ -183,7 +183,8 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
         x = tween.from + (tween.to - tween.from) * (1 - Math.pow(1 - t, 4));
         if (t === 1) { tween = null; x = wrap(x); speed = 0; idleUntil = now + 1200; }
       } else {
-        const target = !reducedMotion && active.current && now > idleUntil ? half / duration : 0;
+        // Demande explicite : le défilement lent continue même en mode « animations réduites » (comme le bandeau des fonctionnalités)
+        const target = active.current && now > idleUntil ? half / duration : 0;
         speed += (target - speed) * Math.min(1, dt * 4);
         x += speed * dt;
       }
@@ -217,7 +218,7 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
     { kind: "demo", title: fr ? "Démos produit" : "Product demos", description: fr ? "Tes captures d’écran vidéo, mises en scène." : "Turn screen recordings into polished demos.", tilt: [13, 16, -3] },
   ];
   const byKind = (kind: Format) => homeFormats.find((item) => item.kind === kind)!;
-  const formats = creation ? [byKind("motion"), product, byKind("post"), byKind("stores"), { kind: "decor" as const, title: fr ? "Décors" : "Scenes", description: fr ? "Ta vidéo dans un vrai décor, prête à partager." : "Your video in a real setting, ready to share.", tilt: [8, -18, 3] as [number, number, number] }, byKind("demo")] : homeFormats;
+  const formats = (creation ? [byKind("motion"), product, byKind("post"), byKind("stores"), { kind: "decor" as const, title: fr ? "Décors" : "Scenes", description: fr ? "Ta vidéo dans un vrai décor, prête à partager." : "Your video in a real setting, ready to share.", tilt: [8, -18, 3] as [number, number, number] }, byKind("demo")] : homeFormats).filter((format) => isFormatEnabled(format.kind));
   const destination = (kind: Format) => `/create?kind=${kind === "stores" ? "store" : kind === "demo" ? "recording" : kind}`;
   return <div className={`relative mx-auto mt-12 w-full max-w-none pb-6 sm:mt-16${compact ? " hero-capabilities-compact" : ""}`}>
     <button type="button" className="hero-capabilities-nav hero-capabilities-navPrev" onClick={() => go.current(-1)} aria-label={fr ? "Formats précédents" : "Previous formats"} aria-controls="hero-formats"><ChevronLeft size={20} /></button>

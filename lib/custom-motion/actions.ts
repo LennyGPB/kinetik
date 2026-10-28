@@ -14,18 +14,14 @@ import type { CustomDemo, CustomRuntime } from "./contract";
 import { communityGraph } from "./graph";
 import { getPublishedCommunity, listCommunityTemplates, type CommunityTemplate } from "./queries";
 
-/** Vidéos publiées pour l'onglet « Créations » de la galerie (la page reste statique : liste chargée à l'affichage). */
+/** Vidéos publiées pour l'onglet « Créations » (galerie de l'app et landing, donc publique : seules les vidéos publiées sortent). */
 export async function listCommunity(): Promise<CommunityTemplate[]> {
-  const user = await getCurrentUser();
-  if (!user) return [];
   return listCommunityTemplates();
 }
 
-/** Code et contenu par défaut d'une vidéo publiée, pour la lire dans la galerie (chargés à la demande). */
+/** Code et contenu par défaut d'une vidéo publiée, pour la lire dans la galerie et sur la landing (chargés à la demande, publics). */
 export async function getCommunityPreview(motionId: string): Promise<{ runtime: CustomRuntime; demo: CustomDemo; name: string } | null> {
   if (typeof motionId !== "string" || !/^[a-z0-9]{8,40}$/.test(motionId)) return null;
-  const user = await getCurrentUser();
-  if (!user) return null;
   const motion = await getPublishedCommunity(motionId);
   return motion ? { runtime: motion.runtime, demo: motion.demo, name: motion.name } : null;
 }

@@ -23,7 +23,7 @@ import type { BrandFont } from "../../config/fonts";
 
 type FontModule = {
   getInfo: () => { fonts: Record<string, Record<string, Record<string, string>>> };
-  loadFont: (style?: "normal", options?: { weights?: string[]; subsets?: string[] }) => { fontFamily: string };
+  loadFont: (style?: "normal" | "italic", options?: { weights?: string[]; subsets?: string[] }) => { fontFamily: string };
 };
 
 const MODULES: Record<BrandFont, FontModule> = {
@@ -63,4 +63,17 @@ export function brandFont(family: string): LoadedBrandFont | null {
   const loaded = { fontFamily, bold: Number(bold), medium: Number(medium) };
   cache.set(family, loaded);
   return loaded;
+}
+
+const italics = new Set<string>();
+
+/** Charge aussi l'italique d'une police (même fontFamily, à utiliser avec fontStyle: "italic"). Sans effet si la police n'en a pas. */
+export function loadBrandItalic(family: string) {
+  const mod = MODULES[family as BrandFont];
+  if (!mod || italics.has(family)) return;
+  italics.add(family);
+  const available = Object.keys(mod.getInfo().fonts.italic ?? {});
+  if (!available.length) return;
+  const weights = ["400", "500", "600", "700"].filter((w) => available.includes(w));
+  mod.loadFont("italic", { weights: weights.length ? weights : [available[0]], subsets: ["latin"] });
 }

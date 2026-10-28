@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import { decorCopy } from "@/lib/decors/copy";
+import { isFeatureEnabled } from "@/config/features";
 import { CreateContentButton } from "@/components/create/create-content-button";
 
 
@@ -89,7 +90,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCard[] }) {
         </div>
       </div>
 
-      <div className="mt-5 overflow-x-auto"><Segmented variant="pills" label={c.newContent} value={kind} onChange={setKind} options={[{ value: "all", label: c.all }, { value: "MOTION", label: c.motion }, { value: "RECORDING", label: t.locale === "fr" ? "Démos d’écran" : "Screen demos" }, { value: "POST", label: c.posts }, { value: "STORE", label: storeCopy(t.locale).kind }, { value: "DECOR", label: decorCopy(t.locale).title }]} /></div>
+      <div className="mt-5 overflow-x-auto"><Segmented variant="pills" label={c.newContent} value={kind} onChange={setKind} options={[{ value: "all", label: c.all }, { value: "MOTION", label: c.motion }, { value: "RECORDING", label: t.locale === "fr" ? "Démos d’écran" : "Screen demos" }, { value: "POST", label: c.posts }, { value: "STORE", label: storeCopy(t.locale).kind }, { value: "DECOR", label: decorCopy(t.locale).title }].filter((option) => option.value === "RECORDING" ? isFeatureEnabled("recording") : option.value === "POST" ? isFeatureEnabled("post") : option.value === "STORE" ? isFeatureEnabled("store") : option.value === "DECOR" ? isFeatureEnabled("decor") : true)} /></div>
       {visible.length === 0 && <p className="py-12 text-center text-sm text-muted">{c.empty}</p>}
 
       <motion.ul layout className="mt-5 grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">

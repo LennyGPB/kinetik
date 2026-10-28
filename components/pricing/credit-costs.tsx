@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { CREDIT_COSTS, EDIT_PRICING, getExportCost, getPostGenerationCost, getStoreGenerationCost } from "@/config/credits";
 import { postCopy } from "@/lib/posts/copy";
+import { isFeatureEnabled, type Feature } from "@/config/features";
 
 import { cn } from "@/lib/utils";
 
@@ -46,24 +47,24 @@ export function CreditCosts({ className, reveal = false, includePosts = false }:
   { graphic: "long", label: c.exportLong, cost: CREDIT_COSTS.export.long },
   { graphic: "mp4", label: fr ? `Export template 3D (Stage) · jusqu’à ${CREDIT_COSTS.export.shortMaxSeconds} s` : `3D template export (Stage) · up to ${CREDIT_COSTS.export.shortMaxSeconds}s`, cost: getExportCost({ duration: CREDIT_COSTS.export.shortMaxSeconds, premium3d: true }) },
   ...(includePosts ? [
-    { graphic: "type", label: `${postCopy(t.locale).posts} · ${postCopy(t.locale).generationCost} (1 ${postCopy(t.locale).image.toLowerCase()})`, cost: getPostGenerationCost(1) },
-    { graphic: "type", label: `${postCopy(t.locale).generationCost} · 5 ${postCopy(t.locale).pages.toLowerCase()}`, cost: getPostGenerationCost(5) },
-    { graphic: "chat", label: postCopy(t.locale).ai, cost: CREDIT_COSTS.post.edit },
-    { graphic: "mp4", label: `${postCopy(t.locale).exportCost} / ${postCopy(t.locale).image.toLowerCase()}`, cost: CREDIT_COSTS.post.exportPerImage },
+    { graphic: "type", label: `${postCopy(t.locale).posts} · ${postCopy(t.locale).generationCost} (1 ${postCopy(t.locale).image.toLowerCase()})`, cost: getPostGenerationCost(1), feature: "post" as Feature },
+    { graphic: "type", label: `${postCopy(t.locale).generationCost} · 5 ${postCopy(t.locale).pages.toLowerCase()}`, cost: getPostGenerationCost(5), feature: "post" as Feature },
+    { graphic: "chat", label: postCopy(t.locale).ai, cost: CREDIT_COSTS.post.edit, feature: "post" as Feature },
+    { graphic: "mp4", label: `${postCopy(t.locale).exportCost} / ${postCopy(t.locale).image.toLowerCase()}`, cost: CREDIT_COSTS.post.exportPerImage, feature: "post" as Feature },
     // Les autres produits payants, pour que la liste couvre tout ce qui consomme des crédits
-    { graphic: "type", label: fr ? "Signature animée" : "Animated signature", cost: CREDIT_COSTS.generation },
-    { graphic: "type", label: fr ? "Captures App Store & Play · 1 page" : "App Store & Play screenshots · 1 page", cost: getStoreGenerationCost(1) },
-    { graphic: "mp4", label: fr ? "Export captures stores / page" : "Store screenshots export / page", cost: CREDIT_COSTS.store.exportPerPage },
-    { graphic: "type", label: fr ? "Pitch deck · analyse du document" : "Pitch deck · document analysis", cost: CREDIT_COSTS.pitch.analysis },
-    { graphic: "type", label: fr ? "Pitch deck · création du motion" : "Pitch deck · motion creation", cost: CREDIT_COSTS.pitch.creation },
+    { graphic: "type", label: fr ? "Signature animée" : "Animated signature", cost: CREDIT_COSTS.generation, feature: "signature" as Feature },
+    { graphic: "type", label: fr ? "Captures App Store & Play · 1 page" : "App Store & Play screenshots · 1 page", cost: getStoreGenerationCost(1), feature: "store" as Feature },
+    { graphic: "mp4", label: fr ? "Export captures stores / page" : "Store screenshots export / page", cost: CREDIT_COSTS.store.exportPerPage, feature: "store" as Feature },
+    { graphic: "type", label: fr ? "Pitch deck · analyse du document" : "Pitch deck · document analysis", cost: CREDIT_COSTS.pitch.analysis, feature: "pitch" as Feature },
+    { graphic: "type", label: fr ? "Pitch deck · création du motion" : "Pitch deck · motion creation", cost: CREDIT_COSTS.pitch.creation, feature: "pitch" as Feature },
     { graphic: "chat", label: fr ? `Voix off · par scène, par tranche de ${CREDIT_COSTS.voiceover.perCharacters} caractères` : `Voiceover · per scene, per ${CREDIT_COSTS.voiceover.perCharacters} characters`, cost: CREDIT_COSTS.voiceover.perUnit },
-    { graphic: "mp4", label: fr ? "Démo d’écran · import" : "Screen demo · import", cost: CREDIT_COSTS.recordingImport },
-    { graphic: "type", label: fr ? "Décors · déblocage de l’aperçu" : "Scenes · unlock preview", cost: CREDIT_COSTS.decor.preview },
-    { graphic: "mp4", label: fr ? `Décors · export jusqu’à ${CREDIT_COSTS.export.shortMaxSeconds} s` : `Scenes · export up to ${CREDIT_COSTS.export.shortMaxSeconds}s`, cost: CREDIT_COSTS.decor.exportShort },
-    { graphic: "long", label: fr ? `Décors · export au-delà de ${CREDIT_COSTS.export.shortMaxSeconds} s` : `Scenes · export above ${CREDIT_COSTS.export.shortMaxSeconds}s`, cost: CREDIT_COSTS.decor.exportLong },
+    { graphic: "mp4", label: fr ? "Démo d’écran · import" : "Screen demo · import", cost: CREDIT_COSTS.recordingImport, feature: "recording" as Feature },
+    { graphic: "type", label: fr ? "Décors · déblocage de l’aperçu" : "Scenes · unlock preview", cost: CREDIT_COSTS.decor.preview, feature: "decor" as Feature },
+    { graphic: "mp4", label: fr ? `Décors · export jusqu’à ${CREDIT_COSTS.export.shortMaxSeconds} s` : `Scenes · export up to ${CREDIT_COSTS.export.shortMaxSeconds}s`, cost: CREDIT_COSTS.decor.exportShort, feature: "decor" as Feature },
+    { graphic: "long", label: fr ? `Décors · export au-delà de ${CREDIT_COSTS.export.shortMaxSeconds} s` : `Scenes · export above ${CREDIT_COSTS.export.shortMaxSeconds}s`, cost: CREDIT_COSTS.decor.exportLong, feature: "decor" as Feature },
     { graphic: "chat", label: fr ? "Traduction FR ↔ EN" : "Translation FR ↔ EN", cost: CREDIT_COSTS.translation },
   ] : []),
-];
+].filter((row) => !("feature" in row) || !row.feature || isFeatureEnabled(row.feature));
 
   return (
     <ul className={cn("divide-y divide-line rounded-2xl border border-line bg-bg-subtle", className)}>

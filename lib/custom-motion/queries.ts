@@ -36,6 +36,9 @@ export type CommunityTemplate = {
   thumbnail: string | null;
   formats: CustomMotionMeta["formats"];
   palette: string[];
+  /** Démo par défaut : nombre de scènes et durée totale (en secondes) */
+  scenes: number;
+  seconds: number;
 };
 
 /** Vidéos publiées dans la galerie « Créations » (dernière version publiée de chacune), populaires d'abord. */
@@ -50,7 +53,7 @@ export async function listCommunityTemplates(): Promise<CommunityTemplate[]> {
     const meta = parseMeta(version?.meta);
     const demo = parseDemo(version?.demo);
     if (!version || !meta || !demo) return [];
-    return [{ id: motion.id, versionId: version.id, name: motion.name, popular: motion.popular, thumbnail: motion.thumbnail, formats: meta.formats, palette: demo.colors }];
+    return [{ id: motion.id, versionId: version.id, name: motion.name, popular: motion.popular, thumbnail: motion.thumbnail, formats: meta.formats, palette: demo.colors, scenes: demo.scenes.length, seconds: Math.round(demo.scenes.reduce((sum, scene) => sum + scene.duration, 0)) }];
   });
 }
 
