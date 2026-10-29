@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight, Globe, Sparkles } from "lucide-react";
 import Link from "@/lib/i18n/navigation";
@@ -40,7 +40,24 @@ export function ChoiceCards({ items, label, entrance = "rise", leavingKey = null
   // Le déploiement depuis le centre n'a de sens que quand les cartes tiennent sur une seule rangée
   const [wide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
   const spread = entrance === "spread" && wide;
-  return <ul className="choice-cards" data-cols={items.length % 4 === 0 ? 4 : 3} aria-label={label}>
+  // Mobile : les cartes deviennent un slider horizontal (CSS), avec des points qui suivent la carte centrée
+  const list = useRef<HTMLUListElement>(null);
+  const [current, setCurrent] = useState(0);
+  const slots = () => [...(list.current?.children ?? [])] as HTMLElement[];
+  const onScroll = () => {
+    const scroller = list.current;
+    if (!scroller) return;
+    const middle = scroller.scrollLeft + scroller.clientWidth / 2;
+    let best = 0;
+    slots().forEach((slot, index) => { if (Math.abs(slot.offsetLeft + slot.offsetWidth / 2 - middle) < Math.abs(slots()[best].offsetLeft + slots()[best].offsetWidth / 2 - middle)) best = index; });
+    setCurrent(best);
+  };
+  const goTo = (index: number) => {
+    const scroller = list.current, slot = slots()[index];
+    if (scroller && slot) scroller.scrollTo({ left: slot.offsetLeft + slot.offsetWidth / 2 - scroller.clientWidth / 2, behavior: reduced ? "auto" : "smooth" });
+  };
+  return <>
+  <ul ref={list} onScroll={onScroll} className="choice-cards" data-cols={items.length % 4 === 0 ? 4 : 3} aria-label={label}>
     {items.map((item, index) => {
       const fromCenter = (items.length - 1) / 2 - index;
       const chosen = leavingKey === item.key;
@@ -79,7 +96,11 @@ export function ChoiceCards({ items, label, entrance = "rise", leavingKey = null
         </Link>
       </motion.li>;
     })}
-  </ul>;
+  </ul>
+  {!leavingKey && items.length > 1 && <div className="choice-cards-dots">
+    {items.map((item, index) => <button key={item.key} type="button" aria-label={item.title} aria-current={current === index || undefined} onClick={() => goTo(index)} />)}
+  </div>}
+  </>;
 }
 
 /** Les 4 façons de créer un motion ; elles jaillissent du centre, là où était la carte Motion design. */

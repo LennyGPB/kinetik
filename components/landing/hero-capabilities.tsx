@@ -121,7 +121,8 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
     return () => { observer.disconnect(); document.removeEventListener("visibilitychange", sync); };
   }, []);
   // Défilement auto piloté par le scroll natif : on peut swiper (mobile) ou utiliser les flèches (PC).
-  // La boucle est infinie : le rail est dupliqué et on recale la position d'une demi-largeur.
+  // La boucle est infinie : le rail est dupliqué et la position reste dans une fenêtre d'une demi-largeur au milieu
+  // du rail (marge des deux côtés, pour qu'un swipe ne bute jamais sur un bord). Recalage seulement au repos.
   const go = useRef<(direction: 1 | -1) => void>(() => {});
   useEffect(() => {
     const scroller = viewport.current, element = track.current;
@@ -130,7 +131,9 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
     // Largeur connue tardivement (images, polices, page restaurée par Safari) : on remet la carte Motion au centre tant que personne n'a touché
     const resize = new ResizeObserver(() => { half = element.scrollWidth / 2; centerHeroes(); });
     const duration = 45;
-    const wrap = (value: number) => half > 0 ? ((value % half) + half) % half : value;
+    // Début de la fenêtre : centrée dans la zone défilable [0, 2 × half − largeur visible]
+    const low = () => Math.max(0, (half - scroller.clientWidth) / 2);
+    const wrap = (value: number) => { if (half <= 0) return value; const lo = low(); return lo + ((((value - lo) % half) + half) % half); };
     let x = scroller.scrollLeft, applied = x, speed = 0, last = performance.now(), frame = 0, idleUntil = performance.now() + 2500;
     let tween: { from: number; to: number; start: number } | null = null, touched = false, touching = false, lastScroll = 0;
     // Position de départ : la carte Motion design au centre de l'écran (Produit physique à sa gauche sur la landing)
@@ -151,13 +154,14 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
     });
     scroller.dataset.enter = "ready";
     document.fonts?.ready.then(centerHeroes);
-    // Recale d'une demi-largeur aux bords pour la boucle infinie. Jamais pendant le geste ni pendant l'inertie :
-    // sur mobile, changer scrollLeft en plein élan fait repartir le navigateur de l'ancienne position (retour au début).
+    // Ramène la position dans la fenêtre (même image, l'autre copie du rail). Jamais pendant le geste ni pendant l'inertie :
+    // sur mobile, changer scrollLeft en plein élan fait repartir le navigateur de l'ancienne position.
     const recenter = () => {
       if (half <= 0) half = element.scrollWidth / 2;
-      if (touching || half <= 0 || (x < half && x >= 4)) return;
-      x = x < 4 ? x + half : x - half;
-      scroller.scrollLeft = x; applied = x;
+      if (touching || half <= 0) return;
+      const target = wrap(x);
+      if (Math.abs(target - x) < 1) return;
+      x = target; scroller.scrollLeft = x; applied = x;
     };
     // Défilement à la main (swipe, trackpad) : le navigateur garde la main, on suit sa position et on attend la fin de l'inertie
     const onScroll = () => {
@@ -180,6 +184,8 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
         // Le doigt (ou l'inertie) pilote : on n'écrit rien, on se contente de suivre. Recalage seulement une fois le défilement arrêté.
         x = scroller.scrollLeft; applied = x; speed = 0;
         if (!touching && now - lastScroll > 250) recenter();
+        frame = requestAnimationFrame(tick);
+        return;
       } else if (tween) {
         const t = Math.min(1, (now - tween.start) / 650);
         x = tween.from + (tween.to - tween.from) * (1 - Math.pow(1 - t, 4));

@@ -19,7 +19,7 @@ function AnimatedWords({ text, className, delay = 0 }: { text: string; className
   return (
     <span className={className}>
       {words.map((word, i) => (
-        <span key={i} className="inline-block overflow-hidden pb-[0.08em] align-bottom">
+        <span key={i} className="-mb-[0.14em] inline-block overflow-hidden pb-[0.22em] align-bottom">
           <motion.span
             className="inline-block"
             initial={{ y: "105%" }}
@@ -54,7 +54,7 @@ export function Hero() {
           <h1 className="w-full font-display text-[clamp(2.6rem,9vw,6.5rem)] leading-[0.95] font-extrabold tracking-[-0.045em] lg:text-[clamp(3rem,5.4vw,5.5rem)]">
             <AnimatedWords text={t.locale === "fr" ? "Crée ta vidéo de studio" : "Create studio-grade videos"} className="block" delay={0.1} />
             <motion.span className="block" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, ease: EASE, delay: 0.3 }}>
-              <span className="-mt-[0.36em] block pb-2 font-heading leading-[1.1] text-[clamp(1.45rem,7.2vw,2.9rem)] font-extralight text-accent-text sm:text-[clamp(1.15rem,6.3vw,4.9rem)] lg:text-[clamp(1.15rem,3.8vw,3.75rem)]">{t.locale === "fr" ? "en quelques clics." : "in a few clicks."}</span>
+              <span className={`${t.locale === "fr" ? "-mt-[0.36em]" : "-mt-[0.08em]"} block pb-2 font-heading leading-[1.1] text-[clamp(1.45rem,7.2vw,2.9rem)] font-extralight text-accent-text sm:text-[clamp(1.15rem,6.3vw,4.9rem)] lg:text-[clamp(1.15rem,3.8vw,3.75rem)]`}>{t.locale === "fr" ? "en quelques clics." : "in a few clicks."}</span>
             </motion.span>
           </h1>
 
