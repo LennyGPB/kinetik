@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { projectBalance, type LedgerEntry } from "./balance";
 import { PLANS, CREDIT_PACKS } from "@/config/pricing";
-import { CREDIT_COSTS, SIGNUP_BONUS_CREDITS, getExportCost } from "@/config/credits";
+import { CREDIT_COSTS, getExportCost } from "@/config/credits";
 
 const now = new Date("2026-10-15T12:00:00Z");
 const old = new Date("2026-10-01T00:00:00Z");
@@ -55,7 +55,7 @@ test("expiration boundary is exclusive and earliest period is consumed first", (
 });
 
 test("offer invariants and export thresholds stay consistent", () => {
-  assert.equal(PLANS.find((p) => p.id === "FREE")?.credits, SIGNUP_BONUS_CREDITS);
+  assert.equal(PLANS.find((p) => p.id === "FREE")?.credits, 0);
   assert.ok(CREDIT_COSTS.edit < CREDIT_COSTS.generation);
   assert.equal(getExportCost({ duration: 30, quality: "HD" }), 5);
   assert.equal(getExportCost({ duration: 30.5, quality: "HD" }), 10);

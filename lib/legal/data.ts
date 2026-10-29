@@ -1,6 +1,6 @@
-import { CREDIT_COSTS, EDIT_PRICING, SIGNUP_BONUS_CREDITS } from "@/config/credits";
+import { CREDIT_COSTS, EDIT_PRICING } from "@/config/credits";
 import { LEGAL_PLACEHOLDER, legalConfig } from "@/config/legal";
-import { CREDIT_PACKS, PLANS, formatPrice } from "@/config/pricing";
+import { CREDIT_PACKS, PAID_PLANS, formatPrice } from "@/config/pricing";
 import { intlLocale, type Locale } from "@/lib/i18n";
 
 /** Valeurs injectées dans les textes légaux : tarifs et coûts lus dans la config, pour rester synchronisés. */
@@ -16,8 +16,7 @@ export function legalData(locale: Locale) {
     mediator: legalConfig.mediator,
     placeholder: LEGAL_PLACEHOLDER[locale],
     updated: new Intl.DateTimeFormat(intlLocale[locale], { dateStyle: "long", timeZone: "UTC" }).format(new Date(legalConfig.updatedAt)),
-    signupCredits: SIGNUP_BONUS_CREDITS,
-    paidPlans: PLANS.filter((p) => p.monthlyPrice > 0).map((p) => ({
+    paidPlans: PAID_PLANS.map((p) => ({
       name: p.name, credits: p.credits, quality: p.maxQuality === "HD" ? "1080p" : "720p",
       monthly: price(p.monthlyPrice), yearly: price(p.yearlyPrice * 12), yearlyPerMonth: price(p.yearlyPrice),
     })),

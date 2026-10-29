@@ -8,7 +8,7 @@ Le fonctionnement des crédits a été renforcé et testé sur PostgreSQL. Les q
 
 | Offre | Mensuel | Annuel, équivalent mensuel | Paiement annuel total | Crédits |
 |---|---:|---:|---:|---:|
-| Free | 0 € | — | — | 30 une seule fois à l'inscription |
+| Sans abonnement | 0 € | — | — | aucun crédit offert (packs uniquement, 720p sans filigrane) |
 | Starter | 19 € | 15 € | 180 € | 200 par mois |
 | Pro | 49 € | 39 € | 468 € | 600 par mois |
 

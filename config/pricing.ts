@@ -4,8 +4,6 @@
  * et leur transfère les lookup keys ci-dessous (les abonnés en cours gardent leur ancien prix).
  */
 
-import { SIGNUP_BONUS_CREDITS } from "./credits";
-
 export type PlanId = "FREE" | "STARTER" | "PRO";
 
 export type PricingPlan = {
@@ -15,7 +13,7 @@ export type PricingPlan = {
   monthlyPrice: number;
   /** Prix mensuel équivalent en facturation annuelle */
   yearlyPrice: number;
-  /** Crédits par mois (abonnement) ou crédits de départ (gratuit) */
+  /** Crédits par mois */
   credits: number;
   watermark: boolean;
   /** SD = 720p · HD = 1080p */
@@ -23,11 +21,17 @@ export type PricingPlan = {
   highlighted?: boolean;
 };
 
+/**
+ * FREE = compte sans abonnement (jamais abonné ou résilié) : aucun crédit offert, il paie avec des packs (720p, sans filigrane).
+ * Ce n'est pas une offre affichée : seuls les PAID_PLANS sont proposés.
+ */
 export const PLANS: PricingPlan[] = [
-  { id: "FREE", name: "Free", monthlyPrice: 0, yearlyPrice: 0, credits: SIGNUP_BONUS_CREDITS, watermark: true, maxQuality: "SD" },
+  { id: "FREE", name: "Free", monthlyPrice: 0, yearlyPrice: 0, credits: 0, watermark: false, maxQuality: "SD" },
   { id: "STARTER", name: "Starter", monthlyPrice: 29, yearlyPrice: 23, credits: 200, watermark: false, maxQuality: "SD" },
   { id: "PRO", name: "Pro", monthlyPrice: 79, yearlyPrice: 63, credits: 600, watermark: false, maxQuality: "HD", highlighted: true },
 ];
+
+export const PAID_PLANS = PLANS.filter((p): p is PricingPlan & { id: PaidPlanId } => p.id !== "FREE");
 
 export type CreditPack = {
   id: string;

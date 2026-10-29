@@ -3,14 +3,13 @@ import { after } from "next/server";
 import { getServerDictionary } from "@/lib/i18n/server";
 
 import { localizedRedirect } from "@/lib/i18n/redirect";
-import { SIGNUP_BONUS_CREDITS } from "@/config/credits";
 import { db } from "@/lib/db";
 
 import { rateLimitAll, resetRateLimit } from "@/lib/rate-limit";
 import { LIMITS, limitKey, requestIp } from "@/lib/security/limits";
 import { checkEmailDomain, checkSignupForm, issueSignupToken } from "@/lib/security/signup-guard";
 import { notifySignup } from "@/lib/services/telegram";
-import { safeRedirect } from "./constants";
+import { DEFAULT_REDIRECT, safeRedirect } from "./constants";
 import { burnPasswordCheck, hashPassword, verifyPassword } from "./password";
 import { createSession, destroySession } from "./session";
 import { createAuthSchemas, type AuthFormState } from "./validation";
@@ -57,19 +56,19 @@ export async function register(_prev: AuthFormState, formData: FormData): Promis
   const existing = await db.user.findUnique({ where: { email }, select: { id: true } });
   if (existing) return { errors: { email: t.auth.errors.emailTaken }, values };
 
-  // Bound free-credit farming across rotating IPs and accounts.
+  // Bound mass account creation across rotating IPs.
   if (!(await limitKey("register-global", "all", [{ limit: 30, windowMs: 86_400_000, strict: true }])).ok) {
     return { message: t.auth.errors.tooManyAttempts, values };
   }
 
   const passwordHash = await hashPassword(password);
-  const user = await db.user.create({ data: { name, email, passwordHash, creditTransactions: { create: {
-    amount: SIGNUP_BONUS_CREDITS, type: "SIGNUP_BONUS", source: "PACK", description: t.app.credits.types.SIGNUP_BONUS,
-  } } }, select: { id: true } });
+  const user = await db.user.create({ data: { name, email, passwordHash }, select: { id: true } });
   await createSession(user.id);
   after(() => notifySignup({ name, email, method: "email", locale: t.locale }));
 
-  return await localizedRedirect(safeRedirect(String(formData.get("redirectTo") ?? "")));
+  // Aucun crédit offert : un nouveau compte passe par la page Crédits, sauf destination précise.
+  const target = safeRedirect(String(formData.get("redirectTo") ?? ""));
+  return await localizedRedirect(target === DEFAULT_REDIRECT ? "/credits" : target);
 }
 
 export async function login(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {

@@ -195,3 +195,18 @@
 .hero-capabilities-compact .hero-capabilities-viewport .hero-capabilities-cardContent h3 { min-height:0; font-size:20px; line-height:1.25; }
 .hero-capabilities-compact .hero-capabilities-viewport .hero-capabilities-cardContent p { min-height:0; padding-bottom:0; font-size:13px; }
 @media (max-width:639px) { .hero-capabilities-compact .hero-capabilities-cardSlot { width:240px; flex-basis:240px; } .hero-capabilities-compact .hero-capabilities-viewport .hero-capabilities-preview { height:260px; } }
+
+/* Écrans tactiles (iPhone surtout) : le mask-image du conteneur qui défile oblige Safari à peindre tout le rail
+   (≈ 3 500 px × 3) d'un bloc, ce qui provoquait des écrans noirs au swipe. Fondu des bords par deux dégradés posés
+   par-dessus, 3D aplatie (une seule couche par carte) et apparition sans flou. */
+.hero-capabilities-fade { display:none; }
+@media (hover:none) {
+  .hero-capabilities-viewport { mask-image:none; -webkit-mask-image:none; }
+  .hero-capabilities-fade { display:block; position:absolute; z-index:4; top:0; bottom:0; width:6%; pointer-events:none; }
+  .hero-capabilities-fadeLeft { left:0; background:linear-gradient(to right,var(--bg),transparent); }
+  .hero-capabilities-fadeRight { right:0; background:linear-gradient(to left,var(--bg),transparent); }
+  .hero-capabilities-card { will-change:auto; transform-style:flat; }
+  .hero-capabilities-artwork, .hero-capabilities-cardContent { transform:none; }
+  .hero-capabilities-viewport[data-enter] .hero-capabilities-cardSlot { animation-name:hero-card-enter-lite; }
+}
+@keyframes hero-card-enter-lite { 0% { opacity:0; transform:translateY(80px) scale(.94); } 40% { opacity:1; } 100% { opacity:1; transform:none; } }

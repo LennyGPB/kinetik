@@ -74,10 +74,7 @@ export function getStoreExportCost(count: number, reexport = false) {
   return reexport ? Math.ceil(full / 2) : full;
 }
 
-/** Crédits offerts à l'inscription (plan gratuit, n'expirent pas) */
-export const SIGNUP_BONUS_CREDITS = 30;
-
-/** SD = 720p (Free, Starter) · HD = 1080p (Pro) */
+/** SD = 720p (sans abonnement, Starter) · HD = 1080p (Pro) */
 export type ExportQuality = "SD" | "HD";
 export const EXPORT_QUALITIES: ExportQuality[] = ["SD", "HD"];
 

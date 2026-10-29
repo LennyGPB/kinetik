@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Player as RemotionPlayer, Thumbnail } from "@remotion/player";
 import { Player } from "@/components/editor/player";
 import { DIMENSIONS, durationInFrames, FPS, type VideoProps } from "@/remotion/props";
@@ -11,7 +11,8 @@ import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { PopularBadge } from "@/components/templates/template-settings";
 import { VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
-import { createCommunityProject, getCommunityPreview, listCommunity } from "@/lib/custom-motion/actions";
+import { createCommunityProject, listCommunity } from "@/lib/custom-motion/actions";
+import type { CustomDemo, CustomRuntime } from "@/lib/custom-motion/contract";
 import { customPreviewProps } from "@/lib/custom-motion/graph";
 import type { CommunityTemplate } from "@/lib/custom-motion/queries";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
@@ -20,13 +21,22 @@ import { ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-type Preview = NonNullable<Awaited<ReturnType<typeof getCommunityPreview>>>;
-/** Code des vidéos déjà ouvertes (survol puis clic : un seul chargement) */
+type Preview = { runtime: CustomRuntime; demo: CustomDemo; name: string };
+/** Code des vidéos déjà chargées (miniature, survol puis clic : un seul chargement) */
 const previews = new Map<string, Promise<Preview | null>>();
-function loadPreview(id: string) {
-  if (!previews.has(id)) previews.set(id, getCommunityPreview(id));
-  return previews.get(id)!;
+/** Route GET en cache (pas une Server Action : elles passent une par une, les cartes se chargeraient en file). */
+function loadPreview(item: Pick<CommunityTemplate, "id" | "versionId">) {
+  const key = `${item.id}:${item.versionId}`;
+  if (!previews.has(key)) {
+    const request = fetch(`/api/community/${item.id}?v=${item.versionId}`).then((res) => (res.ok ? (res.json() as Promise<Preview>) : null)).catch(() => null);
+    previews.set(key, request);
+    request.then((preview) => { if (!preview) previews.delete(key); }); // échec : nouvel essai au prochain affichage
+  }
+  return previews.get(key)!;
 }
+
+/** Cartes affichées sur la landing avant « Voir + ». */
+const LANDING_COUNT = 6;
 
 /** Phrase d'accroche de l'onglet « Créations » (galerie de l'app et landing). */
 export function communityIntro(fr: boolean) {
@@ -66,21 +76,23 @@ export function CommunityGallery({ signUpHref, showIntro = true }: { signUpHref?
   const [open, setOpen] = useState<{ item: CommunityTemplate; preview: Preview | null } | null>(null);
   const [format, setFormat] = useState<VideoFormatId>("LANDSCAPE");
   const [applying, setApplying] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [, startTransition] = useTransition();
   const toast = useToast();
 
   useEffect(() => { listCommunity().then(setItems).catch(() => setItems([])); }, []);
 
-  const hover = (id: string) => {
+  const hover = (item: CommunityTemplate) => {
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-    loadPreview(id).then((preview) => preview && setHovered((current) => (current?.id === id || !current ? { id, preview } : current)));
+    const { id } = item;
+    loadPreview(item).then((preview) => preview && setHovered((current) => (current?.id === id || !current ? { id, preview } : current)));
   };
 
   const openItem = (item: CommunityTemplate) => {
     setHovered(null);
     setFormat(item.formats.includes("LANDSCAPE") ? "LANDSCAPE" : item.formats[0]);
     setOpen({ item, preview: null });
-    loadPreview(item.id).then((preview) => setOpen((current) => (current?.item.id === item.id ? { item, preview } : current)));
+    loadPreview(item).then((preview) => setOpen((current) => (current?.item.id === item.id ? { item, preview } : current)));
   };
 
   if (!items) return <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="aspect-[2/3] animate-pulse rounded-2xl bg-surface-2" />)}</div>;
@@ -103,16 +115,17 @@ export function CommunityGallery({ signUpHref, showIntro = true }: { signUpHref?
   // Landing : mêmes cartes que les autres templates (colonnes, nom et infos sur l'image, badge), clic → inscription
   if (signUpHref) {
     return (
-      <div className="mx-auto mt-8 w-full max-w-5xl columns-2 gap-3 sm:gap-4 md:columns-3">
-        {items.map((item, index) => {
+      <div>
+      <div id="community-gallery-grid" className="mx-auto mt-8 w-full max-w-5xl columns-2 gap-3 sm:gap-4 md:columns-3">
+        {(expanded ? items : items.slice(0, LANDING_COUNT)).map((item, index) => {
           const shape = landingShape(item, index);
           return (
           <div key={item.id} className="mb-3 break-inside-avoid sm:mb-4">
             <Link
               href={signUpHref}
-              onMouseEnter={() => hover(item.id)}
+              onMouseEnter={() => hover(item)}
               onMouseLeave={() => setHovered(null)}
-              onFocus={() => hover(item.id)}
+              onFocus={() => hover(item)}
               onBlur={() => setHovered(null)}
               className="group relative block overflow-hidden rounded-2xl border border-line bg-surface transition-[border-color,box-shadow] duration-300 hover:border-accent/40 hover:shadow-[0_20px_50px_-20px_var(--accent-glow)] sm:rounded-3xl"
             >
@@ -139,6 +152,20 @@ export function CommunityGallery({ signUpHref, showIntro = true }: { signUpHref?
           );
         })}
       </div>
+      {items.length > LANDING_COUNT && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls="community-gallery-grid"
+            onClick={() => { setHovered(null); setExpanded((value) => !value); }}
+            className="px-3 py-2 text-sm text-muted underline-offset-4 transition-colors hover:text-fg hover:underline"
+          >
+            {expanded ? t.copy["e7bd64d3ec4d"] : t.copy["be55c61d5ebf"]}
+          </button>
+        </div>
+      )}
+      </div>
     );
   }
 
@@ -148,7 +175,7 @@ export function CommunityGallery({ signUpHref, showIntro = true }: { signUpHref?
       <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
         {items.map((item) => {
           const tile = {
-            onMouseEnter: () => hover(item.id),
+            onMouseEnter: () => hover(item),
             onMouseLeave: () => setHovered(null),
             className: "relative block aspect-[2/3] w-full cursor-pointer overflow-hidden rounded-2xl text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent",
             style: { background: gradient(item) },
@@ -199,16 +226,27 @@ export function CommunityGallery({ signUpHref, showIntro = true }: { signUpHref?
 
 /**
  * Miniature automatique quand le studio n'en a pas : une image de la démo, prise au milieu de la scène
- * qui couvre 40 % de la vidéo (jamais pendant une transition). Calculée dans le navigateur, sans rendu serveur.
+ * qui couvre 40 % de la vidéo (jamais pendant une transition). Calculée dans le navigateur, sans rendu serveur,
+ * et seulement quand la carte approche de l'écran : sur mobile, toutes les vidéos d'un coup bloquaient la page.
  */
 function LiveThumbnail({ item, locale, format: wanted }: { item: CommunityTemplate; locale: "fr" | "en"; format?: VideoFormatId }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
   useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } }, { rootMargin: "300px 0px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!visible) return;
     let alive = true;
-    loadPreview(item.id).then((loaded) => { if (alive) setPreview(loaded); }).catch(() => undefined);
+    loadPreview(item).then((loaded) => { if (alive) setPreview(loaded); });
     return () => { alive = false; };
-  }, [item.id]);
-  if (!preview) return <span className="absolute inset-x-3 bottom-3 text-lg font-bold text-white drop-shadow">{item.name}</span>;
+  }, [visible, item]);
+  if (!preview) return <div ref={ref} className="absolute inset-0" />;
   const format = wanted ?? (item.formats.includes("PORTRAIT") ? "PORTRAIT" : item.formats[0]);
   const props = customPreviewProps(preview.runtime, preview.demo, format, locale);
   const total = durationInFrames(props.graph);

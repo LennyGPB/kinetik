@@ -31,7 +31,7 @@ export async function SidebarAccount() {
             <Coins className="size-3.5 text-accent-text" /> {t.app.balance}
           </span>
           <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent-text">
-            {format(t.app.plan, { plan: plan.name })}
+            {plan.id === "FREE" ? t.app.noPlan : format(t.app.plan, { plan: plan.name })}
           </span>
         </div>
         <p className="relative mt-2 flex items-baseline gap-1.5">

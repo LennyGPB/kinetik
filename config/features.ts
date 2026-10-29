@@ -11,7 +11,7 @@ export const FEATURES = {
   /** Signatures / logos animés */
   signature: true,
   /** Pitch deck / PDF vers motion */
-  pitch: true,
+  pitch: false,
   /** Produit physique (2.5D et 3D) */
   product: true,
   /** Posts Instagram */

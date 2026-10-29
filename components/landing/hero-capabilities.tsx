@@ -127,12 +127,12 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
     const scroller = viewport.current, element = track.current;
     if (!scroller || !element) return;
     let half = element.scrollWidth / 2;
-    const resize = new ResizeObserver(() => { half = element.scrollWidth / 2; });
-    resize.observe(element);
+    // Largeur connue tardivement (images, polices, page restaurée par Safari) : on remet la carte Motion au centre tant que personne n'a touché
+    const resize = new ResizeObserver(() => { half = element.scrollWidth / 2; centerHeroes(); });
     const duration = 45;
     const wrap = (value: number) => half > 0 ? ((value % half) + half) % half : value;
     let x = scroller.scrollLeft, applied = x, speed = 0, last = performance.now(), frame = 0, idleUntil = performance.now() + 2500;
-    let tween: { from: number; to: number; start: number } | null = null, touched = false, touching = false;
+    let tween: { from: number; to: number; start: number } | null = null, touched = false, touching = false, lastScroll = 0;
     // Position de départ : la carte Motion design au centre de l'écran (Produit physique à sa gauche sur la landing)
     const centerHeroes = () => {
       const hero = element.querySelector<HTMLElement>(".hero-capabilities-kind-motion");
@@ -141,6 +141,7 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
       scroller.scrollLeft = x; applied = x;
     };
     centerHeroes();
+    resize.observe(element);
     // Apparition : les cartes montent en fondu, du centre vers les bords (celles hors écran sont déjà en place)
     const middle = scroller.getBoundingClientRect().left + scroller.clientWidth / 2;
     element.querySelectorAll("li").forEach((slot) => {
@@ -150,8 +151,10 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
     });
     scroller.dataset.enter = "ready";
     document.fonts?.ready.then(centerHeroes);
-    // Recale d'une demi-largeur aux bords pour la boucle infinie (jamais pendant que le doigt est posé)
+    // Recale d'une demi-largeur aux bords pour la boucle infinie. Jamais pendant le geste ni pendant l'inertie :
+    // sur mobile, changer scrollLeft en plein élan fait repartir le navigateur de l'ancienne position (retour au début).
     const recenter = () => {
+      if (half <= 0) half = element.scrollWidth / 2;
       if (touching || half <= 0 || (x < half && x >= 4)) return;
       x = x < 4 ? x + half : x - half;
       scroller.scrollLeft = x; applied = x;
@@ -159,9 +162,8 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
     // Défilement à la main (swipe, trackpad) : le navigateur garde la main, on suit sa position et on attend la fin de l'inertie
     const onScroll = () => {
       if (Math.abs(scroller.scrollLeft - applied) <= 2) return;
-      tween = null; speed = 0; touched = true; idleUntil = performance.now() + 1500;
+      tween = null; speed = 0; touched = true; lastScroll = performance.now(); idleUntil = lastScroll + 1500;
       x = scroller.scrollLeft; applied = x;
-      recenter();
     };
     const onTouchStart = () => { touching = true; touched = true; tween = null; speed = 0; };
     const onTouchEnd = () => { touching = false; idleUntil = performance.now() + 1500; };
@@ -175,9 +177,9 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       if (touching || (!tween && now < idleUntil && touched)) {
-        // Le doigt (ou l'inertie) pilote : on n'écrit rien, on se contente de suivre
+        // Le doigt (ou l'inertie) pilote : on n'écrit rien, on se contente de suivre. Recalage seulement une fois le défilement arrêté.
         x = scroller.scrollLeft; applied = x; speed = 0;
-        if (!touching) recenter();
+        if (!touching && now - lastScroll > 250) recenter();
       } else if (tween) {
         const t = Math.min(1, (now - tween.start) / 650);
         x = tween.from + (tween.to - tween.from) * (1 - Math.pow(1 - t, 4));
@@ -221,6 +223,8 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
   const formats = (creation ? [byKind("motion"), product, byKind("post"), byKind("stores"), { kind: "decor" as const, title: fr ? "Décors" : "Scenes", description: fr ? "Ta vidéo dans un vrai décor, prête à partager." : "Your video in a real setting, ready to share.", tilt: [8, -18, 3] as [number, number, number] }, byKind("demo")] : homeFormats).filter((format) => isFormatEnabled(format.kind));
   const destination = (kind: Format) => `/create?kind=${kind === "stores" ? "store" : kind === "demo" ? "recording" : kind}`;
   return <div className={`relative mx-auto mt-12 w-full max-w-none pb-6 sm:mt-16${compact ? " hero-capabilities-compact" : ""}`}>
+    <span className="hero-capabilities-fade hero-capabilities-fadeLeft" aria-hidden="true" />
+    <span className="hero-capabilities-fade hero-capabilities-fadeRight" aria-hidden="true" />
     <button type="button" className="hero-capabilities-nav hero-capabilities-navPrev" onClick={() => go.current(-1)} aria-label={fr ? "Formats précédents" : "Previous formats"} aria-controls="hero-formats"><ChevronLeft size={20} /></button>
     <button type="button" className="hero-capabilities-nav hero-capabilities-navNext" onClick={() => go.current(1)} aria-label={fr ? "Formats suivants" : "Next formats"} aria-controls="hero-formats"><ChevronRight size={20} /></button>
     <div ref={viewport} id="hero-formats" className="hero-capabilities-viewport" onPointerEnter={(event) => { if (event.pointerType === "mouse") setHovered(true); }} onPointerLeave={() => setHovered(false)} onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>

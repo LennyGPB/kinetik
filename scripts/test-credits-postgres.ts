@@ -48,12 +48,8 @@ async function main() {
     const pack = (userId: string, amount: number, reference = "purchase") => ledger.grantCredits(userId, { amount, type: "PURCHASE", source: "PACK", reference, description: "Test purchase" });
     const sub = (userId: string, amount: number) => ledger.grantCredits(userId, { amount, type: "SUBSCRIPTION", source: "SUBSCRIPTION", reference: "invoice", expiresAt: end, description: "Test subscription" });
 
-    await run("signup bonus and free offer agree", async (id) => {
-      const { SIGNUP_BONUS_CREDITS } = await import("../config/credits");
-      const { getPlan } = await import("../config/pricing");
-      assert.equal(SIGNUP_BONUS_CREDITS, getPlan("FREE").credits);
-      await ledger.grantCredits(id, { amount: SIGNUP_BONUS_CREDITS, type: "SIGNUP_BONUS", source: "PACK", description: "Test signup" });
-      assert.equal((await ledger.getCreditBalance(id)).total, 30);
+    await run("new account starts with no credits", async (id) => {
+      assert.equal((await ledger.getCreditBalance(id)).total, 0);
     });
     await run("purchase replay and concurrent delivery credit once", async (id) => {
       await Promise.all(Array.from({ length: 5 }, () => pack(id, 100)));

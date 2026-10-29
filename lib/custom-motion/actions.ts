@@ -10,20 +10,12 @@ import { totalDuration } from "@/lib/projects/scenes";
 import type { ActionResult } from "@/lib/projects/types";
 import { LIMITS, limitKey } from "@/lib/security/limits";
 import { isOwnUpload } from "@/lib/storage";
-import type { CustomDemo, CustomRuntime } from "./contract";
 import { communityGraph } from "./graph";
 import { getPublishedCommunity, listCommunityTemplates, type CommunityTemplate } from "./queries";
 
 /** Vidéos publiées pour l'onglet « Créations » (galerie de l'app et landing, donc publique : seules les vidéos publiées sortent). */
 export async function listCommunity(): Promise<CommunityTemplate[]> {
   return listCommunityTemplates();
-}
-
-/** Code et contenu par défaut d'une vidéo publiée, pour la lire dans la galerie et sur la landing (chargés à la demande, publics). */
-export async function getCommunityPreview(motionId: string): Promise<{ runtime: CustomRuntime; demo: CustomDemo; name: string } | null> {
-  if (typeof motionId !== "string" || !/^[a-z0-9]{8,40}$/.test(motionId)) return null;
-  const motion = await getPublishedCommunity(motionId);
-  return motion ? { runtime: motion.runtime, demo: motion.demo, name: motion.name } : null;
 }
 
 /**

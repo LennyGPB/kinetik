@@ -15,6 +15,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
+import "./nav-featured.css";
 
 function useIsActive() {
   const pathname = usePathname();
@@ -34,7 +35,8 @@ export function AppShell({
 
   const NAV = [
   { href: "/dashboard", label: t.app.nav.dashboard, icon: LayoutGrid },
-  { href: "/templates", label: t.app.nav.templates, icon: LayoutTemplate },
+  // Mis en avant (teinte violette + tag « New ») même quand on n'est pas sur la page
+  { href: "/templates", label: t.app.nav.templates, icon: LayoutTemplate, featured: true },
   { href: "/brand-kit", label: t.app.nav.brandKit, icon: Palette },
   { href: "/credits", label: t.app.nav.credits, icon: Coins },
   { href: "/settings", label: t.app.nav.settings, icon: Settings },
@@ -61,7 +63,7 @@ export function AppShell({
 
         <nav aria-label={t.a11y.appNav} className="mt-6">
           <ul className="flex flex-col gap-0.5">
-            {NAV.map(({ href, label, icon: Icon }) => {
+            {NAV.map(({ href, label, icon: Icon, featured }) => {
               const active = isActive(href);
               return (
                 <li key={href}>
@@ -70,7 +72,8 @@ export function AppShell({
                     aria-current={active ? "page" : undefined}
                     className={cn(
                       "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                      active ? "text-fg" : "text-muted hover:bg-surface hover:text-fg",
+                      featured && "nav-featured",
+                      active || featured ? "text-fg" : "text-muted hover:bg-surface hover:text-fg",
                     )}
                   >
                     {active && (
@@ -80,8 +83,13 @@ export function AppShell({
                         transition={{ type: "spring", stiffness: 500, damping: 38 }}
                       />
                     )}
-                    <Icon className={cn("relative size-[18px]", active && "text-accent-text")} />
+                    <Icon className={cn("relative size-[18px]", (active || featured) && "text-accent-text", featured && "nav-featured-icon")} />
                     <span className="relative">{label}</span>
+                    {featured && (
+                      <span className="nav-featured-tag relative ml-auto rounded-full px-1.5 py-px text-[10px] font-semibold tracking-wide text-white uppercase">
+                        New
+                      </span>
+                    )}
                   </Link>
                 </li>
               );
@@ -127,7 +135,7 @@ export function AppShell({
                 </li>
               );
             }
-            const { href, label, icon: Icon } = item;
+            const { href, label, icon: Icon, featured } = item;
             const active = isActive(href);
             return (
               <li key={href ?? i}>
@@ -144,7 +152,8 @@ export function AppShell({
                         transition={{ type: "spring", stiffness: 500, damping: 38 }}
                       />
                     )}
-                    <Icon className={cn("relative size-5", active && "text-accent-text")} />
+                    <Icon className={cn("relative size-5", (active || featured) && "text-accent-text")} />
+                    {featured && <span aria-hidden className="nav-featured-tag absolute top-0 right-2.5 size-2 rounded-full ring-2 ring-bg" />}
                   </span>
                   {label}
                 </Link>

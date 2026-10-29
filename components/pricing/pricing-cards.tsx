@@ -12,7 +12,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { useComingSoon, useToast } from "@/components/ui/toaster";
 import { Segmented } from "@/components/ui/segmented";
 import { CREDIT_COSTS } from "@/config/credits";
-import { CREDIT_PACKS, formatPrice, PLANS, type BillingInterval, type PlanId } from "@/config/pricing";
+import { CREDIT_PACKS, formatPrice, PAID_PLANS, type BillingInterval, type PlanId } from "@/config/pricing";
 import { format } from "@/lib/i18n";
 import { openBillingPortal, startCheckout, type CheckoutResult } from "@/lib/services/billing";
 import { useRouter } from "@/lib/i18n/navigation";
@@ -54,7 +54,6 @@ export function PlanCards({ mode = "marketing", currentPlan, currentInterval }: 
 
   const [billing, setBilling] = useState<"monthly" | "yearly">("yearly"); // annuel proposé par défaut
   const { checkout, portal, pending } = useCheckout();
-  const subscribed = Boolean(currentPlan && currentPlan !== "FREE");
 
   return (
     <div>
@@ -78,18 +77,15 @@ export function PlanCards({ mode = "marketing", currentPlan, currentInterval }: 
         />
       </div>
 
-      <RevealGroup className="mt-10 grid gap-4 lg:grid-cols-3" stagger={0.1}>
-        {PLANS.map((plan) => {
+      <RevealGroup className="mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-2" stagger={0.1}>
+        {PAID_PLANS.map((plan) => {
           const price = billing === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
           const interval: BillingInterval = billing === "monthly" ? "month" : "year";
           // Offre payante : « actuelle » seulement pour la même périodicité (sinon le bouton propose de basculer)
-          const isCurrent = currentPlan === plan.id && (plan.id === "FREE" || currentInterval === interval);
-          const b = t.app.credits.billing;
-          const cta = plan.id === "FREE" && subscribed ? b.backToFree
-            : isCurrent ? (plan.id === "FREE" ? t.app.credits.currentPlan : b.manage)
-            : format(p.choose, { plan: plan.name });
-          const busyKey = plan.id === "FREE" ? "portal:cancel" : isCurrent ? "portal:manage" : `${plan.id}:${billing}`;
-          const onSelect = () => plan.id === "FREE" ? portal("cancel") : isCurrent ? portal("manage") : checkout({ kind: "plan", planId: plan.id, billing });
+          const isCurrent = currentPlan === plan.id && currentInterval === interval;
+          const cta = isCurrent ? t.app.credits.billing.manage : format(p.choose, { plan: plan.name });
+          const busyKey = isCurrent ? "portal:manage" : `${plan.id}:${billing}`;
+          const onSelect = () => isCurrent ? portal("manage") : checkout({ kind: "plan", planId: plan.id, billing });
           const hl = plan.highlighted;
           return (
             <RevealItem
@@ -127,11 +123,11 @@ export function PlanCards({ mode = "marketing", currentPlan, currentInterval }: 
                     {formatPrice(price, t.locale)}
                   </motion.span>
                 </AnimatePresence>
-                {price > 0 && <span className={cn("text-sm", hl ? "text-white/75" : "text-muted")}>{p.perMonth}</span>}
+                <span className={cn("text-sm", hl ? "text-white/75" : "text-muted")}>{p.perMonth}</span>
               </div>
               <p className={cn("mt-2 inline-flex items-center gap-1.5 text-sm font-medium", hl ? "text-white" : "text-accent-text")}>
                 <Coins className="size-4" />
-                {format(plan.id === "FREE" ? p.startingCredits : p.creditsPerMonth, { count: plan.credits })}
+                {format(p.creditsPerMonth, { count: plan.credits })}
               </p>
               <ul className={cn("mt-6 flex flex-1 flex-col gap-3 border-t pt-6", hl ? "border-white/20" : "border-line")}>
                 {p.planFeatures[plan.id].map((feature) => (
@@ -143,17 +139,16 @@ export function PlanCards({ mode = "marketing", currentPlan, currentInterval }: 
               </ul>
               {mode === "marketing" ? (
                 <Link
-                  href={`/register?plan=${plan.id.toLowerCase()}`}
+                  href="/register?redirectTo=/credits"
                   className={buttonVariants({ variant: hl ? "secondary" : "outline", size: "lg", className: cn("mt-8 w-full", hl && HIGHLIGHT_CTA) })}
                 >
-                  {plan.id === "FREE" ? t.common.startFree : cta}
+                  {cta}
                 </Link>
               ) : (
                 <Button
                   variant={hl ? "secondary" : "outline"}
                   size="lg"
                   className={cn("mt-8 w-full", hl && HIGHLIGHT_CTA)}
-                  disabled={plan.id === "FREE" && !subscribed}
                   loading={pending === busyKey}
                   onClick={onSelect}
                 >
@@ -228,7 +223,7 @@ export function FeaturedPacks({ mode = "app" }: { mode?: Mode }) {
                 </span>
               </p>
               {mode === "marketing" ? (
-                <Link href="/register" className={buttonVariants({ variant: buy, className: cn("w-full", recommended && HIGHLIGHT_CTA) })}>
+                <Link href="/register?redirectTo=/credits" className={buttonVariants({ variant: buy, className: cn("w-full", recommended && HIGHLIGHT_CTA) })}>
                   {p.buy}
                 </Link>
               ) : (
@@ -282,7 +277,7 @@ export function PackCards({ mode = "marketing", layout = "grid", reveal = false 
             </span>
           )}
           {mode === "marketing" ? (
-            <Link href="/register" className={buttonVariants({ variant: "soft", size: "sm", className: cn(stacked && "sm:mt-4 sm:w-full") })}>
+            <Link href="/register?redirectTo=/credits" className={buttonVariants({ variant: "soft", size: "sm", className: cn(stacked && "sm:mt-4 sm:w-full") })}>
               {p.buy}
             </Link>
           ) : (

@@ -2,7 +2,6 @@
  * Données de démo : `npm run db:seed`
  * Compte : demo@kinetik.app / kinetik-demo
  */
-import { SIGNUP_BONUS_CREDITS } from "../config/credits";
 import { hashPassword } from "../lib/auth/password";
 import { db } from "../lib/db";
 import { generateVideo, welcomeMessage } from "../lib/services/ai-mock";
@@ -18,7 +17,6 @@ async function main() {
 
   await db.creditTransaction.createMany({
     data: [
-      { userId: user.id, amount: SIGNUP_BONUS_CREDITS, type: "SIGNUP_BONUS", source: "PACK", description: "Bonus d'inscription" },
       { userId: user.id, amount: 300, type: "PURCHASE", source: "PACK", description: "Pack 300 crédits", reference: "demo-purchase" },
     ],
   });

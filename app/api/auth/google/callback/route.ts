@@ -1,13 +1,11 @@
 import { timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { after, NextResponse } from "next/server";
-import { SIGNUP_BONUS_CREDITS } from "@/config/credits";
 import { siteConfig } from "@/config/site";
-import { safeRedirect } from "@/lib/auth/constants";
+import { DEFAULT_REDIRECT, safeRedirect } from "@/lib/auth/constants";
 import { OAUTH_COOKIE, exchangeGoogleCode } from "@/lib/auth/google";
 import { createSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { getDictionary } from "@/lib/i18n";
 import { limitKey } from "@/lib/security/limits";
 import { checkEmailDomain } from "@/lib/security/signup-guard";
 import { notifySignup } from "@/lib/services/telegram";
@@ -44,6 +42,7 @@ export async function GET(request: Request) {
     const profile = await exchangeGoogleCode(code, pending.verifier);
     const linked = await db.account.findUnique({ where: { provider_providerAccountId: { provider: "google", providerAccountId: profile.sub } }, select: { userId: true } });
     let userId = linked?.userId;
+    let created = false;
 
     if (!userId) {
       if (!profile.emailVerified) return fail("oauth-unverified");
@@ -67,17 +66,19 @@ export async function GET(request: Request) {
           data: {
             name: profile.name, email: profile.email, emailVerified: new Date(), image: profile.picture,
             accounts: { create: { provider: "google", providerAccountId: profile.sub } },
-            creditTransactions: { create: { amount: SIGNUP_BONUS_CREDITS, type: "SIGNUP_BONUS", source: "PACK", description: getDictionary(locale).app.credits.types.SIGNUP_BONUS } },
           },
           select: { id: true },
         });
         userId = user.id;
+        created = true;
         after(() => notifySignup({ name: profile.name, email: profile.email, method: "google", locale }));
       }
     }
 
     await createSession(userId);
-    return NextResponse.redirect(`${siteConfig.url}/${locale}${safeRedirect(pending.redirectTo)}`);
+    // Aucun crédit offert : un nouveau compte passe par la page Crédits, sauf destination précise.
+    const target = safeRedirect(pending.redirectTo);
+    return NextResponse.redirect(`${siteConfig.url}/${locale}${created && target === DEFAULT_REDIRECT ? "/credits" : target}`);
   } catch (error) {
     console.error("[auth.google]", error);
     return fail("oauth");

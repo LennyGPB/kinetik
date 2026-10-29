@@ -84,7 +84,6 @@ export const fr = {
   common: {
     login: "Connexion",
     getStarted: "Commencer",
-    startFree: "Commencer gratuitement",
     logout: "Se déconnecter",
     credits: "crédits",
     credit: "crédit",
@@ -318,9 +317,9 @@ export const fr = {
       ],
       subtitle:
         "Motion design, produits en 3D, logos animés, posts et visuels stores. Choisis un style, Kinetik fait le reste.",
-      promptCta: "Commencer gratuitement",
+      promptCta: "Créer ma vidéo",
       secondaryCta: "Voir les templates",
-      trust: "30 crédits offerts · Sans carte bancaire",
+      trust: "Sans engagement · Résiliable à tout moment",
       previewLabel: "Aperçu généré par Kinetik",
       /** Formats du mockup qui alterne à droite du hero. */
       formats: { desktop: "Ordinateur", phone: "Mobile", square: "Carré" },
@@ -427,7 +426,6 @@ export const fr = {
       yearlySave: "-20 %",
       perMonth: "/mois",
       creditsPerMonth: "{count} crédits / mois",
-      startingCredits: "{count} crédits offerts",
       popular: "Le plus choisi",
       choose: "Choisir {plan}",
       packsTitle: "Packs de crédits",
@@ -439,7 +437,6 @@ export const fr = {
       costsTitle: "Combien ça coûte ?",
       provisional: "Prix provisoires, susceptibles d'évoluer.",
       planFeatures: {
-        FREE: ["Toutes les fonctionnalités", "Export 720p", "Filigrane Kinetik"],
         STARTER: ["Accès complet à l'éditeur", "Export 720p sans filigrane", "Brand kit illimité", "Bibliothèque musicale complète"],
         PRO: ["Accès complet à l'éditeur", "Export 1080p sans filigrane", "Rendu prioritaire", "Accès anticipé aux nouveaux styles"],
       },
@@ -452,7 +449,7 @@ export const fr = {
     },
     finalCta: {
       title: "Ta prochaine vidéo de lancement est à 2 minutes.",
-      subtitle: "30 crédits offerts à l'inscription. Aucune carte bancaire requise.",
+      subtitle: "Choisis un abonnement ou un pack de crédits, et lance ta première vidéo.",
       cta: "Créer ma première vidéo",
     },
     footer: {
@@ -477,7 +474,7 @@ export const fr = {
     loginTitle: "Bon retour",
     loginSubtitle: "Connecte-toi pour retrouver tes vidéos.",
     registerTitle: "Crée ton compte",
-    registerSubtitle: "30 crédits offerts pour ta première vidéo.",
+    registerSubtitle: "Choisis ensuite un abonnement ou un pack de crédits.",
     name: "Nom",
     namePlaceholder: "Léa Martin",
     email: "Email",
@@ -543,6 +540,7 @@ export const fr = {
     videosLeftOne: "≈ 1 vidéo à générer",
     notEnoughForVideo: "Pas assez pour une nouvelle vidéo",
     plan: "Plan {plan}",
+    noPlan: "Sans abonnement",
 
     dashboard: {
       greeting: "Salut {name}",
@@ -949,7 +947,7 @@ export const fr = {
         sd: "720p",
         hd: "1080p",
         hdLocked: "Plan Pro",
-        watermark: "Plan Free : un filigrane Kinetik sera ajouté.",
+        watermark: "Sans abonnement : un filigrane Kinetik sera ajouté.",
         cost: "Coût de l'export",
         reexport: "Ré-export −50 %",
         start: "Lancer le rendu",
@@ -1106,7 +1104,6 @@ export const fr = {
       rechargeText: "Paiement unique, sans abonnement. Les crédits de packs n'expirent jamais.",
       billing: {
         manage: "Gérer mon abonnement",
-        backToFree: "Revenir au gratuit",
         renewsOn: "Renouvellement le {date}",
         cancelsOn: "Se termine le {date}, sans renouvellement",
         pastDue: "Le dernier paiement a échoué : mets à jour ta carte pour garder ton offre.",

@@ -65,7 +65,7 @@ async function CreditsContent() {
       <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-line bg-bg-subtle p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <p className="text-sm text-muted">
-            {c.balance} · {format(t.app.plan, { plan: plan.name })}
+            {c.balance} · {plan.id === "FREE" ? t.app.noPlan : format(t.app.plan, { plan: plan.name })}
           </p>
           <p className="mt-1 flex items-baseline gap-2">
             <span className="text-4xl font-semibold tracking-tight tabular-nums">{formatNumber(balance.total, t.locale)}</span>
