@@ -8,7 +8,7 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { ArrowUpRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
 import { TemplateHoverPreview } from "@/components/media/template-hover-preview";
 import { PostPreview } from "@/components/posts/post-preview";
@@ -25,7 +25,9 @@ import { storeCopy } from "@/lib/store/copy";
 
 import { cn } from "@/lib/utils";
 import { isFeatureEnabled } from "@/config/features";
-import { CommunityGallery, communityIntro } from "@/components/templates/community-gallery";
+import { CommunityGallery, CommunityLandingCard, communityIntro } from "@/components/templates/community-gallery";
+import { listCommunity } from "@/lib/custom-motion/actions";
+import type { CommunityTemplate } from "@/lib/custom-motion/queries";
 import { Section, SectionHeading } from "./section-heading";
 
 type Kind = "community" | "all" | "motion" | "logo" | "post" | "store";
@@ -33,7 +35,9 @@ type Filter = StyleCategory | "all";
 type Item =
   | { kind: "motion" | "logo"; id: string; style: VideoStyle }
   | { kind: "post"; id: string; template: (typeof POST_TEMPLATES)[number] }
-  | { kind: "store"; id: string; template: (typeof STORE_TEMPLATES)[number] };
+  | { kind: "store"; id: string; template: (typeof STORE_TEMPLATES)[number] }
+  /** Emplacement d'une vidéo Créations (chargée depuis la base), repérée par son nom normalisé */
+  | { kind: "community"; id: string };
 
 const PREVIEW_COUNT = 6;
 /** Round-robin over groups: a stable, varied order that is identical on the server and the client. */
@@ -55,11 +59,14 @@ const ITEMS: Record<Exclude<Kind, "all" | "community">, Item[]> = {
 const INTERLEAVED_ITEMS = [...FEATURED_ITEMS, ...interleave([OTHER_MOTION_ITEMS, ITEMS.logo, ITEMS.post, ITEMS.store])];
 const DEFAULT_REPLACEMENTS: Record<string, string> = {
   veil: "stage",
-  "product-runway-3d": "product-sylve-3d",
   "logo-aperture": "interlock",
 };
+/** Vidéo Créations mise en avant dans « Tous », à la place d'un template produit 3D. */
+const COMMUNITY_SLOT: Item = { kind: "community", id: "socialproof" };
+const COMMUNITY_SLOT_REPLACES = "product-runway-3d";
+const normalizeName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
 const DEFAULT_ITEMS = INTERLEAVED_ITEMS.slice(0, PREVIEW_COUNT).map((item) =>
-  INTERLEAVED_ITEMS.find((candidate) => candidate.id === DEFAULT_REPLACEMENTS[item.id]) ?? item,
+  item.id === COMMUNITY_SLOT_REPLACES ? COMMUNITY_SLOT : INTERLEAVED_ITEMS.find((candidate) => candidate.id === DEFAULT_REPLACEMENTS[item.id]) ?? item,
 );
 const ALL_ITEMS = [...DEFAULT_ITEMS, ...INTERLEAVED_ITEMS.filter((item) => !DEFAULT_ITEMS.includes(item))];
 
@@ -67,7 +74,13 @@ export function StyleGallery() {
   const t = useDictionary();
   const { locale } = t;
 
-  const [kind, setKind] = useState<Kind>(isFeatureEnabled("community") ? "community" : "all");
+  const [kind, setKind] = useState<Kind>("all");
+  // undefined : chargement ; null : vidéo absente (l'emplacement reprend alors le template produit 3D)
+  const [featured, setFeatured] = useState<CommunityTemplate | null | undefined>(isFeatureEnabled("community") ? undefined : null);
+  useEffect(() => {
+    if (!isFeatureEnabled("community")) return;
+    listCommunity().then((list) => setFeatured(list.find((item) => normalizeName(item.name) === COMMUNITY_SLOT.id) ?? null)).catch(() => setFeatured(null));
+  }, []);
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -91,7 +104,7 @@ export function StyleGallery() {
         subtitle={t.landing.gallery.subtitle}
       />
 
-      <FilterRow label={postCopy(locale).newContent} layoutId="gallery-kind" className="mt-10" value={kind} options={((isFeatureEnabled("community") ? ["community", "all", "motion", "logo", "post", "store"] : ["all", "motion", "logo", "post", "store"]) as Kind[]).map((value) => ({ value, label: kindLabels[value] }))} onChange={(value) => { setKind(value); setFilter("all"); reset(); }} />
+      <FilterRow label={postCopy(locale).newContent} layoutId="gallery-kind" className="mt-10" value={kind} options={((isFeatureEnabled("community") ? ["all", "community", "motion", "logo", "post", "store"] : ["all", "motion", "logo", "post", "store"]) as Kind[]).map((value) => ({ value, label: kindLabels[value] }))} onChange={(value) => { setKind(value); setFilter("all"); reset(); }} />
       <AnimatePresence initial={false}>
         {kind === "motion" && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }} className="overflow-hidden">
@@ -128,7 +141,13 @@ export function StyleGallery() {
               }}
               className="mb-3 break-inside-avoid sm:mb-4"
             >
-              <GalleryCard item={item} playing={playingId === item.id} onPlay={setPlayingId} badge={item.kind === "motion" ? t.styleCategories[item.style.category] : kindLabels[item.kind]} />
+              {item.kind === "community" ? (
+                featured ? <CommunityLandingCard item={featured} shape={featured.formats.includes("PORTRAIT") ? "PORTRAIT" : featured.formats[0]} href={`/register?redirectTo=${encodeURIComponent("/templates?tab=community")}`} />
+                : featured === undefined ? <div className="aspect-[2/3] animate-pulse rounded-2xl bg-surface-2 sm:rounded-3xl" />
+                : <FallbackCard playing={playingId} onPlay={setPlayingId} />
+              ) : (
+                <GalleryCard item={item} playing={playingId === item.id} onPlay={setPlayingId} badge={item.kind === "motion" ? t.styleCategories[item.style.category] : kindLabels[item.kind]} />
+              )}
             </motion.div>
           ))}
         </motion.div>
@@ -186,8 +205,16 @@ function FilterRow<T extends string>({ label, layoutId, value, options, onChange
   );
 }
 
+/** Template produit 3D montré si la vidéo Créations mise en avant est introuvable. */
+function FallbackCard({ playing, onPlay }: { playing: string | null; onPlay: (id: string | null) => void }) {
+  const t = useDictionary();
+  const item = INTERLEAVED_ITEMS.find((candidate) => candidate.id === "product-sylve-3d");
+  if (!item || item.kind !== "motion") return null;
+  return <GalleryCard item={item} playing={playing === item.id} onPlay={onPlay} badge={t.styleCategories[item.style.category]} />;
+}
+
 /** One gallery tile; every kind leads to sign-up, then straight to its own creation form. */
-function GalleryCard({ item, playing, onPlay, badge }: { item: Item; playing: boolean; onPlay: (id: string | null) => void; badge: string }) {
+function GalleryCard({ item, playing, onPlay, badge }: { item: Exclude<Item, { kind: "community" }>; playing: boolean; onPlay: (id: string | null) => void; badge: string }) {
   const t = useDictionary();
   const { locale } = t;
   const post = useMemo(() => item.kind === "post" ? demoPost(item.id, locale) : null, [item.kind, item.id, locale]);

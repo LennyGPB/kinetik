@@ -98,59 +98,18 @@ export function CommunityGallery({ signUpHref, showIntro = true }: { signUpHref?
   if (!items) return <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="aspect-[2/3] animate-pulse rounded-2xl bg-surface-2" />)}</div>;
   if (!items.length) return <p className="mt-10 text-center text-sm text-muted">{fr ? "Aucune vidéo Créations pour l’instant. Reviens bientôt !" : "No community videos yet. Check back soon!"}</p>;
 
-  const gradient = (item: CommunityTemplate) => `linear-gradient(150deg, ${item.palette[0]}, ${item.palette[1] ?? item.palette[0]} 60%, ${item.palette[2] ?? item.palette[1] ?? item.palette[0]})`;
-  const visual = (item: CommunityTemplate, shape?: VideoFormatId) => (
-    hovered?.id === item.id ? (
-      <div className="pointer-events-none absolute inset-0 grid place-items-center overflow-hidden bg-black">
-        <HoverPlayer props={customPreviewProps(hovered.preview.runtime, hovered.preview.demo, shape ?? (item.formats.includes("PORTRAIT") ? "PORTRAIT" : item.formats[0]), locale)} />
-      </div>
-    ) : item.thumbnail && (!shape || shape === "PORTRAIT") ? (
-      // eslint-disable-next-line @next/next/no-img-element -- image publique servie par /api/uploads
-      <img src={item.thumbnail} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
-    ) : (
-      <LiveThumbnail item={item} locale={locale} format={shape} />
-    )
-  );
+  const visual = (item: CommunityTemplate) => <CardVisual item={item} hovered={hovered?.id === item.id ? hovered.preview : null} locale={locale} />;
 
   // Landing : mêmes cartes que les autres templates (colonnes, nom et infos sur l'image, badge), clic → inscription
   if (signUpHref) {
     return (
       <div>
       <div id="community-gallery-grid" className="mx-auto mt-8 w-full max-w-5xl columns-2 gap-3 sm:gap-4 md:columns-3">
-        {(expanded ? items : items.slice(0, LANDING_COUNT)).map((item, index) => {
-          const shape = landingShape(item, index);
-          return (
+        {(expanded ? items : items.slice(0, LANDING_COUNT)).map((item, index) => (
           <div key={item.id} className="mb-3 break-inside-avoid sm:mb-4">
-            <Link
-              href={signUpHref}
-              onMouseEnter={() => hover(item)}
-              onMouseLeave={() => setHovered(null)}
-              onFocus={() => hover(item)}
-              onBlur={() => setHovered(null)}
-              className="group relative block overflow-hidden rounded-2xl border border-line bg-surface transition-[border-color,box-shadow] duration-300 hover:border-accent/40 hover:shadow-[0_20px_50px_-20px_var(--accent-glow)] sm:rounded-3xl"
-            >
-              <div className={cn("relative overflow-hidden", shape === "LANDSCAPE" ? "aspect-video" : shape === "SQUARE" ? "aspect-square" : "aspect-[2/3]")} style={{ background: gradient(item) }}>
-                <div className="absolute inset-0 transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.06]">{visual(item, shape)}</div>
-              </div>
-              <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 pt-12 sm:p-4 sm:pt-16">
-                <div className="flex items-end justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-display text-base font-semibold text-white sm:text-lg">{item.name}</p>
-                    <p className="mt-0.5 line-clamp-2 text-xs text-white/70 max-sm:hidden">{fr ? `${item.scenes} scènes · ${item.seconds} s · modifiable en 1 clic` : `${item.scenes} scenes · ${item.seconds}s · edit in one click`}</p>
-                  </div>
-                  <span className="grid size-8 shrink-0 translate-y-2 place-items-center rounded-full bg-white text-black opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
-                    <ArrowUpRight className="size-4" />
-                    <span className="sr-only">{t.landing.gallery.use}</span>
-                  </span>
-                </div>
-              </div>
-              {item.popular
-                ? <PopularBadge className="absolute top-2.5 left-2.5 z-20 sm:top-3 sm:left-3" />
-                : <Badge tone="glass" className="absolute top-2.5 left-2.5 z-20 sm:top-3 sm:left-3">{fr ? "Créations" : "Creations"}</Badge>}
-            </Link>
+            <CommunityLandingCard item={item} shape={landingShape(item, index)} href={signUpHref} />
           </div>
-          );
-        })}
+        ))}
       </div>
       {items.length > LANDING_COUNT && (
         <div className="mt-6 flex justify-center">
@@ -158,7 +117,7 @@ export function CommunityGallery({ signUpHref, showIntro = true }: { signUpHref?
             type="button"
             aria-expanded={expanded}
             aria-controls="community-gallery-grid"
-            onClick={() => { setHovered(null); setExpanded((value) => !value); }}
+            onClick={() => setExpanded((value) => !value)}
             className="px-3 py-2 text-sm text-muted underline-offset-4 transition-colors hover:text-fg hover:underline"
           >
             {expanded ? t.copy["e7bd64d3ec4d"] : t.copy["be55c61d5ebf"]}
@@ -221,6 +180,65 @@ export function CommunityGallery({ signUpHref, showIntro = true }: { signUpHref?
         )}
       </Dialog>
     </div>
+  );
+}
+
+const gradient = (item: CommunityTemplate) => `linear-gradient(150deg, ${item.palette[0]}, ${item.palette[1] ?? item.palette[0]} 60%, ${item.palette[2] ?? item.palette[1] ?? item.palette[0]})`;
+
+function CardVisual({ item, hovered, locale, shape }: { item: CommunityTemplate; hovered: Preview | null; locale: "fr" | "en"; shape?: VideoFormatId }) {
+  if (hovered) return (
+    <div className="pointer-events-none absolute inset-0 grid place-items-center overflow-hidden bg-black">
+      <HoverPlayer props={customPreviewProps(hovered.runtime, hovered.demo, shape ?? (item.formats.includes("PORTRAIT") ? "PORTRAIT" : item.formats[0]), locale)} />
+    </div>
+  );
+  if (item.thumbnail && (!shape || shape === "PORTRAIT")) {
+    // eslint-disable-next-line @next/next/no-img-element -- image publique servie par /api/uploads
+    return <img src={item.thumbnail} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />;
+  }
+  return <LiveThumbnail item={item} locale={locale} format={shape} />;
+}
+
+/** Carte landing d'une vidéo Créations : même rendu que les autres templates de la galerie, clic → href (inscription). */
+export function CommunityLandingCard({ item, shape, href }: { item: CommunityTemplate; shape: VideoFormatId; href: string }) {
+  const t = useDictionary();
+  const fr = t.locale === "fr";
+  const locale = fr ? "fr" : "en";
+  const [hovered, setHovered] = useState<Preview | null>(null);
+  const pointer = useRef(false);
+  const hover = () => {
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    pointer.current = true;
+    loadPreview(item).then((preview) => { if (pointer.current && preview) setHovered(preview); });
+  };
+  const leave = () => { pointer.current = false; setHovered(null); };
+  return (
+    <Link
+      href={href}
+      onMouseEnter={hover}
+      onMouseLeave={leave}
+      onFocus={hover}
+      onBlur={leave}
+      className="group relative block overflow-hidden rounded-2xl border border-line bg-surface transition-[border-color,box-shadow] duration-300 hover:border-accent/40 hover:shadow-[0_20px_50px_-20px_var(--accent-glow)] sm:rounded-3xl"
+    >
+      <div className={cn("relative overflow-hidden", shape === "LANDSCAPE" ? "aspect-video" : shape === "SQUARE" ? "aspect-square" : "aspect-[2/3]")} style={{ background: gradient(item) }}>
+        <div className="absolute inset-0 transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.06]"><CardVisual item={item} hovered={hovered} locale={locale} shape={shape} /></div>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 pt-12 sm:p-4 sm:pt-16">
+        <div className="flex items-end justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate font-display text-base font-semibold text-white sm:text-lg">{item.name}</p>
+            <p className="mt-0.5 line-clamp-2 text-xs text-white/70 max-sm:hidden">{fr ? `${item.scenes} scènes · ${item.seconds} s · modifiable en 1 clic` : `${item.scenes} scenes · ${item.seconds}s · edit in one click`}</p>
+          </div>
+          <span className="grid size-8 shrink-0 translate-y-2 place-items-center rounded-full bg-white text-black opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+            <ArrowUpRight className="size-4" />
+            <span className="sr-only">{t.landing.gallery.use}</span>
+          </span>
+        </div>
+      </div>
+      {item.popular
+        ? <PopularBadge className="absolute top-2.5 left-2.5 z-20 sm:top-3 sm:left-3" />
+        : <Badge tone="glass" className="absolute top-2.5 left-2.5 z-20 sm:top-3 sm:left-3">{fr ? "Créations" : "Creations"}</Badge>}
+    </Link>
   );
 }
 
