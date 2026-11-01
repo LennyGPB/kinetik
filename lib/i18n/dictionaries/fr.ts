@@ -1109,6 +1109,8 @@ export const fr = {
         pastDue: "Le dernier paiement a échoué : mets à jour ta carte pour garder ton offre.",
         success: "Paiement confirmé",
         successDesc: "Tes crédits arrivent dans quelques secondes.",
+        insufficient: "Crédits insuffisants",
+        insufficientDesc: "Choisis un abonnement ou un pack pour créer ton contenu.",
         error: "Le paiement n'a pas pu démarrer. Réessaie dans un instant.",
         rateLimited: "Trop de tentatives. Réessaie dans une minute.",
       },

@@ -34,6 +34,14 @@ export function BillingStatus({ status, periodEnd, cancelAtPeriodEnd, hasCustome
     return () => timers.forEach(clearTimeout);
   }, [success, toast, router, b.success, b.successDesc]);
 
+  // Arrivée depuis « Créer un contenu » avec 0 crédit
+  const insufficient = params.get("insufficient") === "1";
+  useEffect(() => {
+    if (!insufficient) return;
+    toast({ title: b.insufficient, description: b.insufficientDesc, tone: "error" });
+    router.replace("/credits", { scroll: false });
+  }, [insufficient, toast, router, b.insufficient, b.insufficientDesc]);
+
   const pastDue = status === "past_due" || status === "unpaid";
   const line = pastDue ? b.pastDue
     : periodEnd && ["active", "trialing"].includes(status ?? "")

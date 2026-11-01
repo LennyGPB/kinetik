@@ -5,7 +5,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageHeader, PageSkeleton } from "@/components/app/page-skeleton";
 import { BillingStatus } from "@/components/pricing/billing-status";
-import { CreditCosts } from "@/components/pricing/credit-costs";
 import { FeaturedPacks, PlanCards } from "@/components/pricing/pricing-cards";
 import { getPlan } from "@/config/pricing";
 import { requireUser } from "@/lib/auth/dal";
@@ -61,8 +60,14 @@ async function CreditsContent() {
 
   return (
     <>
+      {/* Abonnements en premier */}
+      <section className="mt-8">
+        <h2 className="mb-6 text-xl font-semibold">{c.upgrade}</h2>
+        <PlanCards mode="app" currentPlan={user.plan} currentInterval={billing.subscriptionInterval === "month" || billing.subscriptionInterval === "year" ? billing.subscriptionInterval : null} />
+      </section>
+
       {/* Solde : une seule carte compacte */}
-      <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-line bg-bg-subtle p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="mt-12 flex flex-col gap-4 rounded-2xl border border-line bg-bg-subtle p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <p className="text-sm text-muted">
             {c.balance} · {plan.id === "FREE" ? t.app.noPlan : format(t.app.plan, { plan: plan.name })}
@@ -107,7 +112,7 @@ async function CreditsContent() {
         </div>
       </section>
 
-      <section className="mt-12 grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <section className="mt-12">
         <div>
           <h2 className="text-xl font-semibold">{c.history}</h2>
           {transactions.length === 0 ? (
@@ -136,15 +141,6 @@ async function CreditsContent() {
             </div>
           )}
         </div>
-        <div>
-          <h2 className="text-xl font-semibold">{t.landing.pricing.costsTitle}</h2>
-          <CreditCosts className="mt-4" includePosts />
-        </div>
-      </section>
-
-      <section className="mt-14">
-        <h2 className="mb-6 text-xl font-semibold">{c.upgrade}</h2>
-        <PlanCards mode="app" currentPlan={user.plan} currentInterval={billing.subscriptionInterval === "month" || billing.subscriptionInterval === "year" ? billing.subscriptionInterval : null} />
       </section>
     </>
   );

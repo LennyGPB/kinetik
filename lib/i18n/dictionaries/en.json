@@ -1478,6 +1478,8 @@
         "pastDue": "Your last payment failed: update your card to keep your plan.",
         "success": "Payment confirmed",
         "successDesc": "Your credits will arrive in a few seconds.",
+        "insufficient": "Not enough credits",
+        "insufficientDesc": "Pick a plan or a pack to create your content.",
         "error": "We couldn't start the payment. Try again in a moment.",
         "rateLimited": "Too many attempts. Try again in a minute."
       },

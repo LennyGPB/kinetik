@@ -11,6 +11,7 @@ import { StoreForm } from "@/components/store/store-form";
 import { DecorGallery } from "@/components/decors/decor-gallery";
 import { requireUser } from "@/lib/auth/dal";
 import { getCreditBalance } from "@/lib/credits/ledger";
+import { localizedRedirect } from "@/lib/i18n/redirect";
 import { isFeatureEnabled } from "@/config/features";
 
 import { getDefaultBrandKit } from "@/lib/projects/queries";
@@ -32,6 +33,8 @@ async function CreateContent({ searchParams }: { searchParams: PageProps<"/[loca
   const bareMotion = first(params.kind) === "motion" && !first(params.style) && !first(params.flow) && !first(params.analysis);
   if (bareMotion || (!first(params.kind) && !first(params.style) && !first(params.flow) && !first(params.analysis))) return <CreatePicker initialGroup={bareMotion || first(params.pick) === "motion" ? "motion" : null} />;
   const [balance, brandKit] = await Promise.all([getCreditBalance(user.id), getDefaultBrandKit(user.id)]);
+  // Aucun crédit : rien n'est créable, on envoie vers la page Crédits (message affiché là-bas)
+  if (balance.total <= 0) await localizedRedirect("/credits?insufficient=1");
   if (first(params.kind) === "product") return <PhysicalProductCreate balance={balance.total} initialStyleId={first(params.style)} />;
   if (first(params.kind) === "decor") return <div className="mx-auto max-w-6xl"><DecorGallery /></div>;
 
