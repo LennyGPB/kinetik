@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Player as RemotionPlayer, Thumbnail } from "@remotion/player";
-import { Player } from "@/components/editor/player";
+import dynamic from "next/dynamic";
 import { DIMENSIONS, durationInFrames, FPS, type VideoProps } from "@/remotion/props";
-import { KinetikVideo } from "@/remotion/video/KinetikVideo";
 import { AnimatedApply } from "@/components/ui/animated-apply";
 import { Dialog } from "@/components/ui/dialog";
 import { Segmented } from "@/components/ui/segmented";
@@ -20,6 +18,11 @@ import Link from "@/lib/i18n/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+// Moteur vidéo chargé à la demande : la landing affiche cette galerie, il ne doit pas bloquer son premier chargement.
+const Player = dynamic(() => import("@/components/editor/player").then((m) => m.Player), { ssr: false });
+const CommunityFrame = dynamic(() => import("./community-players").then((m) => m.CommunityFrame), { ssr: false });
+const CommunityHoverPlayer = dynamic(() => import("./community-players").then((m) => m.CommunityHoverPlayer), { ssr: false });
 
 type Preview = { runtime: CustomRuntime; demo: CustomDemo; name: string };
 /** Code des vidéos déjà chargées (miniature, survol puis clic : un seul chargement) */
@@ -278,14 +281,12 @@ function LiveThumbnail({ item, locale, format: wanted }: { item: CommunityTempla
   const { width, height } = cardDimensions(format);
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden bg-black">
-      <Thumbnail component={KinetikVideo} inputProps={props} durationInFrames={total} frameToDisplay={Math.min(total - 1, frame)} compositionWidth={width} compositionHeight={height} fps={FPS}
-        style={width < height ? { width: "100%", height: "100%" } : { height: "100%", aspectRatio: `${width} / ${height}`, flexShrink: 0 }} />
+      <CommunityFrame props={props} frame={frame} width={width} height={height} />
     </div>
   );
 }
 
 /** Prévisu muette au survol d'une carte (vidéo seule, sans contrôles). */
 function HoverPlayer({ props }: { props: VideoProps }) {
-  const { width, height } = cardDimensions(props.format);
-  return <RemotionPlayer component={KinetikVideo} inputProps={props} durationInFrames={durationInFrames(props.graph)} compositionWidth={width} compositionHeight={height} fps={FPS} autoPlay loop initiallyMuted controls={false} style={width < height ? { width: "100%", height: "100%" } : { width: "100%", aspectRatio: `${width} / ${height}` }} />;
+  return <CommunityHoverPlayer props={props} {...cardDimensions(props.format)} />;
 }

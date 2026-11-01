@@ -75,7 +75,7 @@ export function Preview({ kind, fr }: { kind: Format; fr: boolean }) {
   if (kind === "product") return <div className="hero-capabilities-preview"><ProductThumbnail templateId="product-studio" /></div>;
   if (kind === "decor") return <div className="hero-capabilities-preview"><Image src="/decors/prepared/setup-thumb.webp" alt="" fill sizes="290px" className="object-cover" /></div>;
   if (kind === "motion") return <div className={`hero-capabilities-preview hero-capabilities-motionPreview`}>
-    <video src="/medias/stage-landscape-en.mp4" autoPlay loop muted playsInline preload="metadata" tabIndex={-1} />
+    <video src="/medias/stage-landscape-en-sm.mp4" autoPlay loop muted playsInline preload="metadata" tabIndex={-1} />
     <span className="hero-capabilities-play"><Play size={16} fill="currentColor" /></span>
   </div>;
   if (kind === "stores") return <StoreReel locale={fr ? "fr" : "en"} />;

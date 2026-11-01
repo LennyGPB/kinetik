@@ -10,7 +10,10 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { VideoPlaceholder } from "@/components/media/video-placeholder";
-import { TemplateHoverPreview } from "@/components/media/template-hover-preview";
+import dynamic from "next/dynamic";
+
+// Moteur vidéo chargé seulement quand un aperçu se lance, pas au premier chargement de la landing.
+const TemplateHoverPreview = dynamic(() => import("@/components/media/template-hover-preview").then((m) => m.TemplateHoverPreview), { ssr: false });
 import { PostPreview } from "@/components/posts/post-preview";
 import { StorePreview } from "@/components/store/store-preview";
 import { Badge } from "@/components/ui/badge";
