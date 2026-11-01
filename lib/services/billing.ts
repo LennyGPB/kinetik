@@ -109,6 +109,7 @@ export async function startCheckout(item: CheckoutItem): Promise<CheckoutResult>
 
     const session = await stripe().checkout.sessions.create({
       ...base, mode: "subscription", line_items: [{ price: price.id, quantity: 1 }],
+      allow_promotion_codes: true,
       metadata: { userId: user.id }, subscription_data: { metadata: { userId: user.id } },
     });
     return { ok: true, url: session.url! };
