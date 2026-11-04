@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Player } from "@remotion/player";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronDown, Copy, Download, Pencil, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Copy, Download, Pencil, X } from "lucide-react";
+import { backOrFallback } from "@/lib/navigation-back";
 import Link, { useRouter } from "@/lib/i18n/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toaster";
@@ -78,6 +79,7 @@ export function PackReview({ packId, status, items, skipped }: { packId: string;
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 pb-36">
       <header className="flex flex-col gap-1.5">
+        <Link href="/resto" onClick={(e) => backOrFallback(e, router, "/resto")} aria-label={s.backToSpace} className="-ml-2 mb-2 inline-flex items-center gap-1.5 self-start rounded-full px-2 py-1.5 text-sm font-medium text-muted hover:bg-surface-2 hover:text-fg"><ArrowLeft className="size-4" />{s.backToSpace}</Link>
         <h1 className="text-2xl font-semibold sm:text-3xl">{p.title}</h1>
         <p className="text-sm text-muted sm:text-base">{validated ? p.validated : p.intro}</p>
       </header>

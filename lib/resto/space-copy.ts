@@ -79,6 +79,7 @@ const fr = {
     createError: "Tes vidéos n'ont pas pu être créées. Réessaie.",
   },
   networks: { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", google: "Google" },
+  backToSpace: "Espace Resto",
   space: {
     hello: "Bonjour {name}",
     helloAnon: "Ton espace Resto",
@@ -288,6 +289,7 @@ const en: typeof fr = {
     createError: "Your videos couldn't be created. Try again.",
   },
   networks: { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", google: "Google" },
+  backToSpace: "Restaurant space",
   space: {
     hello: "Hello {name}",
     helloAnon: "Your Resto space",

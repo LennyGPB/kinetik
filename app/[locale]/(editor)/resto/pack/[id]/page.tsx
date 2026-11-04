@@ -37,5 +37,10 @@ async function Pack({ params }: { params: Promise<{ id: string }> }) {
 
 /** Validation du pack de la semaine, depuis le téléphone. */
 export default function PackPage(props: { params: Promise<{ id: string }> }) {
-  return <Suspense fallback={<PageSkeleton withHeader={false} />}><Pack params={props.params} /></Suspense>;
+  // Écran plein (hors du menu de l'app, comme l'éditeur) : pensé pour valider depuis le téléphone
+  return (
+    <div className="min-h-dvh bg-bg px-4 pt-4 sm:px-6 sm:pt-8">
+      <Suspense fallback={<PageSkeleton withHeader={false} />}><Pack params={props.params} /></Suspense>
+    </div>
+  );
 }
