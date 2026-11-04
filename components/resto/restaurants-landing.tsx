@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { animate, AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useTransform } from "motion/react";
 import { ArrowRight, BadgeCheck, Bell, CalendarDays, Camera, Coffee, Check, Clock, PartyPopper, Plus, Soup, Sparkles, Star, UtensilsCrossed, Wine, type LucideIcon } from "lucide-react";
 import Link from "@/lib/i18n/navigation";
@@ -13,13 +13,13 @@ import { formatPrice } from "@/config/pricing";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { landingCopy } from "@/lib/resto/landing-copy";
 import { cn } from "@/lib/utils";
-import { LandingDemo } from "./landing-demo";
-import { restoExample as example, restoExamplePhotos } from "./resto-examples";
-import { restoVideoProps } from "./resto-form";
-import { Player } from "@remotion/player";
+import dynamic from "next/dynamic";
+
+// Lecteurs vidéo chargés dans le navigateur seulement : le lecteur lit l'heure au démarrage, ce qui est interdit
+// pendant la génération de la page (le texte, lui, reste dans le HTML pour le référencement)
+const LandingDemo = dynamic(() => import("./landing-demo").then((m) => m.LandingDemo), { ssr: false, loading: () => <div className="mx-auto aspect-[4/5] w-full max-w-xl" /> });
+const RestoExampleVideo = dynamic(() => import("./resto-example-video").then((m) => m.RestoExampleVideo), { ssr: false });
 import type { RestoContent } from "@/lib/resto/content";
-import { KinetikVideo } from "@/remotion/video/KinetikVideo";
-import { durationInFrames, FPS, videoDimensions } from "@/remotion/props";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 /** Glissement doux de la surbrillance d'un élément à l'autre */
@@ -284,14 +284,6 @@ const SHOWCASE: { template: RestoContent["template"] | null; icon: LucideIcon }[
 ];
 const SHOWCASE_MS = 5000;
 
-/** La vidéo d'un exemple, jouée en boucle dans le téléphone de la vitrine. */
-function ShowcaseVideo({ template }: { template: RestoContent["template"] }) {
-  const t = useDictionary();
-  const locale = t.locale === "en" ? "en" : "fr";
-  const props = useMemo(() => restoVideoProps({ ...example(template, locale), language: locale }, restoExamplePhotos(template), null), [template, locale]);
-  const { width, height } = videoDimensions(props);
-  return <Player component={KinetikVideo} inputProps={props} durationInFrames={durationInFrames(props.graph)} fps={FPS} compositionWidth={width} compositionHeight={height} autoPlay loop initiallyMuted acknowledgeRemotionLicense style={{ width: "100%", height: "100%" }} />;
-}
 
 /** Plat du jour : la photo du plat devient une vidéo (la vraie demande la photo du restaurateur). */
 function DishVisual({ label }: { label: string }) {
@@ -356,7 +348,7 @@ function Pack() {
             initial={{ rotateY: -14, rotateX: 6 }} whileHover={{ rotateY: 0, rotateX: 0, scale: 1.02 }} transition={{ duration: 0.6, ease: EASE }}>
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.div key={active} className="absolute inset-0" initial={{ opacity: 0, scale: 1.06, filter: "blur(8px)" }} animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }} exit={{ opacity: 0, scale: 0.96, filter: "blur(8px)" }} transition={{ duration: 0.5, ease: EASE }}>
-                {current.template ? <ShowcaseVideo template={current.template} /> : <DishVisual label={items[active][1]} />}
+                {current.template ? <RestoExampleVideo template={current.template} /> : <DishVisual label={items[active][1]} />}
               </motion.div>
             </AnimatePresence>
             <span aria-hidden className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(120deg,rgb(255_255_255/0.14)_0%,transparent_30%,transparent_72%,rgb(255_255_255/0.05)_100%)]" />
