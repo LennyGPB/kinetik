@@ -1,0 +1,156 @@
+/** Textes de la page publique Kinetik Resto (/restaurants). Vocabulaire du métier, pas de crédits. */
+const fr = {
+  meta: { title: "Kinetik Resto : les posts de ton restaurant, prêts chaque semaine", description: "Menu de la semaine, formule midi, plat du jour : des vidéos animées prêtes à poster, préparées depuis ta carte. Tu valides en 30 secondes depuis ton téléphone." },
+  hero: {
+    eyebrow: "Kinetik Resto",
+    title: "Ton resto, posté.",
+    accent: "Chaque semaine.",
+    subtitle: "Ta carte devient des vidéos prêtes à poster. Tu valides en 30 secondes.",
+    cta: "Commencer",
+    secondary: "Voir le prix",
+    chips: ["Plat du jour · 12,90 €", "Menu de la semaine", "Validé en 30 s"],
+  },
+  marquee: ["Menu de la semaine", "Formule midi", "Plat du jour", "Happy hour", "Soirée match", "Avis clients", "Horaires", "Fermeture exceptionnelle", "Brunch", "Légendes prêtes"],
+  week: {
+    eyebrow: "Ta semaine avec Kinetik",
+    title: "Tu cuisines.",
+    accent: "On s'occupe du reste.",
+    days: [
+      ["Lun", "7 h 00", "Ton pack arrive", "Menu, formule, affiches et légendes."],
+      ["Lun", "7 h 01", "Validé", "30 secondes avec ton café."],
+      ["Mar", "11 h 30", "Plat du jour", "Une photo, c'est en ligne."],
+      ["Jeu", "17 h 00", "Happy hour", "Ton offre, sur le bon créneau."],
+      ["Sam", "10 h 00", "Brunch", "Ta dernière affiche revient, à jour."],
+    ],
+  },
+  how: {
+    eyebrow: "Comment ça marche",
+    steps: [
+      ["Ta carte, une fois", "Une photo ou un PDF. L'IA la recopie, tu vérifies les plats et les prix."],
+      ["Ton pack, chaque semaine", "Le jour choisi, tes contenus t'attendent, dans ton style."],
+      ["Tu postes", "Garder, retirer, télécharger. En story, en Reel ou dans le fil."],
+    ],
+  },
+  pack: {
+    eyebrow: "Dans ton pack",
+    title: "Tout ce qu'un resto poste.",
+    accent: "Déjà prêt.",
+    menu: { title: "Menu de la semaine", text: "Un plat par jour, pris sur ta carte, en rotation." },
+    items: [
+      ["Formule midi", "Entrée, plat, dessert"],
+      ["Plat du jour", "En 3 gestes"],
+      ["Happy hour", "Ton offre, tes horaires"],
+      ["Événement", "Match, concert, brunch"],
+      ["Avis clients", "Tes meilleures notes"],
+      ["Horaires", "Ou une fermeture"],
+    ],
+  },
+  pricing: {
+    eyebrow: "Prix",
+    title: "Un prix.",
+    accent: "Tout compris.",
+    monthly: "Mensuel",
+    yearly: "Annuel",
+    save: "−20 %",
+    popular: "Populaire",
+    perMonth: "HT / mois",
+    billedYearly: "soit {total} HT par an",
+    billedMonthly: "sans engagement",
+    includes: ["Jusqu'à 5 packs de la semaine par mois", "15 plats du jour à la demande", "Vidéos 1080p, sans filigrane", "Ta carte lue par l'IA", "3 vidéos de bienvenue offertes"],
+    cta: "Commencer",
+    note: "Sans engagement · Résiliable en un clic",
+  },
+  faq: {
+    title: "Questions",
+    accent: "fréquentes.",
+    items: [
+      ["Je n'ai pas le temps d'apprendre un logiciel.", "Il n'y a rien à apprendre : tu réponds à quelques questions une fois, puis tu reçois ton pack chaque semaine. Valider prend 30 secondes."],
+      ["Et si un plat ou un prix est faux ?", "L'IA recopie ta carte sans rien inventer, et tu vérifies chaque plat avant qu'il soit utilisé. Tu peux corriger n'importe quel contenu avant de le télécharger."],
+      ["Je suis fermé une semaine.", "Indique tes fermetures : le pack de la semaine n'est pas préparé et rien n'est débité."],
+      ["Ça marche pour un bar, une pizzeria, un food truck ?", "Oui : menu, formule, happy hour, événements et horaires couvrent la plupart des établissements."],
+      ["Je peux arrêter quand je veux ?", "Oui, l'offre est sans engagement et se résilie en un clic depuis ton compte."],
+    ],
+  },
+  final: { title: "Ton premier pack,", accent: "dès cette semaine.", subtitle: "Abonne-toi, réponds à 9 questions : tes 3 premières vidéos sont offertes.", cta: "Commencer" },
+  demo: { dish: "Plat du jour", hours: "Horaires" },
+};
+
+const en: typeof fr = {
+  meta: { title: "Kinetik Resto: your restaurant's posts, ready every week", description: "This week's menu, lunch deal, dish of the day: animated videos ready to post, prepared from your menu. Approve them in 30 seconds from your phone." },
+  hero: {
+    eyebrow: "Kinetik Resto",
+    title: "Your restaurant, posted.",
+    accent: "Every week.",
+    subtitle: "Your menu becomes videos ready to post. Approve them in 30 seconds.",
+    cta: "Get started",
+    secondary: "See the price",
+    chips: ["Dish of the day · €12.90", "This week's menu", "Approved in 30 s"],
+  },
+  marquee: ["This week's menu", "Lunch deal", "Dish of the day", "Happy hour", "Match night", "Reviews", "Opening hours", "Exceptional closure", "Brunch", "Ready captions"],
+  week: {
+    eyebrow: "Your week with Kinetik",
+    title: "You cook.",
+    accent: "We handle the rest.",
+    days: [
+      ["Mon", "7:00", "Your pack arrives", "Menu, lunch deal, posters and captions."],
+      ["Mon", "7:01", "Approved", "30 seconds with your coffee."],
+      ["Tue", "11:30", "Dish of the day", "One photo, it's live."],
+      ["Thu", "17:00", "Happy hour", "Your offer, at the right time."],
+      ["Sat", "10:00", "Brunch", "Your last poster comes back, up to date."],
+    ],
+  },
+  how: {
+    eyebrow: "How it works",
+    steps: [
+      ["Your menu, once", "A photo or a PDF. AI copies it, you check the dishes and prices."],
+      ["Your pack, every week", "On the day you choose, your posts are waiting, in your style."],
+      ["You post", "Keep, remove, download. For stories, Reels or the feed."],
+    ],
+  },
+  pack: {
+    eyebrow: "In your pack",
+    title: "Everything a restaurant posts.",
+    accent: "Already done.",
+    menu: { title: "This week's menu", text: "One dish a day, from your menu, on rotation." },
+    items: [
+      ["Lunch deal", "Starter, main, dessert"],
+      ["Dish of the day", "In 3 taps"],
+      ["Happy hour", "Your offer, your hours"],
+      ["Event", "Match, gig, brunch"],
+      ["Reviews", "Your best ratings"],
+      ["Opening hours", "Or a closure"],
+    ],
+  },
+  pricing: {
+    eyebrow: "Price",
+    title: "One price.",
+    accent: "Everything included.",
+    monthly: "Monthly",
+    yearly: "Yearly",
+    save: "Save 20%",
+    popular: "Popular",
+    perMonth: "excl. VAT / month",
+    billedYearly: "{total} excl. VAT per year",
+    billedMonthly: "no commitment",
+    includes: ["Up to 5 weekly packs a month", "15 dishes of the day on demand", "1080p videos, no watermark", "Your menu read by AI", "3 free welcome videos"],
+    cta: "Get started",
+    note: "No commitment · Cancel in one click",
+  },
+  faq: {
+    title: "Frequently asked",
+    accent: "questions.",
+    items: [
+      ["I don't have time to learn software.", "There's nothing to learn: answer a few questions once, then get your pack every week. Approving takes 30 seconds."],
+      ["What if a dish or a price is wrong?", "AI copies your menu without making anything up, and you check every dish before it's used. You can fix any post before downloading it."],
+      ["I'm closed for a week.", "Add your closures: that week's pack isn't prepared and nothing is charged."],
+      ["Does it work for a bar, a pizzeria, a food truck?", "Yes: menu, lunch deal, happy hour, events and opening hours cover most places."],
+      ["Can I stop whenever I want?", "Yes, there's no commitment and you can cancel in one click from your account."],
+    ],
+  },
+  final: { title: "Your first pack,", accent: "this week.", subtitle: "Subscribe, answer 9 questions: your first 3 videos are free.", cta: "Get started" },
+  demo: { dish: "Dish of the day", hours: "Opening hours" },
+};
+
+export function landingCopy(locale: string) {
+  return locale === "en" ? en : fr;
+}

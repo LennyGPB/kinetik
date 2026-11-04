@@ -49,7 +49,7 @@ async function main() {
     const prod = await product(`plan_${id.toLowerCase()}`, `Kinetik ${plan.name}`, `${plan.credits} crédits par mois`);
     const prices = [];
     for (const interval of ["month", "year"] as const) prices.push((await price(prod.id, planLookupKey(id, interval), planAmountCents(plan, interval), interval)).id);
-    subscriptionProducts.push({ product: prod.id, prices });
+    if (id !== "RESTO") subscriptionProducts.push({ product: prod.id, prices });
   }
   for (const pack of CREDIT_PACKS) {
     const prod = await product(pack.id, `Kinetik — ${pack.credits} crédits`, "Pack de crédits sans expiration");

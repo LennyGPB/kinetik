@@ -12,6 +12,7 @@ import { LanguageToggle } from "@/components/ui/language-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 import { cn } from "@/lib/utils";
+import { isFeatureEnabled } from "@/config/features";
 
 export function SiteHeaderClient({ homeLinks = false, desktopAccount, mobileAccount }: { homeLinks?: boolean; desktopAccount: ReactNode; mobileAccount: ReactNode }) {
   const t = useDictionary();
@@ -20,6 +21,8 @@ export function SiteHeaderClient({ homeLinks = false, desktopAccount, mobileAcco
   { href: `${homeLinks ? "/" : ""}#styles`, label: t.nav.styles },
   { href: `${homeLinks ? "/" : ""}#pricing`, label: t.nav.pricing },
   { href: "/support", label: t.nav.support },
+  // Offre restaurateurs, une fois publiée (avant : page réservée aux admins)
+  ...(isFeatureEnabled("resto") ? [{ href: "/restaurants", label: t.locale === "en" ? "For restaurants" : "Pour les restaurants" }] : []),
 ];
 
   const [scrolled, setScrolled] = useState(false);

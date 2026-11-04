@@ -56,3 +56,6 @@ next-env.d.ts
 /RESSOURCES/
 /ressources/
 /.cache/
+
+# Photos de test Resto (licences tierces) : ne pas publier
+/public/resto-demos/

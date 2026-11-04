@@ -1,3 +1,4 @@
+import type { PlanId } from "@/config/pricing";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Link from "@/lib/i18n/navigation";
@@ -40,7 +41,7 @@ export function Panel({ title, action, children, className }: { title: string; a
   );
 }
 
-export function PlanBadge({ plan }: { plan: "FREE" | "STARTER" | "PRO" }) {
+export function PlanBadge({ plan }: { plan: PlanId }) {
   return (
     <span
       className={cn(
@@ -48,7 +49,7 @@ export function PlanBadge({ plan }: { plan: "FREE" | "STARTER" | "PRO" }) {
         plan === "FREE" ? "bg-surface-2 text-muted" : plan === "PRO" ? "bg-accent text-accent-fg" : "bg-accent-soft text-accent-text",
       )}
     >
-      {plan === "FREE" ? "Free" : plan === "STARTER" ? "Starter" : "Pro"}
+      {plan === "FREE" ? "Free" : plan === "STARTER" ? "Starter" : plan === "RESTO" ? "Resto" : "Pro"}
     </span>
   );
 }

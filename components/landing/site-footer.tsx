@@ -1,3 +1,4 @@
+import { isFeatureEnabled } from "@/config/features";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import Link from "@/lib/i18n/navigation";
 import { Logo } from "@/components/brand/logo";
@@ -20,6 +21,8 @@ export function SiteFooter() {
       { label: t.nav.styles, href: "/#styles" },
       { label: t.nav.features, href: "/#features" },
       { label: t.nav.pricing, href: "/#pricing" },
+      // Offre restaurateurs, une fois publiée
+      ...(isFeatureEnabled("resto") ? [{ label: t.locale === "en" ? "For restaurants" : "Pour les restaurants", href: "/restaurants" }] : []),
     ],
   },
   {

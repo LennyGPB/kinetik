@@ -91,6 +91,8 @@ export function legalFr(d: LegalData): Record<LegalSlug, LegalDoc> {
             "Aucun crédit n'est offert à l'inscription : l'utilisation du service nécessite un abonnement ou l'achat d'un pack de crédits. Sans abonnement actif, les vidéos sont exportées en 720p.",
             "Abonnements :",
             { list: d.paidPlans.map((p) => `${p.name} : ${p.credits} crédits par mois, export jusqu'en ${p.quality} — ${p.monthly} par mois, ou ${p.yearly} par an (soit ${p.yearlyPerMonth} par mois)`) },
+            `Offre Resto : chaque pack de la semaine utilise ${d.resto.pack} crédits et chaque plat du jour ${d.resto.plat} crédits. Les crédits des packs prévus jusqu'à la fin de la période sont mis de côté et ne peuvent pas être utilisés par un plat du jour. Les 3 vidéos de bienvenue sont offertes, et un contenu déjà téléchargé peut l'être de nouveau gratuitement pendant 24 heures.`,
+            `Pack de la semaine : il est préparé le jour choisi et débité uniquement quand vous le validez ; un pack non préparé (restaurant fermé, rien à proposer) est signalé et n'est pas débité. Recharge automatique (désactivée par défaut, activable dans les réglages du pack) : si votre solde ne couvre pas le pack que vous validez, un pack de ${d.packs[0].credits} crédits (${d.packs[0].price}) est acheté avec le moyen de paiement de votre abonnement, au plus une fois par pack, avec une facture à chaque achat.`,
             "Packs de crédits (achat unique) :",
             { list: d.packs.map((p) => `${p.credits} crédits : ${p.price}`) },
             "Règles des crédits :",

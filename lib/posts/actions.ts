@@ -7,7 +7,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { CREDIT_COSTS, getPostGenerationCost, getPostExportCost } from "@/config/credits";
-import { getPlan } from "@/config/pricing";
+import { featurePlan } from "@/config/pricing";
 import { getPostTemplate, isActivePostTemplate } from "@/config/post-templates";
 import { spendCredits, refundCredits, getCreditBalance, InsufficientCreditsError } from "@/lib/credits/ledger";
 import { acquireLock, releaseLock } from "@/lib/rate-limit";
@@ -189,7 +189,7 @@ export async function exportPost(projectId: string, expectedVersion: number, for
         ratios.set(asset.url, png.info.width / png.info.height);
       }
       const logo = project.assets.find((asset) => asset.type === "LOGO");
-      const media = { appName: project.appName, logoUrl: logo ? embedded.get(logo.url) : null, screenUrls: project.assets.filter((asset) => asset.type === "SCREEN").map((asset) => embedded.get(asset.url)!), screenRatios: project.assets.filter((asset) => asset.type === "SCREEN").map((asset) => ratios.get(asset.url) ?? null), watermark: getPlan(user.plan).watermark };
+      const media = { appName: project.appName, logoUrl: logo ? embedded.get(logo.url) : null, screenUrls: project.assets.filter((asset) => asset.type === "SCREEN").map((asset) => embedded.get(asset.url)!), screenRatios: project.assets.filter((asset) => asset.type === "SCREEN").map((asset) => ratios.get(asset.url) ?? null), watermark: featurePlan(user).watermark };
       const files: string[] = [];
       for (let i = 0; i < document.pages.length; i++) {
         const svg = postSvg(document, i, media);

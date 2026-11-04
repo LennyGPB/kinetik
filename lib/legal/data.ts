@@ -1,6 +1,6 @@
 import { CREDIT_COSTS, EDIT_PRICING } from "@/config/credits";
 import { LEGAL_PLACEHOLDER, legalConfig } from "@/config/legal";
-import { CREDIT_PACKS, PAID_PLANS, formatPrice } from "@/config/pricing";
+import { CREDIT_PACKS, RESTO_PLAN, SUBSCRIPTION_PLANS, formatPrice, restoVatFactor } from "@/config/pricing";
 import { intlLocale, type Locale } from "@/lib/i18n";
 
 /** Valeurs injectées dans les textes légaux : tarifs et coûts lus dans la config, pour rester synchronisés. */
@@ -16,10 +16,13 @@ export function legalData(locale: Locale) {
     mediator: legalConfig.mediator,
     placeholder: LEGAL_PLACEHOLDER[locale],
     updated: new Intl.DateTimeFormat(intlLocale[locale], { dateStyle: "long", timeZone: "UTC" }).format(new Date(legalConfig.updatedAt)),
-    paidPlans: PAID_PLANS.map((p) => ({
-      name: p.name, credits: p.credits, quality: p.maxQuality === "HD" ? "1080p" : "720p",
-      monthly: price(p.monthlyPrice), yearly: price(p.yearlyPrice * 12), yearlyPerMonth: price(p.yearlyPrice),
-    })),
+    // Prix payés : l'offre Resto est affichée hors taxes, la TVA s'y ajoute si l'éditeur n'est plus en franchise
+    paidPlans: SUBSCRIPTION_PLANS.map((p) => {
+      const vat = p.id === "RESTO" ? restoVatFactor() : 1;
+      const at = (amount: number) => price(Math.round(amount * vat * 100) / 100);
+      return { name: p.name, credits: p.credits, quality: p.maxQuality === "HD" ? "1080p" : "720p", monthly: at(p.monthlyPrice), yearly: at(p.yearlyPrice * 12), yearlyPerMonth: at(p.yearlyPrice) };
+    }),
+    resto: { pack: RESTO_PLAN.packCredits, plat: RESTO_PLAN.platCredits },
     packs: CREDIT_PACKS.map((p) => ({ credits: p.credits, price: price(p.price) })),
     costs: {
       generation: CREDIT_COSTS.generation, edit: CREDIT_COSTS.edit, editMax: EDIT_PRICING.max, editUnchanged: EDIT_PRICING.unchanged, translation: CREDIT_COSTS.translation, exportShort: exp.short, exportLong: exp.long, shortMaxSeconds: exp.shortMaxSeconds, export3dMultiplier: exp.premium3dMultiplier,

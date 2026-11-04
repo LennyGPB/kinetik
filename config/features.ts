@@ -24,6 +24,8 @@ export const FEATURES = {
   decor: false,
   /** Galerie « Créations » de la communauté */
   community: true,
+  /** Niche Resto (offre restaurateurs, espace /resto, page /restaurants) ; false = visible des admins seulement (voir canUseResto) */
+  resto: true,
 } as const satisfies Record<string, boolean>;
 
 export type Feature = keyof typeof FEATURES;
@@ -41,6 +43,7 @@ const FORMAT_FEATURE: Record<Format, Feature> = {
   stores: "store",
   demo: "recording",
   decor: "decor",
+  resto: "resto",
 };
 
 /** Un format des carrousels de création est-il affiché ? */

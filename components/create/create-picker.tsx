@@ -31,7 +31,8 @@ function CreateLoader({ title, fr }: { title: string; fr: boolean }) {
   </div>;
 }
 
-export function CreatePicker({ initialGroup = null }: { initialGroup?: Group }) {
+/** `resto` : accès anticipé à la niche Resto (admins, tant que la feature n'est pas publiée). */
+export function CreatePicker({ initialGroup = null, resto = false }: { initialGroup?: Group; resto?: boolean }) {
   const fr = useDictionary().locale === "fr";
   const router = useRouter();
   const [group, setGroup] = useState<Group>(initialGroup);
@@ -129,6 +130,18 @@ export function CreatePicker({ initialGroup = null }: { initialGroup?: Group }) 
             return true;
           }} />
           <p className="px-4 text-center text-xs text-muted">{fr ? "Fais défiler les cartes et choisis ce qui te ressemble." : "Browse the cards and choose what fits your idea."}</p>
+          {resto && <p className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1 px-4 text-center text-xs">
+            <span className="text-muted">{fr ? "Restaurants :" : "Restaurants:"}</span>
+            <button type="button" onClick={() => choose({ key: "space", href: "/resto", title: fr ? "Espace Resto" : "Resto space" })} className="cursor-pointer font-medium text-accent-text hover:underline">{fr ? "Espace Resto" : "Resto space"}</button>
+            <button type="button" onClick={() => choose({ key: "offer", href: "/resto/offre", title: fr ? "Offre" : "Offer" })} className="cursor-pointer font-medium text-accent-text hover:underline">{fr ? "Offre" : "Offer"}</button>
+            <button type="button" onClick={() => choose({ key: "carte", href: "/resto/carte", title: fr ? "Ma carte" : "My menu" })} className="cursor-pointer font-medium text-accent-text hover:underline">{fr ? "Ma carte" : "My menu"}</button>
+            <button type="button" onClick={() => choose({ key: "dish", href: "/create?kind=dish", title: fr ? "Plat du jour" : "Dish of the day" })} className="cursor-pointer font-medium text-accent-text hover:underline">{fr ? "Plat du jour" : "Dish of the day"}</button>
+            <button type="button" onClick={() => choose({ key: "week", href: "/create?kind=week", title: fr ? "Menu de la semaine" : "This week's menu" })} className="cursor-pointer font-medium text-accent-text hover:underline">{fr ? "Menu de la semaine" : "This week's menu"}</button>
+            <button type="button" onClick={() => choose({ key: "lunch", href: "/create?kind=lunch", title: fr ? "Formule midi" : "Lunch menu" })} className="cursor-pointer font-medium text-accent-text hover:underline">{fr ? "Formule midi" : "Lunch menu"}</button>
+            {([["happyhour", "Happy hour", "Happy hour"], ["event", "Événement", "Event"], ["reviews", "Avis client", "Reviews"], ["hours", "Horaires", "Opening hours"], ["intro", "Présentation", "About us"]] as const).map(([kind, frLabel, enLabel]) => (
+              <button key={kind} type="button" onClick={() => choose({ key: kind, href: `/create?kind=${kind}`, title: fr ? frLabel : enLabel })} className="cursor-pointer font-medium text-accent-text hover:underline">{fr ? frLabel : enLabel}</button>
+            ))}
+          </p>}
         </motion.div>
       )}
     </AnimatePresence>

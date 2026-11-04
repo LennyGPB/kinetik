@@ -1,12 +1,18 @@
 // ⚠️ Ce dossier est aussi bundlé par Remotion (webpack) : imports RELATIFS uniquement, pas d'alias "@/".
 import { mapVoiceMedia } from "../lib/projects/voiceover";
 import type { CalculateMetadataFunction } from "remotion";
-import type { VideoFormatId } from "../config/formats";
+import type { RestoFormatId, VideoFormatId } from "../config/formats";
 import type { Recipe } from "../config/recipes";
 import type { SceneGraph } from "../lib/projects/scenes";
 import type { CustomRuntime } from "../lib/custom-motion/contract";
 
 export const FPS = 30;
+
+/** Dimensions du 4:5, réservé aux templates Resto (voir config/formats.ts). */
+export const RESTO_DIMENSIONS: Record<RestoFormatId, { width: number; height: number }> = {
+  PORTRAIT: { width: 1080, height: 1920 },
+  PORTRAIT_45: { width: 1080, height: 1350 },
+};
 
 export const DIMENSIONS: Record<VideoFormatId, { width: number; height: number }> = {
   LANDSCAPE: { width: 1920, height: 1080 },
@@ -42,10 +48,15 @@ export function durationInFrames(graph: SceneGraph) {
   return Math.max(FPS, Math.round(graph.scenes.reduce((sum, s) => sum + s.duration, 0) * FPS));
 }
 
+/** Taille de la composition : celle du format du projet, ou celle du contenu Resto (9:16 ou 4:5). */
+export function videoDimensions(props: Pick<VideoProps, "format" | "graph">) {
+  return props.graph.resto ? RESTO_DIMENSIONS[props.graph.resto.format] : DIMENSIONS[props.format];
+}
+
 export const calculateVideoMetadata: CalculateMetadataFunction<VideoProps> = ({ props }) => ({
   durationInFrames: durationInFrames(props.graph),
   fps: FPS,
-  ...DIMENSIONS[props.format],
+  ...videoDimensions(props),
 });
 
 /** Les URLs relatives (/api/uploads/…) doivent être absolues hors navigateur (rendu CLI / Lambda). */

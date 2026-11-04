@@ -13,7 +13,7 @@ import { TextEditingContext } from "@/remotion/video/movable-text";
 import { Player as RemotionPlayer, type PlayerRef } from "@remotion/player";
 import { ALargeSmall, Check, ChevronRight, Copy, Images, Maximize2, MessageSquare, Minimize2, Minus, Move, Pause, Pencil, Play, Plus, RotateCcw, ScanSearch, Trash2, Type, Volume2, VolumeX, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { VIDEO_FORMATS } from "@/config/formats";
+import { RESTO_FORMATS, VIDEO_FORMATS } from "@/config/formats";
 import { resolveStageTransitions, stageShowsDevice } from "@/config/stage-motion";
 import { beatGrid, HEADLINE_MAX, HEADLINES_MAX, HEADLINES_MIN, sceneFocuses, sceneHeadlines, sceneScreens, TRANSITIONS, type Scene, type Transition } from "@/lib/projects/scenes";
 import {
@@ -38,7 +38,7 @@ import {
   type TimelineEdit,
 } from "@/lib/projects/timeline";
 import { cn, formatTime } from "@/lib/utils";
-import { DIMENSIONS, durationInFrames, FPS, type VideoProps } from "@/remotion/props";
+import { durationInFrames, FPS, videoDimensions, type VideoProps } from "@/remotion/props";
 import { KinetikVideo } from "@/remotion/video/KinetikVideo";
 import { headlineDefaults } from "@/remotion/video/headlines";
 import { sceneTimeline } from "@/remotion/video/transitions";
@@ -149,8 +149,8 @@ export function Player({ videoProps, editing, variants, className, compact = fal
   const graph = resolveStageTransitions(previewEdits.length ? applyTimelineEdits(videoProps.graph, previewEdits) : videoProps.graph, videoProps.recipe.stage);
   const props = graph === videoProps.graph ? videoProps : { ...videoProps, graph };
   const total = durationInFrames(graph);
-  const { width, height } = DIMENSIONS[videoProps.format];
-  const ratio = VIDEO_FORMATS[videoProps.format].ratio;
+  const { width, height } = videoDimensions(videoProps);
+  const ratio = videoProps.graph.resto ? RESTO_FORMATS[videoProps.graph.resto.format].ratio : VIDEO_FORMATS[videoProps.format].ratio;
   const narrow = ratio !== "16:9" && !compact;
   const timeline = sceneTimeline(graph.scenes, FPS, graph.bpm, beatGrid(graph).phase);
   // Après une modification, la lecture reprend au début de la scène sélectionnée

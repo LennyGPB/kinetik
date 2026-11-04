@@ -91,6 +91,8 @@ export function legalEn(d: LegalData): Record<LegalSlug, LegalDoc> {
             "No credits are given on sign-up: using the service requires a subscription or the purchase of a credit pack. Without an active subscription, videos are exported in 720p.",
             "Subscriptions:",
             { list: d.paidPlans.map((p) => `${p.name}: ${p.credits} credits per month, export up to ${p.quality} — ${p.monthly} per month, or ${p.yearly} per year (${p.yearlyPerMonth} per month)`) },
+            `Resto plan: each weekly pack uses ${d.resto.pack} credits and each dish of the day ${d.resto.plat} credits. Credits for the packs planned until the end of the period are set aside and cannot be used by a dish of the day. The 3 welcome videos are free, and content already downloaded can be downloaded again for free for 24 hours.`,
+            `Weekly pack: it is prepared on the day you chose and charged only when you approve it; a pack that could not be prepared (restaurant closed, nothing to offer) is shown as such and not charged. Auto top-up (off by default, available in the pack settings): if your balance does not cover the pack you approve, a ${d.packs[0].credits}-credit pack (${d.packs[0].price}) is bought with your subscription's payment method, at most once per pack, with an invoice for each purchase.`,
             "Credit packs (one-off purchase):",
             { list: d.packs.map((p) => `${p.credits} credits: ${p.price}`) },
             "Credit rules:",

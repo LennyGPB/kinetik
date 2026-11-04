@@ -3,10 +3,14 @@ import { isStripeConfigured } from "@/lib/billing/stripe";
 import { syncAllSubscriptions } from "@/lib/billing/sync";
 import { recoverNarrationCredits } from "@/lib/projects/voiceover-recovery";
 import { recoverPitchCredits } from "@/lib/pitch/recovery";
+import { prepareDuePacks } from "@/lib/resto/pack";
 
 export const maxDuration = 300;
 
-/** Cron Vercel quotidien (vercel.json) : tranches mensuelles des abonnements annuels et webhooks manqués. */
+/**
+ * Cron Vercel quotidien (vercel.json, 6 h UTC ≈ 7 h à Paris) : tranches mensuelles des abonnements annuels, webhooks manqués,
+ * puis packs Resto du jour (après la synchro : les crédits du mois sont déjà là). Un pack non préparé ici l'est à la visite.
+ */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   const given = Buffer.from(request.headers.get("authorization") ?? "");
@@ -18,7 +22,8 @@ export async function GET(request: Request) {
   };
   const voiceoverRefunds = await step("voiceover", () => recoverNarrationCredits());
   const pitchRefunds = await step("pitch", () => recoverPitchCredits());
-  if (!isStripeConfigured()) return Response.json({ skipped: "stripe_not_configured", voiceoverRefunds, pitchRefunds });
-  const billing = await step("billing", () => syncAllSubscriptions());
-  return Response.json({ ...billing, billingFailed: billing === null, voiceoverRefunds, pitchRefunds }, { status: billing === null ? 500 : 200 });
+  const billing = isStripeConfigured() ? await step("billing", () => syncAllSubscriptions()) : null;
+  const restoPacks = await step("resto-packs", () => prepareDuePacks(new Date(), 150_000));
+  if (!isStripeConfigured()) return Response.json({ skipped: "stripe_not_configured", voiceoverRefunds, pitchRefunds, restoPacks });
+  return Response.json({ ...billing, billingFailed: billing === null, voiceoverRefunds, pitchRefunds, restoPacks }, { status: billing === null ? 500 : 200 });
 }

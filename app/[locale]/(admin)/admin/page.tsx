@@ -25,7 +25,7 @@ async function Overview() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={t.copy["7cf7725efaab"]} value={stats.users.total} hint={`+${formatNumber(stats.users.last7, t.locale)} sur 7 j · +${formatNumber(stats.users.last30, t.locale)} sur 30 j`} tone="accent" />
-        <StatCard label={t.copy["211e5859340f"]} value={stats.subscribers.total} hint={`Starter ${formatNumber(stats.subscribers.STARTER, t.locale)} · Pro ${formatNumber(stats.subscribers.PRO, t.locale)}`} tone="accent" />
+        <StatCard label={t.copy["211e5859340f"]} value={stats.subscribers.total} hint={`Starter ${formatNumber(stats.subscribers.STARTER, t.locale)} · Pro ${formatNumber(stats.subscribers.PRO, t.locale)} · Resto ${formatNumber(stats.subscribers.RESTO, t.locale)}`} tone="accent" />
         <StatCard label={t.copy["4b87d3da6ae3"]} value={stats.users.total ? `${Math.round((stats.subscribers.total / stats.users.total) * 1000) / 10} %` : "—"} hint={`${formatNumber(stats.subscribers.FREE, t.locale)} comptes Free`} />
         <StatCard label="Admins" value={stats.users.admins} />
         <StatCard label={t.copy["b7c5258e03c5"]} value={stats.projects.total} hint={format(t.copy["938b38147f0c"], { p0: formatNumber(stats.projects.ready, t.locale) })} />

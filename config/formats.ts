@@ -9,6 +9,18 @@ export const VIDEO_FORMATS: Record<VideoFormatId, { id: VideoFormatId; ratio: As
 
 export const FORMAT_IDS = Object.keys(VIDEO_FORMATS) as VideoFormatId[];
 
+/**
+ * 4:5 (1080 × 1350, post vidéo du fil Instagram) : réservé aux templates Resto.
+ * Volontairement hors de VideoFormatId : les parcours existants ne proposent que 16:9, 9:16 et 1:1,
+ * les seuls formats pour lesquels leurs templates ont été conçus et vérifiés.
+ */
+export type RestoFormatId = "PORTRAIT" | "PORTRAIT_45";
+export const RESTO_FORMATS: Record<RestoFormatId, { id: RestoFormatId; ratio: AspectRatio; resolution: string }> = {
+  PORTRAIT: VIDEO_FORMATS.PORTRAIT as { id: RestoFormatId; ratio: AspectRatio; resolution: string },
+  PORTRAIT_45: { id: "PORTRAIT_45", ratio: "4:5", resolution: "1080 × 1350" },
+};
+export const RESTO_FORMAT_IDS = Object.keys(RESTO_FORMATS) as RestoFormatId[];
+
 export const DURATIONS = [10, 15, 30] as const;
 export type Duration = (typeof DURATIONS)[number];
 

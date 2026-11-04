@@ -7,7 +7,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { CREDIT_COSTS, getStoreExportCost, getStoreGenerationCost } from "@/config/credits";
-import { getPlan } from "@/config/pricing";
+import { featurePlan } from "@/config/pricing";
 import { getStoreTemplate } from "@/config/store-templates";
 import { spendCredits, refundCredits, getCreditBalance, InsufficientCreditsError } from "@/lib/credits/ledger";
 import { acquireLock, releaseLock } from "@/lib/rate-limit";
@@ -170,7 +170,7 @@ export async function exportStore(projectId: string, expectedVersion: number, re
         embedded.set(asset.url, `data:image/png;base64,${png.toString("base64")}`);
       }
       const logo = project.assets.find((asset) => asset.type === "LOGO");
-      const media = { appName: project.appName, logoUrl: logo ? embedded.get(logo.url) : null, screenUrls: project.assets.filter((asset) => asset.type === "SCREEN").map((asset) => embedded.get(asset.url)!), watermark: getPlan(user.plan).watermark };
+      const media = { appName: project.appName, logoUrl: logo ? embedded.get(logo.url) : null, screenUrls: project.assets.filter((asset) => asset.type === "SCREEN").map((asset) => embedded.get(asset.url)!), watermark: featurePlan(user).watermark };
       const svgs = [...document.pages.map((_, i) => storeSvg(document, i, "ios", media)), ...document.pages.map((_, i) => storeSvg(document, i, "android", media)), storeBannerSvg(document, media)];
       const files: string[] = [];
       // Stores reject transparency: flatten to opaque RGB.

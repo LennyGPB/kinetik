@@ -22,6 +22,7 @@ enum Plan {
   FREE
   STARTER
   PRO
+  RESTO
 }
 
 model User {
@@ -57,6 +58,7 @@ model User {
   projects           Project[]
   creditTransactions CreditTransaction[]
   aiUsages           AiUsage[]
+  restaurants        Restaurant[]
 }
 
 /// Comptes OAuth liés (Google, Discord…). Prévu pour plus tard.
@@ -117,14 +119,14 @@ model BrandKit {
 }
 
 model UrlVideoAnalysis {
-  id         String   @id @default(cuid())
-  userId     String
-  data       Json
-  projectIds String[] @default([])
+  id                String   @id @default(cuid())
+  userId            String
+  data              Json
+  projectIds        String[] @default([])
   settledProjectIds String[] @default([])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }
@@ -164,6 +166,8 @@ model Project {
   /// Piste de la bibliothèque, ou null si musique uploadée (voir Asset MUSIC)
   musicTrackId    String?
   brief           String?
+  /// Contenu d'un pack de la semaine (offre Resto) : téléchargeable sans débit une fois le pack validé
+  restoPackId     String?
   websiteUrl      String?
   /// Jeton du lien de partage public (/share/<token>) ; null = partage désactivé
   shareToken      String?       @unique
@@ -172,27 +176,29 @@ model Project {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  versions ProjectVersion[]
-  messages ChatMessage[]
-  assets   Asset[]
-  renders  Render[]
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restoPack   RestoPack?       @relation(fields: [restoPackId], references: [id], onDelete: SetNull)
+  versions    ProjectVersion[]
+  messages    ChatMessage[]
+  assets      Asset[]
+  renders     Render[]
   postExports PostExport[]
 
+  @@index([restoPackId])
   @@index([userId, updatedAt])
 }
 
 model PostExport {
-  id         String   @id @default(cuid())
+  id         String       @id @default(cuid())
   projectId  String
   versionId  String
-  requestId  String   @unique
+  requestId  String       @unique
   status     RenderStatus @default(PENDING)
   format     String
-  files      String[] @default([])
+  files      String[]     @default([])
   creditCost Int
-  createdAt  DateTime @default(now())
-  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt  DateTime     @default(now())
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
 }
@@ -406,24 +412,24 @@ model TemplateSetting {
 
 /// Vidéo écrite librement par Claude depuis l'admin (/admin/studio), publiable dans la galerie « Créations ».
 model CustomMotion {
-  id          String   @id @default(cuid())
-  name        String
+  id        String   @id @default(cuid())
+  name      String
   /// Code TSX du brouillon (écrit par Claude), et sa version compilée
-  source      String   @default("")
-  compiled    String   @default("")
+  source    String   @default("")
+  compiled  String   @default("")
   /// Réglages déclarés : types de scènes, textes, couleurs, formats (lib/custom-motion/contract.ts)
-  meta        Json     @default("{}")
+  meta      Json     @default("{}")
   /// Contenu par défaut : scènes, textes, couleurs, musique (CustomMotionDemo)
-  demo        Json     @default("{}")
+  demo      Json     @default("{}")
   /// Images envoyées dans le studio : { nom: url }
-  assets      Json     @default("{}")
+  assets    Json     @default("{}")
   /// Miniature de la carte dans la galerie (URL /api/uploads/community/…), null = dégradé de la palette
-  thumbnail   String?
+  thumbnail String?
   /// Visible dans la galerie (dernière version publiée)
-  published   Boolean  @default(false)
-  popular     Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  published Boolean  @default(false)
+  popular   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   versions CustomMotionVersion[]
   messages CustomMotionMessage[]
@@ -460,4 +466,156 @@ model CustomMotionMessage {
   motion CustomMotion @relation(fields: [motionId], references: [id], onDelete: Cascade)
 
   @@index([motionId, createdAt])
+}
+
+/// Niche Resto : le restaurant d'un compte (un seul pour l'instant ; la liste permettra plusieurs établissements plus tard).
+/// Le logo et les couleurs vivent dans le brand kit lié, comme pour les autres contenus.
+model Restaurant {
+  id           String    @id @default(cuid())
+  userId       String
+  name         String
+  /// Type de cuisine affiché et utilisé pour les accroches (« bistrot », « pizzeria »…)
+  cuisine      String?
+  address      String?
+  phone        String?
+  website      String?
+  /// Horaires de la semaine : [{ day: 0-6 (lundi = 0), ranges: [{ open: "12:00", close: "14:30" }] }]
+  hours        Json      @default("[]")
+  /// Fermetures exceptionnelles : [{ from: "2026-12-24", to: "2027-01-02", note?: string }]
+  closures     Json      @default("[]")
+  /// Style préféré des contenus (id de config/resto-templates.ts)
+  styleId      String?
+  brandKitId   String?
+  /// Identifiant Google Places (dernière phase ; seul champ conservable sans limite de durée)
+  placeId      String?
+  /// Rythme choisi à l'accueil : contenus voulus dans le pack (ids de config/resto-templates.ts)
+  packContents String[]  @default([])
+  /// Réseaux où le restaurant publie (instagram, facebook, tiktok, google)
+  networks     String[]  @default([])
+  /// Jour de préparation du pack (lundi = 0) ; l'heure est fixe (cron quotidien)
+  packDay      Int       @default(0)
+  packEnabled  Boolean   @default(true)
+  /// Accueil terminé (les 3 vidéos de bienvenue ont été créées)
+  onboardedAt  DateTime?
+  /// Langue des contenus préparés (celle du site à l'accueil)
+  locale       String    @default("fr")
+  /// Recharge automatique : un pack de 100 crédits quand le solde ne couvre plus le pack à valider (consentement explicite)
+  autoTopUp    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories MenuCategory[]
+  dishes     Dish[]
+  packs      RestoPack[]
+
+  @@index([userId])
+}
+
+/// Catégorie de la carte (Entrées, Plats, Desserts, Boissons…)
+model MenuCategory {
+  id           String   @id @default(cuid())
+  restaurantId String
+  name         String
+  position     Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  dishes     Dish[]
+
+  @@index([restaurantId, position])
+}
+
+/// Origine d'un plat : la règle produit est qu'aucun plat ni prix n'est inventé.
+enum DishSource {
+  /// Saisi ou corrigé par le restaurateur
+  MANUAL
+  /// Lu sur la carte importée (photo, PDF, texte) : à confirmer tant que verified = false
+  MENU_IMPORT
+}
+
+model Dish {
+  id             String     @id @default(cuid())
+  restaurantId   String
+  categoryId     String?
+  name           String
+  description    String?
+  /// Prix en centimes ; null = prix non indiqué (jamais deviné)
+  priceCents     Int?
+  source         DishSource @default(MANUAL)
+  /// Confirmé par le restaurateur. Les plats lus sur la carte restent à confirmer avant toute publication.
+  verified       Boolean    @default(true)
+  /// Plat phare, mis en avant en priorité
+  featured       Boolean    @default(false)
+  /// Toujours à la carte (un plat retiré est gardé pour l'historique des contenus)
+  active         Boolean    @default(true)
+  /// Dernière mise en avant dans un pack : sert à la rotation des plats
+  lastFeaturedAt DateTime?
+  position       Int        @default(0)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  restaurant Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  category   MenuCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  photos     DishPhoto[]
+
+  @@index([restaurantId, active])
+  @@index([categoryId])
+}
+
+/// Photo d'un plat (fichier dans le dossier de l'utilisateur, comme les autres uploads)
+model DishPhoto {
+  id        String   @id @default(cuid())
+  dishId    String
+  url       String
+  width     Int?
+  height    Int?
+  /// Point d'intérêt (0 à 1) : où se trouve le plat sur la photo, pour le recadrage
+  focusX    Float?
+  focusY    Float?
+  /// Contour de l'assiette (Table 3D) : { cx, cy, rx, ry, angle } en proportions de l'image ; null si non repérée
+  plate     Json?
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  dish Dish @relation(fields: [dishId], references: [id], onDelete: Cascade)
+
+  @@index([dishId, position])
+}
+
+enum RestoPackStatus {
+  /// En cours de préparation (contenus en création)
+  PREPARING
+  /// Prêt : le restaurateur valide, corrige ou retire chaque contenu
+  READY
+  /// Validé : crédits débités, contenus téléchargeables
+  VALIDATED
+  /// Rien à préparer (fermeture, carte vide…) : la raison est affichée, rien n'est débité
+  SKIPPED
+}
+
+/// Pack de la semaine : préparé le jour choisi, validé depuis le téléphone. Jamais sauté sans explication.
+model RestoPack {
+  id           String          @id @default(cuid())
+  restaurantId String
+  userId       String
+  /// Jour du pack (« AAAA-MM-JJ », heure de Paris) : un pack par restaurant et par jour de pack
+  packDate     String
+  status       RestoPackStatus @default(PREPARING)
+  /// Contenus : [{ projectId, template, caption, dishIds, kept }]
+  items        Json            @default("[]")
+  /// Contenus demandés mais impossibles à préparer : [{ template, reason }]
+  skipped      Json            @default("[]")
+  /// Raison d'un pack sauté (closed, empty)
+  reason       String?
+  creditCost   Int             @default(0)
+  validatedAt  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  projects   Project[]
+
+  @@unique([restaurantId, packDate])
+  @@index([userId, packDate])
 }

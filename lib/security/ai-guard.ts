@@ -1,7 +1,8 @@
+import type { PlanId } from "@/config/pricing";
 import "server-only";
 import { rateLimitAll, reserveBudget } from "@/lib/rate-limit";
 
-export type AiCaller = { userId: string; plan: "FREE" | "STARTER" | "PRO" };
+export type AiCaller = { userId: string; plan: PlanId };
 export const AI_TIMEOUT_MS = 90_000;
 export const AI_MAX_OUTPUT_TOKENS = 8_000;
 export const AI_MAX_INPUT_TOKENS = 24_000;

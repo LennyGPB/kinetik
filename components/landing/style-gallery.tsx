@@ -32,8 +32,9 @@ import { CommunityGallery, CommunityLandingCard, communityIntro } from "@/compon
 import { listCommunity } from "@/lib/custom-motion/actions";
 import type { CommunityTemplate } from "@/lib/custom-motion/queries";
 import { Section, SectionHeading } from "./section-heading";
+import { RestoTemplateGallery } from "@/components/resto/resto-template-gallery";
 
-type Kind = "community" | "all" | "motion" | "logo" | "post" | "store";
+type Kind = "community" | "all" | "motion" | "logo" | "post" | "store" | "resto";
 type Filter = StyleCategory | "all";
 type Item =
   | { kind: "motion" | "logo"; id: string; style: VideoStyle }
@@ -53,7 +54,7 @@ const FEATURED_MOTIONS = ["carousel", "optic", "veil"];
 const FEATURED_ITEMS: Item[] = FEATURED_MOTIONS.flatMap((id) => { const style = MOTION_STYLES.find((item) => item.id === id); return style ? [{ kind: "motion" as const, id, style }] : []; });
 const OTHER_MOTION_ITEMS: Item[] = interleave(MOTION_CATEGORIES.map((category) => MOTION_STYLES.filter((style) => style.category === category && !FEATURED_MOTIONS.includes(style.id)))).map((style) => ({ kind: "motion", id: style.id, style }));
 const MOTION_ITEMS: Item[] = [...FEATURED_ITEMS, ...OTHER_MOTION_ITEMS];
-const ITEMS: Record<Exclude<Kind, "all" | "community">, Item[]> = {
+const ITEMS: Record<Exclude<Kind, "all" | "community" | "resto">, Item[]> = {
   motion: MOTION_ITEMS,
   logo: VIDEO_STYLES.filter((style) => getLogoMotion(style.id)).map((style) => ({ kind: "logo", id: style.id, style })),
   post: POST_TEMPLATES.map((template) => ({ kind: "post", id: template.id, template })),
@@ -87,9 +88,9 @@ export function StyleGallery() {
   const [filter, setFilter] = useState<Filter>("all");
   const [expanded, setExpanded] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const items = kind === "community" ? [] : kind === "all" ? ALL_ITEMS : kind === "motion" && filter !== "all" ? MOTION_ITEMS.filter((item) => item.kind === "motion" && item.style.category === filter) : ITEMS[kind];
+  const items = kind === "community" || kind === "resto" ? [] : kind === "all" ? ALL_ITEMS : kind === "motion" && filter !== "all" ? MOTION_ITEMS.filter((item) => item.kind === "motion" && item.style.category === filter) : ITEMS[kind];
   const visibleItems = expanded ? items : items.slice(0, PREVIEW_COUNT);
-  const kindLabels: Record<Kind, string> = { community: locale === "fr" ? "Créations communautaires" : "Community creations", all: t.styleCategories.all, motion: postCopy(locale).motion, logo: t.styleCategories.logo, post: postCopy(locale).posts, store: storeCopy(locale).kind };
+  const kindLabels: Record<Kind, string> = { community: locale === "fr" ? "Créations communautaires" : "Community creations", all: t.styleCategories.all, motion: postCopy(locale).motion, logo: t.styleCategories.logo, post: postCopy(locale).posts, store: storeCopy(locale).kind, resto: "Restaurants" };
   const reset = () => { setExpanded(false); setPlayingId(null); };
 
   return (
@@ -107,7 +108,7 @@ export function StyleGallery() {
         subtitle={t.landing.gallery.subtitle}
       />
 
-      <FilterRow label={postCopy(locale).newContent} layoutId="gallery-kind" className="mt-10" value={kind} options={((isFeatureEnabled("community") ? ["all", "community", "motion", "logo", "post", "store"] : ["all", "motion", "logo", "post", "store"]) as Kind[]).map((value) => ({ value, label: kindLabels[value] }))} onChange={(value) => { setKind(value); setFilter("all"); reset(); }} />
+      <FilterRow label={postCopy(locale).newContent} layoutId="gallery-kind" className="mt-10" value={kind} options={((["all", "community", "motion", "logo", "post", "store", "resto"] as Kind[]).filter((value) => (value !== "community" || isFeatureEnabled("community")) && (value !== "resto" || isFeatureEnabled("resto")))).map((value) => ({ value, label: kindLabels[value] }))} onChange={(value) => { setKind(value); setFilter("all"); reset(); }} />
       <AnimatePresence initial={false}>
         {kind === "motion" && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }} className="overflow-hidden">
@@ -117,7 +118,15 @@ export function StyleGallery() {
       </AnimatePresence>
 
       <AnimatePresence mode="wait">
-        {kind === "community" ? (
+        {kind === "resto" ? (
+          <motion.div key="resto" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0.15 } }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="mx-auto mt-8 w-full max-w-5xl">
+            <RestoTemplateGallery linkTo="landing" expanded={expanded} className="columns-2 gap-3 sm:gap-4 md:columns-3" />
+            <div className="mt-6 flex flex-wrap justify-center gap-4">
+              {!expanded && <button type="button" onClick={() => setExpanded(true)} className="px-3 py-2 text-sm text-muted underline-offset-4 transition-colors hover:text-fg hover:underline">{t.copy["be55c61d5ebf"]}</button>}
+              <Link href="/restaurants" className="px-3 py-2 text-sm font-medium text-accent-text underline-offset-4 hover:underline">{locale === "fr" ? "Découvrir l'offre restaurants" : "See the restaurant offer"}</Link>
+            </div>
+          </motion.div>
+        ) : kind === "community" ? (
           <motion.div key="community" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0.15 } }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="mx-auto mt-4 w-full max-w-5xl">
             <p className="mx-auto max-w-xl text-center text-sm leading-relaxed text-muted">{communityIntro(locale === "fr")}</p>
             <CommunityGallery showIntro={false} signUpHref={`/register?redirectTo=${encodeURIComponent("/templates?tab=community")}`} />

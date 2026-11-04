@@ -1,5 +1,6 @@
 "use client";
 import { isProduct3D } from "@/config/physical-product";
+import { isRestoPremium3d } from "@/config/resto-templates";
 
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
@@ -12,20 +13,24 @@ import { Dialog } from "@/components/ui/dialog";
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { getExportCost, type ExportQuality } from "@/config/credits";
-import { FORMAT_IDS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
+import { FORMAT_IDS, RESTO_FORMATS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import type { PricingPlan } from "@/config/pricing";
 
 import { format as interpolate } from "@/lib/i18n";
 import { getRenderStatuses, startExports } from "@/lib/projects/actions";
 import { cn } from "@/lib/utils";
 import { Player } from "@remotion/player";
-import { DIMENSIONS, durationInFrames, FPS, type VideoProps } from "@/remotion/props";
+import { DIMENSIONS, durationInFrames, FPS, videoDimensions, type VideoProps } from "@/remotion/props";
 import { hasVoiceIssues } from "@/lib/projects/voiceover";
 import { KinetikVideo } from "@/remotion/video/KinetikVideo";
 
 /** Un rendu par format exporté. */
 type Job = { format: VideoFormatId; renderId: string; status: "rendering" | "done" | "failed"; progress: number; url: string | null };
 type Phase = { kind: "config" } | { kind: "rendering"; jobs: Job[] } | { kind: "done"; jobs: Job[] };
+
+/** Prix d'un contenu Resto, calculé côté serveur et formulé sans crédits. */
+/** `blocked` : téléchargement impossible pour l'instant (pack à valider), avec la raison */
+export type ExportRestoQuote = { credits: number; restoPlan: boolean; available: number; label: string; againLabel: string; hint?: string; blocked?: boolean };
 
 export function ExportDialog({
   open,
@@ -38,6 +43,8 @@ export function ExportDialog({
   onBalance,
   exported,
   videoProps,
+  singleFormat = false,
+  restoQuote = null,
 }: {
   open: boolean;
   onClose: () => void;
@@ -51,6 +58,10 @@ export function ExportDialog({
   exported: boolean;
   /** Vidéo telle qu'elle sera exportée (aperçu à côté de la modale) */
   videoProps: VideoProps;
+  /** Un seul format, sans choix (contenus Resto : le format fait partie de la version) */
+  singleFormat?: boolean;
+  /** Contenu Resto : prix fixe décidé par le serveur (lib/resto/allowance.ts) et libellé en packs / plats du jour */
+  restoQuote?: ExportRestoQuote | null;
 }) {
   const t = useDictionary();
 
@@ -74,10 +85,15 @@ export function ExportDialog({
   // Le premier export lancé ici fait aussi passer les suivants à moitié prix ; plusieurs formats = exports successifs
   const [exportedNow, setExportedNow] = useState(false);
   const reexport = exported || exportedNow;
-  const costs = formats.map((_, i) => getExportCost({ duration, quality, reexport: reexport || i > 0, decor: Boolean(videoProps.graph.recording?.decorId), premium3d: Boolean(videoProps.recipe.stage || isProduct3D(videoProps.graph.styleId)) }));
-  const cost = costs.reduce((sum, c) => sum + c, 0);
+  const costs = formats.map((_, i) => getExportCost({ duration, quality, reexport: reexport || i > 0, decor: Boolean(videoProps.graph.recording?.decorId), premium3d: Boolean(videoProps.recipe.stage || isProduct3D(videoProps.graph.styleId) || isRestoPremium3d(videoProps.graph)) }));
+  // Contenu Resto : proportions et libellé viennent de la version (le 4:5 n'est pas un format de projet)
+  const fixedRatio = videoProps.graph.resto ? RESTO_FORMATS[videoProps.graph.resto.format].ratio : null;
+  const ratioOf = (id: VideoFormatId) => fixedRatio ?? VIDEO_FORMATS[id].ratio;
+  // Resto : après un premier téléchargement ici, le suivant est gratuit pendant 24 h (offre Resto) ; sinon tarif habituel
+  const quote = restoQuote && (!exportedNow || restoQuote.restoPlan) ? (exportedNow ? { ...restoQuote, credits: 0, label: restoQuote.againLabel } : restoQuote) : null;
+  const cost = quote ? quote.credits : costs.reduce((sum, c) => sum + c, 0);
   const voiceIssues = hasVoiceIssues(videoProps.graph);
-  const canAfford = balance >= cost && !voiceIssues;
+  const canAfford = (quote ? quote.available : balance) >= cost && !voiceIssues && !quote?.blocked;
 
   // Suivi des rendus (Remotion Lambda, ou simulés sans configuration AWS) : un seul appel pour tous les formats,
   // et le suivant n'est planifié qu'une fois la réponse reçue (pas d'appels qui se chevauchent si le serveur est lent)
@@ -154,7 +170,7 @@ export function ExportDialog({
       <AnimatePresence mode="wait" initial={false}>
         {phase.kind === "config" && (
           <motion.div key="config" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
-            <div>
+            {!singleFormat && <div>
               <div className="mb-2.5 flex items-center justify-between gap-3">
                 <p className="text-sm font-medium">{x.format}</p>
                 <button
@@ -191,7 +207,7 @@ export function ExportDialog({
                   );
                 })}
               </div>
-            </div>
+            </div>}
 
             <div>
               <p className="mb-2.5 text-sm font-medium">{x.quality}</p>
@@ -229,12 +245,13 @@ export function ExportDialog({
             <div className="rounded-2xl border border-line bg-surface-2/60 px-4 py-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted">{x.cost}</span>
-                <span className="flex items-center gap-1.5 font-semibold">
+                {quote ? <span className="font-semibold">{quote.label}</span> : <span className="flex items-center gap-1.5 font-semibold">
                   {reexport && <span className="rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">{x.reexport}</span>}
                   <Coins className="size-4 text-accent-text" /> {cost} {t.common.credits}
-                </span>
+                </span>}
               </div>
               {/* Détail par format : le premier export au plein tarif, les suivants à moitié prix */}
+              {quote?.hint && !quote.blocked && <p className="mt-1 text-right text-xs text-subtle">{quote.hint}</p>}
               {formats.length > 1 && (
                 <p className="mt-1 text-right font-mono text-[11px] text-subtle">
                   {formats.map((id, i) => `${VIDEO_FORMATS[id].ratio} ${costs[i]}`).join(" + ")}
@@ -245,7 +262,7 @@ export function ExportDialog({
             <Button variant="purple" size="lg" onClick={start} loading={starting} disabled={!canAfford} className="w-full">
               {formats.length > 1 ? interpolate(x.startMany, { count: formats.length }) : x.start}
             </Button>
-            {voiceIssues ? <p role="alert" className="-mt-3 text-center text-sm text-danger">{t.voiceover.exportBlocked}</p> : !canAfford && <p className="-mt-3 text-center text-sm text-danger">{t.app.editor.insufficient}</p>}
+            {voiceIssues ? <p role="alert" className="-mt-3 text-center text-sm text-danger">{t.voiceover.exportBlocked}</p> : !canAfford && <p className="-mt-3 text-center text-sm text-danger">{quote?.blocked ? quote.hint : t.app.editor.insufficient}</p>}
           </motion.div>
         )}
 
@@ -283,7 +300,7 @@ export function ExportDialog({
             <ul className="flex w-full flex-col gap-2.5">
               {phase.jobs.map((job) => (
                 <li key={job.renderId} className="flex items-center gap-3">
-                  <span className="w-10 shrink-0 text-left font-mono text-xs text-muted">{VIDEO_FORMATS[job.format].ratio}</span>
+                  <span className="w-10 shrink-0 text-left font-mono text-xs text-muted">{ratioOf(job.format)}</span>
                   <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-3">
                     <motion.span className={cn("block h-full origin-left rounded-full", job.status === "failed" ? "bg-danger" : "bg-accent-gradient")} animate={{ scaleX: job.status === "failed" ? 1 : job.progress / 100 }} transition={{ duration: 0.6 }} />
                   </span>
@@ -307,7 +324,7 @@ export function ExportDialog({
             <p className="text-lg font-semibold">{phase.jobs.length > 1 ? x.doneMany : x.done}</p>
             <div className="flex w-full flex-col gap-2">
               {phase.jobs.map((job) => {
-                const label = phase.jobs.length > 1 ? `${x.download} · ${VIDEO_FORMATS[job.format].ratio}` : x.download;
+                const label = phase.jobs.length > 1 ? `${x.download} · ${ratioOf(job.format)}` : x.download;
                 // Lien S3 signé : le fichier est servi avec Content-Disposition: attachment (téléchargement direct)
                 return job.url?.startsWith("http") ? (
                   <a key={job.renderId} href={job.url} className={cn(buttonVariants({ size: "lg" }), "w-full")}>
@@ -361,7 +378,8 @@ function FormatSchema({ format, selected }: { format: VideoFormatId; selected: b
 
 /** Aperçu de la vidéo dans le format choisi, posé à côté de la modale. */
 function ExportPreview({ videoProps, format, quality }: { videoProps: VideoProps; format: VideoFormatId; quality: ExportQuality }) {
-  const { width, height } = DIMENSIONS[format];
+  const { width, height } = videoDimensions({ format, graph: videoProps.graph });
+  const k = quality === "SD" ? 2 / 3 : 1;
   // Même encombrement visuel quel que soit le format : la plus grande taille qui tient dans 420 × 560
   const scale = Math.min(420 / width, 560 / height);
   return (
@@ -388,7 +406,7 @@ function ExportPreview({ videoProps, format, quality }: { videoProps: VideoProps
         />
       </motion.div>
       <span className="rounded-full bg-black/50 px-3 py-1 font-mono text-xs text-white/80 backdrop-blur">
-        {VIDEO_FORMATS[format].ratio} · {resolution(format, quality)}
+        {videoProps.graph.resto ? RESTO_FORMATS[videoProps.graph.resto.format].ratio : VIDEO_FORMATS[format].ratio} · {Math.round(width * k)} × {Math.round(height * k)}
       </span>
     </div>
   );

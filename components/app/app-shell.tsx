@@ -4,7 +4,8 @@ import { CreateContentButton } from "@/components/create/create-content-button";
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { Coins, LayoutGrid, LayoutTemplate, MessageSquareHeart, Palette, Plus, Settings } from "lucide-react";
+import { Coins, LayoutGrid, LayoutTemplate, MessageSquareHeart, Palette, Plus, Settings, UtensilsCrossed } from "lucide-react";
+import { isFeatureEnabled } from "@/config/features";
 import { motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
 import { usePathname } from "@/lib/i18n/navigation";
@@ -37,12 +38,15 @@ export function AppShell({
   { href: "/dashboard", label: t.app.nav.dashboard, icon: LayoutGrid },
   // Mis en avant (teinte violette + tag « New ») même quand on n'est pas sur la page
   { href: "/templates", label: t.app.nav.templates, icon: LayoutTemplate, featured: true },
+  // Espace Resto (offre restaurateurs), une fois la feature publiée
+  ...(isFeatureEnabled("resto") ? [{ href: "/resto", label: t.locale === "en" ? "Restaurant space" : "Espace Resto", icon: UtensilsCrossed }] : []),
   { href: "/brand-kit", label: t.app.nav.brandKit, icon: Palette },
   { href: "/credits", label: t.app.nav.credits, icon: Coins },
   { href: "/settings", label: t.app.nav.settings, icon: Settings },
   { href: "/feedback", label: t.app.nav.feedback, icon: MessageSquareHeart },
 ];
 
+  const byHref = (href: string) => NAV.find((item) => item.href === href);
   const isActive = useIsActive();
 
   return (
@@ -122,7 +126,8 @@ export function AppShell({
       >
         <ul className="mx-auto grid h-16 max-w-md grid-cols-5 items-center px-2">
           {/* Mobile : Paramètres reste accessible depuis le menu de l'avatar */}
-          {[NAV[0], NAV[1], null, NAV[2], NAV[3]].map((item, i) => {
+          {/* Barre du bas : choisie par lien (l'Espace Resto, s'il est publié, remplace le Brand kit) */}
+          {[byHref("/dashboard"), byHref("/templates"), null, byHref("/resto") ?? byHref("/brand-kit"), byHref("/credits")].map((item, i) => {
             if (!item) {
               return (
                 <li key="create" className="flex justify-center">

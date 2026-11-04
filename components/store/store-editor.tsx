@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check, Copy, Download, Plus, Save, Trash2 } from "lucide-react";
-import Link from "@/lib/i18n/navigation";
+import Link, { useRouter } from "@/lib/i18n/navigation";
+import { backOrFallback } from "@/lib/navigation-back";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { STORE_FONTS, STORE_LAYOUTS, STORE_MAX_PAGES, STORE_TEMPLATES, type StoreLayout, type StorePlatform } from "@/config/store-templates";
 import { CREDIT_COSTS, getStoreExportCost } from "@/config/credits";
@@ -24,6 +25,7 @@ const FONT_LABELS: Record<(typeof STORE_FONTS)[number], string> = { rounded: "Ar
 export function StoreEditor({ project, initialBalance, watermark }: { project: StoreEditorData; initialBalance: number; watermark: boolean }) {
   const { locale } = useDictionary();
   const c = storeCopy(locale);
+  const router = useRouter();
   const [, startTransition] = useTransition();
   const [versions, setVersions] = useState(project.versions);
   const [document, setDocument] = useState(project.versions[0].document);
@@ -99,7 +101,7 @@ export function StoreEditor({ project, initialBalance, watermark }: { project: S
 
   return <div className="flex min-h-dvh flex-col bg-bg lg:h-dvh lg:overflow-hidden">
     <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6">
-      <div className="flex min-w-0 items-center gap-3"><Link href="/dashboard" onClick={(event) => { if (dirty) { event.preventDefault(); setError(c.savedFirst); } }} className={buttonVariants({ variant: "ghost", size: "icon" })} aria-label={c.back}><ArrowLeft /></Link><div className="min-w-0"><h1 className="truncate text-sm font-semibold">{name}</h1><p className="text-xs text-muted">{c.kind} · {document.pages.length}/{STORE_MAX_PAGES}</p></div></div>
+      <div className="flex min-w-0 items-center gap-3"><Link href="/dashboard" onClick={(event) => { if (dirty) { event.preventDefault(); setError(c.savedFirst); return; } backOrFallback(event, router, "/dashboard"); }} className={buttonVariants({ variant: "ghost", size: "icon" })} aria-label={c.back}><ArrowLeft /></Link><div className="min-w-0"><h1 className="truncate text-sm font-semibold">{name}</h1><p className="text-xs text-muted">{c.kind} · {document.pages.length}/{STORE_MAX_PAGES}</p></div></div>
       <div className="flex flex-wrap items-center gap-2"><span aria-live="polite" className="mr-2 text-xs text-muted">{busy === "save" ? c.saving : dirty ? c.unsaved : c.saved}</span><span className="text-xs tabular-nums text-muted">{balance} {c.credits}</span>
         <Button variant="outline" size="sm" disabled={!dirty || Boolean(busy) || uploadingAny} loading={busy === "save"} onClick={() => run("save", async () => {
           const result = await saveStore(project.id, current.number, document, undefined, { name, ...media });

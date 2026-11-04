@@ -168,6 +168,10 @@ export const MAX_SCREEN_COUNT = 3;
 
 export type SceneGraph = {
   pitch?: import("../pitch/model").PitchMetadata;
+  /** Contenu Resto (plat du jour…) : rendu par remotion/video/resto, à la place des scènes. */
+  resto?: import("../resto/content").RestoContent;
+  /** Légende du contenu Resto (à copier sous le post) ; une nouvelle version repart sans */
+  restoCaption?: string;
   voiceover?: import("./voiceover").Voiceover;
   deviceMockup?: import("../../config/device-mockups").DeviceMockup;
   /** Couleur de la coque de l’appareil 3D (#rrggbb). Absente = couleur du modèle. */

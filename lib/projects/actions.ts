@@ -10,12 +10,14 @@ import { refresh } from "next/cache";
 import { localizedRedirect } from "@/lib/i18n/redirect";
 import { CREDIT_COSTS, EDIT_PRICING, editCreditsForCost, EXPORT_QUALITIES, getExportCost, unchangedEditCredits, type ExportQuality } from "@/config/credits";
 import type { AiUsageTotals } from "@/lib/services/ai-cost";
-import { FORMAT_IDS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
+import { FORMAT_IDS, RESTO_FORMATS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import { getTrack } from "@/config/music";
-import { getPlan } from "@/config/pricing";
+import { type PlanId, featurePlan } from "@/config/pricing";
+import { getRestoAllowance, quoteRestoExport } from "@/lib/resto/billing";
 import { getRecipe } from "@/config/recipes";
 import { getStyle } from "@/config/styles";
 import { isProduct3D } from "@/config/physical-product";
+import { isRestoPremium3d } from "@/config/resto-templates";
 import { MAX_PROJECT_COLORS } from "@/config/colors";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { claimGeneration, getCreditBalance, InsufficientCreditsError, refundCredits, spendCredits } from "@/lib/credits/ledger";
@@ -50,6 +52,7 @@ function insufficient(error: InsufficientCreditsError) {
 
 /** Le rendu passe par le plateau 3D (export plus coûteux) : même règle que buildVideoProps (style de la version, sauf pitch). */
 function isPremium3d(projectStyleId: string | null, graph: SceneGraph) {
+  if (graph.resto) return isRestoPremium3d(graph);
   return !graph.pitch && Boolean(getRecipe(graph.styleId ?? projectStyleId).stage || isProduct3D(graph.styleId ?? projectStyleId));
 }
 
@@ -239,7 +242,7 @@ const types = t.app.credits.types;
 // ───────────── Chat & versions ─────────────
 
 /** Coût réel d'une demande au chat (table AiUsage) ; un échec d'écriture ne bloque jamais la demande. */
-async function recordAiUsage(userId: string, plan: "FREE" | "STARTER" | "PRO", projectId: string, usage: AiUsageTotals | undefined, credits: number) {
+async function recordAiUsage(userId: string, plan: PlanId, projectId: string, usage: AiUsageTotals | undefined, credits: number) {
   if (!usage) return;
   console.info("[edit-cost]", { costUsd: Math.round(usage.costUsd * 10000) / 10000, credits, turns: usage.turns, previews: usage.previews });
   try {
@@ -840,7 +843,7 @@ const types = t.app.credits.types;
   const project = await ownedProject(user.id, projectId);
   if (!project) return { ok: false, error: "not_found" };
 
-  const plan = getPlan(user.plan);
+  const plan = featurePlan(user);
   if (options.quality === "HD" && plan.maxQuality !== "HD") return { ok: false, error: "invalid" };
 
   const latest = await db.projectVersion.findFirst({ where: { projectId }, orderBy: { number: "desc" }, select: { id: true, scenes: true } });
@@ -866,7 +869,16 @@ const types = t.app.credits.types;
     if (running >= LIMITS.exportConcurrent) return { ok: false, error: "export_busy" };
     // Ré-export (le projet a déjà un rendu réussi ou en cours) : moitié prix. Décidé sous le verrou pour éviter deux « premiers » exports
     const reexport = (await db.render.count({ where: { projectId, status: { not: "FAILED" } } })) > 0;
-    cost = getExportCost({ duration, quality: options.quality, reexport, decor: Boolean(graph.recording?.decorId), premium3d: isPremium3d(project.styleId, graph) });
+    // Contenus Resto : vidéos de bienvenue offertes, un plat du jour à prix fixe pour l'offre Resto (lib/resto/allowance.ts)
+    const quote = graph.resto ? await quoteRestoExport(user, project) : null;
+    cost = quote ? quote.credits : getExportCost({ duration, quality: options.quality, reexport, decor: Boolean(graph.recording?.decorId), premium3d: isPremium3d(project.styleId, graph) });
+    // Contenu d'un pack pas encore validé : il se télécharge après la validation du pack
+    if (quote?.kind === "packPending") return { ok: false, error: "invalid" };
+    if (quote?.kind === "dish") {
+      // Les crédits des packs du mois restent de côté
+      const allowance = await getRestoAllowance(user.id);
+      if (allowance.free < cost) return { ok: false, error: "insufficient_credits", required: cost, available: allowance.free };
+    }
     render = await db.render.create({
       data: { projectId, versionId: latest.id, status: "RENDERING", format: options.format, quality: options.quality, watermark: plan.watermark, creditCost: cost },
     });
@@ -891,7 +903,7 @@ const types = t.app.credits.types;
     if (!source) throw new Error("Projet introuvable");
     // Le format d'export peut différer de celui du projet : la composition s'adapte
     const props = { ...buildVideoProps(source, graph, plan.watermark), format: options.format };
-    const lambda = await startLambdaRender({ props, userId: user.id, quality: options.quality, fileName: exportFileName(project.appName, VIDEO_FORMATS[options.format].ratio), batch: Math.min(FORMAT_IDS.length, Math.max(1, Math.floor(Number(batch)) || 1)) });
+    const lambda = await startLambdaRender({ props, userId: user.id, quality: options.quality, fileName: exportFileName(project.appName, graph.resto ? RESTO_FORMATS[graph.resto.format].ratio : VIDEO_FORMATS[options.format].ratio), batch: Math.min(FORMAT_IDS.length, Math.max(1, Math.floor(Number(batch)) || 1)) });
     await db.render.update({ where: { id: render.id }, data: { lambdaRenderId: lambda.renderId, bucketName: lambda.bucketName } });
   } catch (error) {
     console.error("[export]", error);
@@ -936,7 +948,8 @@ export async function startExports(
   const duration = totalDuration(parseSceneGraph(latest.scenes));
   const exported = (await db.render.count({ where: { projectId, status: { not: "FAILED" } } })) > 0;
   const premium3d = isPremium3d(project.styleId, parseSceneGraph(latest.scenes));
-  const required = formats.reduce((sum, _, i) => sum + getExportCost({ duration, quality: options.quality, reexport: exported || i > 0, premium3d, decor: Boolean(parseSceneGraph(latest.scenes).recording?.decorId) }), 0);
+  const quote = parseSceneGraph(latest.scenes).resto ? await quoteRestoExport(user, project) : null;
+  const required = quote ? quote.credits * formats.length : formats.reduce((sum, _, i) => sum + getExportCost({ duration, quality: options.quality, reexport: exported || i > 0, premium3d, decor: Boolean(parseSceneGraph(latest.scenes).recording?.decorId) }), 0);
   const available = (await getCreditBalance(user.id)).total;
   if (available < required) return { ok: false, error: "insufficient_credits", required, available };
 

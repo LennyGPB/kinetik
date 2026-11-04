@@ -186,6 +186,13 @@
 }
 .hero-capabilities-cardPopular .hero-capabilities-cardContent p { color: rgb(255 255 255 / .85); }
 .hero-capabilities-cardPopular .hero-capabilities-arrow { background: rgb(255 255 255 / .12); border-color: rgb(255 255 255 / .3); color: white; }
+/* Carte « Pour les restaurants » : même mise en avant que « Le plus populaire », en orange */
+.hero-capabilities-card.hero-capabilities-cardResto {
+  background: radial-gradient(ellipse at top, rgb(255 255 255 / .2), transparent 70%), linear-gradient(155deg, #fb923c 0%, #f97316 42%, #9a3412 100%);
+  box-shadow: 0 0 0 1px rgb(254 215 170 / .55), 0 30px 80px -24px rgb(249 115 22 / .75), 0 0 60px -14px rgb(251 146 60 / .55);
+}
+.hero-capabilities-cardResto .hero-capabilities-cardContent p { color: rgb(255 255 255 / .85); }
+.hero-capabilities-cardResto .hero-capabilities-arrow { background: rgb(255 255 255 / .14); border-color: rgb(255 255 255 / .35); color: white; }
 
 /* Page de création : mêmes cartes, en plus compact (même taille que les sous-choix Motion) */
 .hero-capabilities-compact .hero-capabilities-cardSlot { width:262px; flex-basis:262px; }

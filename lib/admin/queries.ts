@@ -42,7 +42,7 @@ export async function getAdminStats() {
       db.postExport.count({ where: { status: "DONE", createdAt: { gte: since30 } } }),
     ]);
 
-  const plans = { FREE: 0, STARTER: 0, PRO: 0 };
+  const plans = { FREE: 0, STARTER: 0, PRO: 0, RESTO: 0 };
   for (const row of byPlan) plans[row.plan] = row._count._all;
 
   // Inscriptions par jour sur 14 jours (jour local du serveur)
@@ -57,7 +57,7 @@ export async function getAdminStats() {
 
   return {
     users: { total: usersTotal, last7: users7, last30: users30, admins },
-    subscribers: { total: plans.STARTER + plans.PRO, ...plans },
+    subscribers: { total: plans.STARTER + plans.PRO + plans.RESTO, ...plans },
     projects: { total: projectsTotal, ready: projectsReady },
     renders: { done: rendersDone + postExportsDone, last30: renders30 + postExports30 },
     credits: { spent30: Math.max(0, -(spent30._sum.amount ?? 0) - (refunded30._sum.amount ?? 0)), bought30: bought30._sum.amount ?? 0 },

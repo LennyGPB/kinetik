@@ -17,10 +17,14 @@ import { LIMITS, limitKey } from "@/lib/security/limits";
  * Les crédits sont attribués uniquement par le webhook (app/api/stripe/webhook), jamais au retour du navigateur.
  */
 export type CheckoutItem =
-  | { kind: "plan"; planId: PaidPlanId; billing: "monthly" | "yearly" }
+  | { kind: "plan"; planId: PaidPlanId; billing: "monthly" | "yearly"; /** Offre Resto déjà abonné : remplacement confirmé dans l'app */ confirmSwitch?: boolean }
   | { kind: "pack"; packId: string };
 
-export type CheckoutResult = { ok: true; url: string } | { ok: false; reason: "not_implemented" | "auth" | "rate_limited" | "error" };
+export type CheckoutResult =
+  | { ok: true; url: string }
+  | { ok: false; reason: "not_implemented" | "auth" | "rate_limited" | "error" | "payment_failed" }
+  /** Déjà abonné à une autre offre : l'app affiche ce qui change avant de remplacer l'abonnement */
+  | { ok: false; reason: "switch_confirm"; currentPlan: string };
 
 const KEEPS_PLAN = new Set(["active", "trialing", "past_due"]);
 
@@ -38,7 +42,7 @@ async function context() {
   const locale = (await getLocale()) === "fr" ? "fr" : "en";
   const billing = await db.user.findUniqueOrThrow({
     where: { id: user.id },
-    select: { stripeCustomerId: true, stripeSubscriptionId: true, subscriptionStatus: true },
+    select: { stripeCustomerId: true, stripeSubscriptionId: true, subscriptionStatus: true, plan: true },
   });
   return { user, locale, billing } as const;
 }
@@ -55,6 +59,8 @@ async function ensureCustomer(user: { id: string; email: string; name: string },
 }
 
 const returnUrl = (locale: string, status?: string) => `${siteConfig.url}/${locale}/credits${status ? `?checkout=${status}` : ""}`;
+/** L'offre Resto revient dans son espace : l'accueil après paiement, l'offre en cas d'abandon. */
+const restoUrl = (locale: string, page: "welcome" | "offer") => `${siteConfig.url}/${locale}/resto/${page === "welcome" ? "bienvenue?checkout=success" : "offre"}`;
 
 async function portalUrl(customer: string, locale: "fr" | "en", flow?: Stripe.BillingPortal.SessionCreateParams.FlowData) {
   const session = await stripe().billingPortal.sessions.create({
@@ -94,10 +100,28 @@ export async function startCheckout(item: CheckoutItem): Promise<CheckoutResult>
     const interval: BillingInterval = item.billing === "monthly" ? "month" : "year";
     const key = planLookupKey(item.planId, interval);
     const price = (await pricesByLookupKey([key])).get(key)!;
+    const resto = item.planId === "RESTO";
+    const subscribed = Boolean(billing.stripeSubscriptionId && KEEPS_PLAN.has(billing.subscriptionStatus ?? ""));
+
+    // Resto n'est pas dans le changement d'offre du portail (réservé à Starter/Pro) : remplacement direct,
+    // après confirmation dans l'app, au prorata et payé tout de suite. Si le paiement échoue, l'offre actuelle reste.
+    if (resto && subscribed) {
+      const sub = await stripe().subscriptions.retrieve(billing.stripeSubscriptionId!);
+      const current = sub.items.data[0];
+      if (current.price.id === price.id) return { ok: true, url: restoUrl(locale, "welcome") };
+      if (!item.confirmSwitch) return { ok: false, reason: "switch_confirm", currentPlan: billing.plan };
+      const updated = await stripe().subscriptions.update(sub.id, {
+        items: [{ id: current.id, price: price.id, quantity: 1 }],
+        proration_behavior: "always_invoice", payment_behavior: "pending_if_incomplete",
+        cancel_at_period_end: false, metadata: { userId: user.id }, expand: ["latest_invoice"],
+      }, { idempotencyKey: `resto-switch:${sub.id}:${price.id}:${current.price.id}` });
+      if (updated.pending_update) return { ok: false, reason: "payment_failed" };
+      return { ok: true, url: restoUrl(locale, "welcome") };
+    }
 
     // Déjà abonné : changement d'offre via le portail (aperçu du prorata, confirmation, paiement immédiat)
-    if (billing.stripeSubscriptionId && KEEPS_PLAN.has(billing.subscriptionStatus ?? "")) {
-      const sub = await stripe().subscriptions.retrieve(billing.stripeSubscriptionId);
+    if (subscribed) {
+      const sub = await stripe().subscriptions.retrieve(billing.stripeSubscriptionId!);
       const current = sub.items.data[0];
       if (current.price.id === price.id) return { ok: true, url: await portalUrl(customer, locale) };
       return { ok: true, url: await portalUrl(customer, locale, {
@@ -109,6 +133,7 @@ export async function startCheckout(item: CheckoutItem): Promise<CheckoutResult>
 
     const session = await stripe().checkout.sessions.create({
       ...base, mode: "subscription", line_items: [{ price: price.id, quantity: 1 }],
+      ...(resto && { success_url: restoUrl(locale, "welcome"), cancel_url: restoUrl(locale, "offer") }),
       allow_promotion_codes: true,
       metadata: { userId: user.id }, subscription_data: { metadata: { userId: user.id } },
     });

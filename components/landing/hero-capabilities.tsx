@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, FileText, MousePointer2, Play, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, FileText, MousePointer2, Play, Sparkles, UtensilsCrossed } from "lucide-react";
 import { ProductThumbnail } from "@/components/media/product-thumbnail";
 import Link from "@/lib/i18n/navigation";
 import Image from "next/image";
@@ -14,8 +14,12 @@ import { demoStore } from "@/lib/store/document";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { isFormatEnabled } from "@/config/features";
 import "./hero-capabilities.css";
+import dynamic from "next/dynamic";
 
-export type Format = "motion" | "stores" | "pdf" | "signature" | "post" | "demo" | "decor" | "product";
+// Moteur vidéo chargé à part : il n'alourdit pas le premier affichage de la home
+const RestoExampleVideo = dynamic(() => import("@/components/resto/resto-example-video").then((m) => m.RestoExampleVideo), { ssr: false });
+
+export type Format = "motion" | "stores" | "pdf" | "signature" | "post" | "demo" | "decor" | "product" | "resto";
 
 // Défilement de templates réels (CSS pur : les deux copies du rail restent synchro). Chaque slide dure 2,5 s.
 function TemplateReel({ count, className, children }: { count: number; className: string; children: ReactNode[] }) {
@@ -71,7 +75,13 @@ function SignatureReel() {
   </div>;
 }
 
+/** Kinetik Resto : la vidéo du plat du jour en style Street, qui tourne en boucle. */
+function RestoPreview() {
+  return <div className="hero-capabilities-preview bg-[#120a1f]"><RestoExampleVideo template="plat-du-jour" style="street" cover /></div>;
+}
+
 export function Preview({ kind, fr }: { kind: Format; fr: boolean }) {
+  if (kind === "resto") return <RestoPreview />;
   if (kind === "product") return <div className="hero-capabilities-preview"><ProductThumbnail templateId="product-studio" /></div>;
   if (kind === "decor") return <div className="hero-capabilities-preview"><Image src="/decors/prepared/setup-thumb.webp" alt="" fill sizes="290px" className="object-cover" /></div>;
   if (kind === "motion") return <div className={`hero-capabilities-preview hero-capabilities-motionPreview`}>
@@ -213,11 +223,13 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
       scroller.removeEventListener("touchcancel", onTouchEnd);
     };
   }, [creation]);
-  // Motion design (feature phare) est centrée à l'arrivée, entre Produit physique et Signatures.
+  // Motion design (feature phare) est centrée à l'arrivée, entre « Pour les restaurants » et Signatures.
   // Chaque carte a sa propre inclinaison au repos (rotateX, rotateY, rotateZ en degrés)
   const product = { kind: "product" as const, title: fr ? "Produit physique" : "Physical product", description: fr ? "Tes photos prennent vie dans trois univers 2.5D." : "Bring your product photos to life in three 2.5D worlds.", tilt: [8, 18, 4] as [number, number, number] };
   const homeFormats: { kind: Format; title: string; description: string; tilt: [number, number, number] }[] = [
     { ...product, tilt: [9, 20, 5] },
+    // Offre restaurateurs : la carte mène à sa page (/restaurants), pas à l'inscription
+    { kind: "resto", title: fr ? "Pour les restaurants" : "For restaurants", description: fr ? "Tes posts de la semaine, prêts chaque lundi." : "Your weekly posts, ready every Monday.", tilt: [9, -20, 4] },
     { kind: "motion", title: "Motion design", description: fr ? "Ta marque prend vie en vidéo." : "Bring your brand to life on video.", tilt: [10, -22, -6] },
     { kind: "signature", title: fr ? "Signatures animées" : "Animated signatures", description: fr ? "Un nom. Un style. Une empreinte." : "A name. A style. A lasting impression.", tilt: [12, 24, -5] },
     { kind: "post", title: "Posts Instagram", description: fr ? "Des visuels qui arrêtent le scroll." : "Visuals that stop the scroll.", tilt: [6, -26, 5] },
@@ -237,7 +249,8 @@ export function HeroCapabilities({ creation = false, compact = false, onOpen }: 
       <div ref={track} className="hero-capabilities-track">
         {[false, true].map((duplicate) => <ul key={String(duplicate)} aria-hidden={duplicate || undefined} aria-label={duplicate ? undefined : fr ? "Tous les formats de création" : "All creation formats"} className="hero-capabilities-rail">
           {formats.map((format) => <li key={format.kind} className={`hero-capabilities-cardSlot hero-capabilities-kind-${format.kind}`}>
-            <Link href={creation ? destination(format.kind) : "/register"} className={`hero-capabilities-card${format.kind === "motion" ? " hero-capabilities-cardPopular" : ""}`} tabIndex={duplicate ? -1 : undefined} onClick={(event) => { if (onOpen?.(format.kind)) event.preventDefault(); }} onPointerMove={trackSheen} onPointerLeave={resetSheen} style={{ "--rx": `${format.tilt[0]}deg`, "--ry": `${format.tilt[1]}deg`, "--rz": `${format.tilt[2]}deg` } as CSSProperties}>
+            <Link href={creation ? destination(format.kind) : format.kind === "resto" ? "/restaurants" : "/register"} className={`hero-capabilities-card${format.kind === "motion" ? " hero-capabilities-cardPopular" : format.kind === "resto" ? " hero-capabilities-cardResto" : ""}`} tabIndex={duplicate ? -1 : undefined} onClick={(event) => { if (onOpen?.(format.kind)) event.preventDefault(); }} onPointerMove={trackSheen} onPointerLeave={resetSheen} style={{ "--rx": `${format.tilt[0]}deg`, "--ry": `${format.tilt[1]}deg`, "--rz": `${format.tilt[2]}deg` } as CSSProperties}>
+              {format.kind === "resto" && <span className="absolute -top-4 left-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-orange-200/60 bg-[radial-gradient(ellipse_at_top,rgb(255_255_255/0.22),transparent_70%),linear-gradient(155deg,#fb923c_0%,#f97316_45%,#c2410c_100%)] px-3 py-1.5 text-xs font-semibold text-white shadow-[inset_0_1px_1px_rgb(255_255_255/0.3),0_8px_24px_-8px_rgb(249_115_22/0.7)]"><UtensilsCrossed size={13} aria-hidden />{fr ? "Spécial restos" : "Made for restaurants"}</span>}
               {format.kind === "motion" && <span className={`absolute -top-4 left-4 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs ${purpleButtonStyle}`}><Sparkles size={13} aria-hidden />{fr ? "Le plus populaire" : "Most popular"}</span>}
               <div className="hero-capabilities-artwork" aria-hidden="true"><Preview kind={format.kind} fr={fr} /></div>
               <div className="hero-capabilities-cardContent">

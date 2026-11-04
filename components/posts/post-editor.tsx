@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check, Copy, Download, Link2, Plus, Save, Trash2 } from "lucide-react";
-import Link from "@/lib/i18n/navigation";
+import Link, { useRouter } from "@/lib/i18n/navigation";
+import { backOrFallback } from "@/lib/navigation-back";
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 import { POST_FORMATS, POST_TEMPLATES, getPostTemplate, isPhotoTemplate, type PostFormat } from "@/config/post-templates";
 import type { UploadedFile } from "@/lib/storage/client";
@@ -23,6 +24,7 @@ const selectClass = "h-10 w-full rounded-xl border border-line-strong bg-surface
 export function PostEditor({ project, initialBalance, watermark }: { project: PostEditorData; initialBalance: number; watermark: boolean }) {
   const { locale } = useDictionary();
   const c = postCopy(locale);
+  const router = useRouter();
   const toast = useToast();
   const [, startTransition] = useTransition();
   const [versions, setVersions] = useState(project.versions);
@@ -87,7 +89,7 @@ export function PostEditor({ project, initialBalance, watermark }: { project: Po
 
   return <div className="flex min-h-dvh flex-col bg-bg lg:h-dvh lg:overflow-hidden">
     <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6">
-      <div className="flex min-w-0 items-center gap-3"><Link href="/dashboard" onClick={(event) => { if (dirty) { event.preventDefault(); setError(c.savedFirst); } }} className={buttonVariants({ variant: "ghost", size: "icon" })} aria-label={c.back}><ArrowLeft /></Link><div className="min-w-0"><h1 className="truncate text-sm font-semibold">{name}</h1><p className="text-xs text-muted">{c.posts} · {document.pages.length}/5</p></div></div>
+      <div className="flex min-w-0 items-center gap-3"><Link href="/dashboard" onClick={(event) => { if (dirty) { event.preventDefault(); setError(c.savedFirst); return; } backOrFallback(event, router, "/dashboard"); }} className={buttonVariants({ variant: "ghost", size: "icon" })} aria-label={c.back}><ArrowLeft /></Link><div className="min-w-0"><h1 className="truncate text-sm font-semibold">{name}</h1><p className="text-xs text-muted">{c.posts} · {document.pages.length}/5</p></div></div>
       <div className="flex flex-wrap items-center gap-2"><span aria-live="polite" className="mr-2 text-xs text-muted">{busy === "save" ? c.saving : dirty ? c.unsaved : c.saved}</span><span className="text-xs tabular-nums text-muted">{balance} {c.credits}</span><Button variant="outline" size="sm" disabled={!dirty || Boolean(busy) || uploadingAny} loading={busy === "save"} onClick={() => run("save", async () => {
         const result = await savePost(project.id, current.number, document, undefined, { name, ...media });
         if (result.ok) { acceptVersion(result.version); setSavedMeta(JSON.stringify({ name, ...media })); setExportRequest(null); setAiRequest(null); } else showError(result.error);

@@ -7,6 +7,7 @@ import { useDictionary } from "@/lib/i18n/use-dictionary";
 
 import { ArrowLeft, ChevronDown, Coins, Download, History, Images, Languages, Layers, MessageSquare, MoreHorizontal, Music2, Palette, Share2, Undo2 } from "lucide-react";
 import Link, { useRouter } from "@/lib/i18n/navigation";
+import { backOrFallback } from "@/lib/navigation-back";
 import { uploadFile } from "@/lib/storage/client";
 import { useState, useTransition, type ReactNode } from "react";
 import { StatusBadge } from "@/components/app/project-grid";
@@ -245,6 +246,7 @@ export function Editor({
     <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-line px-2 sm:gap-3 sm:px-4">
       <Link
         href="/dashboard"
+        onClick={(event) => backOrFallback(event, router, "/dashboard")}
         aria-label={t.common.back}
         className="grid size-10 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-fg"
       >

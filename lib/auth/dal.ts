@@ -1,15 +1,17 @@
+import type { PlanId } from "@/config/pricing";
 import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { readSession } from "./session";
+import { ensureAdminCredits } from "@/lib/credits/admin-credits";
 
 export type CurrentUser = {
   id: string;
   sessionId: string;
   name: string;
   email: string;
-  plan: "FREE" | "STARTER" | "PRO";
+  plan: PlanId;
   role: "USER" | "ADMIN";
   planRenewsAt: Date | null;
   hasPassword: boolean;
@@ -30,6 +32,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   if (!user) return null;
 
   const { passwordHash, ...rest } = user;
+  // Admins : tout est gratuit, leur solde est recomplété automatiquement (jamais bloquant si ça échoue)
+  if (user.role === "ADMIN") await ensureAdminCredits(user.id).catch((error) => console.error("[admin-credits]", error instanceof Error ? error.message : error));
   return { ...rest, sessionId: session.sessionId, hasPassword: Boolean(passwordHash) };
 });
 

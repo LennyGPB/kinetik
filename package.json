@@ -15,6 +15,7 @@
     "db:studio": "prisma studio",
     "typecheck": "tsc --noEmit",
     "test:credits": "node --import tsx --conditions=react-server --test lib/credits/balance.test.ts lib/credits/ledger.test.ts",
+    "test:resto": "node --import tsx --conditions=react-server --test lib/resto/model.test.ts lib/resto/content.test.ts lib/resto/affiche.test.ts lib/resto/match.test.ts lib/resto/allowance.test.ts lib/resto/pack-builder.test.ts lib/resto/places-hours.test.ts",
     "test:billing": "node --import tsx --conditions=react-server --test lib/billing/sync.test.ts",
     "test:credits:postgres": "node --import tsx --conditions=react-server --env-file=.env scripts/test-credits-postgres.ts",
     "video:studio": "remotion studio remotion/index.ts",

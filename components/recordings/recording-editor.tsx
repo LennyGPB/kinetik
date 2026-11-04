@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { PlayerRef } from "@remotion/player";
 import { ArrowLeft, Download, Save, Share2, ScanSearch } from "lucide-react";
-import Link from "@/lib/i18n/navigation";
+import Link, { useRouter } from "@/lib/i18n/navigation";
+import { backOrFallback } from "@/lib/navigation-back";
 import { Button } from "@/components/ui/button";
 import { ProjectName } from "@/components/editor/project-name";
 import { ExportDialog } from "@/components/editor/export-dialog";
@@ -22,6 +23,7 @@ import { RecordingControls } from "./recording-controls";
 
 export function RecordingEditor({ project, initialBalance, plan }: { project: EditorProject; initialBalance: number; plan: Pick<PricingPlan, "watermark" | "maxQuality"> }) {
   const t = useDictionary(), c = recordingCopy(t.locale);
+  const router = useRouter();
   const [version, setVersion] = useState(project.versions[project.versions.length - 1]);
   const [settings, setSettings] = useState<RecordingSettings>(version.graph.recording!);
   const [panel, setPanel] = useState<"zooms" | "stage">("zooms");
@@ -71,7 +73,7 @@ export function RecordingEditor({ project, initialBalance, plan }: { project: Ed
   }
   return <div className="flex min-h-dvh flex-col bg-bg">
     <header className="sticky top-0 z-40 bg-bg flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6">
-      <div className="flex min-w-0 items-center gap-3"><Link href="/dashboard" aria-label={c.back} className="rounded-full p-2 text-muted hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { if (dirty && !window.confirm(c.dirty + ". " + c.reset + " ?")) e.preventDefault(); }}><ArrowLeft className="size-4" /></Link><div className="min-w-0"><div className="max-w-64 sm:max-w-sm"><ProjectName projectId={project.id} initialName={project.name} /></div><p className="mt-0.5 text-xs text-muted">{decor ? dc.title : c.title} · {dirty ? c.dirty : c.saved}</p></div></div>
+      <div className="flex min-w-0 items-center gap-3"><Link href="/dashboard" aria-label={c.back} className="rounded-full p-2 text-muted hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent" onClick={(e) => { if (dirty && !window.confirm(c.dirty + ". " + c.reset + " ?")) { e.preventDefault(); return; } backOrFallback(e, router, "/dashboard"); }}><ArrowLeft className="size-4" /></Link><div className="min-w-0"><div className="max-w-64 sm:max-w-sm"><ProjectName projectId={project.id} initialName={project.name} /></div><p className="mt-0.5 text-xs text-muted">{decor ? dc.title : c.title} · {dirty ? c.dirty : c.saved}</p></div></div>
       <div className="flex items-center gap-2"><Button variant="ghost" size="icon" disabled={busy || !valid} aria-label={t.app.share.button} onClick={async () => { if (!dirty || await save()) setShareOpen(true); }}><Share2 /></Button><Button variant="outline" loading={saving} disabled={busy || !dirty || !valid} onClick={() => void save()}><Save />{c.save}</Button><Button disabled={busy || !valid} onClick={async () => { if (!dirty || await save()) setExportOpen(true); }}><Download />{c.export}</Button></div>
     </header>
     <div className="mx-auto grid w-full max-w-[1600px] flex-1 items-start gap-6 px-4 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_360px]">
