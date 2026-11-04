@@ -1,6 +1,9 @@
 import type { RestoStyleId } from "@/config/resto-templates";
 import type { RestoContent } from "@/lib/resto/content";
-import { upcomingMonday } from "@/lib/resto/model";
+
+/** Semaine d'exemple (lundi et vendredi), pour le menu de la semaine et l'événement */
+const EXAMPLE_MONDAY = "2027-03-15";
+const EXAMPLE_FRIDAY = "2027-03-19";
 
 /** Photo d'exemple du plat du jour (droits de l'éditeur, publiée dans public/resto-examples). */
 export const RESTO_EXAMPLE_PHOTO = "/resto-examples/croque.jpg";
@@ -18,8 +21,9 @@ function baseExample(template: RestoContent["template"], locale: "fr" | "en"): R
   const fr = locale === "fr";
   const focus = { x: 0.5, y: 0.5 };
   const base = { format: "PORTRAIT" as const, restaurantName: fr ? "Chez Margot" : "Margot's", language: locale, photo: null, focus };
-  const monday = upcomingMonday(new Date());
-  const friday = (() => { const [y, m, d] = monday.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + 4)).toISOString().slice(0, 10); })();
+  // Dates fixes : ces exemples sont aussi rendus pendant la génération des pages publiques, où l'heure courante n'est pas lisible
+  const monday = EXAMPLE_MONDAY;
+  const friday = EXAMPLE_FRIDAY;
   switch (template) {
     case "plat-du-jour": return { format: "PORTRAIT", restaurantName: base.restaurantName, language: locale, template, style: "street", focus: { x: 0.5, y: 0.55 }, dish: { name: fr ? "Croque-madame & frites" : "Croque-madame & fries", priceCents: 1290, description: fr ? "Jambon blanc, comté, œuf au plat" : "Ham, comté cheese, fried egg" } };
     case "menu-semaine": {
