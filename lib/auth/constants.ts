@@ -5,6 +5,9 @@ export const PROTECTED_PREFIXES = ["/dashboard", "/templates", "/create", "/proj
 
 export const DEFAULT_REDIRECT = "/dashboard";
 
+/** Après inscription : l'assistant motion classique, où la première vidéo est offerte. */
+export const FIRST_VIDEO_PATH = "/create?kind=motion&flow=manual";
+
 /** N'accepte que des chemins internes (évite les open redirects). */
 export function safeRedirect(path: string | null | undefined, fallback = DEFAULT_REDIRECT) {
   if (!path || !path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) return fallback;

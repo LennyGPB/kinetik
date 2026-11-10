@@ -13,7 +13,7 @@ import type { ExportRestoQuote } from "@/components/editor/export-dialog";
 import { getRestoAllowance, quoteRestoExport } from "@/lib/resto/billing";
 import { spaceCopy } from "@/lib/resto/space-copy";
 import { canUseResto, needsRestoOffer } from "@/lib/resto/access";
-import { getCreditBalance } from "@/lib/credits/ledger";
+import { getCreditBalance, getTrialState } from "@/lib/credits/ledger";
 
 import { getEditorProject } from "@/lib/projects/queries";
 import { db } from "@/lib/db";
@@ -61,14 +61,16 @@ async function EditorLoader({ params }: { params: PageProps<"/[locale]/project/[
   if (!project) notFound();
 
   if (project.versions.at(-1)?.graph.pitch && project.status !== "READY") return <div className="min-h-dvh bg-bg p-4 sm:p-8"><PitchCreate balance={balance.total} resumeProjectId={project.id} /></div>;
-  const { watermark, maxQuality } = featurePlan(user);
+  const { watermark: planWatermark, maxQuality } = featurePlan(user);
+  // Compte d'essai (vidéo offerte, rien payé) : aperçu avec filigrane
+  const watermark = planWatermark || (await getTrialState(user)).trial;
   if (project.versions.at(-1)?.graph.resto) {
     const quote = await restoExportQuote(user, { id: project.id, brief: content.brief, restoPackId: content.restoPackId }, balance.total, (await getServerDictionary()).locale);
     return <RestoEditor key={project.id} project={project} initialBalance={balance.total} plan={{ watermark, maxQuality, quote, captions: canUseResto(user) && !needsRestoOffer(user) }} />;
   }
   if (project.versions.at(-1)?.graph.recording) return <RecordingEditor key={project.id} project={project} initialBalance={balance.total} plan={{ watermark, maxQuality }} />;
   // `key` : remonte l'éditeur quand la génération se termine (nouvelles versions côté serveur)
-  return <Editor key={`${project.id}-${project.status}-${project.versions.length}`} project={project} initialBalance={balance.total} plan={{ watermark, maxQuality }} />;
+  return <Editor key={`${project.id}-${project.status}-${project.versions.length}`} project={project} initialBalance={balance.total} plan={{ watermark, maxQuality, paywall: user.plan === "FREE" && user.role !== "ADMIN" }} />;
 }
 
 function EditorSkeleton() {

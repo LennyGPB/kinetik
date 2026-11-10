@@ -16,9 +16,16 @@ import { LIMITS, limitKey } from "@/lib/security/limits";
  * - Déjà abonné → portail client : changement d'offre (immédiat, au prorata), résiliation, factures.
  * Les crédits sont attribués uniquement par le webhook (app/api/stripe/webhook), jamais au retour du navigateur.
  */
-export type CheckoutItem =
+export type CheckoutItem = (
   | { kind: "plan"; planId: PaidPlanId; billing: "monthly" | "yearly"; /** Offre Resto déjà abonné : remplacement confirmé dans l'app */ confirmSwitch?: boolean }
-  | { kind: "pack"; packId: string };
+  | { kind: "pack"; packId: string }
+) & {
+  /** Retour après paiement vers ce projet (fenêtre de téléchargement), au lieu de la page Crédits */
+  returnPath?: string;
+};
+
+/** Seuls les chemins de projet sont acceptés comme retour (pas de redirection ouverte). */
+const safeReturnPath = (path: string | undefined) => (path && /^\/project\/[A-Za-z0-9_-]{1,64}$/.test(path) ? path : null);
 
 export type CheckoutResult =
   | { ok: true; url: string }
@@ -75,9 +82,11 @@ export async function startCheckout(item: CheckoutItem): Promise<CheckoutResult>
   const { user, locale, billing } = ctx;
   try {
     const customer = await ensureCustomer(user, locale, billing.stripeCustomerId);
+    const back = safeReturnPath(item.returnPath);
     const base = {
       customer, locale, client_reference_id: user.id,
-      success_url: returnUrl(locale, "success"), cancel_url: returnUrl(locale),
+      success_url: back ? `${siteConfig.url}/${locale}${back}?checkout=success` : returnUrl(locale, "success"),
+      cancel_url: back ? `${siteConfig.url}/${locale}${back}` : returnUrl(locale),
       consent_collection: { terms_of_service: "required" },
       custom_text: { terms_of_service_acceptance: { message: CONSENT[locale] } },
       billing_address_collection: "auto",

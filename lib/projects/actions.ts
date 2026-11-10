@@ -20,7 +20,8 @@ import { isProduct3D } from "@/config/physical-product";
 import { isRestoPremium3d } from "@/config/resto-templates";
 import { MAX_PROJECT_COLORS } from "@/config/colors";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { claimGeneration, getCreditBalance, InsufficientCreditsError, refundCredits, spendCredits } from "@/lib/credits/ledger";
+import { claimGeneration, getCreditBalance, getTrialState, InsufficientCreditsError, refundCredits, spendCredits, spendFreeDraft } from "@/lib/credits/ledger";
+import { qualifiesForFreeDraft } from "@/config/free-draft";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { format } from "@/lib/i18n";
@@ -144,7 +145,11 @@ const types = t.app.credits.types;
   });
 
   try {
-    await spendCredits(user.id, { amount: CREDIT_COSTS.generation, type: "GENERATION", description: `${types.GENERATION} · ${data.appName}`, reference: project.id });
+    const description = `${types.GENERATION} · ${data.appName}`;
+    // Première vidéo offerte (compte d'essai, motion classique) ; sinon débit habituel
+    const free = qualifiesForFreeDraft(data) && (await getTrialState(user)).freeDraftAvailable
+      && await spendFreeDraft(user.id, { amount: CREDIT_COSTS.generation, grantDescription: t.locale === "en" ? "First video on us" : "Première vidéo offerte", description, reference: project.id });
+    if (!free) await spendCredits(user.id, { amount: CREDIT_COSTS.generation, type: "GENERATION", description, reference: project.id });
   } catch (error) {
     await db.project.delete({ where: { id: project.id } });
     if (error instanceof InsufficientCreditsError) return insufficient(error);
@@ -845,6 +850,8 @@ const types = t.app.credits.types;
 
   const plan = featurePlan(user);
   if (options.quality === "HD" && plan.maxQuality !== "HD") return { ok: false, error: "invalid" };
+  // Compte d'essai (rien payé) : filigrane, comme sur l'aperçu de la vidéo offerte
+  const watermark = plan.watermark || (await getTrialState(user)).trial;
 
   const latest = await db.projectVersion.findFirst({ where: { projectId }, orderBy: { number: "desc" }, select: { id: true, scenes: true } });
   if (!latest) return { ok: false, error: "busy" };
@@ -880,7 +887,7 @@ const types = t.app.credits.types;
       if (allowance.free < cost) return { ok: false, error: "insufficient_credits", required: cost, available: allowance.free };
     }
     render = await db.render.create({
-      data: { projectId, versionId: latest.id, status: "RENDERING", format: options.format, quality: options.quality, watermark: plan.watermark, creditCost: cost },
+      data: { projectId, versionId: latest.id, status: "RENDERING", format: options.format, quality: options.quality, watermark, creditCost: cost },
     });
   } finally {
     await releaseLock(`export:${user.id}`, lock);
@@ -902,7 +909,7 @@ const types = t.app.credits.types;
     const source = await getVideoSource(projectId);
     if (!source) throw new Error("Projet introuvable");
     // Le format d'export peut différer de celui du projet : la composition s'adapte
-    const props = { ...buildVideoProps(source, graph, plan.watermark), format: options.format };
+    const props = { ...buildVideoProps(source, graph, watermark), format: options.format };
     const lambda = await startLambdaRender({ props, userId: user.id, quality: options.quality, fileName: exportFileName(project.appName, graph.resto ? RESTO_FORMATS[graph.resto.format].ratio : VIDEO_FORMATS[options.format].ratio), batch: Math.min(FORMAT_IDS.length, Math.max(1, Math.floor(Number(batch)) || 1)) });
     await db.render.update({ where: { id: render.id }, data: { lambdaRenderId: lambda.renderId, bucketName: lambda.bucketName } });
   } catch (error) {

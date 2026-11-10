@@ -9,7 +9,7 @@ import { ArrowLeft, ChevronDown, Coins, Download, History, Images, Languages, La
 import Link, { useRouter } from "@/lib/i18n/navigation";
 import { backOrFallback } from "@/lib/navigation-back";
 import { uploadFile } from "@/lib/storage/client";
-import { useState, useTransition, type ReactNode } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { StatusBadge } from "@/components/app/project-grid";
 import { LanguageToggle } from "@/components/ui/language-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -33,6 +33,7 @@ import { cn, formatNumber } from "@/lib/utils";
 import { ChatPanel } from "./chat-panel";
 import { DraftScreen } from "./draft-screen";
 import { ExportDialog } from "./export-dialog";
+import { UpgradeDialog } from "@/components/pricing/upgrade-panel";
 import { GeneratingScreen } from "./generating-screen";
 import { Player } from "./player";
 import { MediaDialog } from "./media-dialog";
@@ -53,7 +54,8 @@ export function Editor({
 }: {
   project: EditorProject;
   initialBalance: number;
-  plan: Pick<PricingPlan, "watermark" | "maxQuality">;
+  /** `paywall` : compte sans abonnement, les offres s'affichent quand les crédits manquent */
+  plan: Pick<PricingPlan, "watermark" | "maxQuality"> & { paywall?: boolean };
 }) {
   const t = useDictionary();
 
@@ -63,6 +65,13 @@ export function Editor({
   const [messages, setMessages] = useState<EditorMessage[]>(project.messages);
   const [selected, setSelected] = useState(project.versions.at(-1)?.number ?? 1);
   const [balance, setBalance] = useState(initialBalance);
+  // Solde relu par le serveur (ex. retour de paiement) : il remplace le solde local
+  const [serverBalance, setServerBalance] = useState(initialBalance);
+  if (serverBalance !== initialBalance) {
+    setServerBalance(initialBalance);
+    setBalance(initialBalance);
+  }
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [thinking, setThinking] = useState(false);
   // Le lecteur change de clé à chaque version ; le choix audio reste dans la session d'édition.
   const [previewMuted, setPreviewMuted] = useState(false);
@@ -76,6 +85,7 @@ export function Editor({
   const [shareOpen, setShareOpen] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);
   const router = useRouter();
+
   /** Ajoute une capture aux médias du projet depuis une fenêtre de l'éditeur (ex. Focus), sans passer par la fenêtre Médias. */
   async function addScreen(file: File) {
     const uploaded = await uploadFile(file, "image");
@@ -105,6 +115,20 @@ export function Editor({
   const [chatSceneId, setChatSceneId] = useState<string | null>(null);
   const toast = useToast();
 
+  // Retour de Stripe (fenêtre de téléchargement) : confirmation, puis relecture du solde le temps que le webhook crédite
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("checkout") !== "success") return;
+    url.searchParams.delete("checkout");
+    window.history.replaceState(null, "", url);
+    toast({ title: t.app.credits.billing.success, description: t.app.credits.billing.successDesc, tone: "success" });
+    // Fenêtre de téléchargement rouverte : les réglages d'export remplacent les offres dès que le solde arrive
+    const timers = [setTimeout(() => setExportOpen(true), 0), ...[2500, 6000, 12000].map((ms) => setTimeout(() => router.refresh(), ms))];
+    return () => timers.forEach(clearTimeout);
+    // Une seule fois, à l'arrivée sur l'éditeur
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const visual = projectVisual(project);
   const current = versions.find((v) => v.number === selected) ?? versions.at(-1);
   const latest = versions.at(-1);
@@ -129,6 +153,7 @@ export function Editor({
 
     if (!result.ok) {
       setMessages((list) => list.filter((m) => m.id !== optimistic.id));
+      if (result.error === "insufficient_credits" && plan.paywall) return setUpgradeOpen(true);
       const errors = {
         insufficient_credits: { title: e.insufficient },
         ai_unavailable: { title: e.aiUnavailable, description: e.aiRefunded },
@@ -515,7 +540,9 @@ export function Editor({
         onBalance={setBalance}
         exported={project.exported}
         videoProps={buildVideoProps(project, (latest ?? current).graph, plan.watermark)}
+        paywall={plan.paywall}
       />
+      <UpgradeDialog open={upgradeOpen} onClose={() => setUpgradeOpen(false)} returnPath={`/project/${project.id}`} />
     </div>
   );
 }

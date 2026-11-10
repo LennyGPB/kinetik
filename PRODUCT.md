@@ -19,6 +19,7 @@ Créer des contenus de présentation de produits et d’applications à partir d
 - Certains templates de carrousel prolongent leur décor entre les pages.
 - Création guidée, édition manuelle, modifications IA, versions et exports.
 - Un seul solde de crédits pour tous les contenus ; coût affiché avant chaque opération payante.
+- Première vidéo offerte (`config/free-draft.ts`) : une génération motion classique par compte qui n’a jamais payé (hors 3D, logos animés et voix off). Aperçu, partage et export avec filigrane tant que rien n’est payé ; au téléchargement sans crédits, la fenêtre propose les abonnements (Pro en avant), le pack de 100 crédits en lien secondaire.
 - Préserver les parcours motion existants. La landing ne fait pas partie de cette extension.
 
 ## Brand Commitments

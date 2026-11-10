@@ -12,7 +12,7 @@ import { CreateWizard } from "./create-wizard";
 import { LogoMotionCreate } from "./logo-motion-create";
 import { UrlVideoCreate } from "./url-video-create";
 
-export function MotionCreateFlow(props: { balance: number; brandKit: BrandKitData | null; initialAppName?: string; initialStyleId?: string; initialFlow?: string; initialAnalysisId?: string }) {
+export function MotionCreateFlow(props: { balance: number; brandKit: BrandKitData | null; initialAppName?: string; initialStyleId?: string; initialFlow?: string; initialAnalysisId?: string; /** Première vidéo offerte encore disponible (motion classique) */ freeDraft?: boolean }) {
   const fr = useDictionary().locale === "fr";
   // ?flow= vient des cartes de la page de création (url, manual, logo, pitch)
   const [mode, setMode] = useState<MotionMode | null>(() => props.initialFlow === "url" ? "url" : props.initialFlow === "manual" ? "motion" : props.initialFlow === "pitch" ? "pitch" : props.initialFlow === "logo" || getLogoMotion(props.initialStyleId) ? "logo" : null);

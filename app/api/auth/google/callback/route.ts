@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { after, NextResponse } from "next/server";
 import { siteConfig } from "@/config/site";
-import { DEFAULT_REDIRECT, safeRedirect } from "@/lib/auth/constants";
+import { DEFAULT_REDIRECT, FIRST_VIDEO_PATH, safeRedirect } from "@/lib/auth/constants";
 import { OAUTH_COOKIE, exchangeGoogleCode } from "@/lib/auth/google";
 import { createSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
     await createSession(userId);
     // Aucun crédit offert : un nouveau compte passe par la page Crédits, sauf destination précise.
     const target = safeRedirect(pending.redirectTo);
-    return NextResponse.redirect(`${siteConfig.url}/${locale}${created && target === DEFAULT_REDIRECT ? "/credits" : target}`);
+    return NextResponse.redirect(`${siteConfig.url}/${locale}${created && target === DEFAULT_REDIRECT ? FIRST_VIDEO_PATH : target}`);
   } catch (error) {
     console.error("[auth.google]", error);
     return fail("oauth");

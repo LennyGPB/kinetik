@@ -3,6 +3,7 @@ import { isBrandFont } from "@/config/fonts";
 import { ProductBriefSchema } from "../url-video/brief";
 import { getPlan } from "@/config/pricing";
 import { db } from "@/lib/db";
+import { getTrialState } from "@/lib/credits/ledger";
 import { imageSize } from "@/lib/storage";
 import { parseSceneGraph } from "./scenes";
 import { PostDocumentSchema } from "@/lib/posts/document";
@@ -187,7 +188,7 @@ export async function getSharedVideo(token: string) {
   const project = await db.project.findUnique({
     where: { shareToken: token },
     include: {
-      user: { select: { plan: true } },
+      user: { select: { id: true, plan: true, role: true } },
       versions: { orderBy: { number: "desc" }, take: 1 },
       assets: { where: { type: { in: ["LOGO", "SCREEN", "MUSIC", "BACKGROUND"] } }, orderBy: { position: "asc" }, select: { id: true, type: true, url: true, width: true, height: true } },
     },
@@ -204,6 +205,7 @@ export async function getSharedVideo(token: string) {
     websiteUrl: project.websiteUrl,
     custom: await getCommunityRuntime(project.styleId),
   };
-  // Le filigrane suit le plan du propriétaire, comme à l'export
-  return { source, graph: parseSceneGraph(version.scenes), watermark: getPlan(project.user.plan).watermark, name: project.name };
+  // Le filigrane suit le plan du propriétaire, comme à l'export (compte d'essai compris : la vidéo offerte se partage avec filigrane)
+  const watermark = getPlan(project.user.plan).watermark || (await getTrialState(project.user)).trial;
+  return { source, graph: parseSceneGraph(version.scenes), watermark, name: project.name };
 }

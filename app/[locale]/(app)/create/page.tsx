@@ -16,7 +16,8 @@ import { PostForm } from "@/components/posts/post-form";
 import { StoreForm } from "@/components/store/store-form";
 import { DecorGallery } from "@/components/decors/decor-gallery";
 import { requireUser } from "@/lib/auth/dal";
-import { getCreditBalance } from "@/lib/credits/ledger";
+import { getCreditBalance, getTrialState } from "@/lib/credits/ledger";
+import { getLogoMotion } from "@/config/logo-motion";
 import { localizedRedirect } from "@/lib/i18n/redirect";
 import { isFeatureEnabled } from "@/config/features";
 
@@ -41,9 +42,12 @@ async function CreateContent({ searchParams }: { searchParams: PageProps<"/[loca
   // Contenu Resto sans aucune offre : direction l'offre Resto (avant la règle « aucun crédit → page Crédits »)
   const restoKinds = ["dish", "week", "lunch", "happyhour", "event", "reviews", "hours", "intro"];
   if (restoKinds.includes(first(params.kind) ?? "") && canUseResto(user) && needsRestoOffer(user)) await localizedRedirect("/resto/offre");
-  const [balance, brandKit] = await Promise.all([getCreditBalance(user.id), getDefaultBrandKit(user.id)]);
+  const [balance, brandKit, trialState] = await Promise.all([getCreditBalance(user.id), getDefaultBrandKit(user.id), getTrialState(user)]);
+  // Première vidéo offerte : seul le parcours motion classique (assistant de création) est ouvert sans crédit
+  const freeDraft = trialState.freeDraftAvailable && balance.total <= 0
+    && (first(params.kind) ?? "motion") === "motion" && [undefined, "manual"].includes(first(params.flow)) && !first(params.analysis) && !getLogoMotion(first(params.style));
   // Aucun crédit : rien n'est créable, on envoie vers la page Crédits (message affiché là-bas)
-  if (balance.total <= 0) await localizedRedirect("/credits?insufficient=1");
+  if (balance.total <= 0 && !freeDraft) await localizedRedirect("/credits?insufficient=1");
   // Niche Resto : plat du jour (masqué aux non-admins tant que la feature n'est pas publiée)
   if (first(params.kind) === "dish") return canUseResto(user) ? <PlatDuJourCreate brandKit={brandKit ? { name: brandKit.name, logo: brandKit.logo } : null} /> : <CreatePicker />;
   // Affiches animées du pack du lundi
@@ -64,7 +68,8 @@ async function CreateContent({ searchParams }: { searchParams: PageProps<"/[loca
       brandKit={brandKit}
       initialAppName={first(params.app)?.slice(0, 40)}
       initialStyleId={first(params.style)}
-      initialFlow={first(params.flow)}
+      initialFlow={freeDraft ? "manual" : first(params.flow)}
+      freeDraft={trialState.freeDraftAvailable}
       initialAnalysisId={first(params.analysis)?.slice(0, 100)}
     />}
     </div>

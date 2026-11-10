@@ -6,7 +6,7 @@ import type { DeviceMockup } from "@/config/device-mockups";
 
 import { useDictionary } from "@/lib/i18n/use-dictionary";
 
-import { AppWindow, ArrowRight, Clapperboard, Coins, Images, LayoutTemplate, Music2, Palette, Pause, Play, Plus, Sparkles, VolumeX } from "lucide-react";
+import { AppWindow, ArrowRight, Clapperboard, Coins, Gift, Images, LayoutTemplate, Music2, Palette, Pause, Play, Plus, Sparkles, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "@/lib/i18n/navigation";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
@@ -20,6 +20,7 @@ import { Field, Input, Textarea } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { CREDIT_COSTS } from "@/config/credits";
+import { qualifiesForFreeDraft } from "@/config/free-draft";
 import { VIDEO_TYPE_IDS, VIDEO_TYPES, type VideoTypeId } from "@/config/video-types";
 import { DURATIONS, FORMAT_IDS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import { MUSIC_LIBRARY, getTrack } from "@/config/music";
@@ -50,6 +51,15 @@ const LOCAL_COPY = {
     brand: { heading: "Ton identité visuelle", help: "Ton logo et tes couleurs guident toute la vidéo." },
     videoTitle: "Type de vidéo", optional: "facultatif",
     nav: "Étapes de création",
+    free: {
+      badge: "Offerte",
+      banner: "Ta première vidéo est offerte. Tu la vois en entier avant de payer quoi que ce soit.",
+      bannerLimits: "Hors templates 3D et voix off.",
+      cost: "Ta première vidéo",
+      amount: "Offerte",
+      after: "Aperçu complet avec filigrane. Tu ne paies que si tu veux la télécharger.",
+      excluded: "La vidéo offerte ne comprend ni les templates 3D ni la voix off. Choisis un autre style ou retire la voix pour en profiter.",
+    },
   },
   en: {
     steps: { app: "Project", screens: "Screens", brand: "Brand", style: "Style", video: "Video", sound: "Sound", review: "Create" },
@@ -57,6 +67,15 @@ const LOCAL_COPY = {
     brand: { heading: "Your visual identity", help: "Your logo and colours guide the whole video." },
     videoTitle: "Video type", optional: "optional",
     nav: "Creation steps",
+    free: {
+      badge: "Free",
+      banner: "Your first video is on us. Watch it in full before paying anything.",
+      bannerLimits: "3D templates and voiceover not included.",
+      cost: "Your first video",
+      amount: "Free",
+      after: "Full preview with a watermark. You only pay if you want to download it.",
+      excluded: "The free video doesn’t include 3D templates or voiceover. Pick another style or remove the voice to use it.",
+    },
   },
 } as const;
 
@@ -96,11 +115,14 @@ export function CreateWizard({
   brandKit,
   initialAppName,
   initialStyleId,
+  freeDraft = false,
 }: {
   balance: number;
   brandKit: BrandKitData | null;
   initialAppName?: string;
   initialStyleId?: string;
+  /** Première vidéo offerte encore disponible */
+  freeDraft?: boolean;
 }) {
   const t = useDictionary();
 
@@ -207,7 +229,10 @@ export function CreateWizard({
   }
 
   const visual = projectVisual({ styleId: state.styleId, colors: state.colors });
-  const canAfford = balance >= CREDIT_COSTS.generation;
+  // Vidéo offerte : seulement si le compte n'a pas de quoi payer et que les choix restent en motion classique
+  const freeDraftUnused = freeDraft && balance < CREDIT_COSTS.generation;
+  const free = freeDraftUnused && qualifiesForFreeDraft(state);
+  const canAfford = free || balance >= CREDIT_COSTS.generation;
   const titles: Record<StepId, { title: string; help?: string }> = {
     app: { title: c.app.heading, help: c.app.help },
     screens: { title: l.screens.heading, help: l.screens.help },
@@ -238,9 +263,16 @@ export function CreateWizard({
               {titles[step].help && <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">{titles[step].help}</p>}
             </div>
             <Badge tone="accent" className="hidden shrink-0 py-1 sm:inline-flex">
-              <Coins className="size-3.5" /> {CREDIT_COSTS.generation} {t.common.credits}
+              {free ? <><Gift className="size-3.5" /> {l.free.badge}</> : <><Coins className="size-3.5" /> {CREDIT_COSTS.generation} {t.common.credits}</>}
             </Badge>
           </header>
+
+          {freeDraftUnused && stepIndex === 0 && (
+            <p className="mb-6 flex items-start gap-2.5 rounded-2xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm text-accent-text">
+              <Gift className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span><span className="font-medium">{l.free.banner}</span> <span className="opacity-80">{l.free.bannerLimits}</span></span>
+            </p>
+          )}
 
           <AnimatePresence mode="wait" custom={direction} initial={false}>
             <motion.div
@@ -256,7 +288,7 @@ export function CreateWizard({
               exit="exit"
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             >
-              <StepContent step={step} state={state} set={set} brandKit={brandKit} onJump={jumpTo} balance={balance} analysis={analysis} retryAnalysis={retry} onUploading={onUploading} />
+              <StepContent step={step} state={state} set={set} brandKit={brandKit} onJump={jumpTo} balance={balance} analysis={analysis} retryAnalysis={retry} onUploading={onUploading} freeDraft={freeDraftUnused} />
             </motion.div>
           </AnimatePresence>
 
@@ -386,6 +418,7 @@ function StepContent({
   analysis,
   retryAnalysis,
   onUploading,
+  freeDraft,
 }: {
   step: StepId;
   state: WizardState;
@@ -396,6 +429,7 @@ function StepContent({
   analysis: WebsiteAnalysis;
   retryAnalysis: () => void;
   onUploading: (key: string, busy: boolean) => void;
+  freeDraft: boolean;
 }) {
   const t = useDictionary();
 
@@ -648,6 +682,7 @@ function StepContent({
         { step: "sound", label: t.voiceover.title, value: state.voiceover?.voiceName || t.voiceover.withoutVoice },
       ];
       const after = balance - CREDIT_COSTS.generation;
+      const free = freeDraft && qualifiesForFreeDraft(state);
       return (
         <div className="flex flex-col gap-4">
           <Panel className="p-2 sm:p-2">
@@ -696,17 +731,17 @@ function StepContent({
           <div className="relative overflow-hidden rounded-3xl border border-accent/30 bg-accent-soft p-5 sm:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-accent-text">{c.review.cost}</p>
+                <p className="text-sm font-medium text-accent-text">{free ? l.free.cost : c.review.cost}</p>
                 <p className="mt-1 font-display text-4xl font-bold">
-                  {CREDIT_COSTS.generation} <span className="text-base font-medium text-muted">{t.common.credits}</span>
+                  {free ? l.free.amount : <>{CREDIT_COSTS.generation} <span className="text-base font-medium text-muted">{t.common.credits}</span></>}
                 </p>
               </div>
               <span className="grid size-14 place-items-center rounded-2xl bg-accent-gradient text-white shadow-[0_10px_30px_-10px_var(--accent-glow)]">
-                <Sparkles className="size-6" />
+                {free ? <Gift className="size-6" /> : <Sparkles className="size-6" />}
               </span>
             </div>
-            <p className={cn("mt-3 text-sm", after < 0 ? "font-medium text-danger" : "text-muted")}>
-              {after < 0 ? (
+            <p className={cn("mt-3 text-sm", !free && after < 0 ? "font-medium text-danger" : "text-muted")}>
+              {free ? l.free.after : freeDraft ? l.free.excluded : after < 0 ? (
                 <>
                   {c.review.insufficient}{" "}
                   <Link href="/credits" className="underline">

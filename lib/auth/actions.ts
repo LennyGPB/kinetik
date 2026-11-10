@@ -9,7 +9,7 @@ import { rateLimitAll, resetRateLimit } from "@/lib/rate-limit";
 import { LIMITS, limitKey, requestIp } from "@/lib/security/limits";
 import { checkEmailDomain, checkSignupForm, issueSignupToken } from "@/lib/security/signup-guard";
 import { notifySignup } from "@/lib/services/telegram";
-import { DEFAULT_REDIRECT, safeRedirect } from "./constants";
+import { DEFAULT_REDIRECT, FIRST_VIDEO_PATH, safeRedirect } from "./constants";
 import { burnPasswordCheck, hashPassword, verifyPassword } from "./password";
 import { createSession, destroySession } from "./session";
 import { createAuthSchemas, type AuthFormState } from "./validation";
@@ -66,9 +66,9 @@ export async function register(_prev: AuthFormState, formData: FormData): Promis
   await createSession(user.id);
   after(() => notifySignup({ name, email, method: "email", locale: t.locale }));
 
-  // Aucun crédit offert : un nouveau compte passe par la page Crédits, sauf destination précise.
+  // Nouveau compte : direction la première vidéo (offerte), sauf destination précise.
   const target = safeRedirect(String(formData.get("redirectTo") ?? ""));
-  return await localizedRedirect(target === DEFAULT_REDIRECT ? "/credits" : target);
+  return await localizedRedirect(target === DEFAULT_REDIRECT ? FIRST_VIDEO_PATH : target);
 }
 
 export async function login(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {

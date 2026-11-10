@@ -13,6 +13,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toaster";
 import { getExportCost, type ExportQuality } from "@/config/credits";
+import { UpgradePanel } from "@/components/pricing/upgrade-panel";
 import { FORMAT_IDS, RESTO_FORMATS, VIDEO_FORMATS, type VideoFormatId } from "@/config/formats";
 import type { PricingPlan } from "@/config/pricing";
 
@@ -45,6 +46,7 @@ export function ExportDialog({
   videoProps,
   singleFormat = false,
   restoQuote = null,
+  paywall = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -62,6 +64,8 @@ export function ExportDialog({
   singleFormat?: boolean;
   /** Contenu Resto : prix fixe décidé par le serveur (lib/resto/allowance.ts) et libellé en packs / plats du jour */
   restoQuote?: ExportRestoQuote | null;
+  /** Compte sans abonnement : sans crédits suffisants, la fenêtre propose les abonnements au lieu des réglages */
+  paywall?: boolean;
 }) {
   const t = useDictionary();
 
@@ -85,7 +89,8 @@ export function ExportDialog({
   // Le premier export lancé ici fait aussi passer les suivants à moitié prix ; plusieurs formats = exports successifs
   const [exportedNow, setExportedNow] = useState(false);
   const reexport = exported || exportedNow;
-  const costs = formats.map((_, i) => getExportCost({ duration, quality, reexport: reexport || i > 0, decor: Boolean(videoProps.graph.recording?.decorId), premium3d: Boolean(videoProps.recipe.stage || isProduct3D(videoProps.graph.styleId) || isRestoPremium3d(videoProps.graph)) }));
+  const costFlags = { duration, decor: Boolean(videoProps.graph.recording?.decorId), premium3d: Boolean(videoProps.recipe.stage || isProduct3D(videoProps.graph.styleId) || isRestoPremium3d(videoProps.graph)) };
+  const costs = formats.map((_, i) => getExportCost({ ...costFlags, quality, reexport: reexport || i > 0 }));
   // Contenu Resto : proportions et libellé viennent de la version (le 4:5 n'est pas un format de projet)
   const fixedRatio = videoProps.graph.resto ? RESTO_FORMATS[videoProps.graph.resto.format].ratio : null;
   const ratioOf = (id: VideoFormatId) => fixedRatio ?? VIDEO_FORMATS[id].ratio;
@@ -94,6 +99,8 @@ export function ExportDialog({
   const cost = quote ? quote.credits : costs.reduce((sum, c) => sum + c, 0);
   const voiceIssues = hasVoiceIssues(videoProps.graph);
   const canAfford = (quote ? quote.available : balance) >= cost && !voiceIssues && !quote?.blocked;
+  // Pas même de quoi exporter un seul format : on propose directement les abonnements
+  const showPaywall = paywall && !quote && !voiceIssues && balance < getExportCost({ ...costFlags, reexport });
 
   // Suivi des rendus (Remotion Lambda, ou simulés sans configuration AWS) : un seul appel pour tous les formats,
   // et le suivant n'est planifié qu'une fois la réponse reçue (pas d'appels qui se chevauchent si le serveur est lent)
@@ -168,7 +175,12 @@ export function ExportDialog({
   return (
     <Dialog open={open} onClose={close} title={x.title} aside={<ExportPreview videoProps={videoProps} format={shown} quality={quality} />}>
       <AnimatePresence mode="wait" initial={false}>
-        {phase.kind === "config" && (
+        {phase.kind === "config" && showPaywall && (
+          <motion.div key="paywall" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <UpgradePanel returnPath={`/project/${projectId}`} />
+          </motion.div>
+        )}
+        {phase.kind === "config" && !showPaywall && (
           <motion.div key="config" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-6">
             {!singleFormat && <div>
               <div className="mb-2.5 flex items-center justify-between gap-3">

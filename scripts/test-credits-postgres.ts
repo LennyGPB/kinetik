@@ -4,7 +4,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../lib/generated/prisma/client";
+import { Prisma, PrismaClient } from "../lib/generated/prisma/client";
 
 /** A disposable schema, never public tables. Run with --env-file=.env and react-server conditions. */
 async function main() {
@@ -33,8 +33,16 @@ async function main() {
     const check = await pool.query("SELECT current_schema() AS schema");
     assert.equal(check.rows[0].schema, schema);
     client = new PrismaClient({ adapter: new PrismaPg(pool, { schema }), transactionOptions: { maxWait: 20000, timeout: 20000 } });
-    (globalThis as { prisma?: PrismaClient }).prisma = client;
+    // lib/db.ts ne réutilise le client global que si le schéma généré et le constructeur correspondent :
+    // sans ces deux marqueurs, le ledger ouvrirait sa propre connexion sur DATABASE_URL (tables réelles).
+    Object.assign(globalThis, {
+      prisma: client,
+      prismaSchema: JSON.stringify(Object.entries(Prisma).filter(([name]) => name.endsWith("ScalarFieldEnum"))),
+      prismaConstructor: PrismaClient,
+    });
     const ledger = await import("../lib/credits/ledger");
+    const { db } = await import("../lib/db");
+    assert.equal(db, client, "the ledger must use the disposable schema");
     const end = new Date(Date.now() + 30 * 86_400_000);
     const start = new Date(Date.now() - 1000);
     const old = new Date(Date.now() - 86_400_000);
@@ -129,6 +137,30 @@ async function main() {
       await pack(id, 10);
       await assert.rejects(ledger.spendCredits(id, { amount: 10, type: "EXPORT", description: "Test rollback" }, async () => { throw new Error("simulated_failure"); }), /simulated_failure/);
       assert.equal((await ledger.getCreditBalance(id)).total, 10);
+    });
+    const freeDraft = (userId: string, reference: string) => ledger.spendFreeDraft(userId, { amount: 10, grantDescription: "Test free video", description: "Test free generation", reference });
+    const trialUser = (id: string) => ({ id, plan: "FREE" as const, role: "USER" as const });
+    await run("free first video is granted once, even under concurrency, and leaves no spendable credits", async (id) => {
+      assert.deepEqual(await ledger.getTrialState(trialUser(id)), { trial: true, freeDraftAvailable: true });
+      const results = await Promise.all(Array.from({ length: 5 }, (_, i) => freeDraft(id, `project-${i}`)));
+      assert.equal(results.filter(Boolean).length, 1);
+      assert.equal((await ledger.getCreditBalance(id)).total, 0);
+      assert.deepEqual(await ledger.getTrialState(trialUser(id)), { trial: true, freeDraftAvailable: false });
+      assert.equal(await freeDraft(id, "project-again"), null);
+      // The usual generation claim works on the free debit
+      const used = results.findIndex(Boolean);
+      const claim = await ledger.claimGeneration(id, `project-${used}`);
+      assert.equal(claim?.claimed, true);
+      // A failed generation refunds the free debit so the user can retry; the account stays a trial account
+      await ledger.refundCredits(id, { amount: 10, reference: claim!.debit.id, description: "Test refund" });
+      assert.equal((await ledger.getCreditBalance(id)).total, 10);
+      assert.equal((await ledger.getTrialState(trialUser(id))).trial, true);
+    });
+    await run("paying customers and subscribers are never trial accounts", async (id) => {
+      await pack(id, 100);
+      assert.deepEqual(await ledger.getTrialState(trialUser(id)), { trial: false, freeDraftAvailable: false });
+      assert.equal(await freeDraft(id, "project"), null);
+      assert.deepEqual(await ledger.getTrialState({ id, plan: "STARTER", role: "USER" }), { trial: false, freeDraftAvailable: false });
     });
     console.log(`PostgreSQL: ${passed} scenarios passed. No Stripe, Claude or Lambda calls.`);
   } finally {

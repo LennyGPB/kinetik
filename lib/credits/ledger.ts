@@ -175,6 +175,52 @@ export function refundCredits(userId: string, input: { amount: number; descripti
   });
 }
 
+// ───────────── Première vidéo offerte ─────────────
+
+const FREE_DRAFT_PREFIX = "free-draft:";
+
+/**
+ * Compte d'essai : il n'a jamais reçu de crédits, hors première vidéo offerte et remboursements.
+ * `freeDraftAvailable` : la vidéo offerte n'a pas encore été utilisée.
+ */
+async function trialRows(client: Client, userId: string) {
+  // Deux lignes suffisent : la vidéo offerte et, s'il y en a une, n'importe quel autre crédit reçu
+  const rows = await client.creditTransaction.findMany({ where: { userId, amount: { gt: 0 }, type: { not: "REFUND" } }, select: { reference: true }, take: 2 });
+  const freeDraftUsed = rows.some((row) => row.reference?.startsWith(FREE_DRAFT_PREFIX));
+  const trial = rows.every((row) => row.reference?.startsWith(FREE_DRAFT_PREFIX));
+  return { trial, freeDraftAvailable: trial && !freeDraftUsed };
+}
+
+export type TrialState = { trial: boolean; freeDraftAvailable: boolean };
+
+/** Les admins et les abonnés ne sont jamais en essai. */
+export async function getTrialState(user: { id: string; plan: PlanId; role: "USER" | "ADMIN" }): Promise<TrialState> {
+  if (user.role === "ADMIN" || user.plan !== "FREE") return { trial: false, freeDraftAvailable: false };
+  return trialRows(db, user.id);
+}
+
+/**
+ * Génère la vidéo offerte : crédit de `amount` puis débit du même montant, dans une seule transaction.
+ * Renvoie null si le compte n'y a plus droit. En cas d'échec de la génération, le remboursement habituel
+ * rend ces crédits, ce qui permet de relancer.
+ */
+export async function spendFreeDraft(userId: string, input: { amount: number; grantDescription: string; description: string; reference: string }) {
+  positiveAmount(input.amount);
+  const balance = await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`;
+    if (!(await trialRows(tx, userId)).freeDraftAvailable) return null;
+    const now = Date.now();
+    await tx.creditTransaction.create({ data: { userId, amount: input.amount, type: "SIGNUP_BONUS", source: "PACK", reference: `${FREE_DRAFT_PREFIX}${userId}`, description: input.grantDescription, createdAt: new Date(now) } });
+    await tx.creditTransaction.create({ data: { userId, amount: -input.amount, type: "GENERATION", source: "PACK", reference: input.reference, description: input.description, createdAt: new Date(now + 1) } });
+    return computeBalance(tx, userId);
+  });
+  if (balance) {
+    try { after(() => notifyGeneration({ userId, description: `${input.description} (offerte)`, amount: input.amount })); }
+    catch { /* Hors requête : pas de notification. */ }
+  }
+  return balance;
+}
+
 /** Durable execution receipt attached to the paid debit. Zero-value receipts never change the balance. */
 export function claimGeneration(userId: string, projectId: string) {
   return db.$transaction(async (tx) => {
