@@ -388,6 +388,26 @@
   to { transform: translateX(-50%); }
 }
 
+/* Entrée du hero en CSS pur : démarre dès le premier rendu HTML, sans attendre
+   l'hydratation JS (une animation motion bloquée laissait le titre invisible). */
+.hero-word-rise {
+  animation: hero-word-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--hero-delay, 0s) both;
+}
+.hero-fade-up {
+  animation: hero-fade-up var(--hero-duration, 0.8s) cubic-bezier(0.16, 1, 0.3, 1) var(--hero-delay, 0s) both;
+}
+@keyframes hero-word-rise {
+  from { transform: translate3d(0, 105%, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+@keyframes hero-fade-up {
+  from { opacity: 0; transform: translate3d(0, var(--hero-y, 16px), 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-word-rise, .hero-fade-up { animation: none; }
+}
+
 @keyframes hero-title-vibration {
   0%, 32%, 100% { transform: translate(0, 0) rotate(0); }
   4%, 12% { transform: translate(-6px, 1.5px) rotate(-0.5deg); }
